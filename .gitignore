@@ -34,6 +34,7 @@ node_modules/
 .env
 .env.*
 !.env.example
+!.env.infra.example
 
 # ── TypeScript ───────────────────────────────────────────────────────────────
 *.tsbuildinfo
@@ -61,7 +62,7 @@ Desktop.ini
 .vscode/
 .idea/
 .cursor/
-.claude/
+.claude/settings.local.json
 
 # ── Vercel ───────────────────────────────────────────────────────────────────
 .vercel
