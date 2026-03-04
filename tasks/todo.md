@@ -63,7 +63,7 @@
 - [x] Admin 비밀번호 리셋 `POST /api/admin/users/[id]/reset-password`
 
 ### DB 스키마 확장 (backend-C6wwi 브랜치)
-> master 머지 전, EC2 호스트에서 SQL 직접 실행 필요
+> master 머지 전, **사람이 직접** EC2 호스트에 VPN 접속 후 SQL 실행 필요 (Agent 접근 불가)
 - [x] OrgUnit: `sortOrder`, `updatedAt` 추가 + unique 제약 변경
 - [x] Employee: `orgUnitId`, `status`, `offboardingUntil` 추가 + 구 컬럼(`orgId`, `subOrgId`) 제거
 - [x] User: `mustChangePassword` 추가
@@ -125,9 +125,11 @@
   - NotificationLog 기록 (성공/실패 모두)
 
 ### DevOps (미착수)
-> `claude/devops-setup-V6y5L` 브랜치 없음 — 세션 재시작 필요
+> `claude/devops-setup-V6y5L` 브랜치 없음
+> EC2는 VPN 경유 접근만 가능 — **Agent 직접 접속 불가, 사람이 수동 실행 필요**
+- [ ] EC2 호스트에서 DB 마이그레이션 SQL 직접 실행 (VPN 접속 후)
 - [ ] Docker 이미지 빌드 및 EC2 ARM64 배포 검증
-- [ ] 스왑 설정 + 빌드 메모리 최적화
+- [ ] 스왑 설정 + 빌드 메모리 최적화 (`free -h` 확인 후)
 
 ---
 
