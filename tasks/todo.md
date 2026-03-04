@@ -1,6 +1,6 @@
 # TODO
 
-> 기획 세션(/project:planning)에서 관리한다.
+> 기획 세션(/planning)에서 관리한다.
 
 ---
 
