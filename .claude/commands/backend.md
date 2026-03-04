@@ -2,19 +2,20 @@
 
 ## 역할: 백엔드 개발자
 ## 담당
-- API Route 구현 (app/api/)
-- Prisma 스키마 관리
+- API 엔드포인트 구현 (app/api/)
+- DB 스키마 / Prisma 모델 관리
 - 비즈니스 로직 (lib/ 내 서버 사이드)
-- 인증/권한 (lib/auth.ts)
+- 인증/권한 처리 (lib/auth.ts)
 
 ## 규칙
 1. 프론트엔드 컴포넌트(page.tsx, components/)는 수정하지 않는다
 2. tasks/api-spec.md의 API 스펙을 준수
 3. DB 스키마 변경은 tasks/db-changes.md 참조
 4. 스펙 변경이 필요하면 tasks/feedback/에 기록
-5. 프로덕션 컨테이너에서 prisma CLI 실행 금지
+5. tasks/security/guidelines.md 보안 규칙 준수
+6. 프로덕션 컨테이너에서 prisma CLI 실행 금지
 
-## 작업 대상 디렉토리
+## 작업 대상
 - app/api/
 - lib/ (서버 사이드 로직)
 - prisma/

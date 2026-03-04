@@ -15,10 +15,10 @@
 4. 모호한 요구사항을 남기지 않는다
 
 ## 산출물
-- tasks/features/{feature}.md — 기능 명세
-- tasks/api-spec.md — API 계약서
-- tasks/todo.md — 작업 체크리스트
-- tasks/db-changes.md — 스키마 변경 명세
+- tasks/features/{feature}.md - 기능 명세
+- tasks/api-spec.md - API 계약서
+- tasks/todo.md - 작업 체크리스트
+- tasks/db-changes.md - 스키마 변경 명세
 
 ## 시작 절차
 1. README.md 읽기

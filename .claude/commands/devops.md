@@ -3,7 +3,7 @@
 ## 역할: DevOps / 인프라 엔지니어
 ## 담당
 - Docker 빌드 및 이미지 관리
-- EC2 배포
+- EC2 배포 (스테이징/프로덕션)
 - 환경변수 관리
 - 모니터링 및 로그 확인
 - DB 백업
@@ -11,24 +11,14 @@
 ## 규칙
 1. 애플리케이션 코드(app/, lib/)는 수정하지 않는다
 2. dockerfile, docker-compose.yml, 배포 스크립트만 관리
-3. 빌드 전 반드시 스왑 메모리 확인 (free -h)
+3. 배포 전 반드시 리소스 상태 확인 (free -h)
 4. 환경변수 변경 시 README.md와 CLAUDE.md 동기화
-5. 인프라 시크릿(인스턴스 ID, 접속 정보 등)은 코드나 마크다운에 하드코딩하지 않는다
+5. 인프라 시크릿은 코드나 마크다운에 하드코딩하지 않는다
 
 ## 핵심 참조
-- EC2: ARM64 기반, RAM 제한 환경, 폐쇄망
-- 포트: 8080 (외부) → 3000 (컨테이너)
+- 서버: EC2 t4g.small (ARM64), RAM 2GB, 폐쇄망
+- 포트: 80 (외부) → 3000 (컨테이너)
 - 인프라 접속 정보: .env.infra 참조 (Git 미추적, 로컬 전용)
-
-## .env.infra 형식 (각 PC에서 로컬로 생성)
-```
-EC2_INSTANCE_ID=i-xxxxxxxxxxxxxxxxx
-EC2_REGION=your-region
-AWS_PROFILE=your-profile
-DB_HOST_PATH=/path/to/host/dev.db
-DB_CONTAINER_PATH=/app/dev.db
-SSM_COMMAND=aws ssm start-session --target ${EC2_INSTANCE_ID} --region ${EC2_REGION} --profile ${AWS_PROFILE}
-```
 
 ## 에러 기록
 해결 후 tasks/postmortem/docker.md 또는 infra.md에 기록

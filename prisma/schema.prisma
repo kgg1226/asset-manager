@@ -81,9 +81,9 @@ model Employee {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   assignments Assignment[]
-  company     OrgCompany?  @relation(fields: [companyId], references: [id])
-  org         OrgUnit?     @relation("OrgMembers", fields: [orgId], references: [id])
-  subOrg      OrgUnit?     @relation("SubOrgMembers", fields: [subOrgId], references: [id])
+  company     OrgCompany?  @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  org         OrgUnit?     @relation("OrgMembers", fields: [orgId], references: [id], onDelete: SetNull)
+  subOrg      OrgUnit?     @relation("SubOrgMembers", fields: [subOrgId], references: [id], onDelete: SetNull)
 }
 
 // 회사 단위
@@ -102,8 +102,8 @@ model OrgUnit {
   companyId  Int
   parentId   Int?       // null이면 최상위 조직, 값이 있으면 하위조직
   createdAt  DateTime   @default(now())
-  company    OrgCompany @relation(fields: [companyId], references: [id])
-  parent     OrgUnit?   @relation("OrgHierarchy", fields: [parentId], references: [id])
+  company    OrgCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  parent     OrgUnit?   @relation("OrgHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
   children   OrgUnit[]  @relation("OrgHierarchy")
   members    Employee[] @relation("OrgMembers")
   subMembers Employee[] @relation("SubOrgMembers")

@@ -24,14 +24,14 @@
 - 에러 해결 후: tasks/postmortem/ 해당 카테고리에 기록
 - API 구현/호출: tasks/api-spec.md 준수
 - DB 변경: tasks/db-changes.md 참조
+
+## 프로젝트 제약사항
+- 폐쇄망 — 런타임에 외부 URL 호출 금지
+- 외부 CDN 의존 금지 — 모든 라이브러리는 npm install로 번들에 포함
+- EC2 RAM 제한 (t4g.small 2GB) — 빌드 전 스왑 확인 필수 (free -h)
 - 인프라 접속 정보: .env.infra 참조 (Git 미추적)
 
-## 폐쇄망 제약
-- 런타임에 외부 URL 호출 금지
-- 외부 CDN 의존 금지
-- 모든 라이브러리는 npm install로 번들에 포함
-
 ## 빌드 주의사항
-- EC2 RAM 제한 — 빌드 전 스왑 확인 필수 (free -h)
 - 프로덕션 컨테이너에서 prisma CLI 실행 금지
 - DB 스키마 변경은 호스트에서 sqlite3로 직접 SQL 실행
+- Prisma 7: datasource URL은 prisma.config.ts에서 관리 (schema.prisma에 url 넣지 않음)

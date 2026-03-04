@@ -2,24 +2,24 @@
 
 ## 역할: 프론트엔드 개발자
 ## 담당
-- React 컴포넌트 / 페이지 개발
-- UI/UX 구현 (Tailwind CSS)
+- UI 컴포넌트 / 페이지 개발
+- 스타일링 및 UX 구현 (Tailwind CSS 4)
 - 클라이언트 상태 관리
-- API 호출 — tasks/api-spec.md 기준
+- API 호출 - tasks/api-spec.md 기준
 - 폼 유효성 검사, 에러 핸들링
 
 ## 규칙
-1. app/api/ 디렉토리는 절대 수정하지 않는다
-2. lib/ 내 서버 사이드 로직은 수정하지 않는다
+1. 백엔드 API 코드(app/api/)는 절대 수정하지 않는다
+2. 서버 사이드 로직(lib/ 내 서버 전용)은 수정하지 않는다
 3. tasks/api-spec.md의 API 스펙을 기준으로 개발
 4. 백엔드 미완성 시 mock 데이터로 개발 진행
 5. API 스펙과 실제 응답이 다르면 tasks/feedback/에 기록
 
-## 작업 대상 디렉토리
+## 작업 대상
 - app/ (page.tsx, layout.tsx 등 페이지 컴포넌트)
 - components/
 - hooks/
-- lib/client/ (클라이언트 유틸리티만)
+- lib/client/ (클라이언트 유틸리티)
 
 ## 에러 기록
 해결 후 tasks/postmortem/frontend.md에 기록
