@@ -61,11 +61,14 @@ git show origin/claude/backend-development-C6wwi:app/api/org/units/[id]/route.ts
 - DB 변경: `tasks/db-changes.md` 참조
 - 인프라 접속 정보: `.env.infra` 참조 (Git 미추적, 로컬 전용)
 
+<<<<<<< HEAD
 ## 폐쇄망 제약
 - 런타임에 외부 URL 호출 금지
 - 외부 CDN 의존 금지 (Google Fonts 등 포함)
 - 모든 라이브러리는 `npm install`로 번들에 포함
 
+=======
+>>>>>>> 8d9b7e1 (docs: 폐쇄망 제약 섹션 제거)
 ## 빌드 주의사항
 - EC2 ARM64, RAM 제한 환경 — 빌드 전 스왑 확인 필수 (`free -h`)
 - 프로덕션 컨테이너에서 `prisma CLI` 실행 금지
