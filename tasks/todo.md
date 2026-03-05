@@ -82,6 +82,14 @@
 - [x] 라이선스 담당자 관리: `GET|POST|DELETE /api/licenses/[id]/owners`
 - [x] 로그인 브루트포스 방어 (rate-limit)
 
+### 백엔드 — 배치/스케줄러 (backend-C6wwi 브랜치)
+- [x] OFFBOARDING 자동 삭제 배치 (`POST /api/cron/offboard`) → 구현 완료 (2026-03-05)
+- [x] 라이선스 갱신 알림 스케줄러 (`POST /api/cron/renewal-notify`) → 구현 완료 (2026-03-05)
+  - Slack 발송 (SLACK_WEBHOOK_URL 환경변수)
+  - Email 발송 (SMTP_* 환경변수, nodemailer)
+  - NotificationLog 기록 (성공/실패 모두)
+
+
 ### 보안 (security-I55Yn 브랜치)
 - [x] 전체 코드베이스 보안 리뷰 완료
 - [x] `tasks/security/guidelines.md` 업데이트
@@ -112,13 +120,6 @@
 - [x] 구성원 목록 검색·필터 기능 (이름, 부서, 상태)
 - [x] 구성원 중복 이름 구분 표시 (이름 + 이메일 앞부분 마스킹 함께 노출)
 - [ ] 모바일 반응형 레이아웃 검토
-
-### 백엔드 — 배치/스케줄러 (미착수)
-- [ ] OFFBOARDING 자동 삭제 배치 (매일 실행, `offboardingUntil` 경과 구성원 삭제 + tombstone)
-- [ ] 라이선스 갱신 알림 스케줄러 (D-70, D-30, D-15, D-7 발송)
-  - Slack 발송 (가능 시)
-  - Email 발송 (가능 시)
-  - NotificationLog 기록 (성공/실패 모두)
 
 ### 사람이 직접 해야 하는 작업 (배포)
 > 코드가 모두 완성된 후 사람이 EC2에 VPN 접속하여 진행
