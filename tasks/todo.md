@@ -97,10 +97,10 @@
 - [x] `GET /api/history` (AuditLog 조회 REST API) 구현 여부 확인 → 기구현 확인 완료 (2026-03-04)
 
 ### 백엔드 — 배치/스케줄러
-- [ ] OFFBOARDING 자동 삭제 배치 (매일 실행, `offboardingUntil` 경과 구성원 삭제 + tombstone)
-- [ ] 라이선스 갱신 알림 스케줄러 (D-70, D-30, D-15, D-7 발송)
-  - Slack 발송 (가능 시)
-  - Email 발송 (가능 시)
+- [x] OFFBOARDING 자동 삭제 배치 (매일 실행, `offboardingUntil` 경과 구성원 삭제 + tombstone) → 구현 완료 (2026-03-05)
+- [x] 라이선스 갱신 알림 스케줄러 (D-70, D-30, D-15, D-7 발송) → 구현 완료 (2026-03-05)
+  - Slack 발송 (SLACK_WEBHOOK_URL 환경변수)
+  - Email 발송 (SMTP_* 환경변수, nodemailer)
   - NotificationLog 기록 (성공/실패 모두)
 
 ### 프론트엔드 — 신규 UI
