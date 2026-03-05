@@ -152,6 +152,8 @@ $commands = @(
 )
 
 # PowerShell → AWS CLI JSON 전달 시 따옴표 깨짐 방지: 임시 파일 경유
+# - BOM 없는 UTF-8 로 작성 (BOM 있으면 AWS CLI JSON 파싱 실패)
+# - 경로 백슬래시 → 슬래시 변환 (file:// 은 슬래시 필요)
 $inputJson = [ordered]@{
     DocumentName   = "AWS-RunShellScript"
     InstanceIds    = @($EC2_ID)
@@ -161,10 +163,14 @@ $inputJson = [ordered]@{
 } | ConvertTo-Json -Depth 5 -Compress
 
 $tmpFile = Join-Path $env:TEMP "ssm-deploy-input.json"
-[System.IO.File]::WriteAllText($tmpFile, $inputJson, [System.Text.Encoding]::UTF8)
+$utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+[System.IO.File]::WriteAllText($tmpFile, $inputJson, $utf8NoBom)
+
+# file:// 경로는 슬래시(/) 사용 필수
+$tmpFileUri = "file://" + ($tmpFile -replace '\\', '/')
 
 $COMMAND_ID = aws ssm send-command `
-    --cli-input-json "file://$tmpFile" `
+    --cli-input-json $tmpFileUri `
     --query "Command.CommandId" `
     --output text `
     --profile $PROFILE_NAME `
