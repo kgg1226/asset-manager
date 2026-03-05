@@ -64,15 +64,23 @@
 
 ## 대기
 
+### 백엔드 — API 확인·보완 (완료)
+- [x] `GET /api/org/units` 구현 여부 확인 및 미구현 시 개발 → 기구현
+- [x] OrgUnit CRUD API 구현 (`POST`, `PUT /[id]`, `DELETE /[id]`) → 구현 완료 (2026-03-04)
+- [x] `GET /api/history` (AuditLog 조회 REST API) 구현 여부 확인 → 구현 완료 (2026-03-04)
+- [x] Admin 사용자 관리 API 전체 엔드포인트 확인 (`PUT`, `DELETE`) → 구현 완료 (2026-03-04)
+
 ### DB 마이그레이션 (백엔드 선행 필수)
 > `tasks/db-changes.md` [2026-03-04] 항목 참조
-- [ ] OrgUnit: `sortOrder`, `updatedAt` 추가 + unique 제약 변경
-- [ ] Employee: `orgUnitId`, `status`, `offboardingUntil` 추가 + 데이터 마이그레이션 + 구 컬럼(`orgId`, `subOrgId`) 제거
-- [ ] Employee: `mustChangePassword` 추가 (User 테이블)
-- [ ] License: `renewalDate`, `renewalDateManual`, `renewalStatus` 추가
-- [ ] 신규 테이블: `LicenseRenewalHistory`, `LicenseOwner`, `NotificationLog`
-- [ ] AuditLog: `actorType`, `actorId` 컬럼 추가
-- [ ] `prisma generate` 실행
+> ✅ prisma/schema.prisma 반영 완료 (2026-03-04), EC2 호스트에서 migration.sql 실행 필요
+- [x] OrgUnit: `sortOrder`, `updatedAt` 추가 + unique 제약 변경 → schema 반영 완료
+- [x] Employee: `orgUnitId`, `status`, `offboardingUntil` 추가 + 데이터 마이그레이션 + 구 컬럼(`orgId`, `subOrgId`) 제거 → schema 반영 완료
+- [x] User: `mustChangePassword` 추가 → schema 반영 완료
+- [x] License: `renewalDate`, `renewalDateManual`, `renewalStatus` 추가 → schema 반영 완료
+- [x] 신규 테이블: `LicenseRenewalHistory`, `LicenseOwner`, `NotificationLog` → schema 반영 완료
+- [x] AuditLog: `actorType`, `actorId` 컬럼 추가 → schema 반영 완료
+- [x] `prisma generate` 실행 → 완료 (2026-03-04)
+- [ ] ⚠️ EC2 호스트에서 `prisma/migrations/20260304000000_.../migration.sql` 실행 (DevOps)
 
 ### 백엔드 — 신규 API 구현
 > `tasks/api-spec.md` 참조
@@ -89,10 +97,10 @@
 - [ ] `GET /api/history` (AuditLog 조회 REST API) 구현 여부 확인
 
 ### 백엔드 — 배치/스케줄러
-- [ ] OFFBOARDING 자동 삭제 배치 (매일 실행, `offboardingUntil` 경과 구성원 삭제 + tombstone)
-- [ ] 라이선스 갱신 알림 스케줄러 (D-70, D-30, D-15, D-7 발송)
-  - Slack 발송 (가능 시)
-  - Email 발송 (가능 시)
+- [x] OFFBOARDING 자동 삭제 배치 (매일 실행, `offboardingUntil` 경과 구성원 삭제 + tombstone) → 구현 완료 (2026-03-05)
+- [x] 라이선스 갱신 알림 스케줄러 (D-70, D-30, D-15, D-7 발송) → 구현 완료 (2026-03-05)
+  - Slack 발송 (SLACK_WEBHOOK_URL 환경변수)
+  - Email 발송 (SMTP_* 환경변수, nodemailer)
   - NotificationLog 기록 (성공/실패 모두)
 
 ### 프론트엔드 — 신규 UI
