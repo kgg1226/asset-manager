@@ -89,6 +89,7 @@
   - Email 발송 (SMTP_* 환경변수, nodemailer)
   - NotificationLog 기록 (성공/실패 모두)
 
+
 ### 보안 (security-I55Yn 브랜치)
 - [x] 전체 코드베이스 보안 리뷰 완료
 - [x] `tasks/security/guidelines.md` 업데이트
