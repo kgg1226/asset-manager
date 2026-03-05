@@ -26,6 +26,14 @@
 - API 구현/호출: `tasks/api-spec.md` 준수
 - DB 변경: `tasks/db-changes.md` 참조
 - 인프라 접속 정보: `.env.infra` 참조 (Git 미추적, 로컬 전용)
+<<<<<<< HEAD
+=======
+
+## 폐쇄망 제약
+- 런타임에 외부 URL 호출 금지
+- 외부 CDN 의존 금지 (Google Fonts 등 포함)
+- 모든 라이브러리는 `npm install`로 번들에 포함
+>>>>>>> c3e278a (docs: CLAUDE.md 슬래시 커맨드 수정 및 프로젝트 가이드 구체화)
 
 <<<<<<< HEAD
 ## 폐쇄망 제약
