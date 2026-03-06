@@ -48,14 +48,28 @@ export async function PUT(request: NextRequest, { params }: Params) {
     const body = await request.json();
     const { name, department, email, title } = body;
 
-    const employee = await prisma.employee.update({
-      where: { id: Number(id) },
-      data: {
-        ...(name !== undefined && { name }),
-        ...(department !== undefined && { department }),
-        ...(email !== undefined && { email: email || null }),
-        ...(title !== undefined && { title: title || null }),
-      },
+    const employee = await prisma.$transaction(async (tx) => {
+      const updated = await tx.employee.update({
+        where: { id: Number(id) },
+        data: {
+          ...(name !== undefined && { name }),
+          ...(department !== undefined && { department }),
+          ...(email !== undefined && { email: email || null }),
+          ...(title !== undefined && { title: title || null }),
+        },
+      });
+
+      await writeAuditLog(tx, {
+        entityType: "EMPLOYEE",
+        entityId: updated.id,
+        action: "UPDATED",
+        actor: user.username,
+        actorType: "USER",
+        actorId: user.id,
+        details: { name: updated.name },
+      });
+
+      return updated;
     });
 
     return NextResponse.json(employee);

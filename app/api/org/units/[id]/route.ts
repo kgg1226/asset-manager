@@ -32,14 +32,28 @@ export async function PUT(request: NextRequest, { params }: Params) {
     const body = await request.json();
     const { name, parentId, sortOrder } = body;
 
-    const unit = await prisma.orgUnit.update({
-      where: { id: Number(id) },
-      data: {
-        ...(name !== undefined && { name: name.trim() }),
-        ...(parentId !== undefined && { parentId: parentId != null ? Number(parentId) : null }),
-        ...(sortOrder !== undefined && { sortOrder: Number(sortOrder) }),
-      },
-      include: { children: true },
+    const unit = await prisma.$transaction(async (tx) => {
+      const updated = await tx.orgUnit.update({
+        where: { id: Number(id) },
+        data: {
+          ...(name !== undefined && { name: name.trim() }),
+          ...(parentId !== undefined && { parentId: parentId != null ? Number(parentId) : null }),
+          ...(sortOrder !== undefined && { sortOrder: Number(sortOrder) }),
+        },
+        include: { children: true },
+      });
+
+      await writeAuditLog(tx, {
+        entityType: "ORG_UNIT",
+        entityId: updated.id,
+        action: "UPDATED",
+        actor: user.username,
+        actorType: "USER",
+        actorId: user.id,
+        details: { name: updated.name },
+      });
+
+      return updated;
     });
 
     return NextResponse.json(unit);

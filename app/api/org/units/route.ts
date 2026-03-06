@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { writeAuditLog } from "@/lib/audit-log";
 
 // GET /api/org/units — OrgUnit 목록 (?companyId= 필터, ?parentId= 필터)
 export async function GET(request: NextRequest) {
@@ -52,13 +53,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "companyId는 필수입니다." }, { status: 400 });
     }
 
-    const unit = await prisma.orgUnit.create({
-      data: {
-        name: name.trim(),
-        companyId: Number(companyId),
-        parentId: parentId ? Number(parentId) : null,
-        ...(sortOrder !== undefined && { sortOrder: Number(sortOrder) }),
-      },
+    const unit = await prisma.$transaction(async (tx) => {
+      const created = await tx.orgUnit.create({
+        data: {
+          name: name.trim(),
+          companyId: Number(companyId),
+          parentId: parentId ? Number(parentId) : null,
+          ...(sortOrder !== undefined && { sortOrder: Number(sortOrder) }),
+        },
+      });
+
+      await writeAuditLog(tx, {
+        entityType: "ORG_UNIT",
+        entityId: created.id,
+        action: "CREATED",
+        actor: user.username,
+        actorType: "USER",
+        actorId: user.id,
+        details: { name: created.name, companyId: created.companyId, parentId: created.parentId },
+      });
+
+      return created;
     });
 
     return NextResponse.json(unit, { status: 201 });

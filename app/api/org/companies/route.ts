@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { writeAuditLog } from "@/lib/audit-log";
 
 // GET /api/org/companies — 회사 목록 (하위 orgs 중첩 포함)
 export async function GET() {
@@ -43,8 +44,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "회사명은 필수입니다." }, { status: 400 });
     }
 
-    const company = await prisma.orgCompany.create({
-      data: { name: name.trim() },
+    const company = await prisma.$transaction(async (tx) => {
+      const created = await tx.orgCompany.create({
+        data: { name: name.trim() },
+      });
+
+      await writeAuditLog(tx, {
+        entityType: "ORG_COMPANY",
+        entityId: created.id,
+        action: "CREATED",
+        actor: user.username,
+        actorType: "USER",
+        actorId: user.id,
+        details: { name: created.name },
+      });
+
+      return created;
     });
 
     return NextResponse.json(company, { status: 201 });

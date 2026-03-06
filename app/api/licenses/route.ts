@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { syncSeats } from "@/lib/license-seats";
+import { writeAuditLog } from "@/lib/audit-log";
 import {
   computeCost,
   VALID_PAYMENT_CYCLES,
@@ -126,6 +127,16 @@ export async function POST(request: NextRequest) {
       if (licenseType === "KEY_BASED") {
         await syncSeats(tx, created.id, qty);
       }
+
+      await writeAuditLog(tx, {
+        entityType: "LICENSE",
+        entityId: created.id,
+        action: "CREATED",
+        actor: user.username,
+        actorType: "USER",
+        actorId: user.id,
+        details: { name: created.name, licenseType: created.licenseType, totalQuantity: qty },
+      });
 
       return created;
     });

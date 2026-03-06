@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { writeAuditLog } from "@/lib/audit-log";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -50,12 +51,26 @@ export async function POST(request: NextRequest, { params }: Params) {
     const exists = await prisma.license.findUnique({ where: { id: licenseId }, select: { id: true } });
     if (!exists) return NextResponse.json({ error: "라이선스를 찾을 수 없습니다." }, { status: 404 });
 
-    const owner = await prisma.licenseOwner.create({
-      data: {
-        licenseId,
-        userId: userId ? Number(userId) : null,
-        orgUnitId: orgUnitId ? Number(orgUnitId) : null,
-      },
+    const owner = await prisma.$transaction(async (tx) => {
+      const created = await tx.licenseOwner.create({
+        data: {
+          licenseId,
+          userId: userId ? Number(userId) : null,
+          orgUnitId: orgUnitId ? Number(orgUnitId) : null,
+        },
+      });
+
+      await writeAuditLog(tx, {
+        entityType: "LICENSE",
+        entityId: licenseId,
+        action: "OWNER_ADDED",
+        actor: user.username,
+        actorType: "USER",
+        actorId: user.id,
+        details: { ownerId: created.id, userId: created.userId, orgUnitId: created.orgUnitId },
+      });
+
+      return created;
     });
 
     return NextResponse.json(owner, { status: 201 });

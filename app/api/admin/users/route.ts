@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, hashPassword } from "@/lib/auth";
+import { writeAuditLog } from "@/lib/audit-log";
 
 // GET /api/admin/users — 사용자 목록
 export async function GET() {
@@ -38,13 +39,27 @@ export async function POST(request: NextRequest) {
     }
 
     const hash = await hashPassword(password);
-    const created = await prisma.user.create({
-      data: {
-        username: username.trim(),
-        password: hash,
-        role: role === "ADMIN" ? "ADMIN" : "USER",
-      },
-      select: { id: true, username: true, role: true, isActive: true, createdAt: true },
+    const created = await prisma.$transaction(async (tx) => {
+      const newUser = await tx.user.create({
+        data: {
+          username: username.trim(),
+          password: hash,
+          role: role === "ADMIN" ? "ADMIN" : "USER",
+        },
+        select: { id: true, username: true, role: true, isActive: true, createdAt: true },
+      });
+
+      await writeAuditLog(tx, {
+        entityType: "USER",
+        entityId: newUser.id,
+        action: "CREATED",
+        actor: user.username,
+        actorType: "USER",
+        actorId: user.id,
+        details: { targetUsername: newUser.username, role: newUser.role },
+      });
+
+      return newUser;
     });
 
     return NextResponse.json(created, { status: 201 });

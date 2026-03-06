@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { writeAuditLog } from "@/lib/audit-log";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -41,6 +42,16 @@ export async function PUT(request: NextRequest, { params }: Params) {
           actorId: user.id,
           memo: manualDate ? `갱신일 수동 변경: ${manualDate.toISOString()}` : "갱신일 수동 설정 해제 (자동 계산 복원)",
         },
+      });
+
+      await writeAuditLog(tx, {
+        entityType: "LICENSE",
+        entityId: licenseId,
+        action: "RENEWAL_DATE_SET",
+        actor: user.username,
+        actorType: "USER",
+        actorId: user.id,
+        details: { renewalDateManual: manualDate?.toISOString() ?? null },
       });
     });
 

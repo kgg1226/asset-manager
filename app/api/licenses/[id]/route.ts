@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { syncSeats, deleteAllSeats } from "@/lib/license-seats";
+import { writeAuditLog } from "@/lib/audit-log";
 import {
   computeCost,
   VALID_PAYMENT_CYCLES,
@@ -170,6 +171,16 @@ export async function PUT(request: NextRequest, { params }: Params) {
         await syncSeats(tx, licenseId, Number(totalQuantity));
       }
 
+      await writeAuditLog(tx, {
+        entityType: "LICENSE",
+        entityId: licenseId,
+        action: "UPDATED",
+        actor: user.username,
+        actorType: "USER",
+        actorId: user.id,
+        details: { name: updated.name },
+      });
+
       return updated;
     });
 
@@ -193,11 +204,25 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     const licenseId = Number(id);
 
     await prisma.$transaction(async (tx) => {
+      const target = await tx.license.findUnique({ where: { id: licenseId }, select: { name: true } });
       await tx.assignmentHistory.deleteMany({ where: { licenseId } });
       await tx.assignment.deleteMany({ where: { licenseId } });
       await tx.licenseGroupMember.deleteMany({ where: { licenseId } });
       await tx.licenseSeat.deleteMany({ where: { licenseId } });
+      await tx.licenseOwner.deleteMany({ where: { licenseId } });
+      await tx.licenseRenewalHistory.deleteMany({ where: { licenseId } });
+      await tx.notificationLog.deleteMany({ where: { licenseId } });
       await tx.license.delete({ where: { id: licenseId } });
+
+      await writeAuditLog(tx, {
+        entityType: "LICENSE",
+        entityId: licenseId,
+        action: "DELETED",
+        actor: user.username,
+        actorType: "USER",
+        actorId: user.id,
+        details: { name: target?.name, deletedAt: new Date().toISOString() },
+      });
     });
 
     return NextResponse.json({ message: "라이선스가 삭제되었습니다." });

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { writeAuditLog } from "@/lib/audit-log";
 
 // GET /api/groups — 그룹 목록 조회
 export async function GET() {
@@ -41,18 +42,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "그룹명은 필수입니다." }, { status: 400 });
     }
 
-    const group = await prisma.licenseGroup.create({
-      data: {
-        name: name.trim(),
-        description: description?.trim() || null,
-        isDefault: isDefault ?? false,
-        ...(licenseIds?.length && {
-          members: {
-            create: licenseIds.map((licenseId: number) => ({ licenseId })),
-          },
-        }),
-      },
-      include: { members: { include: { license: true } } },
+    const group = await prisma.$transaction(async (tx) => {
+      const created = await tx.licenseGroup.create({
+        data: {
+          name: name.trim(),
+          description: description?.trim() || null,
+          isDefault: isDefault ?? false,
+          ...(licenseIds?.length && {
+            members: {
+              create: licenseIds.map((licenseId: number) => ({ licenseId })),
+            },
+          }),
+        },
+        include: { members: { include: { license: true } } },
+      });
+
+      await writeAuditLog(tx, {
+        entityType: "GROUP",
+        entityId: created.id,
+        action: "CREATED",
+        actor: user.username,
+        actorType: "USER",
+        actorId: user.id,
+        details: { name: created.name, isDefault: created.isDefault },
+      });
+
+      return created;
     });
 
     return NextResponse.json(group, { status: 201 });

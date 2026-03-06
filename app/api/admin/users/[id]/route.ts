@@ -23,7 +23,18 @@ export async function PUT(request: NextRequest, { params }: Params) {
         return NextResponse.json({ error: "비밀번호는 8자 이상이어야 합니다." }, { status: 400 });
       }
       const hash = await hashPassword(password);
-      await prisma.user.update({ where: { id: userId }, data: { password: hash } });
+      await prisma.$transaction(async (tx) => {
+        await tx.user.update({ where: { id: userId }, data: { password: hash } });
+        await writeAuditLog(tx, {
+          entityType: "USER",
+          entityId: userId,
+          action: "UPDATED",
+          actor: me.username,
+          actorType: "USER",
+          actorId: me.id,
+          details: { change: "password" },
+        });
+      });
       return NextResponse.json({ message: "비밀번호가 변경되었습니다." });
     }
 
@@ -36,19 +47,37 @@ export async function PUT(request: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "자신의 계정은 비활성화할 수 없습니다." }, { status: 400 });
     }
 
-    const updated = await prisma.user.update({
-      where: { id: userId },
-      data: {
-        ...(role !== undefined && { role: role === "ADMIN" ? "ADMIN" : "USER" }),
-        ...(isActive !== undefined && { isActive: Boolean(isActive) }),
-      },
-      select: { id: true, username: true, role: true, isActive: true, createdAt: true },
-    });
+    const updated = await prisma.$transaction(async (tx) => {
+      const u = await tx.user.update({
+        where: { id: userId },
+        data: {
+          ...(role !== undefined && { role: role === "ADMIN" ? "ADMIN" : "USER" }),
+          ...(isActive !== undefined && { isActive: Boolean(isActive) }),
+        },
+        select: { id: true, username: true, role: true, isActive: true, createdAt: true },
+      });
 
-    // 비활성화 시 세션 전부 파기
-    if (isActive === false) {
-      await prisma.session.deleteMany({ where: { userId } });
-    }
+      // 비활성화 시 세션 전부 파기
+      if (isActive === false) {
+        await tx.session.deleteMany({ where: { userId } });
+      }
+
+      await writeAuditLog(tx, {
+        entityType: "USER",
+        entityId: userId,
+        action: "UPDATED",
+        actor: me.username,
+        actorType: "USER",
+        actorId: me.id,
+        details: {
+          targetUsername: u.username,
+          ...(role !== undefined && { role: u.role }),
+          ...(isActive !== undefined && { isActive: u.isActive }),
+        },
+      });
+
+      return u;
+    });
 
     return NextResponse.json(updated);
   } catch (error) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { writeAuditLog } from "@/lib/audit-log";
 
 type Params = { params: Promise<{ id: string; ownerId: string }> };
 
@@ -22,7 +23,19 @@ export async function DELETE(request: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "담당자를 찾을 수 없습니다." }, { status: 404 });
     }
 
-    await prisma.licenseOwner.delete({ where: { id: ownerIdNum } });
+    await prisma.$transaction(async (tx) => {
+      await tx.licenseOwner.delete({ where: { id: ownerIdNum } });
+
+      await writeAuditLog(tx, {
+        entityType: "LICENSE",
+        entityId: licenseId,
+        action: "OWNER_REMOVED",
+        actor: user.username,
+        actorType: "USER",
+        actorId: user.id,
+        details: { ownerId: ownerIdNum, userId: owner.userId, orgUnitId: owner.orgUnitId },
+      });
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { writeAuditLog } from "@/lib/audit-log";
 
 // GET /api/employees — 조직원 목록 조회
 // Query: ?orgUnitId=1&status=ACTIVE&unassigned=true
@@ -123,6 +124,16 @@ export async function POST(request: NextRequest) {
           });
         }
       }
+
+      await writeAuditLog(tx, {
+        entityType: "EMPLOYEE",
+        entityId: emp.id,
+        action: "CREATED",
+        actor: user.username,
+        actorType: "USER",
+        actorId: user.id,
+        details: { name: emp.name, department: emp.department, email: emp.email },
+      });
 
       return emp;
     });

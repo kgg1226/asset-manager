@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { writeAuditLog } from "@/lib/audit-log";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -38,14 +39,28 @@ export async function PUT(request: NextRequest, { params }: Params) {
     const body = await request.json();
     const { name, description, isDefault } = body;
 
-    const group = await prisma.licenseGroup.update({
-      where: { id: Number(id) },
-      data: {
-        ...(name !== undefined && { name: name.trim() }),
-        ...(description !== undefined && { description: description?.trim() || null }),
-        ...(isDefault !== undefined && { isDefault }),
-      },
-      include: { members: { include: { license: true } } },
+    const group = await prisma.$transaction(async (tx) => {
+      const updated = await tx.licenseGroup.update({
+        where: { id: Number(id) },
+        data: {
+          ...(name !== undefined && { name: name.trim() }),
+          ...(description !== undefined && { description: description?.trim() || null }),
+          ...(isDefault !== undefined && { isDefault }),
+        },
+        include: { members: { include: { license: true } } },
+      });
+
+      await writeAuditLog(tx, {
+        entityType: "GROUP",
+        entityId: updated.id,
+        action: "UPDATED",
+        actor: user.username,
+        actorType: "USER",
+        actorId: user.id,
+        details: { name: updated.name },
+      });
+
+      return updated;
     });
 
     return NextResponse.json(group);
@@ -63,8 +78,21 @@ export async function DELETE(request: NextRequest, { params }: Params) {
 
   try {
     const { id } = await params;
-    await prisma.licenseGroup.delete({
-      where: { id: Number(id) },
+    const groupId = Number(id);
+
+    await prisma.$transaction(async (tx) => {
+      const target = await tx.licenseGroup.findUnique({ where: { id: groupId }, select: { name: true } });
+      await tx.licenseGroup.delete({ where: { id: groupId } });
+
+      await writeAuditLog(tx, {
+        entityType: "GROUP",
+        entityId: groupId,
+        action: "DELETED",
+        actor: user.username,
+        actorType: "USER",
+        actorId: user.id,
+        details: { name: target?.name, deletedAt: new Date().toISOString() },
+      });
     });
 
     return NextResponse.json({ message: "그룹이 삭제되었습니다." });

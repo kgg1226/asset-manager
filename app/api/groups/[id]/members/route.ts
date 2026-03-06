@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { writeAuditLog } from "@/lib/audit-log";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -33,11 +34,23 @@ export async function POST(request: NextRequest, { params }: Params) {
     const newIds = (licenseIds as number[]).filter((id) => !existingSet.has(id));
 
     if (newIds.length > 0) {
-      await prisma.licenseGroupMember.createMany({
-        data: newIds.map((licenseId) => ({
-          licenseGroupId: groupId,
-          licenseId,
-        })),
+      await prisma.$transaction(async (tx) => {
+        await tx.licenseGroupMember.createMany({
+          data: newIds.map((licenseId) => ({
+            licenseGroupId: groupId,
+            licenseId,
+          })),
+        });
+
+        await writeAuditLog(tx, {
+          entityType: "GROUP",
+          entityId: groupId,
+          action: "MEMBER_ADDED",
+          actor: user.username,
+          actorType: "USER",
+          actorId: user.id,
+          details: { addedLicenseIds: newIds, groupName: group.name },
+        });
       });
     }
 
@@ -68,11 +81,23 @@ export async function DELETE(request: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "제거할 라이선스를 선택하세요." }, { status: 400 });
     }
 
-    await prisma.licenseGroupMember.deleteMany({
-      where: {
-        licenseGroupId: groupId,
-        licenseId: { in: licenseIds },
-      },
+    await prisma.$transaction(async (tx) => {
+      await tx.licenseGroupMember.deleteMany({
+        where: {
+          licenseGroupId: groupId,
+          licenseId: { in: licenseIds },
+        },
+      });
+
+      await writeAuditLog(tx, {
+        entityType: "GROUP",
+        entityId: groupId,
+        action: "MEMBER_REMOVED",
+        actor: user.username,
+        actorType: "USER",
+        actorId: user.id,
+        details: { removedLicenseIds: licenseIds },
+      });
     });
 
     const updated = await prisma.licenseGroup.findUnique({
