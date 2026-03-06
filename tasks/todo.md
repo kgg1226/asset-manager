@@ -1,7 +1,7 @@
 # TODO
 
 > 기획 세션(/planning)에서 관리한다.
-> 최종 업데이트: 2026-03-05
+> 최종 업데이트: 2026-03-07
 
 ---
 
@@ -92,24 +92,27 @@
 - [x] **[BE-P2-03]** 날짜 검증 추가 ✅
 - [x] **[BE-P2-04]** enum 유효성 — silent default 제거 ✅
 
-### P3 — 성능 개선
+### P3 — 성능 개선 ✅ 완료 (P3-01, P3-02)
 
-- [ ] **[BE-P3-01]** 신규 조직원 자동 할당 N+1 쿼리 개선
-  - `POST /api/employees` — 기본 그룹 라이선스 할당 루프 내 개별 count 쿼리 → 배치 로딩
-  - 기본 그룹에 라이선스 50개 있으면 150+ 쿼리 발생
-- [ ] **[BE-P3-02]** OrgUnit 삭제 시 재귀 쿼리 개선
-  - `collectDescendantIds()` — depth별 개별 쿼리 → 한번에 전체 트리 로딩
+> P3-01/02 최적화 완료. P3-03 페이지네이션은 Phase 2 이후 검토.
+
+- [x] **[BE-P3-01]** 신규 조직원 자동 할당 N+1 쿼리 개선 ✅
+  - `POST /api/employees` — 개별 count → groupBy 배치 쿼리 (150+ → 3 쿼리)
+- [x] **[BE-P3-02]** OrgUnit 삭제 시 재귀 쿼리 개선 ✅
+  - `collectDescendantIds()` — 전체 트리 1회 로딩 + 인메모리 BFS
 - [ ] **[BE-P3-03]** 목록 API 페이지네이션 추가 (현재 /history만 지원)
   - `GET /api/licenses`, `GET /api/assignments`, `GET /api/groups`
 
-### P4 — 코드 일관성
+### P4 — 코드 일관성 ✅ 완료
 
-- [ ] **[BE-P4-01]** FK 존재 검증 추가
-  - `POST /api/org/units` — parentId/companyId 미검증 → Prisma FK 에러 시 500 반환
-  - `POST /api/licenses/[id]/owners` — userId/orgUnitId 존재 미검증
-- [ ] **[BE-P4-02]** 에러 응답 패턴 통일
-  - unique 제약 위반: 일부 라우트만 409 반환, 나머지는 500
-  - 유효성 검증 실패: 400 vs silent default 혼재
+> 7개 라우트 FK 검증 + 20개 라우트 handlePrismaError 적용 완료.
+
+- [x] **[BE-P4-01]** FK 존재 검증 추가 ✅
+  - 7개 라우트: org/units, employees, groups, licenses/owners
+  - companyId, parentId, orgUnitId, userId, licenseIds[] 배치 검증
+- [x] **[BE-P4-02]** 에러 응답 패턴 통일 ✅
+  - `handlePrismaError` 유틸리티: P2002→409, P2003→400, P2025→404
+  - 기존 `error.message.includes("Unique constraint")` 전량 교체
 
 ---
 
