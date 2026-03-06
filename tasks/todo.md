@@ -83,18 +83,14 @@
 - [x] **[BE-P1-03]** 사용자 관리 AuditLog 추가 ✅
 - [x] **[BE-P1-04]** 그룹·할당·담당자·조직 변경 AuditLog 추가 ✅
 
-### P2 — 입력 검증 강화 (ISMS-P 2.8)
+### P2 — 입력 검증 강화 (ISMS-P 2.8) ✅ 완료
 
-- [ ] **[BE-P2-01]** 문자열 길이 제한 추가
-  - 이름/부서명/설명 등 상한 미설정 → `name ≤ 200`, `description ≤ 2000` 등
-- [ ] **[BE-P2-02]** 숫자 범위 검증 추가
-  - `totalQuantity > 0`, `price ≥ 0`, `exchangeRate > 0`, `noticePeriodDays ≥ 0`
-  - 현재 음수·0 입력 시 에러 없이 저장됨
-- [ ] **[BE-P2-03]** 날짜 검증 추가
-  - `new Date("invalid")` → Invalid Date가 DB에 저장되는 문제
-  - `expiryDate ≥ purchaseDate` 순서 검증
-- [ ] **[BE-P2-04]** enum 유효성 — silent default 제거
-  - `POST /api/licenses`에서 잘못된 `licenseType` 입력 시 `KEY_BASED`로 기본값 대신 400 에러 반환
+> lib/validation.ts 공용 유틸리티 + 15개 API 라우트 적용 완료.
+
+- [x] **[BE-P2-01]** 문자열 길이 제한 추가 ✅
+- [x] **[BE-P2-02]** 숫자 범위 검증 추가 ✅
+- [x] **[BE-P2-03]** 날짜 검증 추가 ✅
+- [x] **[BE-P2-04]** enum 유효성 — silent default 제거 ✅
 
 ### P3 — 성능 개선
 
