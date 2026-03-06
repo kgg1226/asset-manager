@@ -61,13 +61,13 @@
 
 > 코드 점검 결과 발견된 항목. 구현 완료로 보이나 정확성 확인 필요.
 
-- [ ] **[BE-001]** `PATCH /api/employees/[id]` — 조직 이동 시 AuditLog 기록 여부 확인
-  - `actorType`, `actorId`, 변경 전/후 orgUnitId 기록되는지 검증
-- [ ] **[BE-002]** `DELETE /api/admin/users/[id]` — 자신의 계정 삭제 방지 로직 확인
-  - 없으면 `if (targetId === currentUser.id) return 400` 추가
-- [ ] **[BE-003]** 에러 응답 안전성 확인
-  - 모든 catch 블록에서 스택트레이스 미노출, 제네릭 메시지만 반환 확인
-  - 로그에 비밀번호·라이선스 키 평문 기록 없는지 확인
+- [x] **[BE-001]** `PATCH /api/employees/[id]` — 조직 이동 시 AuditLog 기록 ✅ 이미 구현됨
+  - `actorType`, `actorId`, 변경 전/후 orgUnitId 정상 기록 확인
+- [x] **[BE-002]** `DELETE /api/admin/users/[id]` — 자신의 계정 삭제 방지 ✅ 이미 구현됨
+  - `if (me.id === userId) return 400` 확인
+- [x] **[BE-003]** 에러 응답 안전성 확인 ✅ 수정 완료
+  - 30개 라우트 전수 검사: 1건 수정 (`licenses/[id]` PUT — `error.message` 직접 반환 → 제네릭 메시지로 교체)
+  - 나머지 29개 라우트: 스택트레이스 미노출, 민감정보 로그 미기록 확인
 
 ### DevOps (`role/devops` 브랜치)
 
@@ -101,6 +101,58 @@
 3. [ ] 배포 후 동작 확인
    - 로그인, 라이선스 목록, 대시보드 접근
    - 갱신 알림 cron 수동 호출 테스트 (`POST /api/cron/renewal-notify` with CRON_SECRET)
+
+---
+
+## #백엔드 제안 (role/backend 코드 점검 결과)
+
+> 2026-03-05 백엔드 세션에서 전체 API 라우트 점검 후 제안.
+> 기획 세션에서 우선순위 판단 후 티켓화 요청.
+
+### P1 — 감사 로그 누락 (ISMS-P 2.11 컴플라이언스)
+
+> 30개 데이터 변경 API 중 7개만 AuditLog 기록. 23개 누락.
+
+- [ ] **[BE-P1-01]** 라이선스 CRUD AuditLog 추가
+  - `POST /api/licenses` (생성), `PUT /api/licenses/[id]` (수정), `DELETE /api/licenses/[id]` (삭제)
+- [ ] **[BE-P1-02]** 조직원 생성·수정·삭제 AuditLog 추가
+  - `POST /api/employees`, `PUT /api/employees/[id]`, `DELETE /api/employees/[id]`
+- [ ] **[BE-P1-03]** 사용자 관리 AuditLog 추가
+  - `POST /api/admin/users` (생성), `PUT /api/admin/users/[id]` (역할/상태 변경), `DELETE /api/admin/users/[id]` (삭제)
+- [ ] **[BE-P1-04]** 그룹·할당·담당자·조직 변경 AuditLog 추가
+  - 그룹 CRUD, 그룹 멤버 추가/제거, 할당 반납/삭제, 담당자 추가/제거, OrgUnit 생성/수정
+
+### P2 — 입력 검증 강화 (ISMS-P 2.8)
+
+- [ ] **[BE-P2-01]** 문자열 길이 제한 추가
+  - 이름/부서명/설명 등 상한 미설정 → `name ≤ 200`, `description ≤ 2000` 등
+- [ ] **[BE-P2-02]** 숫자 범위 검증 추가
+  - `totalQuantity > 0`, `price ≥ 0`, `exchangeRate > 0`, `noticePeriodDays ≥ 0`
+  - 현재 음수·0 입력 시 에러 없이 저장됨
+- [ ] **[BE-P2-03]** 날짜 검증 추가
+  - `new Date("invalid")` → Invalid Date가 DB에 저장되는 문제
+  - `expiryDate ≥ purchaseDate` 순서 검증
+- [ ] **[BE-P2-04]** enum 유효성 — silent default 제거
+  - `POST /api/licenses`에서 잘못된 `licenseType` 입력 시 `KEY_BASED`로 기본값 대신 400 에러 반환
+
+### P3 — 성능 개선
+
+- [ ] **[BE-P3-01]** 신규 조직원 자동 할당 N+1 쿼리 개선
+  - `POST /api/employees` — 기본 그룹 라이선스 할당 루프 내 개별 count 쿼리 → 배치 로딩
+  - 기본 그룹에 라이선스 50개 있으면 150+ 쿼리 발생
+- [ ] **[BE-P3-02]** OrgUnit 삭제 시 재귀 쿼리 개선
+  - `collectDescendantIds()` — depth별 개별 쿼리 → 한번에 전체 트리 로딩
+- [ ] **[BE-P3-03]** 목록 API 페이지네이션 추가 (현재 /history만 지원)
+  - `GET /api/licenses`, `GET /api/assignments`, `GET /api/groups`
+
+### P4 — 코드 일관성
+
+- [ ] **[BE-P4-01]** FK 존재 검증 추가
+  - `POST /api/org/units` — parentId/companyId 미검증 → Prisma FK 에러 시 500 반환
+  - `POST /api/licenses/[id]/owners` — userId/orgUnitId 존재 미검증
+- [ ] **[BE-P4-02]** 에러 응답 패턴 통일
+  - unique 제약 위반: 일부 라우트만 409 반환, 나머지는 500
+  - 유효성 검증 실패: 400 vs silent default 혼재
 
 ---
 
