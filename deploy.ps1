@@ -181,6 +181,7 @@ Success "S3 업로드 완료: $S3_BUCKET/"
 
 # ============================================================
 Log "=== [3/3] EC2 배포 시작 (SSM) ==="
+# ============================================================
 
 $commands = @(
     "aws s3 cp $S3_BUCKET/deploy.sh /tmp/deploy.sh",
@@ -205,8 +206,8 @@ $jsonText = ($payload | ConvertTo-Json -Depth 10)
 # ✅ 로컬에서 JSON 자체 검증 (여기서 터지면 JSON 생성이 문제)
 try { $null = $jsonText | ConvertFrom-Json } catch { Fail "생성된 JSON이 PowerShell에서 파싱 불가: $($_.Exception.Message)"; exit 1 }
 
-# ✅ file:///C:/... 형태로 경로 표준화 (Windows AWS CLI 안전)
-$fileUri = "file:///" + ($tmpJson -replace "\\", "/")
+# ✅ file://C:/... 형태로 경로 표준화 (Windows AWS CLI 안전)
+$fileUri = "file://" + ($tmpJson -replace "\\", "/")
 
 $COMMAND_ID = aws ssm send-command `
     --cli-input-json $fileUri `
