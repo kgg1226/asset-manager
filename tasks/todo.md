@@ -135,19 +135,210 @@
 
 ---
 
-## 🟢 Phase 3 — 월별 비용 보고서 (Phase 2 완료 후 착수)
+## 대기
 
-> 스펙: `tasks/features/monthly-report.md`
+### DB 마이그레이션
+> `tasks/db-changes.md` [2026-03-04] 항목 참조
+> Prisma 스키마 반영 완료. 실DB(SQLite)에 ALTER TABLE 실행은 배포 시 수행.
+- [x] OrgUnit: `sortOrder`, `updatedAt` 추가 + unique 제약 변경 (schema 반영)
+- [x] Employee: `orgUnitId`, `status`, `offboardingUntil` 추가 (schema 반영)
+- [x] User: `mustChangePassword` 추가 (schema 반영)
+- [x] License: `renewalDate`, `renewalDateManual`, `renewalStatus` 추가 (schema 반영)
+- [x] 신규 테이블: `LicenseRenewalHistory`, `LicenseOwner`, `NotificationLog` (schema 반영)
+- [x] AuditLog: `actorType`, `actorId` 컬럼 추가 (schema 반영)
+- [x] `prisma generate` 실행
+- [ ] 실DB에 ALTER TABLE / CREATE TABLE SQL 실행 (배포 시, `tasks/db-changes.md` 참조)
+
+### 백엔드 — 신규 API 구현
+> `tasks/api-spec.md` 참조. 전체 API 구현 완료 (2026-03-06 확인).
+- [x] OrgUnit CRUD: `GET /api/org/units`, `POST`, `PUT /[id]`, `DELETE /[id]`
+- [x] OrgUnit 삭제 프리뷰: `GET /api/org/units/[id]/delete-preview`
+- [x] 구성원 조직 이동: `PATCH /api/employees/[id]` (orgUnitId 변경 + AuditLog)
+- [x] 구성원 퇴사 처리: `POST /api/employees/[id]/offboard`
+- [x] 라이선스 갱신 상태 변경: `PUT /api/licenses/[id]/renewal-status`
+- [x] 라이선스 갱신 이력 조회: `GET /api/licenses/[id]/renewal-history`
+- [x] 라이선스 갱신일 수동 설정: `PUT /api/licenses/[id]/renewal-date`
+- [x] 라이선스 담당자 관리: `GET|POST|DELETE /api/licenses/[id]/owners`
+- [x] Admin 비밀번호 리셋: `POST /api/admin/users/[id]/reset-password`
+- [x] Admin 사용자 삭제: `DELETE /api/admin/users/[id]`
+- [x] `GET /api/history` (AuditLog 조회 REST API)
+
+### 백엔드 — 배치/스케줄러
+> 구현 완료 (2026-03-06). `scripts/` 에서 `npx tsx`로 실행.
+- [x] OFFBOARDING 자동 삭제 배치 (`scripts/offboarding-cleanup.ts`)
+  - 매일 실행, `offboardingUntil` 경과 구성원 삭제 + 배정 반납 + tombstone AuditLog
+- [x] 라이선스 갱신 알림 스케줄러 (`scripts/renewal-notification.ts`)
+  - D-70, D-30, D-15, D-7 시점 알림
+  - Slack 발송 (`SLACK_WEBHOOK_URL` 환경변수 설정 시)
+  - Email 발송 (SMTP 연동 시 — 현재 폐쇄망 미설정)
+  - NotificationLog 기록 (성공/실패 모두)
+
+### 프론트엔드 — 신규 UI
+> 백엔드 API 전체 완료. 모든 항목 착수 가능.
+- [ ] **[착수 가능]** OrgUnit 트리 편집 UI — `/org` 페이지에 생성·수정·삭제 버튼 추가
+  - 삭제 확인 모달: 하위 부서 목록 + 영향 구성원 수 표시 + "삭제하겠습니다" 문구 입력 요구
+- [ ] **[착수 가능]** 구성원 조직 이동 UI — 구성원 상세 페이지에서 소속 부서 변경 드롭다운
+- [ ] **[착수 가능]** 구성원 중복 이름 구분 표시 (이름 + 이메일 앞부분 마스킹 함께 노출)
+- [ ] **[착수 가능]** 구성원 퇴사 처리 UI (상태 변경 + 유예일 표시)
+- [ ] **[착수 가능]** 라이선스 갱신 상태 변경 UI (상태 드롭다운 + 메모 입력)
+- [ ] **[착수 가능]** 라이선스 갱신 이력 뷰 (타임라인 형태)
+- [ ] **[착수 가능]** 알림 담당자 설정 UI (개인 또는 부서 지정)
+
+### 프론트엔드 — UI 개선
+> 기존 API로 바로 착수 가능
+- [ ] **[착수 가능]** 라이선스 목록 페이지 페이지네이션 (대량 데이터 대응)
+- [ ] **[착수 가능]** 구성원 목록 검색·필터 기능 (이름, 부서, 상태)
+- [ ] 모바일 반응형 레이아웃 검토
+
+---
+
+## 🟢 Phase 4 — 정보자산 증적 시스템 (Phase 3 완료 후 착수)
+
+> 스펙: `tasks/features/asset-archiving.md`
+> ISO27001/ISMS-P 기준 월별 자산 자동 증적 + 구글드라이브 연동
 
 ### 백엔드 (`role/backend`)
-- [ ] **[BE-030]** `GET /api/reports/monthly` — 보고서 집계 API (유형별·부서별·변동·만료 예정)
-- [ ] **[BE-031]** `GET /api/reports/monthly/export?format=xlsx` — Excel 내보내기 (`exceljs`)
-- [ ] **[BE-032]** `GET /api/reports/monthly/export?format=pdf` — PDF 내보내기 (`@react-pdf/renderer`)
-- [ ] **[BE-033]** `GET /api/reports/history` — 보고서 생성 이력
+
+**DB 마이그레이션:**
+- [ ] **[BE-040]** ExchangeRate 테이블 생성 (환율 이력)
+- [ ] **[BE-041]** AssetCategory 테이블 생성 (관리자 설정 카테고리)
+- [ ] **[BE-042]** Archive 테이블 생성 (증적 메타데이터)
+- [ ] **[BE-043]** ArchiveLog 테이블 생성 (작업 로그)
+- [ ] **[BE-044]** License: `isVatIncluded` 컬럼 추가
+- [ ] **[BE-045]** ArchiveData 테이블 생성 (스냅샷 데이터)
+- [ ] **[BE-046]** `prisma generate` 실행
+
+**API 구현:**
+- [ ] **[BE-047]** AssetCategory CRUD: `GET|POST|PUT|DELETE /api/admin/asset-categories/[id]`
+- [ ] **[BE-048]** ExchangeRate 조회: `GET /api/admin/exchange-rates`
+- [ ] **[BE-049]** ExchangeRate 동기화: `POST /api/admin/exchange-rates/sync`
+- [ ] **[BE-050]** 증적 목록: `GET /api/admin/archives`
+- [ ] **[BE-051]** 수동 내보내기: `POST /api/admin/archives/export` (비동기)
+- [ ] **[BE-052]** 증적 상태: `GET /api/admin/archives/[id]/status`
+- [ ] **[BE-053]** 증적 로그: `GET /api/admin/archives/[id]/logs`
+- [ ] **[BE-054]** 증적 삭제: `DELETE /api/admin/archives/[id]`
+
+**배치 및 내보내기:**
+- [ ] **[BE-055]** 정기 증적 배치 (매월 1일 00:00, 지난 1달 데이터)
+- [ ] **[BE-056]** 환율 동기화 배치 (매일 09:00, OpenExchangeRates API)
+- [ ] **[BE-057]** Excel 생성 (4개 시트: 자산현황, 조직원, 변경이력, 비용요약)
+- [ ] **[BE-058]** CSV 생성 (데이터 정제 형식)
+- [ ] **[BE-059]** 환율 자동 적용 (단가 × 수량 × 환율 × VAT)
+- [ ] **[BE-060]** 변경 이력 추출 (AuditLog 기반)
+
+**Google Drive 통합:**
+- [ ] **[BE-061]** OAuth 2.0 설정 (service account)
+- [ ] **[BE-062]** 구글드라이브 업로드 라이브러리
+- [ ] **[BE-063]** 폴더 생성 및 경로 관리 (YYYY/YYYY-MM)
+- [ ] **[BE-064]** 파일 공유 (이메일 선택)
+- [ ] **[BE-065]** 업로드 실패 시 재시도 로직
 
 ### 프론트엔드 (`role/frontend`)
-- [ ] **[FE-020]** `/reports` — 월별 보고서 페이지 (요약 카드·차트·테이블)
-- [ ] **[FE-021]** Excel / PDF 내보내기 버튼
+- [ ] **[FE-030]** `/admin/asset-categories` — 카테고리 관리 페이지
+- [ ] **[FE-031]** `/admin/archives` — 증적 목록 및 수동 내보내기
+- [ ] **[FE-032]** 증적 상태 모니터링 UI (진행률, 로그)
+- [ ] **[FE-033]** 기간 선택 캘린더 (최대 5년)
+- [ ] **[FE-034]** 환율 관리 UI (환율 조회, 동기화 트리거)
+
+---
+
+## 🟢 Phase 4 — 정보자산 증적 시스템 (Phase 3 완료 후 착수)
+
+> 스펙: `tasks/features/asset-archiving.md`
+> ISO27001/ISMS-P 기준 월별 자산 자동 증적 + 구글드라이브 연동
+
+### 백엔드 (`role/backend`)
+
+**DB 마이그레이션:**
+- [ ] **[BE-040]** ExchangeRate 테이블 생성 (환율 이력)
+- [ ] **[BE-041]** AssetCategory 테이블 생성 (관리자 설정 카테고리)
+- [ ] **[BE-042]** Archive 테이블 생성 (증적 메타데이터)
+- [ ] **[BE-043]** ArchiveLog 테이블 생성 (작업 로그)
+- [ ] **[BE-044]** License: `isVatIncluded` 컬럼 추가
+- [ ] **[BE-045]** ArchiveData 테이블 생성 (스냅샷 데이터)
+- [ ] **[BE-046]** `prisma generate` 실행
+
+**API 구현:**
+- [ ] **[BE-047]** AssetCategory CRUD: `GET|POST|PUT|DELETE /api/admin/asset-categories/[id]`
+- [ ] **[BE-048]** ExchangeRate 조회: `GET /api/admin/exchange-rates`
+- [ ] **[BE-049]** ExchangeRate 동기화: `POST /api/admin/exchange-rates/sync`
+- [ ] **[BE-050]** 증적 목록: `GET /api/admin/archives`
+- [ ] **[BE-051]** 수동 내보내기: `POST /api/admin/archives/export` (비동기)
+- [ ] **[BE-052]** 증적 상태: `GET /api/admin/archives/[id]/status`
+- [ ] **[BE-053]** 증적 로그: `GET /api/admin/archives/[id]/logs`
+- [ ] **[BE-054]** 증적 삭제: `DELETE /api/admin/archives/[id]`
+
+**배치 및 내보내기:**
+- [ ] **[BE-055]** 정기 증적 배치 (매월 1일 00:00, 지난 1달 데이터)
+- [ ] **[BE-056]** 환율 동기화 배치 (매일 09:00, OpenExchangeRates API)
+- [ ] **[BE-057]** Excel 생성 (4개 시트: 자산현황, 조직원, 변경이력, 비용요약)
+- [ ] **[BE-058]** CSV 생성 (데이터 정제 형식)
+- [ ] **[BE-059]** 환율 자동 적용 (단가 × 수량 × 환율 × VAT)
+- [ ] **[BE-060]** 변경 이력 추출 (AuditLog 기반)
+
+**Google Drive 통합:**
+- [ ] **[BE-061]** OAuth 2.0 설정 (service account)
+- [ ] **[BE-062]** 구글드라이브 업로드 라이브러리
+- [ ] **[BE-063]** 폴더 생성 및 경로 관리 (YYYY/YYYY-MM)
+- [ ] **[BE-064]** 파일 공유 (이메일 선택)
+- [ ] **[BE-065]** 업로드 실패 시 재시도 로직
+
+### 프론트엔드 (`role/frontend`)
+- [ ] **[FE-030]** `/admin/asset-categories` — 카테고리 관리 페이지
+- [ ] **[FE-031]** `/admin/archives` — 증적 목록 및 수동 내보내기
+- [ ] **[FE-032]** 증적 상태 모니터링 UI (진행률, 로그)
+- [ ] **[FE-033]** 기간 선택 캘린더 (최대 5년)
+- [ ] **[FE-034]** 환율 관리 UI (환율 조회, 동기화 트리거)
+
+---
+
+## 🟢 Phase 4 — 정보자산 증적 시스템 (Phase 3 완료 후 착수)
+
+> 스펙: `tasks/features/asset-archiving.md`
+> ISO27001/ISMS-P 기준 월별 자산 자동 증적 + 구글드라이브 연동
+
+### 백엔드 (`role/backend`)
+
+**DB 마이그레이션:**
+- [ ] **[BE-040]** ExchangeRate 테이블 생성 (환율 이력)
+- [ ] **[BE-041]** AssetCategory 테이블 생성 (관리자 설정 카테고리)
+- [ ] **[BE-042]** Archive 테이블 생성 (증적 메타데이터)
+- [ ] **[BE-043]** ArchiveLog 테이블 생성 (작업 로그)
+- [ ] **[BE-044]** License: `isVatIncluded` 컬럼 추가
+- [ ] **[BE-045]** ArchiveData 테이블 생성 (스냅샷 데이터)
+- [ ] **[BE-046]** `prisma generate` 실행
+
+**API 구현:**
+- [ ] **[BE-047]** AssetCategory CRUD: `GET|POST|PUT|DELETE /api/admin/asset-categories/[id]`
+- [ ] **[BE-048]** ExchangeRate 조회: `GET /api/admin/exchange-rates`
+- [ ] **[BE-049]** ExchangeRate 동기화: `POST /api/admin/exchange-rates/sync`
+- [ ] **[BE-050]** 증적 목록: `GET /api/admin/archives`
+- [ ] **[BE-051]** 수동 내보내기: `POST /api/admin/archives/export` (비동기)
+- [ ] **[BE-052]** 증적 상태: `GET /api/admin/archives/[id]/status`
+- [ ] **[BE-053]** 증적 로그: `GET /api/admin/archives/[id]/logs`
+- [ ] **[BE-054]** 증적 삭제: `DELETE /api/admin/archives/[id]`
+
+**배치 및 내보내기:**
+- [ ] **[BE-055]** 정기 증적 배치 (매월 1일 00:00, 지난 1달 데이터)
+- [ ] **[BE-056]** 환율 동기화 배치 (매일 09:00, OpenExchangeRates API)
+- [ ] **[BE-057]** Excel 생성 (4개 시트: 자산현황, 조직원, 변경이력, 비용요약)
+- [ ] **[BE-058]** CSV 생성 (데이터 정제 형식)
+- [ ] **[BE-059]** 환율 자동 적용 (단가 × 수량 × 환율 × VAT)
+- [ ] **[BE-060]** 변경 이력 추출 (AuditLog 기반)
+
+**Google Drive 통합:**
+- [ ] **[BE-061]** OAuth 2.0 설정 (service account)
+- [ ] **[BE-062]** 구글드라이브 업로드 라이브러리
+- [ ] **[BE-063]** 폴더 생성 및 경로 관리 (YYYY/YYYY-MM)
+- [ ] **[BE-064]** 파일 공유 (이메일 선택)
+- [ ] **[BE-065]** 업로드 실패 시 재시도 로직
+
+### 프론트엔드 (`role/frontend`)
+- [ ] **[FE-030]** `/admin/asset-categories` — 카테고리 관리 페이지
+- [ ] **[FE-031]** `/admin/archives` — 증적 목록 및 수동 내보내기
+- [ ] **[FE-032]** 증적 상태 모니터링 UI (진행률, 로그)
+- [ ] **[FE-033]** 기간 선택 캘린더 (최대 5년)
+- [ ] **[FE-034]** 환율 관리 UI (환율 조회, 동기화 트리거)
 
 ---
 
