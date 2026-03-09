@@ -28,9 +28,16 @@
 - 인프라 접속 정보: `.env.infra` 참조 (Git 미추적, 로컬 전용)
 
 ## 프로덕션 배포 고려사항
-- 배포 환경: AWS EC2 (ARM64), 단방향 폐쇄망 (내부→외부 접근 가능, 외부→내부 접근 불가)
+- 배포 환경: AWS EC2 t4g.small (ARM64, vCPU 2, RAM 2GB), ap-northeast-2
+- 단방향 폐쇄망 (내부→외부 접근 가능, 외부→내부 접근 불가)
+- 배포 방식: `deploy.ps1` 실행 → **[1/2] git push** + **[2/2] S3 업로드**까지 자동, EC2 배포는 출력된 명령어를 수동 실행
+  - S3: `s3://triplecomma-releases/triplecomma-backoffice/license-manager.zip`
+  - EC2 ID: `i-0aeda7845a9634718` / AWS 프로필: `hyeongunk`
+  - EC2 접속: `aws ssm start-session --target i-0aeda7845a9634718 --region ap-northeast-2 --profile hyeongunk`
+- 포트: 로컬 dev `3000` / 컨테이너 `3000` / 호스트 `8080`
+- ⚠️ `deploy.ps1` 내부에 `git pull --rebase` 포함 → master에 커밋 충돌 있으면 배포 실패. 배포 전 반드시 master 클린 상태 확인
 - 프로덕션 컨테이너에서 `prisma CLI` 실행 금지
-- DB 스키마 변경은 호스트에서 `psql` (또는 Supabase SQL Editor)로 직접 실행
+- DB 스키마 변경: Supabase Dashboard SQL Editor 또는 `prisma db push` 사용
 - `prisma generate` 결과물은 `generated/prisma/`에 위치 (`lib/prisma.ts`에서 import)
 
 ---
