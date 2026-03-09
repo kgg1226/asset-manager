@@ -4,7 +4,7 @@
 >
 > **📚 먼저 읽어야 할 문서**: [`tasks/README.md`](README.md) → [`tasks/VISION.md`](VISION.md) → [`tasks/TICKETS.md`](TICKETS.md)
 >
-> 최종 업데이트: 2026-03-07 🚀
+> 최종 업데이트: 2026-03-06 🚀
 
 ---
 
@@ -83,73 +83,91 @@
 
 ---
 
-## 🎯 현재 진행 중 (우선순위 2: 배포 전 마무리)
+## 🎯 현재 상태 요약
 
-> **모든 작업이 완료되어야 프로덕션 배포 가능**
->
-> 📋 **자세한 내용**: [`tasks/TICKETS.md`](TICKETS.md) 참고
->
-> 예상 완료: 2026-03-14 (1주)
-
-### Backend Role
-- **[BE-ORG-001]** `PUT /api/org/companies/[id]` — 회사 이름 수정
-- **[BE-ORG-002]** `DELETE /api/org/companies/[id]` — 회사 삭제
-
-### Frontend Role
-- **[FE-001]** `mustChangePassword` 강제 비밀번호 변경 UI
-- **[FE-ORG-001]** `/org` 페이지 — Company CRUD UI 추가
-
-### DevOps Role
-- **[OPS-010]** `deploy.sh` / `docker-compose.yml` — SQLite 볼륨 제거
-- **[OPS-011]** `.env.example` 생성
-- **[OPS-001]** `dockerfile` — 비root USER 추가
-- **[OPS-002]** `.dockerignore` 점검
-
-### Planning Role
-- ✅ 비전 정의 (VISION.md)
-- ✅ 티켓 생성 (TICKETS.md)
-- ⏳ 진행 상황 모니터링 및 문서 업데이트
+| Phase | 상태 | 비고 |
+|---|---|---|
+| **Phase 1** — 라이선스 관리 | ✅ 완료 | |
+| **Phase 2** — Supabase + 자산 확장 | ✅ 완료 | `8f0cebc`, `2453e3e`, `11ec94d` |
+| **배포 전 마무리** (BE-ORG, FE-001, OPS) | ✅ 완료 | |
+| **EC2 배포** | ⏳ 대기 | **사람이 직접 실행** |
+| **Phase 3** — 월별 보고서 | 📋 착수 대기 | 배포 완료 후 |
 
 ---
 
-## 다음 단계
+## Phase 2 완료 내용 (master 반영됨)
 
-### Phase 1 (완료 ✅)
-- Supabase 전환 완료
-- 라이선스 시스템 안정화
+### 인프라 전환
+- SQLite → Supabase PostgreSQL 완료
+- `lib/prisma.ts`: 표준 PrismaClient (어댑터 제거)
+- Supabase 마이그레이션 초기화 완료
 
-### Phase 2 (다음)
-- Asset 추상화 시작
-- 자산 확장 (하드웨어, 클라우드 등)
-- **자세한 스펙**: [`tasks/features/information-asset-platform-evolution.md`](features/information-asset-platform-evolution.md)
+### 신규 DB 모델
+- `Asset` (type: SOFTWARE/CLOUD/HARDWARE/DOMAIN_SSL/OTHER)
+- `AssetType`, `AssetStatus` enum
+- 유형별 상세 모델
 
-### Phase 3, 4, 5
-- 자세한 내용은 [`tasks/VISION.md`](VISION.md)의 로드맵 참고
+### 신규 API
+- `GET|POST /api/assets`
+- `GET|PUT|DELETE /api/assets/[id]`
+- `PATCH /api/assets/[id]/status`
+- `GET /api/assets/expiring`
+- `PUT|DELETE /api/org/companies/[id]` (BE-ORG-001/002)
+- `POST /api/cron/renewal-notify` — Asset 만료 알림 통합
+
+### 신규 UI
+- `/assets` 목록 / `/assets/new` 등록 / `/assets/[id]` 상세
+- `/org` — Company CRUD UI
+- `mustChangePassword` 강제 변경 UI (FE-001)
+
+### 보안
+- ISMS-P 입력 검증 강화 (전체 API)
+- AuditLog 전수 커버리지
+- `.dockerignore` 정리
 
 ---
 
-## 📚 각 Role이 참고해야 할 문서
+## 현재 가장 중요한 다음 작업 — EC2 배포
 
-| Role | 시작 문서 | 스펙 문서 | 참고 |
-|------|---------|---------|------|
-| **Planning** | VISION.md | TICKETS.md | README.md |
-| **Backend** | TICKETS.md | features/*.md | api-spec.md |
-| **Frontend** | TICKETS.md | features/*.md | VISION.md |
-| **DevOps** | TICKETS.md | CLAUDE.md | launch.json |
-| **Security** | VISION.md | features/*.md | security/guidelines.md |
+> `deploy.ps1` 실행 (Windows PowerShell, `hyeongunk` 프로필 필요)
 
-**더 자세한 가이드**: [`tasks/README.md`](README.md)
+1. [ ] **`deploy.ps1` 실행** → git push + S3 업로드 자동 진행
+2. [ ] **EC2 SSM 접속 후 아래 명령 실행**
+   ```bash
+   cd /home/ssm-user/app
+   aws s3 cp s3://triplecomma-releases/triplecomma-backoffice/license-manager.zip .
+   sudo rm -rf license-manager
+   sudo mkdir -p license-manager && sudo chown -R ssm-user:ssm-user license-manager
+   unzip -q license-manager.zip -d license-manager && rm license-manager.zip
+   cd license-manager
+   sudo docker build -t license-manager:latest .
+   sudo docker restart license-app
+   ```
+3. [ ] **Supabase `DATABASE_URL` EC2 환경변수 설정 확인**
+4. [ ] **배포 후 동작 확인** (로그인, 자산 목록, 대시보드)
 
 ---
 
-## 남은 준비작업
+## 배포 후 다음 — Phase 3 착수
 
-| 항목 | 담당 | 상태 | 비고 |
-|------|------|------|------|
-| **우선순위 2 티켓 완료** | Backend, Frontend, DevOps | 🔴 진행 중 | [`tasks/TICKETS.md`](TICKETS.md) 참고 |
-| **배포 가능 상태** | All | ⏳ 대기 | 모든 티켓 완료 후 |
-| EC2 배포 | **사람** | ⏳ 대기 | 배포 준비 완료 후 |
-| Phase 2 시작 | Backend, Frontend | ⏳ 대기 | 배포 후 |
+> 상세 티켓: `tasks/PHASE3-TICKETS.md`
+
+- BE-030: 월별 보고서 집계 API
+- BE-031: Excel 내보내기 (`exceljs`)
+- BE-032: PDF 내보내기 (`@react-pdf/renderer`)
+- FE-020: `/reports` 보고서 페이지
+
+---
+
+## 📚 문서 가이드
+
+| Role | 참고 문서 |
+|---|---|
+| **Planning** | `tasks/VISION.md`, `tasks/TICKETS.md` |
+| **Backend** | `tasks/TICKETS.md`, `tasks/PHASE3-TICKETS.md`, `tasks/api-spec.md` |
+| **Frontend** | `tasks/TICKETS.md`, `tasks/PHASE3-TICKETS.md` |
+| **DevOps** | `CLAUDE.md`, `tasks/TICKETS.md` |
+| **Security** | `tasks/security/guidelines.md` |
 
 ---
 
