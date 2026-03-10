@@ -20,16 +20,6 @@ node_modules/
 # ── Testing ──────────────────────────────────────────────────────────────────
 /coverage
 
-# ── Database files ───────────────────────────────────────────────────────────
-*.db
-*.db-shm
-*.db-wal
-*.db-backup
-*.db.backup
-*.sqlite
-*.sqlite3
-/prisma/*.db
-
 # ── Environment / Secrets ────────────────────────────────────────────────────
 .env
 .env.*
@@ -62,6 +52,8 @@ Desktop.ini
 .idea/
 .cursor/
 .claude/
+.claude/worktrees/
+.claude/settings.local.json
 
 # ── Vercel ───────────────────────────────────────────────────────────────────
 .vercel
@@ -85,10 +77,6 @@ deploy.ps1
 .tmp-*
 *.tar*
 .env.infra
-.claude/settings.local.json
 
 !.env.infra.example
-!.claude/
-!.claude/commands/
-!.claude/commands/*.md
 .claire/

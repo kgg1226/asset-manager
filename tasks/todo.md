@@ -1,122 +1,292 @@
-# TODO
+# TODO (Legacy - See New System Below)
 
 > 기획 세션(/planning)에서 관리한다.
-> 최종 업데이트: 2026-03-05
+> 최종 업데이트: 2026-03-09
 
 ---
 
-## 완료된 기능 (master 반영 확인됨)
+## 🔴 우선순위 1 — 배포 완료 (PostgreSQL 전환 ✅)
 
-### 인증
-- [x] 로그인 / 로그아웃 (세션 쿠키 기반)
-- [x] 세션 확인 API
-- [x] 역할 기반 접근 제어 (ADMIN / USER)
-- [x] 로그인 브루트포스 방어 (IP 기반, 5회 실패 → 15분 잠금)
+> PostgreSQL 자체 호스팅 완료. Docker Compose 설정 완료.
+> **EC2에서 docker-compose up -d 실행 후 테스트 진행 중.**
 
-### 라이선스 관리
-- [x] 라이선스 CRUD (KEY_BASED / VOLUME / NO_KEY)
-- [x] 시트(개별 키) 등록·수정, 중복 검사
-- [x] 라이선스 갱신 상태 변경 + 이력 기록
-- [x] 라이선스 갱신일 수동 설정
-- [x] 라이선스 담당자 관리 (개인/부서)
-- [x] 라이선스 그룹 CRUD + 기본 그룹 자동 할당
+### 진행 상황
+- [x] **[BE-010]** `prisma/schema.prisma` — PostgreSQL provider ✅ 완료
+- [x] **[BE-011]** `lib/prisma.ts` — PrismaClient 표준화 ✅ 완료
+- [x] **[BE-012]** SQLite 패키지 제거 ✅ 완료
+- [x] **[BE-013]** `npx prisma db push` ✅ 완료
+- [x] **[BE-014]** `npx prisma db seed` (admin 사용자) ✅ 완료
+- [x] **[OPS-010]** `docker-compose.yml` — PostgreSQL 서비스 추가 ✅ 완료
+- [x] **[OPS-011]** `.env.example` 생성 ✅ 완료
+- [x] **[OPS-001]** `dockerfile` — better-sqlite3 제거 ✅ 완료
+- [x] **[OPS-002]** `.dockerignore` — SQLite 파일 제거 ✅ 완료
 
-### 할당·반납
-- [x] 라이선스 할당 (Server Action — lib/assignment-actions.ts)
-- [x] 라이선스 반납 / 삭제
-
-### 조직원 관리
-- [x] 조직원 CRUD
-- [x] 조직원 조직 이동 (`PATCH /api/employees/[id]`)
-- [x] 조직원 퇴사 처리 — 7일 유예 (`POST /api/employees/[id]/offboard`)
-
-### 조직 관리
-- [x] 회사(OrgCompany) CRUD
-- [x] OrgUnit CRUD + 삭제 영향 범위 미리보기
-
-### 배치/스케줄러
-- [x] OFFBOARDING 자동 삭제 (`POST /api/cron/offboard`, CRON_SECRET 인증)
-- [x] 라이선스 갱신 알림 (`POST /api/cron/renewal-notify`, D-70/30/15/7, Slack + Email)
-
-### Admin
-- [x] 사용자 CRUD
-- [x] 사용자 삭제 (`DELETE /api/admin/users/[id]`)
-- [x] 임시 비밀번호 발급 + mustChangePassword 플래그
-
-### 대시보드 / 감사 로그 / CSV
-- [x] 대시보드 차트 (비용 추이, 유형 분포, 누적 성장)
-- [x] 감사 로그 조회 (`GET /api/history`)
-- [x] CSV 임포트 (라이선스, 조직원, 그룹, 배정)
-
-### 프론트엔드 — UI
-- [x] 라이선스 목록 페이지네이션
-- [x] 조직원 목록 검색·필터 (이름, 부서, 상태)
-- [x] 조직원 중복 이름 구분 표시
+### 즉시 작업
+- [ ] EC2에서 `docker-compose up -d` 실행 및 로그인 테스트
+- [ ] 기본 CRUD 동작 확인 (라이선스 목록 조회, 등록, 삭제)
+- [ ] 감사 로그 정상 기록 확인
 
 ---
 
-## 대기 — 배포 전 확인 티켓
+## 🟡 우선순위 2 — 배포 전 마무리 🔴 NOW ACTIVE
 
-### 백엔드 (`role/backend` 브랜치)
+> ⚠️ **이 섹션의 항목들은 아래 요약이므로, 자세한 요구사항은 반드시 `tasks/TICKETS.md`를 참조하세요.**
+>
+> 각 역할이 실제 작업할 때는:
+> - 🔵 **Backend**: `BACKEND-START.md` → BE-ORG-001, BE-ORG-002 in `TICKETS.md`
+> - 🎨 **Frontend**: `FRONTEND-START.md` → FE-001, FE-ORG-001 in `TICKETS.md`
+> - 🟢 **DevOps**: `DEVOPS-START.md` → OPS-010/011/001/002 in `TICKETS.md`
 
-> 코드 점검 결과 발견된 항목. 구현 완료로 보이나 정확성 확인 필요.
+### 프론트엔드 (`role/frontend`)
 
-- [ ] **[BE-001]** `PATCH /api/employees/[id]` — 조직 이동 시 AuditLog 기록 여부 확인
-  - `actorType`, `actorId`, 변경 전/후 orgUnitId 기록되는지 검증
-- [ ] **[BE-002]** `DELETE /api/admin/users/[id]` — 자신의 계정 삭제 방지 로직 확인
-  - 없으면 `if (targetId === currentUser.id) return 400` 추가
-- [ ] **[BE-003]** 에러 응답 안전성 확인
-  - 모든 catch 블록에서 스택트레이스 미노출, 제네릭 메시지만 반환 확인
-  - 로그에 비밀번호·라이선스 키 평문 기록 없는지 확인
+- [ ] **[FE-001]** `mustChangePassword` 강제 비밀번호 변경 UI
+  - 로그인 후 플래그 `true` 시 비밀번호 변경 페이지로 강제 리다이렉트
+  - 변경 완료 시 `PUT /api/admin/users/[id]` 로 플래그 해제
 
-### DevOps (`role/devops` 브랜치)
+- [ ] **[FE-ORG-001]** `/org` 페이지 — 회사(Company) CRUD UI 추가
+  - 상단 "새 회사 생성" 버튼 추가 (모달)
+  - 회사 카드에 "수정" 버튼 추가 (모달)
+  - 회사 카드에 "삭제" 버튼 추가 (확인 모달)
+  - 삭제 전 영향 범위 표시 (소속 부서 수, 영향 조직원 수)
+  - 삭제 확인 텍스트: "삭제하겠습니다"
 
-- [ ] **[OPS-001]** `dockerfile` — `USER` 지시문 추가 (비root 실행)
-  - `RUN addgroup -S app && adduser -S app -G app` + `USER app`
-- [ ] **[OPS-002]** `.dockerignore` 점검
-  - `.env`, `dev.db`, `dev.db.backup`, `*.zip`, `.git` 제외 확인
-- [ ] **[OPS-003]** 환경변수 문서화
-  - `.env.example` 파일 생성 (실제 값 없이 키 목록만)
-  - 필수: `DATABASE_URL`, `CRON_SECRET`
-  - 선택: `SLACK_WEBHOOK_URL`, `SMTP_HOST/PORT/USER/PASS/FROM/SECURE`, `SECURE_COOKIE`
+### 백엔드 (`role/backend`)
 
-### 프론트엔드 (`role/frontend` 브랜치)
+- [ ] **[BE-ORG-001]** `PUT /api/org/companies/[id]` — 회사 이름 수정
+  - 요청: `{ name: string }`
+  - 중복 검증 (409 에러)
+  - AuditLog 기록 (UPDATED)
 
-- [ ] **[FE-001]** `mustChangePassword` 플래그 처리 UI
-  - 로그인 후 플래그가 `true`이면 비밀번호 변경 페이지로 강제 리다이렉트
-  - 변경 완료 시 플래그 `false`로 업데이트 (`PUT /api/admin/users/[id]` 또는 별도 API)
-- [ ] **[FE-002]** 모바일 반응형 레이아웃 (낮은 우선순위)
+- [ ] **[BE-ORG-002]** `DELETE /api/org/companies/[id]` — 회사 삭제
+  - 소속 부서 확인 (있으면 409 에러)
+  - AuditLog 기록 (DELETED)
 
 ---
 
-## 대기 — 사람이 직접 해야 하는 작업 (EC2 배포)
+## 🔵 우선순위 3 — 배포 후 (사람이 직접) 📚 REFERENCE
 
-> `deploy.ps1` 실행 전 아래 순서 완료 필요
+> 이 섹션은 배포 후 진행할 작업 목록입니다. 자세한 내용은 `tasks/VISION.md` 참조.
 
-1. [ ] EC2 VPN 접속 → DB 마이그레이션 SQL 실행
-   - `tasks/db-changes.md` [2026-03-04] 항목 참조
-   - `sqlite3 /home/ssm-user/license-manager/data/dev.db`
-2. [ ] `deploy.ps1` 실행 (Windows PowerShell, `hyeongunk` 프로필 필요)
+1. [ ] Supabase Dashboard에서 마이그레이션 확인 (테이블 생성 완료 여부)
+2. [ ] `deploy.ps1` 실행
    - 내부 순서: git push → S3 업로드 → SSM으로 EC2 빌드·배포
 3. [ ] 배포 후 동작 확인
-   - 로그인, 라이선스 목록, 대시보드 접근
-   - 갱신 알림 cron 수동 호출 테스트 (`POST /api/cron/renewal-notify` with CRON_SECRET)
+   - 로그인 / 라이선스 목록 / 대시보드 접근
+   - cron 수동 호출 (`POST /api/cron/renewal-notify` with `CRON_SECRET`)
 
 ---
 
-## 참고: 주요 페이지 경로
+## #백엔드 제안 (role/backend 코드 점검 결과)
 
-| 경로 | 설명 |
-|---|---|
-| `/` | `/licenses`로 리다이렉트 |
-| `/login` | 로그인 |
-| `/dashboard` | 대시보드 |
-| `/licenses` | 라이선스 목록 |
-| `/licenses/[id]` | 라이선스 상세 |
-| `/employees` | 조직원 목록 |
-| `/employees/[id]` | 조직원 상세 |
-| `/settings/groups` | 그룹 목록 |
-| `/settings/import` | CSV 가져오기 |
-| `/org` | 조직도 |
-| `/history` | 감사 로그 |
-| `/admin/users` | 사용자 관리 (ADMIN 전용) |
+> 2026-03-05 백엔드 세션에서 전체 API 라우트 점검 후 제안.
+> 기획 세션에서 우선순위 판단 후 티켓화 요청.
+
+### P1 — 감사 로그 누락 (ISMS-P 2.11 컴플라이언스) ✅ 완료
+
+> 30개 데이터 변경 API 전수에 AuditLog 기록 추가 완료.
+
+- [x] **[BE-P1-01]** 라이선스 CRUD AuditLog 추가 ✅
+- [x] **[BE-P1-02]** 조직원 생성·수정·삭제 AuditLog 추가 ✅
+- [x] **[BE-P1-03]** 사용자 관리 AuditLog 추가 ✅
+- [x] **[BE-P1-04]** 그룹·할당·담당자·조직 변경 AuditLog 추가 ✅
+
+### P2 — 입력 검증 강화 (ISMS-P 2.8) ✅ 완료
+
+> lib/validation.ts 공용 유틸리티 + 15개 API 라우트 적용 완료.
+
+- [x] **[BE-P2-01]** 문자열 길이 제한 추가 ✅
+- [x] **[BE-P2-02]** 숫자 범위 검증 추가 ✅
+- [x] **[BE-P2-03]** 날짜 검증 추가 ✅
+- [x] **[BE-P2-04]** enum 유효성 — silent default 제거 ✅
+
+### P3 — 성능 개선 ✅ 완료 (P3-01, P3-02)
+
+> P3-01/02 최적화 완료. P3-03 페이지네이션은 Phase 2 이후 검토.
+
+- [x] **[BE-P3-01]** 신규 조직원 자동 할당 N+1 쿼리 개선 ✅
+  - `POST /api/employees` — 개별 count → groupBy 배치 쿼리 (150+ → 3 쿼리)
+- [x] **[BE-P3-02]** OrgUnit 삭제 시 재귀 쿼리 개선 ✅
+  - `collectDescendantIds()` — 전체 트리 1회 로딩 + 인메모리 BFS
+- [ ] **[BE-P3-03]** 목록 API 페이지네이션 추가 (현재 /history만 지원)
+  - `GET /api/licenses`, `GET /api/assignments`, `GET /api/groups`
+
+### P4 — 코드 일관성 ✅ 완료
+
+> 7개 라우트 FK 검증 + 20개 라우트 handlePrismaError 적용 완료.
+
+- [x] **[BE-P4-01]** FK 존재 검증 추가 ✅
+  - 7개 라우트: org/units, employees, groups, licenses/owners
+  - companyId, parentId, orgUnitId, userId, licenseIds[] 배치 검증
+- [x] **[BE-P4-02]** 에러 응답 패턴 통일 ✅
+  - `handlePrismaError` 유틸리티: P2002→409, P2003→400, P2025→404
+  - 기존 `error.message.includes("Unique constraint")` 전량 교체
+
+---
+
+## 🟢 Phase 2 — 자산 유형 확장 (Supabase 전환 후 착수) 📚 ROADMAP
+
+> 📌 **미래 계획입니다.** 자세한 내용은 `tasks/VISION.md` (roadmap) 및 스펙 문서 참조.
+>
+> 스펙: `tasks/features/asset-management.md`, `tasks/features/org-and-dashboard-improvements.md`
+
+### 백엔드 (`role/backend`)
+- [ ] **[BE-020]** `prisma/schema.prisma` — `Asset`, `HardwareDetail`, `CloudDetail` 모델 추가
+  - AssetType enum (SOFTWARE, CLOUD, HARDWARE, DOMAIN_SSL, OTHER)
+  - AssetStatus enum (ACTIVE, INACTIVE, DISPOSED)
+- [ ] **[BE-021]** `GET|POST /api/assets` — 자산 목록 조회·등록
+- [ ] **[BE-022]** `GET|PUT|DELETE /api/assets/[id]` — 자산 상세·수정·삭제
+- [ ] **[BE-023]** `PATCH /api/assets/[id]/status` — 자산 상태 변경 (INACTIVE / DISPOSED)
+- [ ] **[BE-024]** `GET /api/assets/expiring` — 만료 임박 자산 목록
+- [ ] **[BE-025]** `POST /api/cron/renewal-notify` — Asset 만료 알림 통합 (expiryDate 기준)
+
+### 프론트엔드 (`role/frontend`)
+- [ ] **[FE-010]** `/assets` — 자산 목록 페이지 (탭: 전체·소프트웨어·클라우드·하드웨어·도메인)
+  - 각 탭별 필터링 및 정렬
+  - 자산 상태 배지 (ACTIVE/INACTIVE/DISPOSED)
+- [ ] **[FE-011]** `/assets/new` — 자산 등록 폼 (유형별 추가 필드 동적 표시)
+  - SOFTWARE: 라이선스 키, 버전
+  - CLOUD: 플랫폼, 계정ID, 좌석 수
+  - HARDWARE: 제조사, 모델, SN, 위치
+  - DOMAIN_SSL: 도메인명, 인증서 유효기간
+- [ ] **[FE-012]** `/assets/[id]` — 자산 상세 페이지
+  - 자산 정보 + 유형별 상세정보
+  - 할당 이력 (Assignment history)
+
+---
+
+## 🟢 Phase 3 — 월별 비용 보고서 + 통합 대시보드 (Phase 2 완료 후 착수) 📚 ROADMAP
+
+> 📌 **미래 계획입니다.** 자세한 내용은 `tasks/VISION.md` 참조.
+>
+> 스펙: `tasks/features/monthly-report.md`, `tasks/features/org-and-dashboard-improvements.md`
+
+### 백엔드 (`role/backend`)
+
+**대시보드 통합 API:**
+- [ ] **[BE-030]** `GET /api/dashboard/overview` — 전체 자산 집계 (비용, 만료, 상태)
+- [ ] **[BE-031]** `GET /api/dashboard/by-category?type=SOFTWARE` — 카테고리별 대시보드
+
+**월별 보고서 API:**
+- [ ] **[BE-032]** `GET /api/reports/monthly?month=2026-02` — 월별 종합 보고서
+- [ ] **[BE-033]** `GET /api/reports/monthly/export?format=xlsx` — Excel 내보내기
+- [ ] **[BE-034]** `GET /api/reports/monthly/export?format=pdf` — PDF 내보내기
+- [ ] **[BE-035]** `GET /api/reports/history` — 보고서 생성 이력
+
+### 프론트엔드 (`role/frontend`)
+
+**통합 대시보드:**
+- [ ] **[FE-020]** `/dashboard` 확장 — 통합 자산 현황
+  - 탭: 개요 / 라이선스 / 클라우드 / 하드웨어 / 도메인SSL
+- [ ] **[FE-021]** `/dashboard?type=SOFTWARE` — 라이선스 전용 대시보드
+- [ ] **[FE-022]** `/dashboard?type=CLOUD` — 클라우드 전용 대시보드
+- [ ] **[FE-023]** `/dashboard?type=HARDWARE` — 하드웨어 전용 대시보드
+- [ ] **[FE-024]** `/dashboard?type=DOMAIN_SSL` — 도메인/SSL 전용 대시보드
+
+**월별 보고서 페이지:**
+- [ ] **[FE-025]** `/reports` — 월별 종합 보고서
+- [ ] **[FE-026]** 보고서 공유 기능 (이메일)
+
+---
+
+## 🟢 Phase 4 — 정보자산 증적 시스템 (Phase 3 완료 후 착수) 📚 ROADMAP
+
+> 📌 **미래 계획입니다. 최종 목표입니다.** 자세한 내용은 `tasks/VISION.md` 참조.
+>
+> 스펙: `tasks/features/asset-archiving.md`
+> ISO27001/ISMS-P 기준 월별 자산 자동 증적 + 구글드라이브 연동
+
+### 백엔드 (`role/backend`)
+
+**DB 마이그레이션:**
+- [ ] **[BE-040]** ExchangeRate 테이블 생성 (환율 이력)
+- [ ] **[BE-041]** AssetCategory 테이블 생성 (관리자 설정 카테고리)
+- [ ] **[BE-042]** Archive 테이블 생성 (증적 메타데이터)
+- [ ] **[BE-043]** ArchiveLog 테이블 생성 (작업 로그)
+- [ ] **[BE-044]** License: `isVatIncluded` 컬럼 추가
+- [ ] **[BE-045]** ArchiveData 테이블 생성 (스냅샷 데이터)
+- [ ] **[BE-046]** `prisma generate` 실행
+
+**API 구현:**
+- [ ] **[BE-047]** AssetCategory CRUD: `GET|POST|PUT|DELETE /api/admin/asset-categories/[id]`
+- [ ] **[BE-048]** ExchangeRate 조회: `GET /api/admin/exchange-rates`
+- [ ] **[BE-049]** ExchangeRate 동기화: `POST /api/admin/exchange-rates/sync`
+- [ ] **[BE-050]** 증적 목록: `GET /api/admin/archives`
+- [ ] **[BE-051]** 수동 내보내기: `POST /api/admin/archives/export` (비동기)
+- [ ] **[BE-052]** 증적 상태: `GET /api/admin/archives/[id]/status`
+- [ ] **[BE-053]** 증적 로그: `GET /api/admin/archives/[id]/logs`
+- [ ] **[BE-054]** 증적 삭제: `DELETE /api/admin/archives/[id]`
+
+**배치 및 내보내기:**
+- [ ] **[BE-055]** 정기 증적 배치 (매월 1일 00:00, 지난 1달 데이터)
+- [ ] **[BE-056]** 환율 동기화 배치 (매일 09:00, OpenExchangeRates API)
+- [ ] **[BE-057]** Excel 생성 (4개 시트: 자산현황, 조직원, 변경이력, 비용요약)
+- [ ] **[BE-058]** CSV 생성 (데이터 정제 형식)
+- [ ] **[BE-059]** 환율 자동 적용 (단가 × 수량 × 환율 × VAT)
+- [ ] **[BE-060]** 변경 이력 추출 (AuditLog 기반)
+
+**Google Drive 통합:**
+- [ ] **[BE-061]** OAuth 2.0 설정 (service account)
+- [ ] **[BE-062]** 구글드라이브 업로드 라이브러리
+- [ ] **[BE-063]** 폴더 생성 및 경로 관리 (YYYY/YYYY-MM)
+- [ ] **[BE-064]** 파일 공유 (이메일 선택)
+- [ ] **[BE-065]** 업로드 실패 시 재시도 로직
+
+### 프론트엔드 (`role/frontend`)
+- [ ] **[FE-030]** `/admin/asset-categories` — 카테고리 관리 페이지
+- [ ] **[FE-031]** `/admin/archives` — 증적 목록 및 수동 내보내기
+- [ ] **[FE-032]** 증적 상태 모니터링 UI (진행률, 로그)
+- [ ] **[FE-033]** 기간 선택 캘린더 (최대 5년)
+- [ ] **[FE-034]** 환율 관리 UI (환율 조회, 동기화 트리거)
+
+---
+
+---
+
+## 📋 요약: 이 파일의 역할
+
+| 섹션 | 상태 | 참고 |
+|------|------|------|
+| **우선순위 1 (Supabase 전환)** | ✅ COMPLETED | 역사 기록용 |
+| **우선순위 2 (배포 전 마무리)** | 🔴 NOW ACTIVE | 👉 `TICKETS.md` 참조 (상세) |
+| **우선순위 3 (배포 후)** | 📌 REFERENCE | 배포 후 진행 사항 |
+| **Phase 2-4 (미래 계획)** | 📚 ROADMAP | `VISION.md` 참조 |
+| **완료된 기능** | 📚 REFERENCE | 구현된 기능 목록 |
+
+---
+
+## 완료된 기능 (master 반영)
+
+<details>
+<summary>펼치기</summary>
+
+### 인증
+- [x] 로그인 / 로그아웃 / 세션 확인
+- [x] ADMIN / USER 역할 분리
+- [x] 로그인 브루트포스 방어
+
+### 라이선스 관리
+- [x] 라이선스 CRUD, 시트 관리, 중복 검사
+- [x] 갱신 상태·일자·이력·담당자 관리
+- [x] 라이선스 그룹 + 기본 그룹 자동 할당
+
+### 할당·반납
+- [x] 라이선스 할당 (Server Action)
+- [x] 반납 / 삭제
+
+### 조직원 관리
+- [x] CRUD, 조직 이동, 퇴사 처리(7일 유예)
+
+### 조직 관리
+- [x] 회사(OrgCompany) / OrgUnit CRUD + 삭제 프리뷰
+
+### 배치/스케줄러
+- [x] OFFBOARDING 자동 삭제 (`POST /api/cron/offboard`)
+- [x] 갱신 알림 (`POST /api/cron/renewal-notify`, D-70/30/15/7)
+
+### Admin
+- [x] 사용자 CRUD, 삭제, 임시 비밀번호 발급
+
+### 대시보드 / 감사 로그 / CSV
+- [x] 대시보드 차트, 감사 로그, CSV 임포트
+
+</details>
