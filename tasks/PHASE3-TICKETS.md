@@ -34,7 +34,7 @@
 **담당**: Backend Role
 **우선순위**: 🔴 Critical (Phase 3 기초)
 **난이도**: 🟡 중간 (2-3일)
-**상태**: 📋 오픈
+**상태**: ✅ 완료 (PR #36, 2026-03-10)
 **파일**: `app/api/reports/monthly/[yearMonth]/data/route.ts`
 
 #### 요구사항
@@ -81,7 +81,7 @@
 **담당**: Backend Role
 **우선순위**: 🔴 Critical
 **난이도**: 🟠 어려움 (2-3일)
-**상태**: 📋 오픈
+**상태**: ✅ 완료 (PR #36, 2026-03-10)
 **파일**: `app/api/reports/monthly/[yearMonth]/excel/route.ts`
 
 #### 요구사항
@@ -130,7 +130,7 @@
 **담당**: Backend Role
 **우선순위**: 🟡 중간 (선택)
 **난이도**: 🟠 어려움 (2-3일)
-**상태**: 📋 오픈
+**상태**: ✅ 완료 (PR #36, 2026-03-10)
 **파일**: `app/api/reports/monthly/[yearMonth]/pdf/route.ts`
 
 #### 요구사항
@@ -159,7 +159,7 @@
 **담당**: Backend Role
 **우선순위**: 🔴 Critical
 **난이도**: 🟡 중간 (1-2일)
-**상태**: 📋 오픈
+**상태**: ✅ 완료 (PR #36, 2026-03-10)
 **파일**: `app/api/cron/monthly-report-generation/route.ts`
 
 #### 요구사항
@@ -193,7 +193,7 @@
 **담당**: Backend Role
 **우선순위**: 🟡 중간
 **난이도**: 🟢 쉬움 (1일)
-**상태**: 📋 오픈
+**상태**: ✅ 완료 (PR #36, 2026-03-10)
 **파일**: `app/api/reports/monthly/send-email/route.ts`
 
 #### 요구사항
