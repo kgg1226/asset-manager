@@ -9,8 +9,6 @@ import { ValidationError, handleValidationError, handlePrismaError, vStrReq, vSt
 // GET /api/employees — 조직원 목록 조회
 // Query: ?orgUnitId=1&status=ACTIVE&unassigned=true
 export async function GET(request: NextRequest) {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
   try {
     const { searchParams } = new URL(request.url);
     const orgUnitId = searchParams.get("orgUnitId");
