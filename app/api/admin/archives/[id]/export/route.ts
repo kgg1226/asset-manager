@@ -40,7 +40,9 @@ export async function POST(request: NextRequest, { params }: Params) {
       summarySheet.addRow(["완료일", archive.completedAt ? new Date(archive.completedAt).toLocaleDateString("ko-KR") : "-"]);
 
       // Sheet 2: 라이선스
-      const licData = archive.data.find((d) => d.dataType === "licenses");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const archiveData = archive.data as any[];
+      const licData = archiveData.find((d: any) => d.dataType === "licenses");
       if (licData) {
         const licSheet = workbook.addWorksheet("라이선스");
         const licenses = licData.payload as any[];
@@ -57,7 +59,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       }
 
       // Sheet 3: 조직원
-      const empData = archive.data.find((d) => d.dataType === "employees");
+      const empData = archiveData.find((d: any) => d.dataType === "employees");
       if (empData) {
         const empSheet = workbook.addWorksheet("조직원");
         const employees = empData.payload as any[];
@@ -70,7 +72,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       }
 
       // Sheet 4: 변경 이력
-      const auditData = archive.data.find((d) => d.dataType === "audit_logs");
+      const auditData = archiveData.find((d: any) => d.dataType === "audit_logs");
       if (auditData) {
         const histSheet = workbook.addWorksheet("변경이력");
         const logs = auditData.payload as any[];

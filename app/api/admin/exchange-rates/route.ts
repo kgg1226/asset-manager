@@ -19,8 +19,9 @@ export async function GET(request: NextRequest) {
   });
 
   // 없는 통화는 기본값(0) 포함
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result = SUPPORTED_CURRENCIES.map((currency) => {
-    const found = rates.find((r) => r.currency === currency);
+    const found = (rates as any[]).find((r: any) => r.currency === currency);
     return found ?? { currency, date, rateToKRW: null, source: null };
   });
 
