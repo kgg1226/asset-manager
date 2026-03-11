@@ -82,6 +82,10 @@ export default async function LicensesPage({
         expiryDate: true,
         noticePeriodDays: true,
         adminName: true,
+        parentId: true,
+        children: {
+          select: { id: true, name: true },
+        },
         assignments: {
           where: { returnedDate: null },
           select: {
@@ -101,7 +105,7 @@ export default async function LicensesPage({
     prisma.license.count(),
   ]);
 
-  const enriched = licenses.map((license) => {
+  const enrichedAll = licenses.map((license) => {
     const assignedCount = license.assignments.length;
     const maxCapacity = license.licenseType === "KEY_BASED"
       ? license.seats.length || license.totalQuantity
@@ -122,10 +126,12 @@ export default async function LicensesPage({
         employeeName: a.employee.name,
         department: a.employee.department,
       })),
+      depth: 0,
     };
   });
 
-  enriched.sort((a, b) => {
+  // Sort first
+  enrichedAll.sort((a, b) => {
     let cmp = 0;
     switch (sortField) {
       case "name":
@@ -146,6 +152,33 @@ export default async function LicensesPage({
     }
     return sortOrder === "desc" ? -cmp : cmp;
   });
+
+  // Build hierarchy: roots first, children indented below parent
+  const byId = new Map(enrichedAll.map((l) => [l.id, l]));
+  const childrenMap = new Map<number, typeof enrichedAll>();
+  const roots: typeof enrichedAll = [];
+  for (const lic of enrichedAll) {
+    if (lic.parentId == null) {
+      roots.push(lic);
+    } else {
+      const siblings = childrenMap.get(lic.parentId) ?? [];
+      siblings.push(lic);
+      childrenMap.set(lic.parentId, siblings);
+    }
+  }
+
+  const enriched: typeof enrichedAll = [];
+  for (const root of roots) {
+    root.depth = 0;
+    enriched.push(root);
+    const kids = childrenMap.get(root.id);
+    if (kids) {
+      for (const child of kids) {
+        child.depth = 1;
+        enriched.push(child);
+      }
+    }
+  }
 
   const employees = await prisma.employee.findMany({
     select: { id: true, name: true, department: true },
@@ -220,7 +253,10 @@ export default async function LicensesPage({
                     return (
                       <LicenseRow key={license.id} id={license.id}>
                         <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                          <span className="inline-flex items-center gap-1.5">
+                          <span className={`inline-flex items-center gap-1.5 ${license.depth > 0 ? "pl-4" : ""}`}>
+                            {license.depth > 0 && (
+                              <span className="text-gray-400 mr-0.5">└─</span>
+                            )}
                             {license.name}
                             {license.licenseType === "VOLUME" && (
                               <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[10px] font-semibold text-purple-700">
