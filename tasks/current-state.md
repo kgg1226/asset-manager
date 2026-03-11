@@ -4,7 +4,7 @@
 >
 > **📚 먼저 읽어야 할 문서**: [`tasks/README.md`](README.md) → [`tasks/VISION.md`](VISION.md) → [`tasks/TICKETS.md`](TICKETS.md)
 >
-> 최종 업데이트: 2026-03-10 🚀
+> 최종 업데이트: 2026-03-11 🚀
 
 ---
 
@@ -12,12 +12,13 @@
 
 | 브랜치 | 상태 | 내용 |
 |---|---|---|
-| `master` | 기준 브랜치 | 현재 최신 코드 (PR #34/#35/#36 머지 완료) |
+| `master` | 기준 브랜치 | 현재 최신 코드 (PR #40 머지 완료) |
 | `role/planning` | 운영 중 | 기획 문서 전담 |
 | `role/backend` | 운영 중 | 백엔드 코드 전담 |
 | `role/frontend` | 운영 중 | 프론트엔드 코드 전담 |
 | `role/devops` | 운영 중 | 배포/인프라 전담 |
 | `role/security` | 운영 중 | 보안 문서 전담 |
+| `claude/gracious-ritchie` | 운영 중 | 이 로컬의 기획 워크트리 (≈ role/planning) |
 
 > ⚠️ 로컬 master가 origin/master보다 뒤처진 경우: `git pull origin master` 실행 필수
 
