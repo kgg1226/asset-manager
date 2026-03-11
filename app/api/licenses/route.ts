@@ -20,8 +20,6 @@ type LicenseType = (typeof VALID_LICENSE_TYPES)[number];
 
 // GET /api/licenses — 라이선스 목록 조회 (계층 구조 지원)
 export async function GET() {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
   try {
     const licenses = await prisma.license.findMany({
       include: {

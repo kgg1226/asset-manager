@@ -1,42 +1,9 @@
-"use client";
-
-import { useState, useEffect, useMemo } from "react";
-import { useParams } from "next/navigation";
+import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, FileSpreadsheet, FileText, Mail } from "lucide-react";
+import { getCurrentUser } from "@/lib/auth";
+import { ArrowLeft, FileSpreadsheet, FileText } from "lucide-react";
 
-type AssetDetail = {
-  id: string;
-  name: string;
-  type: string;
-  status: string;
-  cost: number;
-  currency: string;
-  billingCycle: string | null;
-  assignedTo: string | null;
-  department: string | null;
-};
-
-type TypeBreakdown = {
-  type: string;
-  count: number;
-  cost: number;
-};
-
-type ReportData = {
-  period: string;
-  startDate: string;
-  endDate: string;
-  summary: {
-    totalCost: number;
-    currency: string;
-    assetCount: number;
-  };
-  byType: TypeBreakdown[];
-  byStatus: { status: string; count: number; cost: number }[];
-  byDepartment: { department: string; count: number; cost: number }[];
-  assetDetails: AssetDetail[];
-};
+export const dynamic = "force-dynamic";
 
 const TYPE_LABELS: Record<string, string> = {
   SOFTWARE: "소프트웨어",
@@ -52,78 +19,60 @@ const STATUS_LABELS: Record<string, string> = {
   DISPOSED: "폐기",
 };
 
-const TYPE_COLORS: Record<string, string> = {
-  SOFTWARE: "#3B82F6",
-  CLOUD: "#8B5CF6",
-  HARDWARE: "#F59E0B",
-  DOMAIN_SSL: "#10B981",
-  OTHER: "#6B7280",
-};
+type Props = { params: Promise<{ yearMonth: string }> };
 
-function formatCost(cost: number): string {
-  return "₩" + Math.round(cost).toLocaleString("ko-KR");
-}
+export default async function ReportDetailPage({ params }: Props) {
+  const user = await getCurrentUser();
+  if (!user) return notFound();
 
-export default function ReportDetailPage() {
-  const params = useParams();
-  const yearMonth = params.yearMonth as string;
-  const [data, setData] = useState<ReportData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [detailPage, setDetailPage] = useState(1);
-  const DETAIL_PER_PAGE = 20;
+  const { yearMonth } = await params;
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(yearMonth)) return notFound();
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      try {
-        const res = await fetch(`/api/reports/monthly/${yearMonth}/data`);
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(body.error || `조회 실패 (${res.status})`);
-        }
-        setData(await res.json());
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "보고서 조회 실패");
-      } finally {
-        setLoading(false);
-      }
+  const baseUrl = process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+
+  let data: {
+    period: string;
+    startDate: string;
+    endDate: string;
+    summary: { totalMonthlyCost: number; assetCount: number };
+    byType: { type: string; count: number; cost: number }[];
+    byStatus: { status: string; count: number; cost: number }[];
+    byDepartment: { department: string; count: number; cost: number }[];
+    expiringCount: number;
+    assetDetails: {
+      id: string;
+      name: string;
+      type: string;
+      status: string;
+      vendor: string | null;
+      monthlyCost: number | null;
+      expiryDate: string | null;
+      assignee: { id: string; name: string } | null;
+      department: string | null;
+    }[];
+  } | null = null;
+
+  try {
+    const res = await fetch(`${baseUrl}/api/reports/monthly/${yearMonth}/data`, {
+      headers: { Cookie: "" },
+      cache: "no-store",
+    });
+    if (res.ok) {
+      data = await res.json();
     }
-    load();
-  }, [yearMonth]);
-
-  const paginatedDetails = useMemo(() => {
-    if (!data?.assetDetails) return [];
-    const start = (detailPage - 1) * DETAIL_PER_PAGE;
-    return data.assetDetails.slice(start, start + DETAIL_PER_PAGE);
-  }, [data, detailPage]);
-
-  const totalDetailPages = data?.assetDetails
-    ? Math.ceil(data.assetDetails.length / DETAIL_PER_PAGE)
-    : 0;
-
-  // Simple bar chart for type breakdown
-  const maxCost = data?.byType ? Math.max(...data.byType.map((t) => t.cost), 1) : 1;
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 py-10">
-        <div className="mx-auto max-w-5xl px-4">
-          <p className="text-center text-gray-500">보고서를 불러오는 중...</p>
-        </div>
-      </div>
-    );
+  } catch {
+    // fallback: data remains null
   }
 
-  if (error || !data) {
+  if (!data) {
     return (
       <div className="min-h-screen bg-gray-50 py-10">
-        <div className="mx-auto max-w-5xl px-4">
+        <div className="mx-auto max-w-6xl px-4">
           <Link href="/reports" className="mb-4 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
             <ArrowLeft className="h-4 w-4" /> 보고서 목록
           </Link>
-          <div className="rounded-lg bg-red-50 p-6 text-center ring-1 ring-red-200">
-            <p className="text-sm text-red-700">{error || "데이터를 불러올 수 없습니다."}</p>
+          <div className="rounded-lg bg-white p-12 text-center shadow-sm ring-1 ring-gray-200">
+            <p className="text-gray-500">{yearMonth} 보고서 데이터를 불러올 수 없습니다.</p>
           </div>
         </div>
       </div>
@@ -132,112 +81,93 @@ export default function ReportDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-10">
-      <div className="mx-auto max-w-5xl px-4">
+      <div className="mx-auto max-w-6xl px-4">
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
-          <div>
-            <Link href="/reports" className="mb-2 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
-              <ArrowLeft className="h-4 w-4" /> 보고서 목록
+          <div className="flex items-center gap-3">
+            <Link href="/reports" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
+              <ArrowLeft className="h-4 w-4" />
             </Link>
-            <h1 className="text-2xl font-bold text-gray-900">{data.period} 월별 보고서</h1>
-            <p className="mt-1 text-sm text-gray-500">
-              {data.startDate} ~ {data.endDate}
-            </p>
+            <h1 className="text-2xl font-bold text-gray-900">{yearMonth} 보고서</h1>
+            <span className="text-sm text-gray-400">{data.startDate} ~ {data.endDate}</span>
           </div>
           <div className="flex items-center gap-2">
             <a
               href={`/api/reports/monthly/${yearMonth}/excel`}
-              download
-              className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className="inline-flex items-center gap-1.5 rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700"
             >
-              <FileSpreadsheet className="h-4 w-4 text-green-600" />
+              <FileSpreadsheet className="h-4 w-4" />
               Excel
             </a>
             <a
               href={`/api/reports/monthly/${yearMonth}/pdf`}
-              download
-              className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className="inline-flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
             >
-              <FileText className="h-4 w-4 text-red-500" />
+              <FileText className="h-4 w-4" />
               PDF
             </a>
-            <Link
-              href="/reports/settings"
-              className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              <Mail className="h-4 w-4 text-blue-500" />
-              이메일 발송
-            </Link>
           </div>
         </div>
 
-        {/* Type Cost Bar Chart */}
-        <div className="mb-6 rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">유형별 비용 분포</h2>
-          <div className="space-y-3">
-            {data.byType.map((item) => (
-              <div key={item.type} className="flex items-center gap-3">
-                <span className="w-24 shrink-0 text-sm text-gray-700">
-                  {TYPE_LABELS[item.type] || item.type}
-                </span>
-                <div className="flex-1">
-                  <div className="h-6 rounded bg-gray-100">
-                    <div
-                      className="h-6 rounded"
-                      style={{
-                        width: `${(item.cost / maxCost) * 100}%`,
-                        backgroundColor: TYPE_COLORS[item.type] || "#6B7280",
-                        minWidth: item.cost > 0 ? "4px" : "0",
-                      }}
-                    />
-                  </div>
-                </div>
-                <span className="w-32 shrink-0 text-right text-sm font-medium tabular-nums text-gray-900">
-                  {formatCost(item.cost)}
-                </span>
-                <span className="w-12 shrink-0 text-right text-xs tabular-nums text-gray-500">
-                  {item.count}개
-                </span>
-              </div>
-            ))}
+        {/* Summary Cards */}
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="rounded-lg bg-blue-50 p-4 ring-1 ring-blue-200">
+            <p className="text-xs font-medium uppercase text-gray-500">월간 총 비용</p>
+            <p className="mt-1 text-2xl font-bold text-blue-700">
+              ₩{data.summary.totalMonthlyCost.toLocaleString("ko-KR")}
+            </p>
+          </div>
+          <div className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-200">
+            <p className="text-xs font-medium uppercase text-gray-500">전체 자산</p>
+            <p className="mt-1 text-2xl font-bold text-gray-900">{data.summary.assetCount}개</p>
+          </div>
+          <div className={`rounded-lg p-4 ring-1 ${data.expiringCount > 0 ? "bg-yellow-50 ring-yellow-200" : "bg-white ring-gray-200"}`}>
+            <p className="text-xs font-medium uppercase text-gray-500">30일 내 만료</p>
+            <p className={`mt-1 text-2xl font-bold ${data.expiringCount > 0 ? "text-yellow-700" : "text-gray-900"}`}>
+              {data.expiringCount}개
+            </p>
           </div>
         </div>
 
-        {/* Department Breakdown */}
-        {data.byDepartment && data.byDepartment.length > 0 && (
-          <div className="mb-6 rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
-            <div className="border-b border-gray-200 px-6 py-4">
-              <h2 className="text-lg font-semibold text-gray-900">부서별 현황</h2>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">부서</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium uppercase text-gray-500">자산 수</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium uppercase text-gray-500">비용</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {data.byDepartment.map((row) => (
-                    <tr key={row.department} className="hover:bg-gray-50">
-                      <td className="px-6 py-3 text-sm font-medium text-gray-900">{row.department || "미배정"}</td>
-                      <td className="px-6 py-3 text-right text-sm tabular-nums text-gray-600">{row.count}개</td>
-                      <td className="px-6 py-3 text-right text-sm tabular-nums font-medium text-gray-900">{formatCost(row.cost)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+        {/* Charts: Type & Status */}
+        <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <TableSection
+            title="유형별 현황"
+            headers={["유형", "자산 수", "월간 비용"]}
+            rows={data.byType.map((r) => [
+              TYPE_LABELS[r.type] ?? r.type,
+              `${r.count}개`,
+              `₩${r.cost.toLocaleString("ko-KR")}`,
+            ])}
+          />
+          <TableSection
+            title="상태별 현황"
+            headers={["상태", "자산 수", "월간 비용"]}
+            rows={data.byStatus.map((r) => [
+              STATUS_LABELS[r.status] ?? r.status,
+              `${r.count}개`,
+              `₩${r.cost.toLocaleString("ko-KR")}`,
+            ])}
+          />
+        </div>
+
+        {/* Department */}
+        <div className="mb-6">
+          <TableSection
+            title="부서별 비용"
+            headers={["부서", "자산 수", "월간 비용"]}
+            rows={data.byDepartment.map((r) => [
+              r.department,
+              `${r.count}개`,
+              `₩${r.cost.toLocaleString("ko-KR")}`,
+            ])}
+          />
+        </div>
 
         {/* Asset Details Table */}
-        <div className="mb-6 rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
+        <div className="rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
           <div className="border-b border-gray-200 px-6 py-4">
-            <h2 className="text-lg font-semibold text-gray-900">
-              자산 상세 목록 ({data.assetDetails?.length || 0}건)
-            </h2>
+            <h2 className="text-base font-semibold text-gray-900">자산 상세 목록</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -246,71 +176,116 @@ export default function ReportDetailPage() {
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">자산명</th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">유형</th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">상태</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase text-gray-500">비용</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase text-gray-500">월간 비용</th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">담당자</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">만료일</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {paginatedDetails.map((asset) => {
-                  const statusColor =
-                    asset.status === "ACTIVE" ? "bg-green-100 text-green-700"
-                      : asset.status === "INACTIVE" ? "bg-gray-100 text-gray-700"
-                      : "bg-red-100 text-red-700";
-                  return (
-                    <tr key={asset.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">{asset.name}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{TYPE_LABELS[asset.type] || asset.type}</td>
-                      <td className="px-4 py-3 text-sm">
-                        <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${statusColor}`}>
-                          {STATUS_LABELS[asset.status] || asset.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right text-sm tabular-nums font-medium text-gray-900">
-                        {formatCost(asset.cost)}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{asset.assignedTo || "—"}</td>
-                    </tr>
-                  );
-                })}
-                {(!data.assetDetails || data.assetDetails.length === 0) && (
+                {data.assetDetails.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-500">
-                      자산 데이터가 없습니다.
+                    <td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-400">
+                      해당 기간에 자산이 없습니다.
                     </td>
                   </tr>
+                ) : (
+                  data.assetDetails.map((asset) => (
+                    <tr key={asset.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                        <Link href={`/assets/${asset.id}`} className="text-blue-600 hover:underline">
+                          {asset.name}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {TYPE_LABELS[asset.type] ?? asset.type}
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        <StatusBadge status={asset.status} />
+                      </td>
+                      <td className="px-4 py-3 text-right text-sm text-gray-900">
+                        {asset.monthlyCost != null ? `₩${asset.monthlyCost.toLocaleString("ko-KR")}` : "—"}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {asset.assignee?.name ?? asset.department ?? "미배정"}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {asset.expiryDate
+                          ? new Date(asset.expiryDate).toLocaleDateString("ko-KR")
+                          : "—"}
+                      </td>
+                    </tr>
+                  ))
                 )}
               </tbody>
             </table>
           </div>
-
-          {/* Pagination */}
-          {totalDetailPages > 1 && (
-            <div className="flex items-center justify-between border-t border-gray-200 px-6 py-3">
-              <span className="text-sm text-gray-600">
-                {(detailPage - 1) * DETAIL_PER_PAGE + 1}-
-                {Math.min(detailPage * DETAIL_PER_PAGE, data.assetDetails.length)}
-                / {data.assetDetails.length}건
-              </span>
-              <div className="flex gap-1">
-                <button
-                  onClick={() => setDetailPage((p) => Math.max(1, p - 1))}
-                  disabled={detailPage === 1}
-                  className="rounded px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-40"
-                >
-                  이전
-                </button>
-                <button
-                  onClick={() => setDetailPage((p) => Math.min(totalDetailPages, p + 1))}
-                  disabled={detailPage === totalDetailPages}
-                  className="rounded px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-40"
-                >
-                  다음
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
+  );
+}
+
+function TableSection({
+  title,
+  headers,
+  rows,
+}: {
+  title: string;
+  headers: string[];
+  rows: string[][];
+}) {
+  return (
+    <div className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
+      <h2 className="mb-4 text-base font-semibold text-gray-900">{title}</h2>
+      <table className="min-w-full">
+        <thead>
+          <tr className="border-b border-gray-200">
+            {headers.map((h, i) => (
+              <th
+                key={i}
+                className={`pb-2 text-xs font-medium uppercase text-gray-500 ${i > 0 ? "text-right" : "text-left"}`}
+              >
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100">
+          {rows.length === 0 ? (
+            <tr>
+              <td colSpan={headers.length} className="py-4 text-center text-sm text-gray-400">
+                데이터 없음
+              </td>
+            </tr>
+          ) : (
+            rows.map((row, ri) => (
+              <tr key={ri}>
+                {row.map((cell, ci) => (
+                  <td
+                    key={ci}
+                    className={`py-2 text-sm ${ci === 0 ? "text-gray-900" : "text-right text-gray-600"}`}
+                  >
+                    {cell}
+                  </td>
+                ))}
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const colors: Record<string, string> = {
+    ACTIVE: "bg-green-100 text-green-700",
+    INACTIVE: "bg-gray-100 text-gray-600",
+    DISPOSED: "bg-red-100 text-red-700",
+  };
+  return (
+    <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${colors[status] ?? "bg-gray-100 text-gray-600"}`}>
+      {STATUS_LABELS[status] ?? status}
+    </span>
   );
 }

@@ -391,14 +391,14 @@
 ## 📊 Phase 3 진행률 추적
 
 ```
-BE-030: [ ] Data Collection API
-BE-031: [ ] Excel Generation
-BE-032: [ ] PDF Generation
-BE-033: [ ] Auto-Generation Batch
-BE-034: [ ] Email Notification
-FE-020: [ ] Report List Page
-FE-021: [ ] Report Detail Page
-FE-022: [ ] Schedule Settings
+BE-030: [x] Data Collection API — ✅ 완료 (PR #36, 2026-03-10)
+BE-031: [x] Excel Generation    — ✅ 완료 (PR #36, 2026-03-10)
+BE-032: [x] PDF Generation      — ✅ 완료 (PR #36, 2026-03-10)
+BE-033: [x] Auto-Generation Batch — ✅ 완료 (PR #36, 2026-03-10)
+BE-034: [x] Email Notification  — ✅ 완료 (PR #36, 2026-03-10)
+FE-020: [ ] Report List Page    — 🔴 오픈 (다음 작업)
+FE-021: [ ] Report Detail Page  — 🔴 오픈
+FE-022: [ ] Schedule Settings   — 🔴 오픈
 OPS-020: [ ] Cloud Storage (Optional)
 OPS-021: [ ] Delivery Monitoring
 SEC-201: [ ] Access Control

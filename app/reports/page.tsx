@@ -1,29 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { BarChart3, Download, FileSpreadsheet, FileText, Send } from "lucide-react";
 import Link from "next/link";
-import { FileSpreadsheet, FileText, Download, Calendar, DollarSign, Package } from "lucide-react";
-
-type ReportSummary = {
-  totalCost: number;
-  currency: string;
-  assetCount: number;
-};
-
-type TypeBreakdown = {
-  type: string;
-  count: number;
-  cost: number;
-};
-
-type ReportData = {
-  period: string;
-  startDate: string;
-  endDate: string;
-  summary: ReportSummary;
-  byType: TypeBreakdown[];
-  byStatus: { status: string; count: number; cost: number }[];
-};
 
 const TYPE_LABELS: Record<string, string> = {
   SOFTWARE: "소프트웨어",
@@ -33,6 +12,16 @@ const TYPE_LABELS: Record<string, string> = {
   OTHER: "기타",
 };
 
+type ReportData = {
+  period: string;
+  startDate: string;
+  endDate: string;
+  summary: { totalMonthlyCost: number; assetCount: number; currency: string };
+  byType: { type: string; count: number; cost: number }[];
+  byDepartment: { department: string; count: number; cost: number }[];
+  expiringCount: number;
+};
+
 function getCurrentYearMonth(): string {
   const now = new Date();
   const y = now.getFullYear();
@@ -40,50 +29,67 @@ function getCurrentYearMonth(): string {
   return `${y}-${m}`;
 }
 
-function formatCost(cost: number): string {
-  return "₩" + Math.round(cost).toLocaleString("ko-KR");
-}
-
 export default function ReportsPage() {
-  const [yearMonth, setYearMonth] = useState(getCurrentYearMonth);
+  const [yearMonth, setYearMonth] = useState(getCurrentYearMonth());
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailInput, setEmailInput] = useState("");
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailResult, setEmailResult] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchReport(yearMonth);
-  }, [yearMonth]);
-
-  async function fetchReport(period: string) {
+  async function fetchReport() {
     setLoading(true);
     setError(null);
+    setData(null);
     try {
-      const res = await fetch(`/api/reports/monthly/${period}/data`);
+      const res = await fetch(`/api/reports/monthly/${yearMonth}/data`);
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || `조회 실패 (${res.status})`);
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error ?? "보고서 데이터를 불러오는데 실패했습니다.");
       }
-      const json = await res.json();
-      setData(json);
+      setData(await res.json());
     } catch (e) {
-      setError(e instanceof Error ? e.message : "보고서 조회에 실패했습니다.");
-      setData(null);
+      setError(e instanceof Error ? e.message : "오류가 발생했습니다.");
     } finally {
       setLoading(false);
     }
   }
 
+  async function sendEmail() {
+    if (!emailInput.trim()) return;
+    setEmailSending(true);
+    setEmailResult(null);
+    try {
+      const res = await fetch(`/api/reports/monthly/${yearMonth}/email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recipients: emailInput.split(",").map((e) => e.trim()).filter(Boolean) }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error ?? "이메일 발송에 실패했습니다.");
+      setEmailResult("이메일이 발송되었습니다.");
+    } catch (e) {
+      setEmailResult(e instanceof Error ? e.message : "오류가 발생했습니다.");
+    } finally {
+      setEmailSending(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-10">
-      <div className="mx-auto max-w-5xl px-4">
+      <div className="mx-auto max-w-6xl px-4">
         <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">월별 보고서</h1>
+          <div className="flex items-center gap-3">
+            <BarChart3 className="h-6 w-6 text-blue-600" />
+            <h1 className="text-2xl font-bold text-gray-900">월별 자산 보고서</h1>
+          </div>
         </div>
 
-        {/* Month Selector */}
-        <div className="mb-6 flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-gray-400" />
+        {/* 월 선택 */}
+        <div className="mb-6 flex items-end gap-4 rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-200">
+          <div>
+            <label className="block text-xs font-medium uppercase text-gray-500 mb-1">기간 선택</label>
             <input
               type="month"
               value={yearMonth}
@@ -91,185 +97,173 @@ export default function ReportsPage() {
               className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
+          <button
+            onClick={fetchReport}
+            disabled={loading}
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            {loading ? "조회 중..." : "보고서 조회"}
+          </button>
 
-          {/* Download Buttons */}
           {data && (
-            <div className="flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-2">
               <a
                 href={`/api/reports/monthly/${yearMonth}/excel`}
-                download
-                className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="inline-flex items-center gap-1.5 rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700"
               >
-                <FileSpreadsheet className="h-4 w-4 text-green-600" />
+                <FileSpreadsheet className="h-4 w-4" />
                 Excel
               </a>
               <a
                 href={`/api/reports/monthly/${yearMonth}/pdf`}
-                download
-                className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="inline-flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
               >
-                <FileText className="h-4 w-4 text-red-500" />
+                <FileText className="h-4 w-4" />
                 PDF
               </a>
+              <Link
+                href={`/reports/${yearMonth}`}
+                className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                상세 보기
+              </Link>
             </div>
           )}
         </div>
 
-        {/* Loading / Error */}
-        {loading && (
-          <div className="rounded-lg bg-white p-12 text-center shadow-sm ring-1 ring-gray-200">
-            <p className="text-gray-500">보고서를 불러오는 중...</p>
-          </div>
-        )}
-
         {error && (
-          <div className="rounded-lg bg-red-50 p-6 text-center shadow-sm ring-1 ring-red-200">
-            <p className="text-sm text-red-700">{error}</p>
+          <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700 ring-1 ring-red-200">
+            {error}
           </div>
         )}
 
-        {/* Report Content */}
-        {data && !loading && (
+        {data && (
           <>
-            {/* Summary Cards */}
+            {/* 요약 카드 */}
             <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-gray-200">
-                <div className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5 text-blue-600" />
-                  <span className="text-xs font-medium uppercase text-gray-500">총 비용</span>
-                </div>
-                <p className="mt-2 text-2xl font-bold text-gray-900">
-                  {formatCost(data.summary.totalCost)}
-                </p>
-              </div>
-              <div className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-gray-200">
-                <div className="flex items-center gap-2">
-                  <Package className="h-5 w-5 text-green-600" />
-                  <span className="text-xs font-medium uppercase text-gray-500">자산 수</span>
-                </div>
-                <p className="mt-2 text-2xl font-bold text-gray-900">
-                  {data.summary.assetCount}개
-                </p>
-              </div>
-              <div className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-gray-200">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-purple-600" />
-                  <span className="text-xs font-medium uppercase text-gray-500">기간</span>
-                </div>
-                <p className="mt-2 text-2xl font-bold text-gray-900">{data.period}</p>
-              </div>
+              <SummaryCard label="기간" value={data.period} />
+              <SummaryCard
+                label="월간 총 비용"
+                value={`₩${data.summary.totalMonthlyCost.toLocaleString("ko-KR")}`}
+                highlight
+              />
+              <SummaryCard label="자산 수" value={`${data.summary.assetCount}개`} />
             </div>
 
-            {/* Type Breakdown Table */}
-            <div className="mb-6 rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
-              <div className="border-b border-gray-200 px-6 py-4">
-                <h2 className="text-lg font-semibold text-gray-900">유형별 비용</h2>
+            {data.expiringCount > 0 && (
+              <div className="mb-4 rounded-md bg-yellow-50 p-3 text-sm text-yellow-800 ring-1 ring-yellow-200">
+                ⚠️ 30일 이내 만료 예정 자산: <strong>{data.expiringCount}개</strong>
               </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">유형</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium uppercase text-gray-500">자산 수</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium uppercase text-gray-500">비용</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium uppercase text-gray-500">비중</th>
+            )}
+
+            <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+              {/* 유형별 비용 */}
+              <div className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
+                <h2 className="mb-4 text-base font-semibold text-gray-900">유형별 비용</h2>
+                <table className="min-w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="pb-2 text-left text-xs font-medium uppercase text-gray-500">유형</th>
+                      <th className="pb-2 text-right text-xs font-medium uppercase text-gray-500">자산 수</th>
+                      <th className="pb-2 text-right text-xs font-medium uppercase text-gray-500">월간 비용</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {data.byType.map((row) => (
-                      <tr key={row.type} className="hover:bg-gray-50">
-                        <td className="px-6 py-3 text-sm font-medium text-gray-900">
-                          {TYPE_LABELS[row.type] || row.type}
-                        </td>
-                        <td className="px-6 py-3 text-right text-sm tabular-nums text-gray-600">
-                          {row.count}개
-                        </td>
-                        <td className="px-6 py-3 text-right text-sm tabular-nums text-gray-900 font-medium">
-                          {formatCost(row.cost)}
-                        </td>
-                        <td className="px-6 py-3 text-right text-sm tabular-nums text-gray-500">
-                          {data.summary.totalCost > 0
-                            ? ((row.cost / data.summary.totalCost) * 100).toFixed(1) + "%"
-                            : "—"}
-                        </td>
-                      </tr>
-                    ))}
-                    {data.byType.length === 0 && (
-                      <tr>
-                        <td colSpan={4} className="px-6 py-8 text-center text-sm text-gray-500">
-                          해당 기간에 자산 데이터가 없습니다.
-                        </td>
-                      </tr>
+                    {data.byType.length === 0 ? (
+                      <tr><td colSpan={3} className="py-4 text-center text-sm text-gray-400">데이터 없음</td></tr>
+                    ) : (
+                      data.byType.map((row) => (
+                        <tr key={row.type}>
+                          <td className="py-2 text-sm text-gray-900">{TYPE_LABELS[row.type] ?? row.type}</td>
+                          <td className="py-2 text-right text-sm text-gray-600">{row.count}개</td>
+                          <td className="py-2 text-right text-sm font-medium text-gray-900">
+                            ₩{row.cost.toLocaleString("ko-KR")}
+                          </td>
+                        </tr>
+                      ))
                     )}
                   </tbody>
-                  {data.byType.length > 0 && (
-                    <tfoot className="bg-gray-50">
-                      <tr>
-                        <td className="px-6 py-3 text-sm font-semibold text-gray-900">합계</td>
-                        <td className="px-6 py-3 text-right text-sm font-semibold tabular-nums text-gray-900">
-                          {data.summary.assetCount}개
-                        </td>
-                        <td className="px-6 py-3 text-right text-sm font-semibold tabular-nums text-gray-900">
-                          {formatCost(data.summary.totalCost)}
-                        </td>
-                        <td className="px-6 py-3 text-right text-sm font-semibold text-gray-900">100%</td>
-                      </tr>
-                    </tfoot>
-                  )}
+                </table>
+              </div>
+
+              {/* 부서별 비용 */}
+              <div className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
+                <h2 className="mb-4 text-base font-semibold text-gray-900">부서별 비용</h2>
+                <table className="min-w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="pb-2 text-left text-xs font-medium uppercase text-gray-500">부서</th>
+                      <th className="pb-2 text-right text-xs font-medium uppercase text-gray-500">자산 수</th>
+                      <th className="pb-2 text-right text-xs font-medium uppercase text-gray-500">월간 비용</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {data.byDepartment.length === 0 ? (
+                      <tr><td colSpan={3} className="py-4 text-center text-sm text-gray-400">데이터 없음</td></tr>
+                    ) : (
+                      data.byDepartment.map((row) => (
+                        <tr key={row.department}>
+                          <td className="py-2 text-sm text-gray-900">{row.department}</td>
+                          <td className="py-2 text-right text-sm text-gray-600">{row.count}개</td>
+                          <td className="py-2 text-right text-sm font-medium text-gray-900">
+                            ₩{row.cost.toLocaleString("ko-KR")}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
                 </table>
               </div>
             </div>
 
-            {/* Status Breakdown */}
-            {data.byStatus && data.byStatus.length > 0 && (
-              <div className="mb-6 rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
-                <div className="border-b border-gray-200 px-6 py-4">
-                  <h2 className="text-lg font-semibold text-gray-900">상태별 현황</h2>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">상태</th>
-                        <th className="px-6 py-3 text-right text-xs font-medium uppercase text-gray-500">자산 수</th>
-                        <th className="px-6 py-3 text-right text-xs font-medium uppercase text-gray-500">비용</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {data.byStatus.map((row) => {
-                        const statusLabel = row.status === "ACTIVE" ? "활성" : row.status === "INACTIVE" ? "비활성" : "폐기";
-                        const statusColor = row.status === "ACTIVE" ? "text-green-700 bg-green-100" : row.status === "INACTIVE" ? "text-gray-700 bg-gray-100" : "text-red-700 bg-red-100";
-                        return (
-                          <tr key={row.status} className="hover:bg-gray-50">
-                            <td className="px-6 py-3 text-sm">
-                              <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${statusColor}`}>
-                                {statusLabel}
-                              </span>
-                            </td>
-                            <td className="px-6 py-3 text-right text-sm tabular-nums text-gray-600">{row.count}개</td>
-                            <td className="px-6 py-3 text-right text-sm tabular-nums font-medium text-gray-900">{formatCost(row.cost)}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+            {/* 이메일 발송 */}
+            <div className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
+              <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-gray-900">
+                <Send className="h-4 w-4 text-blue-500" />
+                이메일 발송
+              </h2>
+              <div className="flex items-center gap-3">
+                <input
+                  type="text"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  placeholder="이메일 주소 (쉼표로 구분)"
+                  className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+                <button
+                  onClick={sendEmail}
+                  disabled={emailSending || !emailInput.trim()}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  <Send className="h-4 w-4" />
+                  {emailSending ? "발송 중..." : "발송"}
+                </button>
               </div>
-            )}
-
-            {/* Link to Detail */}
-            <div className="text-center">
-              <Link
-                href={`/reports/${yearMonth}`}
-                className="inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-              >
-                <Download className="h-4 w-4" />
-                상세 보고서 보기
-              </Link>
+              {emailResult && (
+                <p className={`mt-2 text-sm ${emailResult.includes("발송") ? "text-green-600" : "text-red-600"}`}>
+                  {emailResult}
+                </p>
+              )}
             </div>
           </>
         )}
+
+        {!data && !loading && !error && (
+          <div className="rounded-lg bg-white p-12 text-center shadow-sm ring-1 ring-gray-200">
+            <BarChart3 className="mx-auto h-12 w-12 text-gray-300" />
+            <p className="mt-3 text-gray-500">기간을 선택하고 보고서를 조회하세요.</p>
+          </div>
+        )}
       </div>
+    </div>
+  );
+}
+
+function SummaryCard({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+  return (
+    <div className={`rounded-lg p-4 shadow-sm ring-1 ${highlight ? "bg-blue-50 ring-blue-200" : "bg-white ring-gray-200"}`}>
+      <p className="text-xs font-medium uppercase text-gray-500">{label}</p>
+      <p className={`mt-1 text-xl font-bold ${highlight ? "text-blue-700" : "text-gray-900"}`}>{value}</p>
     </div>
   );
 }

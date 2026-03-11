@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
 import Link from "next/link";
 import DeleteButton from "./delete-button";
 import AssignButton from "./assign-button";
 import UnassignButton from "./unassign-button";
 import LicenseRow from "./license-row";
-import { getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +60,7 @@ export default async function LicensesPage({
 }: {
   searchParams: Promise<{ sort?: string; order?: string; page?: string }>;
 }) {
+  const user = await getCurrentUser().catch(() => null);
   const params = await searchParams;
   const sortField = (["name", "totalQuantity", "assigned", "expiryDate"].includes(params.sort ?? "")
     ? params.sort
@@ -67,8 +68,6 @@ export default async function LicensesPage({
   const sortOrder = (params.order === "asc" || params.order === "desc" ? params.order : "asc") as SortOrder;
   const currentPage = Math.max(1, parseInt(params.page ?? "1", 10));
   const skip = (currentPage - 1) * ITEMS_PER_PAGE;
-
-  const user = await getCurrentUser().catch(() => null);
 
   const [licenses, totalCount] = await Promise.all([
     prisma.license.findMany({
@@ -86,9 +85,7 @@ export default async function LicensesPage({
         noticePeriodDays: true,
         adminName: true,
         parentId: true,
-        children: {
-          select: { id: true, name: true },
-        },
+        children: { select: { id: true, name: true }, orderBy: { name: "asc" } },
         assignments: {
           where: { returnedDate: null },
           select: {
@@ -108,7 +105,7 @@ export default async function LicensesPage({
     prisma.license.count(),
   ]);
 
-  const enrichedAll = licenses.map((license) => {
+  const enriched = licenses.map((license) => {
     const assignedCount = license.assignments.length;
     const maxCapacity = license.licenseType === "KEY_BASED"
       ? license.seats.length || license.totalQuantity
@@ -129,12 +126,31 @@ export default async function LicensesPage({
         employeeName: a.employee.name,
         department: a.employee.department,
       })),
-      depth: 0,
     };
   });
 
-  // Sort first
-  enrichedAll.sort((a, b) => {
+  // 계층 구조 정렬: 부모 먼저, 자식은 바로 부모 아래
+  const childrenMap = new Map<number, typeof enriched>();
+  const roots: typeof enriched = [];
+  for (const lic of enriched) {
+    if (lic.parentId == null) {
+      roots.push(lic);
+    } else {
+      const siblings = childrenMap.get(lic.parentId) ?? [];
+      siblings.push(lic);
+      childrenMap.set(lic.parentId, siblings);
+    }
+  }
+  const hierarchySorted: (typeof enriched[number] & { depth: number })[] = [];
+  function walkLicenses(items: typeof enriched, depth: number) {
+    for (const lic of items) {
+      hierarchySorted.push({ ...lic, depth });
+      const kids = childrenMap.get(lic.id);
+      if (kids) walkLicenses(kids, depth + 1);
+    }
+  }
+  // 정렬 적용 후 hierarchy walk
+  enriched.sort((a, b) => {
     let cmp = 0;
     switch (sortField) {
       case "name":
@@ -155,31 +171,11 @@ export default async function LicensesPage({
     }
     return sortOrder === "desc" ? -cmp : cmp;
   });
-
-  // Build hierarchy: roots first, children indented below parent
-  const byId = new Map(enrichedAll.map((l) => [l.id, l]));
-  const childrenMap = new Map<number, typeof enrichedAll>();
-  const roots: typeof enrichedAll = [];
-  for (const lic of enrichedAll) {
-    if (lic.parentId == null) {
-      roots.push(lic);
-    } else {
-      const siblings = childrenMap.get(lic.parentId) ?? [];
-      siblings.push(lic);
-      childrenMap.set(lic.parentId, siblings);
-    }
-  }
-
-  const enriched: typeof enrichedAll = [];
-  for (const root of roots) {
-    root.depth = 0;
-    enriched.push(root);
-    const kids = childrenMap.get(root.id);
-    if (kids) {
-      for (const child of kids) {
-        child.depth = 1;
-        enriched.push(child);
-      }
+  walkLicenses(roots, 0);
+  // 계층에 포함되지 않은 고아 항목 추가 (parentId가 이 페이지에 없는 경우)
+  for (const lic of enriched) {
+    if (!hierarchySorted.find((h) => h.id === lic.id)) {
+      hierarchySorted.push({ ...lic, depth: 0 });
     }
   }
 
@@ -213,17 +209,15 @@ export default async function LicensesPage({
           )}
         </div>
 
-        {enriched.length === 0 ? (
+        {hierarchySorted.length === 0 ? (
           <div className="rounded-lg bg-white p-12 text-center shadow-sm ring-1 ring-gray-200">
             <p className="text-gray-500">등록된 라이선스가 없습니다.</p>
-            {user && (
-              <Link
-                href="/licenses/new"
-                className="mt-3 inline-block text-sm text-blue-600 hover:underline"
-              >
-                첫 번째 라이선스를 등록하세요 &rarr;
-              </Link>
-            )}
+            <Link
+              href="/licenses/new"
+              className="mt-3 inline-block text-sm text-blue-600 hover:underline"
+            >
+              첫 번째 라이선스를 등록하세요 &rarr;
+            </Link>
           </div>
         ) : (
           <>
@@ -249,7 +243,7 @@ export default async function LicensesPage({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {enriched.map((license) => {
+                  {hierarchySorted.map((license) => {
                     const badge = getNoticeBadge(license.expiryDate, license.noticePeriodDays);
                     const pct = license.maxCapacity > 0
                       ? Math.round((license.assignedCount / license.maxCapacity) * 100)
@@ -260,9 +254,9 @@ export default async function LicensesPage({
                     return (
                       <LicenseRow key={license.id} id={license.id}>
                         <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                          <span className={`inline-flex items-center gap-1.5 ${license.depth > 0 ? "pl-4" : ""}`}>
+                          <span className="inline-flex items-center gap-1.5" style={{ paddingLeft: license.depth > 0 ? `${license.depth * 16}px` : undefined }}>
                             {license.depth > 0 && (
-                              <span className="text-gray-400 mr-0.5">└─</span>
+                              <span className="text-gray-400 select-none">└─</span>
                             )}
                             {license.name}
                             {license.licenseType === "VOLUME" && (

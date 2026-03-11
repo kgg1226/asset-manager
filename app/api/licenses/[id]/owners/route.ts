@@ -8,8 +8,6 @@ type Params = { params: Promise<{ id: string }> };
 
 // GET /api/licenses/:id/owners — 담당자 목록
 export async function GET(request: NextRequest, { params }: Params) {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
 
   try {
     const { id } = await params;

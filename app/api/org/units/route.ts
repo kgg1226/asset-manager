@@ -8,8 +8,6 @@ import { ValidationError, handleValidationError, handlePrismaError, vStrReq, vNu
 
 // GET /api/org/units — OrgUnit 목록 (?companyId= 필터, ?parentId= 필터)
 export async function GET(request: NextRequest) {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
 
   try {
     const { searchParams } = new URL(request.url);

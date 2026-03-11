@@ -1,4 +1,4 @@
-// 변경: 공개 열람 모드 — 비로그인 시 nav + 로그인 버튼 표시, 리다이렉트 제거
+// 변경: DB 에러 시 전체 앱 장애 방지(catch), 조직도 메뉴 추가
 
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -35,7 +35,7 @@ export default async function RootLayout({
   const user = await getCurrentUser().catch(() => null);
 
   // 비밀번호 변경 필수인 경우 비밀번호 변경 페이지로 리다이렉트
-  // (로그인된 사용자 한정, change-password 페이지에서는 방지)
+  // (change-password 페이지에서는 리다이렉트 방지)
   if (
     user &&
     user.mustChangePassword &&
@@ -71,36 +71,47 @@ export default async function RootLayout({
                 <Link href="/settings/groups" className="text-sm text-gray-600 hover:text-gray-900">
                   그룹 설정
                 </Link>
-                <Link href="/settings/import" className="text-sm text-gray-600 hover:text-gray-900">
-                  데이터 가져오기
-                </Link>
-                <Link href="/history" className="text-sm text-gray-600 hover:text-gray-900">
-                  이력
+                {user && (
+                  <Link href="/settings/import" className="text-sm text-gray-600 hover:text-gray-900">
+                    데이터 가져오기
+                  </Link>
+                )}
+                <Link href="/assets" className="text-sm text-gray-600 hover:text-gray-900">
+                  자산
                 </Link>
                 <Link href="/reports" className="text-sm text-gray-600 hover:text-gray-900">
                   보고서
                 </Link>
+                <Link href="/history" className="text-sm text-gray-600 hover:text-gray-900">
+                  이력
+                </Link>
                 {user?.role === "ADMIN" && (
-                  <Link href="/admin/users" className="text-sm text-purple-600 hover:text-purple-800">
-                    관리자
-                  </Link>
-                )}
-              </div>
-              <div className="flex items-center gap-3 border-l border-gray-200 pl-4">
-                {user ? (
                   <>
-                    <span className="text-xs text-gray-400">{user.username}</span>
-                    <LogoutButton />
+                    <Link href="/admin/users" className="text-sm text-purple-600 hover:text-purple-800">
+                      사용자 관리
+                    </Link>
+                    <Link href="/admin/archives" className="text-sm text-purple-600 hover:text-purple-800">
+                      증적
+                    </Link>
+                    <Link href="/admin/exchange-rates" className="text-sm text-purple-600 hover:text-purple-800">
+                      환율
+                    </Link>
+                    <Link href="/admin/asset-categories" className="text-sm text-purple-600 hover:text-purple-800">
+                      자산카테고리
+                    </Link>
                   </>
-                ) : (
-                  <Link
-                    href="/login"
-                    className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
-                  >
-                    로그인
-                  </Link>
                 )}
               </div>
+              {user ? (
+                <div className="flex items-center gap-3 border-l border-gray-200 pl-4">
+                  <span className="text-xs text-gray-400">{user.username}</span>
+                  <LogoutButton />
+                </div>
+              ) : (
+                <Link href="/login" className="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                  로그인
+                </Link>
+              )}
             </div>
           </nav>
         )}

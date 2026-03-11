@@ -43,12 +43,7 @@ type License = {
   currency: Currency;
   exchangeRate: number;
   isVatIncluded: boolean;
-  parentId: number | null;
-};
-
-type ParentOption = {
-  id: number;
-  name: string;
+  parentId?: number | null;
 };
 
 type Seat = {
@@ -72,11 +67,11 @@ function resolveNoticePeriodType(days: number | null): string {
 export default function EditLicenseForm({
   license,
   seats: initialSeats,
-  parentOptions = [],
+  allLicenses = [],
 }: {
   license: License;
   seats: Seat[];
-  parentOptions?: ParentOption[];
+  allLicenses?: { id: number; name: string }[];
 }) {
   const initialState: FormState = {};
   const boundUpdate = updateLicense.bind(null, license.id);
@@ -244,23 +239,14 @@ export default function EditLicenseForm({
               />
             </Field>
 
-            {parentOptions.length > 0 && (
+            {allLicenses.length > 0 && (
               <Field label="상위 라이선스">
-                <select
-                  name="parentId"
-                  defaultValue={license.parentId?.toString() ?? ""}
-                  className="input"
-                >
+                <select name="parentId" defaultValue={license.parentId ?? ""} className="input">
                   <option value="">없음 (최상위)</option>
-                  {parentOptions.map((opt) => (
-                    <option key={opt.id} value={opt.id}>
-                      {opt.name}
-                    </option>
+                  {allLicenses.map((l) => (
+                    <option key={l.id} value={l.id}>{l.name}</option>
                   ))}
                 </select>
-                <p className="mt-1 text-xs text-gray-500">
-                  이 라이선스를 다른 라이선스의 하위로 설정합니다.
-                </p>
               </Field>
             )}
           </fieldset>

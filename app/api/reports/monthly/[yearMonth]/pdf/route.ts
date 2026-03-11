@@ -12,7 +12,6 @@
 /* eslint-disable jsx-a11y/alt-text */
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
 import { ValidationError, handleValidationError } from "@/lib/validation";
 import React from "react";
 import {
@@ -348,9 +347,6 @@ function tableView(
 
 // ── GET 핸들러 ──────────────────────────────────────────────────────────────
 export async function GET(_request: NextRequest, { params }: Params) {
-  const user = await getCurrentUser();
-  if (!user)
-    return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
 
   try {
     const { yearMonth } = await params;

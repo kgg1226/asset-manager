@@ -1,43 +1,33 @@
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
 import { notFound, redirect } from "next/navigation";
 import EditLicenseForm from "./edit-form";
-import { getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ id: string }> };
 
 export default async function EditLicensePage({ params }: Props) {
-  const user = await getCurrentUser().catch(() => null);
-  if (!user) redirect("/login");
-
+  const editUser = await getCurrentUser().catch(() => null);
+  if (!editUser) redirect("/login");
   const { id } = await params;
-  const licenseId = Number(id);
-  const [license, allLicenses] = await Promise.all([
-    prisma.license.findUnique({
-      where: { id: licenseId },
-      include: {
-        seats: {
-          include: {
-            assignments: {
-              where: { returnedDate: null },
-              select: {
-                id: true,
-                employee: { select: { name: true, department: true } },
-              },
+  const license = await prisma.license.findUnique({
+    where: { id: Number(id) },
+    include: {
+      seats: {
+        include: {
+          assignments: {
+            where: { returnedDate: null },
+            select: {
+              id: true,
+              employee: { select: { name: true, department: true } },
             },
           },
-          orderBy: { id: "asc" },
         },
-        children: { select: { id: true } },
+        orderBy: { id: "asc" },
       },
-    }),
-    prisma.license.findMany({
-      where: { id: { not: licenseId } },
-      select: { id: true, name: true, parentId: true },
-      orderBy: { name: "asc" },
-    }),
-  ]);
+    },
+  });
 
   if (!license) notFound();
 
@@ -49,17 +39,12 @@ export default async function EditLicensePage({ params }: Props) {
       : null,
   }));
 
-  // Filter: exclude licenses that are children of this license (to prevent circular refs)
-  const hasChildren = license.children.length > 0;
-  const parentOptions = allLicenses
-    .filter((l) => !(hasChildren && l.parentId === licenseId))
-    .map((l) => ({ id: l.id, name: l.name }));
+  // 상위 라이선스 선택용 목록 (자신 제외)
+  const allLicenses = await prisma.license.findMany({
+    where: { id: { not: Number(id) }, parentId: null }, // 이미 하위 라이선스인 것은 상위가 될 수 없음
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
 
-  return (
-    <EditLicenseForm
-      license={{ ...license, parentId: license.parentId }}
-      seats={seats}
-      parentOptions={parentOptions}
-    />
-  );
+  return <EditLicenseForm license={license} seats={seats} allLicenses={allLicenses} />;
 }

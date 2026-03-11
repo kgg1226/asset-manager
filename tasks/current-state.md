@@ -4,7 +4,7 @@
 >
 > **📚 먼저 읽어야 할 문서**: [`tasks/README.md`](README.md) → [`tasks/VISION.md`](VISION.md) → [`tasks/TICKETS.md`](TICKETS.md)
 >
-> 최종 업데이트: 2026-03-10 🚀
+> 최종 업데이트: 2026-03-11 🚀
 
 ---
 
@@ -31,9 +31,16 @@
 | **Phase 2** — PostgreSQL 전환 + 자산 확장 | ✅ 완료 | PR #35 포함 |
 | **Phase 3-1** — 라이선스 계층 구조 (BE-040) | ✅ 완료 | PR #34 머지 |
 | **Phase 3 BE** — 월별 보고서 API (BE-030~034) | ✅ 완료 | PR #36 머지 |
+| **Phase 3-1 FE** — 라이선스 계층 UI (FE-040) | ✅ 완료 | 2026-03-11 |
+| **Phase 3 FE** — 보고서 UI (FE-020~022) | ✅ 완료 | 2026-03-11 |
+| **Phase 4 BE** — 증적 DB 스키마 + API + 배치 | ✅ 완료 | 2026-03-11 |
+| **Phase 4 FE** — 증적 관리 UI (/admin/archives) | ✅ 완료 | 2026-03-11 |
+| **Phase 4 FE** — 자산카테고리 관리 UI (/admin/asset-categories) | ✅ 완료 | 2026-03-11 |
+| **FE-ORG-001** — Company CRUD UI (조직도 회사 생성/수정/삭제) | ✅ 완료 | 2026-03-11 |
+| **FE-001** — mustChangePassword API + UI 연결 완성 | ✅ 완료 | 2026-03-11 |
+| **자산 페이지** — Mock 데이터 → 실제 API 연결 | ✅ 완료 | 2026-03-11 |
+| **Phase 4** — Google Drive 연동 | 🔴 미완성 | 외부 OAuth 환경변수 필요 |
 | **EC2 배포** | ⏳ 대기 | **사람이 직접 실행** (아래 절차 참고) |
-| **Phase 3-1 FE** — 라이선스 계층 UI (FE-040) | 🔴 미완성 | **다음 작업** |
-| **Phase 3 FE** — 보고서 UI (FE-020~022) | 🔴 미완성 | **다음 작업** |
 
 ---
 
@@ -157,41 +164,25 @@ sudo docker-compose logs -f app  # 에러 없는지 확인
 
 ---
 
-### 2. FE-040 — 라이선스 계층 구조 UI (role/frontend)
-
-> **BE-040 완료됨** — API는 준비됨. 프론트엔드만 남음.
-> 상세 스펙: `tasks/TICKETS.md` → FE-040 섹션
+### 2. FE-040 — 라이선스 계층 구조 UI ✅ 완료 (2026-03-11)
 
 | 파일 | 작업 내용 |
 |---|---|
-| `app/licenses/page.tsx` | 계층 구조 트리 표시 (└─ 들여쓰기) |
-| `app/licenses/[id]/edit/page.tsx` | 상위 라이선스 드롭다운 추가 |
-| `app/licenses/[id]/page.tsx` | 하위 라이선스 섹션 추가 |
-| CSV 템플릿 | `parentLicenseName` 컬럼 추가 |
-
-**완료 기준:**
-- [ ] 목록: `Open VPN → └─ Domain1, └─ Domain2` 형태 렌더링
-- [ ] 편집: parentId 드롭다운 (자신 선택 불가)
-- [ ] 상세: 하위 라이선스 테이블
+| `app/licenses/page.tsx` | 계층 구조 트리 표시 (└─ 들여쓰기) ✅ |
+| `app/licenses/[id]/edit/page.tsx` | 상위 라이선스 드롭다운 추가 ✅ |
+| `app/licenses/[id]/edit/edit-form.tsx` | parentId 필드 + allLicenses prop ✅ |
+| `app/licenses/[id]/edit/actions.ts` | parentId 저장 처리 ✅ |
+| `app/licenses/[id]/page.tsx` | 하위 라이선스 섹션 + 상위 라이선스 표시 ✅ |
 
 ---
 
-### 3. Phase 3 FE — 보고서 UI (role/frontend)
-
-> **BE-030~034 완료됨** — API는 준비됨. 프론트엔드만 남음.
-> 상세 스펙: `tasks/PHASE3-TICKETS.md` → FE-020~022 섹션
+### 3. Phase 3 FE — 보고서 UI ✅ 완료 (2026-03-11)
 
 | 티켓 | 경로 | 내용 |
 |---|---|---|
-| FE-020 | `/reports` | 보고서 목록 + Excel/PDF 다운로드 |
-| FE-021 | `/reports/[id]` | 보고서 상세 + 차트 |
-| FE-022 | `/reports/settings` | 예약 보고서 설정 |
-
-**API 연동 포인트:**
-- `GET /api/reports/monthly/[yearMonth]/data` — 집계
-- `GET /api/reports/monthly/[yearMonth]/excel` — Excel 다운로드
-- `GET /api/reports/monthly/[yearMonth]/pdf` — PDF 다운로드
-- `POST /api/reports/monthly/[yearMonth]/email` — 이메일 발송
+| FE-020 | `/reports` | 보고서 조회 + Excel/PDF 다운로드 + 이메일 발송 ✅ |
+| FE-021 | `/reports/[yearMonth]` | 보고서 상세 + 유형별/상태별/부서별 테이블 ✅ |
+| FE-022 | `/reports/settings` | 수신자 관리 + 테스트 발송 ✅ |
 
 ---
 

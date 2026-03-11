@@ -25,9 +25,6 @@ const SORT_FIELDS = ["name", "cost", "monthlyCost", "expiryDate", "createdAt"] a
 // ── GET /api/assets — 자산 목록 조회 ──
 
 export async function GET(request: NextRequest) {
-  const user = await getCurrentUser();
-  if (!user)
-    return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
 
   try {
     const url = request.nextUrl;

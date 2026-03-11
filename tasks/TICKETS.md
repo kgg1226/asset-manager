@@ -454,17 +454,19 @@
 
 | 티켓 | Role | 우선순위 | 난이도 | 상태 | 예상 기간 |
 |------|------|---------|--------|------|----------|
-| BE-020 | Backend | 🔴 Critical | 🟡 중간 | 🔴 오픈 | 1-2일 |
-| BE-021 | Backend | 🔴 Critical | 🟡 중간 | 🔴 오픈 | 1-2일 |
-| BE-022 | Backend | 🔴 Critical | 🟡 중간 | 🔴 오픈 | 2일 |
-| BE-023 | Backend | 🟠 높음 | 🟢 낮음 | 🔴 오픈 | 0.5일 |
-| BE-024 | Backend | 🟠 높음 | 🟢 낮음 | 🔴 오픈 | 1일 |
-| BE-025 | Backend | 🟠 높음 | 🟡 중간 | 🔴 오픈 | 2일 |
-| FE-010 | Frontend | 🔴 Critical | 🟡 중간 | 🔴 오픈 | 3-4일 |
-| FE-011 | Frontend | 🔴 Critical | 🟡 중간 | 🔴 오픈 | 2-3일 |
-| FE-012 | Frontend | 🔴 Critical | 🟡 중간 | 🔴 오픈 | 2-3일 |
+| BE-020 | Backend | 🔴 Critical | 🟡 중간 | ✅ 완료 | 1-2일 |
+| BE-021 | Backend | 🔴 Critical | 🟡 중간 | ✅ 완료 | 1-2일 |
+| BE-022 | Backend | 🔴 Critical | 🟡 중간 | ✅ 완료 | 2일 |
+| BE-023 | Backend | 🟠 높음 | 🟢 낮음 | ✅ 완료 | 0.5일 |
+| BE-024 | Backend | 🟠 높음 | 🟢 낮음 | ✅ 완료 | 1일 |
+| BE-025 | Backend | 🟠 높음 | 🟡 중간 | ✅ 완료 | 2일 |
+| FE-010 | Frontend | 🔴 Critical | 🟡 중간 | ✅ 완료 (2026-03-08) | 3-4일 |
+| FE-011 | Frontend | 🔴 Critical | 🟡 중간 | ✅ 완료 (2026-03-08) | 2-3일 |
+| FE-012 | Frontend | 🔴 Critical | 🟡 중간 | ✅ 완료 (2026-03-08) | 2-3일 |
+| BE-040 | Backend | 🔴 Critical | 🟡 중간 | ✅ 완료 (PR #34) | 2-3일 |
+| FE-040 | Frontend | 🔴 Critical | 🟡 중간 | 🔴 오픈 | 3-4일 |
 
-**총 예상 기간**: 16-20일 (병렬 작업 시 7-10일)
+**총 예상 기간**: Phase 2 완료. FE-040만 남음.
 
 ---
 
