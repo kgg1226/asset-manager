@@ -730,6 +730,59 @@ app/admin/users/page.tsx        → user 없거나 ADMIN 아니면 /login 리다
 
 ---
 
+---
+
+## 🔓 PHASE 공개 열람 모드 (Public Read Mode)
+
+> **개요**: 로그인 없이 모든 페이지 열람 가능, 수정/삭제/등록 등 쓰기만 로그인 요구
+> **배경**: 사내 시스템으로 모든 직원이 자산 현황을 언제든 조회할 수 있어야 함
+> **상태**: 🟡 PR 리뷰 대기 (PR #42 BE-050, PR #43 FE-050)
+
+---
+
+### [BE-050] GET API 공개 접근 — 인증 체크 제거
+
+**담당**: Backend Role
+**우선순위**: 🔴 Critical
+**난이도**: 🟢 낮음
+**상태**: 🟡 PR #42 리뷰 대기 (2026-03-11)
+
+#### 요구사항
+- [x] 모든 GET API 핸들러에서 `getCurrentUser()` 인증 체크 제거 (약 20개 라우트)
+- [x] `/api/admin/*` GET은 인증 유지 (관리자 전용)
+- [x] POST/PUT/PATCH/DELETE는 기존대로 인증 필요
+
+#### 대상 라우트 (완료)
+`licenses`, `licenses/[id]`, `licenses/[id]/owners`, `licenses/[id]/renewal-history`, `employees`, `employees/[id]`, `assets`, `assets/[id]`, `assets/expiring`, `groups`, `groups/[id]`, `history`, `org/units`, `org/units/[id]/delete-preview`, `org/companies`, `reports/monthly/[yearMonth]/data`, `reports/monthly/[yearMonth]/excel`, `reports/monthly/[yearMonth]/pdf`, `seats/check-key`, `assignments`
+
+#### 종속성
+- FE-050 (BE-050 머지 후 FE-050 동작 검증 가능)
+
+---
+
+### [FE-050] 공개 열람 모드 UI — 비인증 읽기 허용, 쓰기만 로그인 요구
+
+**담당**: Frontend Role
+**우선순위**: 🔴 Critical
+**난이도**: 🟡 중간
+**상태**: 🟡 PR #43 리뷰 대기 (2026-03-11)
+
+#### 요구사항
+- [x] `proxy.ts`: 페이지 redirect 제거, API POST/PUT/PATCH/DELETE만 401
+- [x] `layout.tsx`: 미인증 시 redirect 제거, 우상단 로그인 버튼 표시
+- [x] `hooks/useAuth.ts`: 클라이언트 컴포넌트용 인증 상태 훅 신규 추가
+- [x] 모든 목록/상세 페이지: 인증 없이 조회 가능
+- [x] 등록/수정/삭제 버튼: `user &&` 조건으로 인증 시만 표시
+- [x] 쓰기 전용 페이지 (`/employees/new`, `/licenses/[id]/edit`, `/assets/new`, `/assets/[id]/edit`, `/settings/groups/new`, `/settings/groups/[id]`, `/settings/import`): 비인증 시 `/login` redirect
+
+#### 변경된 파일 (21개)
+`proxy.ts`, `app/layout.tsx`, `hooks/useAuth.ts`, `app/licenses/page.tsx`, `app/licenses/[id]/page.tsx`, `app/licenses/[id]/edit/page.tsx`, `app/employees/page.tsx`, `app/employees/new/page.tsx`, `app/employees/[id]/page.tsx`, `app/employees/[id]/org-edit-form.tsx`, `app/assets/page.tsx`, `app/assets/[id]/page.tsx`, `app/assets/new/page.tsx`, `app/assets/[id]/edit/page.tsx`, `app/org/page.tsx`, `app/org/org-tree.tsx`, `app/settings/groups/page.tsx`, `app/settings/groups/new/page.tsx`, `app/settings/groups/[id]/page.tsx`, `app/settings/import/page.tsx`
+
+#### 종속성
+- BE-050 (GET API 인증 제거 선행 필요)
+
+---
+
 ## 🎨 PHASE 3-1: 라이선스 계층 구조 (License Hierarchy)
 
 > **개요**: 라이선스 계층화 (부모-자식 관계)

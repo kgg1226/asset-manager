@@ -12,13 +12,12 @@
 
 | 브랜치 | 상태 | 내용 |
 |---|---|---|
-| `master` | 기준 브랜치 | 현재 최신 코드 (PR #40 머지 완료) |
+| `master` | 기준 브랜치 | PR #40까지 머지 완료 |
 | `role/planning` | 운영 중 | 기획 문서 전담 |
 | `role/backend` | 운영 중 | 백엔드 코드 전담 |
 | `role/frontend` | 운영 중 | 프론트엔드 코드 전담 |
 | `role/devops` | 운영 중 | 배포/인프라 전담 |
 | `role/security` | 운영 중 | 보안 문서 전담 |
-| `claude/gracious-ritchie` | 운영 중 | 이 로컬의 기획 워크트리 (≈ role/planning) |
 
 > ⚠️ 로컬 master가 origin/master보다 뒤처진 경우: `git pull origin master` 실행 필수
 
@@ -29,13 +28,71 @@
 | Phase | 상태 | 비고 |
 |---|---|---|
 | **Phase 1** — 라이선스 관리 | ✅ 완료 | |
-| **Phase 2** — PostgreSQL 전환 + 자산 확장 | ✅ 완료 | PR #35 포함 |
-| **Phase 3-1** — 라이선스 계층 구조 (BE-040) | ✅ 완료 | PR #34 머지 |
+| **Phase 2** — PostgreSQL 전환 + 자산 확장 | ✅ 완료 | PR #31~35 머지 |
+| **Phase 3-1 BE** — 라이선스 계층 (BE-040) | ✅ 완료 | PR #34 머지 |
 | **Phase 3 BE** — 월별 보고서 API (BE-030~034) | ✅ 완료 | PR #36 머지 |
-| **EC2 배포** | ⏳ 대기 | **사람이 직접 실행** (아래 절차 참고) |
-| **공개 열람 모드 (BE-050 + FE-050)** | 🔴 미완성 | **최우선 작업** |
-| **Phase 3-1 FE** — 라이선스 계층 UI (FE-040) | 🔴 미완성 | FE-050 완료 후 |
-| **Phase 3 FE** — 보고서 UI (FE-020~022) | 🔴 미완성 | FE-040 후 |
+| **DevOps 보안 강화** | ✅ 완료 | PR #38~40 머지 |
+| **공개 열람 모드 BE** — BE-050 | 🟡 PR #42 리뷰 대기 | GET API 인증 제거 |
+| **Phase 3-1 FE** — FE-040 라이선스 계층 UI | 🟡 PR #41 리뷰 대기 | #41에 포함 |
+| **Phase 3 FE** — 보고서 UI (FE-020~022) | 🟡 PR #41 리뷰 대기 | #41에 같이 포함 |
+| **공개 열람 모드 FE** — FE-050 | 🟡 PR #43 리뷰 대기 | 로그인 없이 조회 가능 |
+| **EC2 배포** | ⏳ PR 머지 후 진행 | **사람이 직접 실행** |
+
+---
+
+## 🔴 지금 당장 해야 할 일
+
+### 1순위 — PR 3개 머지 (사람이 직접)
+
+> PR 의존 관계: **#42 (BE-050) → #43 (FE-050)** 순서로 머지 권장
+> PR #41은 독립적으로 머지 가능
+
+| PR | 제목 | 브랜치 | 액션 |
+|---|---|---|---|
+| **#42** | BE-050: GET API 공개 접근 | `claude/ecstatic-sanderson` | 👉 먼저 머지 |
+| **#43** | FE-050: 공개 열람 모드 | `claude/gracious-williamson` | 👉 #42 이후 머지 |
+| **#41** | FE-040 + FE-020~022 UI | `frontend/FE-040-reports` | 👉 병행 머지 가능 |
+
+```bash
+# GitHub에서 PR 머지 후 로컬 동기화
+git checkout master
+git pull origin master
+```
+
+### 2순위 — EC2 재배포 (PR 머지 완료 후)
+
+```powershell
+# [1단계] 로컬 Windows에서 실행
+.\deploy.ps1   # git push + S3 업로드 자동
+```
+
+```bash
+# [2단계] EC2 SSM 접속 후 실행
+aws ssm start-session --target i-0aeda7845a9634718 --region ap-northeast-2 --profile hyeongunk
+
+cd /home/ssm-user/app
+aws s3 cp s3://triplecomma-releases/triplecomma-backoffice/license-manager.zip .
+sudo rm -rf license-manager
+sudo mkdir -p license-manager && sudo chown -R ssm-user:ssm-user license-manager
+unzip -q license-manager.zip -d license-manager && rm license-manager.zip
+cd license-manager
+
+# 디스크 공간 먼저 확보 (30GB 꽉 찬 경우)
+sudo docker system prune -a -f   # ⚠️ 볼륨(DB)은 보존됨, 이미지·캐시만 삭제
+
+# 재배포
+sudo docker compose down 2>/dev/null || true
+sudo docker image prune -a -f
+sudo docker builder prune -f
+sudo docker compose build
+sudo docker compose up -d
+```
+
+```bash
+# [3단계] 배포 확인
+sudo docker compose ps
+sudo docker compose logs -f app
+```
 
 ---
 
@@ -74,8 +131,7 @@
 - `GET|POST /api/org/units` — 트리 조회 / 생성
 - `PUT|DELETE /api/org/units/[id]` — 수정 / 삭제
 - `GET /api/org/units/[id]/delete-preview` — 삭제 영향 범위 미리보기
-- `PUT|DELETE /api/org/companies/[id]` — 회사 수정·삭제 (BE-ORG-001/002)
-- `/org` — Company CRUD UI
+- `PUT|DELETE /api/org/companies/[id]` — 회사 수정·삭제
 
 ### 배치/스케줄러
 - `POST /api/cron/offboard` — OFFBOARDING 자동 삭제
@@ -99,6 +155,28 @@
 
 ---
 
+## 오픈 PR 기능 (머지 후 master 반영 예정)
+
+### PR #41 — FE-040 + FE-020~022
+- `/licenses` 목록: 계층 구조 트리 표시 (└─ 들여쓰기)
+- `/licenses/[id]/edit`: 상위 라이선스 드롭다운
+- `/licenses/[id]`: 하위 라이선스 섹션
+- `/reports`, `/reports/[id]`, `/settings/reports`: 월별 보고서 UI
+
+### PR #42 — BE-050 GET API 공개화
+- 모든 GET API에서 `getCurrentUser()` 인증 체크 제거 (약 20개 라우트)
+- `/api/admin/*` GET은 인증 유지
+- POST/PUT/PATCH/DELETE는 기존대로 인증 필요
+
+### PR #43 — FE-050 공개 열람 모드
+- `proxy.ts`: 페이지 redirect 제거, API 뮤테이션만 401
+- `layout.tsx`: 미인증 시 로그인 버튼 표시
+- 모든 목록/상세 페이지: 인증 없이 조회 가능
+- 등록/수정/삭제 버튼: 로그인 시만 표시
+- 쓰기 전용 페이지: 비인증 시 `/login` redirect
+
+---
+
 ## DB 스키마 (master 기준)
 
 | 테이블 | 주요 컬럼 |
@@ -112,88 +190,6 @@
 | `Asset` | `type(SOFTWARE/CLOUD/HARDWARE/DOMAIN_SSL/OTHER)`, `status`, `expiryDate` |
 | `NotificationLog` | 알림 발송 이력 (SLACK / EMAIL) |
 | `AuditLog` | `actorType`, `actorId` 추가 |
-
----
-
-## 🔴 현재 가장 중요한 작업
-
-### 1. EC2 배포 (사람이 직접 실행)
-
-> **PostgreSQL 자체 호스팅 방식 (docker-compose)** — Supabase 사용 안 함
-
-```powershell
-# [1단계] 로컬 Windows에서 실행
-.\deploy.ps1   # git push + S3 업로드 자동
-```
-
-```bash
-# [2단계] EC2 SSM 접속 후 실행
-aws ssm start-session --target i-0aeda7845a9634718 --region ap-northeast-2 --profile hyeongunk
-
-cd /home/ssm-user/app
-aws s3 cp s3://triplecomma-releases/triplecomma-backoffice/license-manager.zip .
-sudo rm -rf license-manager
-sudo mkdir -p license-manager && sudo chown -R ssm-user:ssm-user license-manager
-unzip -q license-manager.zip -d license-manager && rm license-manager.zip
-cd license-manager
-
-# docker-compose로 postgres + app 동시 기동
-sudo docker-compose down 2>/dev/null || true
-sudo docker-compose build
-sudo docker-compose up -d
-
-# 최초 배포 시에만: DB 스키마 초기화
-sudo docker exec license-app sh -c "npx prisma db push"
-sudo docker exec license-app sh -c "NODE_ENV=development SEED_ADMIN_USERNAME=admin SEED_ADMIN_PASSWORD=changeme123 npx prisma db seed"
-```
-
-```bash
-# [3단계] 배포 확인
-sudo docker-compose ps           # postgres + license-app 모두 Up 확인
-sudo docker-compose logs -f app  # 에러 없는지 확인
-# 브라우저: http://<EC2_IP>:8080 → 로그인 테스트
-```
-
-> ⚠️ **주의**: `.env` 파일 없이 docker-compose.yml의 하드코딩 환경변수로 작동.
-> CRON_SECRET 등 추가 시크릿 필요 시 `.env` 파일 별도 생성 필요.
-
----
-
-### 2. FE-040 — 라이선스 계층 구조 UI (role/frontend)
-
-> **BE-040 완료됨** — API는 준비됨. 프론트엔드만 남음.
-> 상세 스펙: `tasks/TICKETS.md` → FE-040 섹션
-
-| 파일 | 작업 내용 |
-|---|---|
-| `app/licenses/page.tsx` | 계층 구조 트리 표시 (└─ 들여쓰기) |
-| `app/licenses/[id]/edit/page.tsx` | 상위 라이선스 드롭다운 추가 |
-| `app/licenses/[id]/page.tsx` | 하위 라이선스 섹션 추가 |
-| CSV 템플릿 | `parentLicenseName` 컬럼 추가 |
-
-**완료 기준:**
-- [ ] 목록: `Open VPN → └─ Domain1, └─ Domain2` 형태 렌더링
-- [ ] 편집: parentId 드롭다운 (자신 선택 불가)
-- [ ] 상세: 하위 라이선스 테이블
-
----
-
-### 3. Phase 3 FE — 보고서 UI (role/frontend)
-
-> **BE-030~034 완료됨** — API는 준비됨. 프론트엔드만 남음.
-> 상세 스펙: `tasks/PHASE3-TICKETS.md` → FE-020~022 섹션
-
-| 티켓 | 경로 | 내용 |
-|---|---|---|
-| FE-020 | `/reports` | 보고서 목록 + Excel/PDF 다운로드 |
-| FE-021 | `/reports/[id]` | 보고서 상세 + 차트 |
-| FE-022 | `/reports/settings` | 예약 보고서 설정 |
-
-**API 연동 포인트:**
-- `GET /api/reports/monthly/[yearMonth]/data` — 집계
-- `GET /api/reports/monthly/[yearMonth]/excel` — Excel 다운로드
-- `GET /api/reports/monthly/[yearMonth]/pdf` — PDF 다운로드
-- `POST /api/reports/monthly/[yearMonth]/email` — 이메일 발송
 
 ---
 
