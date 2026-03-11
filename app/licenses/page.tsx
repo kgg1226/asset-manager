@@ -4,6 +4,7 @@ import DeleteButton from "./delete-button";
 import AssignButton from "./assign-button";
 import UnassignButton from "./unassign-button";
 import LicenseRow from "./license-row";
+import { getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -66,6 +67,8 @@ export default async function LicensesPage({
   const sortOrder = (params.order === "asc" || params.order === "desc" ? params.order : "asc") as SortOrder;
   const currentPage = Math.max(1, parseInt(params.page ?? "1", 10));
   const skip = (currentPage - 1) * ITEMS_PER_PAGE;
+
+  const user = await getCurrentUser().catch(() => null);
 
   const [licenses, totalCount] = await Promise.all([
     prisma.license.findMany({
@@ -200,23 +203,27 @@ export default async function LicensesPage({
       <div className="mx-auto max-w-7xl px-4">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900">라이선스 목록</h1>
-          <Link
-            href="/licenses/new"
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            + 새 라이선스
-          </Link>
+          {user && (
+            <Link
+              href="/licenses/new"
+              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              + 새 라이선스
+            </Link>
+          )}
         </div>
 
         {enriched.length === 0 ? (
           <div className="rounded-lg bg-white p-12 text-center shadow-sm ring-1 ring-gray-200">
             <p className="text-gray-500">등록된 라이선스가 없습니다.</p>
-            <Link
-              href="/licenses/new"
-              className="mt-3 inline-block text-sm text-blue-600 hover:underline"
-            >
-              첫 번째 라이선스를 등록하세요 &rarr;
-            </Link>
+            {user && (
+              <Link
+                href="/licenses/new"
+                className="mt-3 inline-block text-sm text-blue-600 hover:underline"
+              >
+                첫 번째 라이선스를 등록하세요 &rarr;
+              </Link>
+            )}
           </div>
         ) : (
           <>
@@ -238,7 +245,7 @@ export default async function LicensesPage({
                     <th className="px-4 py-3 text-right text-xs font-medium uppercase text-gray-500">연간 비용</th>
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">담당자</th>
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">해지 통보</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium uppercase text-gray-500">관리</th>
+                    {user && <th className="px-4 py-3 text-center text-xs font-medium uppercase text-gray-500">관리</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -309,23 +316,25 @@ export default async function LicensesPage({
                             <span className="text-gray-400">—</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-center">
-                          <div className="flex items-center justify-center gap-1">
-                            <AssignButton
-                              licenseId={license.id}
-                              licenseName={license.name}
-                              remaining={license.remainingCount}
-                              employees={employees}
-                              assignedEmployeeIds={license.assignedEmployeeIds}
-                              licenseType={license.licenseType}
-                            />
-                            <UnassignButton
-                              licenseName={license.name}
-                              assignedEmployees={license.assignedEmployees}
-                            />
-                            <DeleteButton id={license.id} name={license.name} />
-                          </div>
-                        </td>
+                        {user && (
+                          <td className="px-4 py-3 text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <AssignButton
+                                licenseId={license.id}
+                                licenseName={license.name}
+                                remaining={license.remainingCount}
+                                employees={employees}
+                                assignedEmployeeIds={license.assignedEmployeeIds}
+                                licenseType={license.licenseType}
+                              />
+                              <UnassignButton
+                                licenseName={license.name}
+                                assignedEmployees={license.assignedEmployees}
+                              />
+                              <DeleteButton id={license.id} name={license.name} />
+                            </div>
+                          </td>
+                        )}
                       </LicenseRow>
                     );
                   })}

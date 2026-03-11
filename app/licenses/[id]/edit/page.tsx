@@ -1,12 +1,16 @@
 import { prisma } from "@/lib/prisma";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import EditLicenseForm from "./edit-form";
+import { getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ id: string }> };
 
 export default async function EditLicensePage({ params }: Props) {
+  const user = await getCurrentUser().catch(() => null);
+  if (!user) redirect("/login");
+
   const { id } = await params;
   const licenseId = Number(id);
   const [license, allLicenses] = await Promise.all([

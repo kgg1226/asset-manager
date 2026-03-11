@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plus, Eye, Edit, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 type AssetType = "SOFTWARE" | "CLOUD" | "HARDWARE" | "DOMAIN_SSL" | "OTHER";
 type AssetStatus = "ACTIVE" | "INACTIVE" | "DISPOSED";
@@ -93,6 +94,7 @@ function formatDate(dateStr: string | null): string {
 
 export default function AssetsPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [assets, setAssets] = useState<Asset[]>(mockAssets);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState<AssetType | "">("");
@@ -119,13 +121,15 @@ export default function AssetsPage() {
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex items-center justify-between">
           <h1 className="text-3xl font-bold text-gray-900">자산 관리</h1>
-          <Link
-            href="/assets/new"
-            className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            <Plus className="h-4 w-4" />
-            새 자산 등록
-          </Link>
+          {user && (
+            <Link
+              href="/assets/new"
+              className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              <Plus className="h-4 w-4" />
+              새 자산 등록
+            </Link>
+          )}
         </div>
 
         {/* 필터 */}
@@ -236,20 +240,20 @@ export default function AssetsPage() {
                         >
                           <Eye className="h-4 w-4" />
                         </button>
-                        <button
+                        {user && <button
                           onClick={() => router.push(`/assets/${asset.id}/edit`)}
                           className="rounded p-1 hover:bg-gray-200"
                           title="수정"
                         >
                           <Edit className="h-4 w-4" />
-                        </button>
-                        <button
+                        </button>}
+                        {user && <button
                           onClick={() => handleDelete(asset.id)}
                           className="rounded p-1 hover:bg-gray-200"
                           title="삭제"
                         >
                           <Trash2 className="h-4 w-4 text-red-600" />
-                        </button>
+                        </button>}
                       </div>
                     </td>
                   </tr>

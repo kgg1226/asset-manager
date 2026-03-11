@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from "react";
 import OrgTree from "./org-tree";
+import { useAuth } from "@/hooks/useAuth";
 
 type OrgUnit = { id: number; name: string; parentId: number | null };
 type Company = { id: number; name: string; orgs: OrgUnit[] };
 
 export default function OrgPage() {
+  const { user } = useAuth();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -52,7 +54,7 @@ export default function OrgPage() {
             <p className="text-sm text-gray-500">등록된 조직이 없습니다.</p>
           </div>
         ) : (
-          <OrgTree companies={companies} onRefresh={handleRefresh} />
+          <OrgTree companies={companies} onRefresh={handleRefresh} isAuthenticated={!!user} />
         )}
       </div>
     </div>

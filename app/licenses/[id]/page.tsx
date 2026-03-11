@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { getCurrentUser } from "@/lib/auth";
 import {
   KeyRound,
   Users,
@@ -38,6 +39,7 @@ export default async function LicenseDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const user = await getCurrentUser().catch(() => null);
   const { id } = await params;
   const licenseId = Number(id);
 
@@ -289,12 +291,14 @@ export default async function LicenseDetailPage({
             )}
           </div>
           <div className="flex items-center gap-3">
-            <Link
-              href={`/licenses/${licenseId}/edit`}
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-            >
-              수정
-            </Link>
+            {user && (
+              <Link
+                href={`/licenses/${licenseId}/edit`}
+                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                수정
+              </Link>
+            )}
             <Link
               href="/licenses"
               className="text-sm text-gray-500 hover:text-gray-700"
@@ -513,8 +517,8 @@ export default async function LicenseDetailPage({
           </div>
         )}
 
-        {/* Renewal Management */}
-        <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {/* Renewal Management — 로그인 사용자만 */}
+        {user && <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
           <RenewalStatusPanel
             licenseId={licenseId}
             currentStatus={(license as { renewalStatus?: string }).renewalStatus as Parameters<typeof RenewalStatusPanel>[0]["currentStatus"] ?? null}
@@ -526,7 +530,7 @@ export default async function LicenseDetailPage({
             users={users}
             orgUnits={orgUnits}
           />
-        </div>
+        </div>}
         <div className="mb-6">
           <RenewalHistoryPanel licenseId={licenseId} />
         </div>
