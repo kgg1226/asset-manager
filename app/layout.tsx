@@ -79,13 +79,30 @@ export default async function RootLayout({
                 <Link href="/settings/import" className="text-sm text-gray-600 hover:text-gray-900">
                   데이터 가져오기
                 </Link>
+                <Link href="/assets" className="text-sm text-gray-600 hover:text-gray-900">
+                  자산
+                </Link>
+                <Link href="/reports" className="text-sm text-gray-600 hover:text-gray-900">
+                  보고서
+                </Link>
                 <Link href="/history" className="text-sm text-gray-600 hover:text-gray-900">
                   이력
                 </Link>
                 {user.role === "ADMIN" && (
-                  <Link href="/admin/users" className="text-sm text-purple-600 hover:text-purple-800">
-                    관리자
-                  </Link>
+                  <>
+                    <Link href="/admin/users" className="text-sm text-purple-600 hover:text-purple-800">
+                      사용자 관리
+                    </Link>
+                    <Link href="/admin/archives" className="text-sm text-purple-600 hover:text-purple-800">
+                      증적
+                    </Link>
+                    <Link href="/admin/exchange-rates" className="text-sm text-purple-600 hover:text-purple-800">
+                      환율
+                    </Link>
+                    <Link href="/admin/asset-categories" className="text-sm text-purple-600 hover:text-purple-800">
+                      자산카테고리
+                    </Link>
+                  </>
                 )}
               </div>
               <div className="flex items-center gap-3 border-l border-gray-200 pl-4">

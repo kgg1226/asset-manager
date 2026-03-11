@@ -44,6 +44,8 @@ export default async function LicenseDetailPage({
   const license = await prisma.license.findUnique({
     where: { id: licenseId },
     include: {
+      parent: { select: { id: true, name: true } },
+      children: { select: { id: true, name: true, licenseType: true, totalQuantity: true, expiryDate: true }, orderBy: { name: "asc" } },
       seats: {
         include: {
           assignments: {
@@ -508,6 +510,55 @@ export default async function LicenseDetailPage({
           licenseId={licenseId}
           assignments={assignmentData}
         />
+
+        {/* Parent License */}
+        {license.parent && (
+          <div className="mb-6 rounded-lg bg-blue-50 p-4 ring-1 ring-blue-200">
+            <p className="text-sm text-blue-700">
+              상위 라이선스:{" "}
+              <Link href={`/licenses/${license.parent.id}`} className="font-medium underline hover:text-blue-900">
+                {license.parent.name}
+              </Link>
+            </p>
+          </div>
+        )}
+
+        {/* Child Licenses */}
+        {license.children.length > 0 && (
+          <div className="mb-6">
+            <h2 className="mb-3 text-lg font-semibold text-gray-900">
+              관련 라이선스 (하위) — {license.children.length}개
+            </h2>
+            <div className="overflow-x-auto rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">이름</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">유형</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">수량</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">갱신일</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {license.children.map((child) => (
+                    <tr key={child.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 text-sm font-medium">
+                        <Link href={`/licenses/${child.id}`} className="text-blue-600 hover:underline">
+                          {child.name}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{child.licenseType}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{child.totalQuantity}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {child.expiryDate?.toLocaleDateString("ko-KR") ?? "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* History Timeline */}
         {displayHistory.length > 0 && (

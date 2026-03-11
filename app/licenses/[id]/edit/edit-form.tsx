@@ -43,6 +43,7 @@ type License = {
   currency: Currency;
   exchangeRate: number;
   isVatIncluded: boolean;
+  parentId?: number | null;
 };
 
 type Seat = {
@@ -66,9 +67,11 @@ function resolveNoticePeriodType(days: number | null): string {
 export default function EditLicenseForm({
   license,
   seats: initialSeats,
+  allLicenses = [],
 }: {
   license: License;
   seats: Seat[];
+  allLicenses?: { id: number; name: string }[];
 }) {
   const initialState: FormState = {};
   const boundUpdate = updateLicense.bind(null, license.id);
@@ -235,6 +238,17 @@ export default function EditLicenseForm({
                 className="input"
               />
             </Field>
+
+            {allLicenses.length > 0 && (
+              <Field label="상위 라이선스">
+                <select name="parentId" defaultValue={license.parentId ?? ""} className="input">
+                  <option value="">없음 (최상위)</option>
+                  {allLicenses.map((l) => (
+                    <option key={l.id} value={l.id}>{l.name}</option>
+                  ))}
+                </select>
+              </Field>
+            )}
           </fieldset>
 
           {/* 비용 계산 */}

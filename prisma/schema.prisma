@@ -361,3 +361,86 @@ model CloudDetail {
   seatCount   Int?                                   // 라이선스 수량
   asset       Asset   @relation(fields: [assetId], references: [id], onDelete: Cascade)
 }
+
+// ── Phase 4: 자동 증적 시스템 ──
+
+// 환율 이력 (매일 자정 업데이트)
+model ExchangeRate {
+  id         Int      @id @default(autoincrement())
+  date       String                                  // YYYY-MM-DD
+  currency   String                                  // USD, EUR, JPY, GBP, CNY
+  rateToKRW  Decimal  @db.Decimal(15, 6)             // 1 currency = rateToKRW KRW
+  source     String   @default("manual")             // manual | api
+  createdAt  DateTime @default(now())
+
+  @@unique([date, currency])
+  @@index([date])
+}
+
+// 관리자 설정 카테고리 (구글드라이브 폴더 매핑)
+model AssetCategory {
+  id              Int       @id @default(autoincrement())
+  name            String    @unique                  // 표시명
+  code            String    @unique                  // 내부 코드 (LICENSE, EMPLOYEE 등)
+  driveFolder     String?                            // 구글드라이브 폴더 ID
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  archives        Archive[]
+}
+
+// 증적 메타데이터
+model Archive {
+  id             Int            @id @default(autoincrement())
+  yearMonth      String                               // YYYY-MM
+  categoryId     Int?
+  status         ArchiveStatus  @default(PENDING)
+  trigger        String         @default("manual")   // manual | cron
+  startDate      DateTime
+  endDate        DateTime
+  fileUrl        String?                              // 구글드라이브 URL
+  excelUrl       String?
+  csvUrl         String?
+  createdBy      Int?                                 // userId (null = cron)
+  createdAt      DateTime       @default(now())
+  completedAt    DateTime?
+  category       AssetCategory? @relation(fields: [categoryId], references: [id])
+  logs           ArchiveLog[]
+  data           ArchiveData[]
+
+  @@index([yearMonth])
+  @@index([status])
+}
+
+// 증적 작업 로그
+model ArchiveLog {
+  id        Int       @id @default(autoincrement())
+  archiveId Int
+  level     String    @default("info")               // info | warn | error
+  message   String
+  createdAt DateTime  @default(now())
+  archive   Archive   @relation(fields: [archiveId], references: [id], onDelete: Cascade)
+
+  @@index([archiveId])
+}
+
+// 증적 스냅샷 데이터 (JSON 직렬화)
+model ArchiveData {
+  id          Int      @id @default(autoincrement())
+  archiveId   Int
+  dataType    String                                  // licenses | employees | assignments | costs
+  payload     Json                                    // 실제 스냅샷 데이터
+  recordCount Int      @default(0)
+  createdAt   DateTime @default(now())
+  archive     Archive  @relation(fields: [archiveId], references: [id], onDelete: Cascade)
+
+  @@index([archiveId])
+  @@unique([archiveId, dataType])
+}
+
+enum ArchiveStatus {
+  PENDING     // 대기 중
+  RUNNING     // 실행 중
+  COMPLETED   // 완료
+  FAILED      // 실패
+}

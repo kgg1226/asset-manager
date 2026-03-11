@@ -36,5 +36,12 @@ export default async function EditLicensePage({ params }: Props) {
       : null,
   }));
 
-  return <EditLicenseForm license={license} seats={seats} />;
+  // 상위 라이선스 선택용 목록 (자신 제외)
+  const allLicenses = await prisma.license.findMany({
+    where: { id: { not: Number(id) }, parentId: null }, // 이미 하위 라이선스인 것은 상위가 될 수 없음
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+
+  return <EditLicenseForm license={license} seats={seats} allLicenses={allLicenses} />;
 }
