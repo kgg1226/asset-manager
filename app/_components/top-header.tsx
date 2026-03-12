@@ -11,6 +11,7 @@ import {
   DollarSign,
   Tags,
   ChevronDown,
+  Download,
 } from "lucide-react";
 import GlobalSearch from "./global-search";
 import NotificationBell from "./notification-bell";
@@ -81,6 +82,26 @@ export default function TopHeader({ user }: TopHeaderProps) {
                     {item.label}
                   </Link>
                 ))}
+                <div className="my-1 border-t border-gray-100" />
+                <button
+                  onClick={async () => {
+                    setAdminOpen(false);
+                    const res = await fetch("/api/export/all?format=xlsx");
+                    if (res.ok) {
+                      const blob = await res.blob();
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `asset-export-${new Date().toISOString().split("T")[0]}.xlsx`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }
+                  }}
+                  className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  <Download className="h-4 w-4" />
+                  전체 Excel 내보내기
+                </button>
               </div>
             )}
           </div>

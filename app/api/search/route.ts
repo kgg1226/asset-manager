@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
 
-// GET /api/search?q=keyword&limit=5 — 통합 검색 (라이선스 + 자산 + 조직원)
+// GET /api/search?q=keyword&limit=5 — 통합 검색 (라이선스 + 자산 + 조직원, 인증 필수)
 export async function GET(request: NextRequest) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
+  }
+
   try {
     const q = request.nextUrl.searchParams.get("q")?.trim();
     const limit = Math.min(10, Math.max(1, Number(request.nextUrl.searchParams.get("limit") ?? "5")));

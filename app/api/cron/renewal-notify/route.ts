@@ -25,6 +25,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendSlackMessage, sendEmail } from "@/lib/notification";
+import { isCronAuthorized } from "@/lib/cron-auth";
 
 const NOTICE_DAYS = [70, 30, 15, 7] as const;
 
@@ -38,13 +39,6 @@ type NotifyLogEntry = {
   status: "SUCCESS" | "FAILED";
   error?: string;
 };
-
-function isCronAuthorized(request: NextRequest): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  const auth = request.headers.get("authorization") ?? "";
-  return auth === `Bearer ${secret}`;
-}
 
 /** 오늘 기준으로 정확히 daysAhead 일 후인 날짜 범위(하루)를 반환 */
 function dayRange(daysAhead: number): { gte: Date; lt: Date } {
