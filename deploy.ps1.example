@@ -17,8 +17,12 @@ function Warn($msg)    { Write-Host "[$(Get-Date -Format 'HH:mm:ss')] $msg" -For
 function Fail($msg)    { Write-Host "[$(Get-Date -Format 'HH:mm:ss')] $msg" -ForegroundColor Red }
 
 function Invoke-OrFail([scriptblock]$Script, [string]$ErrorMessage) {
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     & $Script
-    if ($LASTEXITCODE -ne 0) { Fail $ErrorMessage; exit 1 }
+    $ec = $LASTEXITCODE
+    $ErrorActionPreference = $prevEAP
+    if ($ec -ne 0) { Fail $ErrorMessage; exit 1 }
 }
 
 # ============================================================
@@ -33,7 +37,9 @@ if (Test-Path $lockFile) {
     catch { Fail "Lock 파일 제거 실패. VS Code 등 다른 Git 프로그램을 종료하세요."; exit 1 }
 }
 
-$hasChanges = (git status --porcelain)
+$prevEAP = $ErrorActionPreference; $ErrorActionPreference = "Continue"
+$hasChanges = (git status --porcelain 2>&1 | Where-Object { $_ -is [string] })
+$ErrorActionPreference = $prevEAP
 if (-not [string]::IsNullOrWhiteSpace($hasChanges)) {
     Log "변경사항 감지. 커밋을 진행합니다."
     Invoke-OrFail { git add -A } "git add 실패"
@@ -46,7 +52,9 @@ else {
 }
 
 # master 브랜치 확인
-$currentBranch = (git branch --show-current)
+$prevEAP = $ErrorActionPreference; $ErrorActionPreference = "Continue"
+$currentBranch = (git branch --show-current 2>&1 | Where-Object { $_ -is [string] })
+$ErrorActionPreference = $prevEAP
 if ($currentBranch -ne "master") {
     Fail "현재 브랜치가 '$currentBranch'입니다. master 브랜치에서 실행하세요: git checkout master"
     exit 1
@@ -77,102 +85,129 @@ Success "S3 업로드 완료: $S3_BUCKET/$ZIP_NAME"
 
 # ============================================================
 # [3/3] EC2 배포 (SSM RunCommand)
-#   안전 배포: 디스크 점검 2회 + DB 보호 + 단계별 중단
 # ============================================================
 Log "=== [3/3] EC2 배포 시작 (SSM RunCommand) ==="
 
-$deployCommands = @(
-    "set -e",
+# 배포 셸 스크립트 (자동 롤백 + 찌꺼기 정리 포함)
+$deployScript = @'
+#!/bin/bash
+set -e
+DIR="{0}"
+APP="{1}"
+S3="{2}/{3}"
 
-    # ── [1/7] 사전 점검: Docker 데몬 ──
-    "echo '=== [1/7] 사전 점검 ==='",
-    "if ! sudo docker info > /dev/null 2>&1; then echo 'ABORT: Docker 데몬이 실행 중이 아닙니다'; exit 1; fi",
-    "echo 'Docker 데몬 OK'",
+# ── 실패 시 자동 롤백 + 정리 ──
+rollback() {{
+    EC=$?
+    if [ $EC -ne 0 ]; then
+        echo ""; echo "!!! 배포 실패 (exit $EC) — 자동 롤백 시작 !!!"
+        cd $DIR
+        # 찌꺼기 정리
+        sudo rm -rf ${{APP}}-new ${{APP}}.zip 2>/dev/null || true
+        # backup이 있으면 복원
+        if [ -d ${{APP}}-backup ]; then
+            sudo rm -rf $APP
+            sudo mv ${{APP}}-backup $APP
+            echo "롤백 완료: backup → $APP"
+            # 이전 버전 재시작 시도
+            cd $DIR/$APP
+            sudo docker-compose up -d 2>/dev/null || true
+            echo "이전 버전 재시작 시도 완료"
+        fi
+        echo "!!! 롤백 종료 !!!"
+    fi
+}}
+trap rollback EXIT
 
-    # ── [2/7] 사전 점검: 디스크 공간 (최소 2GB) ──
-    "echo '=== [2/7] 디스크 공간 점검 ==='",
-    "AVAIL_KB=`$(df / --output=avail | tail -1 | tr -d ' ')",
-    "AVAIL_MB=`$(( AVAIL_KB / 1024 ))",
-    "echo ""디스크 여유: `${AVAIL_MB}MB""",
-    "if [ `$AVAIL_KB -lt 2097152 ]; then echo ""ABORT: 디스크 여유 부족 (`${AVAIL_MB}MB < 2048MB). 배포 중단.""; exit 1; fi",
-    "echo 'PASS: 디스크 2GB 이상 여유'",
+echo '=== [1/7] 사전 점검 ==='
+if ! sudo docker info > /dev/null 2>&1; then echo 'ABORT: Docker 데몬이 실행 중이 아닙니다'; exit 1; fi
+echo 'Docker 데몬 OK'
 
-    # ── [3/7] 사전 점검: 스왑 ──
-    "echo '=== [3/7] 스왑 점검 ==='",
-    "free -h",
-    "if [ ! -f /swapfile ]; then sudo dd if=/dev/zero of=/swapfile bs=128M count=16 && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile && echo '스왑 신규 설정 완료'; else echo '스왑 기존 설정 확인됨'; fi",
+echo '=== [2/7] 디스크 공간 점검 ==='
+AVAIL_KB=$(df / --output=avail | tail -1 | tr -d ' ')
+AVAIL_MB=$(( AVAIL_KB / 1024 ))
+echo "디스크 여유: ${{AVAIL_MB}}MB"
+if [ $AVAIL_KB -lt 2097152 ]; then echo "ABORT: 디스크 여유 부족 (${{AVAIL_MB}}MB < 2048MB). 배포 중단."; exit 1; fi
+echo 'PASS: 디스크 2GB 이상 여유'
 
-    # ── [4/7] 소스코드 다운로드 (임시 디렉토리에 풀기 — 기존 코드 보존) ──
-    "echo '=== [4/7] S3에서 소스코드 다운로드 ==='",
-    "cd $REMOTE_DIR",
-    "aws s3 cp $S3_BUCKET/$ZIP_NAME .",
-    "sudo rm -rf ${APP_NAME}-new",
-    "sudo mkdir -p ${APP_NAME}-new && sudo chown -R ssm-user:ssm-user ${APP_NAME}-new",
-    "unzip -q $ZIP_NAME -d ${APP_NAME}-new && rm $ZIP_NAME",
-    "echo 'PASS: 새 소스코드 준비 완료 (${APP_NAME}-new/)'",
+echo '=== [3/7] 스왑 점검 ==='
+free -h
+if [ ! -f /swapfile ]; then sudo dd if=/dev/zero of=/swapfile bs=128M count=16 && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile && echo '스왑 신규 설정 완료'; else echo '스왑 기존 설정 확인됨'; fi
 
-    # ── [5/7] 앱 컨테이너만 중지 (postgres는 계속 실행) ──
-    "echo '=== [5/7] 앱 컨테이너 교체 (DB 유지) ==='",
-    "echo '--- DB 볼륨 보호 확인 ---'",
-    "if sudo docker volume ls -q | grep -q postgres_data; then echo 'postgres_data 볼륨 존재 확인'; else echo '(최초 배포: 볼륨 아직 없음)'; fi",
-    "if [ -d $REMOTE_DIR/$APP_NAME ]; then cd $REMOTE_DIR/$APP_NAME && sudo docker-compose stop app || true && sudo docker-compose rm -f app || true && echo 'PASS: 앱 컨테이너 중지됨 (postgres 유지)'; else echo '(최초 배포: 기존 앱 없음)'; fi",
+echo '=== [4/7] S3에서 소스코드 다운로드 ==='
+cd $DIR
+aws s3 cp $S3 .
+sudo rm -rf ${{APP}}-new
+sudo mkdir -p ${{APP}}-new && sudo chown -R ssm-user:ssm-user ${{APP}}-new
+unzip -q {3} -d ${{APP}}-new && rm {3}
+echo 'PASS: 새 소스코드 준비 완료'
 
-    # 앱 이미지만 정리 (postgres 이미지 보존!)
-    "echo '--- 앱 이미지 정리 (postgres 이미지 보존) ---'",
-    "sudo docker images --filter reference='*license-manager*' -q | xargs -r sudo docker rmi -f 2>/dev/null || true",
-    "sudo docker builder prune -f 2>/dev/null || true",
+echo '=== [5/7] 앱 컨테이너 교체 (DB 유지) ==='
+if sudo docker volume ls -q | grep -q postgres_data; then echo 'postgres_data 볼륨 존재 확인'; else echo '(최초 배포: 볼륨 아직 없음)'; fi
+if [ -d $DIR/$APP ]; then cd $DIR/$APP && sudo docker-compose stop app || true && sudo docker-compose rm -f app || true && echo 'PASS: 앱 컨테이너 중지됨 (postgres 유지)'; else echo '(최초 배포: 기존 앱 없음)'; fi
 
-    # 기존 코드 → backup, 새 코드 → 현재로 교체
-    "cd $REMOTE_DIR",
-    "sudo rm -rf ${APP_NAME}-backup",
-    "if [ -d $APP_NAME ]; then sudo mv $APP_NAME ${APP_NAME}-backup && echo '기존 코드 backup 완료'; fi",
-    "sudo mv ${APP_NAME}-new $APP_NAME",
-    "echo 'PASS: 소스코드 교체 완료'",
+echo '--- 앱 이미지 정리 (postgres 이미지 보존) ---'
+sudo docker images --filter reference='*license-manager*' -q | xargs -r sudo docker rmi -f 2>/dev/null || true
+sudo docker builder prune -f 2>/dev/null || true
 
-    # ── [6/7] 디스크 재확인 후 Docker 빌드 ──
-    "echo '=== [6/7] Docker 빌드 (디스크 재확인) ==='",
-    "AVAIL_KB=`$(df / --output=avail | tail -1 | tr -d ' ')",
-    "AVAIL_MB=`$(( AVAIL_KB / 1024 ))",
-    "echo ""빌드 전 디스크 여유: `${AVAIL_MB}MB""",
-    "if [ `$AVAIL_KB -lt 1048576 ]; then echo ""ABORT: 빌드에 필요한 디스크 부족 (`${AVAIL_MB}MB < 1024MB). postgres는 계속 실행 중 (DB 안전).""; echo '롤백: sudo mv ${APP_NAME}-backup ${APP_NAME}'; exit 1; fi",
-    "cd $REMOTE_DIR/$APP_NAME",
-    "sudo docker-compose build app",
-    "echo 'PASS: Docker 빌드 성공'",
+cd $DIR
+sudo rm -rf ${{APP}}-backup
+if [ -d $APP ]; then sudo mv $APP ${{APP}}-backup && echo '기존 코드 backup 완료'; fi
+sudo mv ${{APP}}-new $APP
+echo 'PASS: 소스코드 교체 완료'
 
-    # ── [7/7] 앱 시작 + 검증 ──
-    "echo '=== [7/7] 앱 시작 + 검증 ==='",
-    "sudo docker-compose up -d",
-    "sleep 5",
-    "sudo docker-compose ps",
-    "echo ''",
+echo '=== [6/7] Docker 빌드 (디스크 재확인) ==='
+AVAIL_KB=$(df / --output=avail | tail -1 | tr -d ' ')
+AVAIL_MB=$(( AVAIL_KB / 1024 ))
+echo "빌드 전 디스크 여유: ${{AVAIL_MB}}MB"
+if [ $AVAIL_KB -lt 1048576 ]; then echo "ABORT: 빌드에 필요한 디스크 부족 (${{AVAIL_MB}}MB < 1024MB). postgres는 계속 실행 중 (DB 안전)."; exit 1; fi
+cd $DIR/$APP
+sudo docker-compose build app
+echo 'PASS: Docker 빌드 성공'
 
-    # DB 볼륨 최종 확인
-    "if sudo docker volume ls -q | grep -q postgres_data; then echo 'DB 볼륨 정상'; else echo 'WARNING: postgres_data 볼륨 없음'; fi",
+echo '=== [7/7] 앱 시작 + 검증 ==='
+sudo docker-compose up -d
+sleep 5
+sudo docker-compose ps
+if sudo docker volume ls -q | grep -q postgres_data; then echo 'DB 볼륨 정상'; else echo 'WARNING: postgres_data 볼륨 없음'; fi
 
-    # 앱 헬스체크 (최대 30초)
-    "echo '--- 앱 헬스체크 ---'",
-    "for i in 1 2 3 4 5 6; do STATUS=`$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/login || echo '000'); if [ `$STATUS = '200' ]; then echo ""앱 정상 응답 (HTTP `$STATUS)""; break; fi; echo ""[`$i/6] 앱 응답 대기... (HTTP `$STATUS)""; sleep 5; done",
+echo '--- 앱 헬스체크 ---'
+for i in 1 2 3 4 5 6; do
+    STATUS=$(curl -s -o /dev/null -w '%{{http_code}}' http://localhost:8080/login || echo '000')
+    if [ "$STATUS" = '200' ]; then echo "앱 정상 응답 (HTTP $STATUS)"; break; fi
+    echo "[$i/6] 앱 응답 대기... (HTTP $STATUS)"; sleep 5
+done
 
-    # backup 정리
-    "sudo rm -rf $REMOTE_DIR/${APP_NAME}-backup 2>/dev/null || true",
-    "echo '배포 완료'"
-) | ConvertTo-Json -Compress
+sudo rm -rf $DIR/${{APP}}-backup 2>/dev/null || true
+echo '배포 완료'
+'@ -f $REMOTE_DIR, $APP_NAME, $S3_BUCKET, $ZIP_NAME
 
-$ssmParams = "{`"commands`":$deployCommands}"
+# JSON 파라미터를 임시 파일로 저장 (BOM 없는 UTF8, \r 제거)
+$ssmParamsFile = Join-Path $env:TEMP "ssm-deploy-params.json"
+$paramsObj = @{ commands = @($deployScript -replace "`r", "" -split "`n") }
+$json = $paramsObj | ConvertTo-Json -Depth 3 -Compress
+[System.IO.File]::WriteAllText($ssmParamsFile, $json, [System.Text.UTF8Encoding]::new($false))
 
-# SSM 명령 전송
+# SSM 명령 전송 (AWS CLI는 stderr에 진행 정보를 쓰므로 ErrorAction 일시 해제)
 Log "SSM 명령 전송 중..."
+$prevEAP = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
+
 $commandId = aws ssm send-command `
     --instance-ids $EC2_ID `
     --document-name "AWS-RunShellScript" `
-    --parameters $ssmParams `
+    --parameters "file://$ssmParamsFile" `
     --timeout-seconds 600 `
     --query "Command.CommandId" `
     --output text `
     --profile $PROFILE_NAME `
     --region $REGION 2>&1
 
-if ($LASTEXITCODE -ne 0) {
+$ssmExitCode = $LASTEXITCODE
+$ErrorActionPreference = $prevEAP
+Remove-Item $ssmParamsFile -ErrorAction SilentlyContinue
+
+if ($ssmExitCode -ne 0) {
     Fail "SSM 명령 전송 실패: $commandId"
     exit 1
 }
@@ -181,6 +216,10 @@ Success "SSM 명령 전송됨: $commandId"
 Log "배포 완료 대기 중... (최대 10분)"
 
 # 배포 완료 대기 (15초 간격, 최대 40회 = 10분)
+# AWS CLI stderr 출력 때문에 ErrorAction 일시 해제
+$prevEAP = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
+
 $maxAttempts = 40
 for ($i = 1; $i -le $maxAttempts; $i++) {
     Start-Sleep -Seconds 15
@@ -201,6 +240,7 @@ for ($i = 1; $i -le $maxAttempts; $i++) {
     Log "[$i/$maxAttempts] 상태: $status"
 
     if ($status -eq "Success") {
+        # 성공 시 출력 로그 표시
         $output = aws ssm get-command-invocation `
             --command-id $commandId `
             --instance-id $EC2_ID `
@@ -215,6 +255,7 @@ for ($i = 1; $i -le $maxAttempts; $i++) {
             Write-Host "---------------------" -ForegroundColor DarkGray
         }
         Write-Host ""
+        $ErrorActionPreference = $prevEAP
         Success "=== 배포 완료 ==="
         Write-Host ""
         Write-Host "  확인: http://<EC2_PUBLIC_IP>:8080" -ForegroundColor Cyan
@@ -224,6 +265,7 @@ for ($i = 1; $i -le $maxAttempts; $i++) {
         exit 0
     }
     elseif ($status -eq "Failed" -or $status -eq "TimedOut" -or $status -eq "Cancelled") {
+        # 실패 시 에러 로그 표시
         $errOutput = aws ssm get-command-invocation `
             --command-id $commandId `
             --instance-id $EC2_ID `
@@ -237,6 +279,7 @@ for ($i = 1; $i -le $maxAttempts; $i++) {
             Write-Host $errOutput
             Write-Host "---------------------" -ForegroundColor Red
         }
+        $ErrorActionPreference = $prevEAP
         Fail "배포 실패: $status"
         Write-Host ""
         Warn "수동 확인 방법:"
@@ -245,6 +288,8 @@ for ($i = 1; $i -le $maxAttempts; $i++) {
         exit 1
     }
 }
+
+$ErrorActionPreference = $prevEAP
 
 Fail "배포 타임아웃 (10분 초과)"
 exit 1
