@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { notFound } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
+import { notFound, redirect } from "next/navigation";
 import EditLicenseForm from "./edit-form";
 
 export const dynamic = "force-dynamic";
@@ -7,6 +8,8 @@ export const dynamic = "force-dynamic";
 type Props = { params: Promise<{ id: string }> };
 
 export default async function EditLicensePage({ params }: Props) {
+  const editUser = await getCurrentUser().catch(() => null);
+  if (!editUser) redirect("/login");
   const { id } = await params;
   const license = await prisma.license.findUnique({
     where: { id: Number(id) },
@@ -36,5 +39,12 @@ export default async function EditLicensePage({ params }: Props) {
       : null,
   }));
 
-  return <EditLicenseForm license={license} seats={seats} />;
+  // 상위 라이선스 선택용 목록 (자신 제외)
+  const allLicenses = await prisma.license.findMany({
+    where: { id: { not: Number(id) }, parentId: null }, // 이미 하위 라이선스인 것은 상위가 될 수 없음
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+
+  return <EditLicenseForm license={license} seats={seats} allLicenses={allLicenses} />;
 }

@@ -8,8 +8,6 @@ import { handleValidationError, handlePrismaError, vStrReq } from "@/lib/validat
 
 // GET /api/org/companies — 회사 목록 (하위 orgs 중첩 포함)
 export async function GET() {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
 
   try {
     const companies = await prisma.orgCompany.findMany({

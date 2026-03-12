@@ -8,8 +8,6 @@ type Params = { params: Promise<{ id: string }> };
 
 // GET /api/groups/:id — 그룹 상세 조회
 export async function GET(request: NextRequest, { params }: Params) {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
 
   try {
     const { id } = await params;

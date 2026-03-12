@@ -1,0 +1,144 @@
+$ErrorActionPreference = "Stop"
+Set-StrictMode -Version Latest
+
+# --- [설정 구간] --- 아래 값을 자신의 환경에 맞게 수정 후 deploy.ps1로 복사하세요 ---
+$PROFILE_NAME = "your-aws-profile"           # AWS CLI 프로필명
+$REGION = "ap-northeast-2"                   # AWS 리전
+$S3_BUCKET = "s3://your-bucket/your-path"    # S3 배포 경로
+$ZIP_NAME = "license-manager.zip"            # 압축 파일명 (변경 불필요)
+$EC2_ID = "i-0xxxxxxxxxxxx"                  # EC2 인스턴스 ID
+$REMOTE_DIR = "/home/ssm-user/app"           # EC2 내 배포 디렉토리
+$APP_NAME = "license-manager"                # 앱 디렉토리명 (변경 불필요)
+
+# --- [유틸리티 함수] ---
+function Log($msg)     { Write-Host "[$(Get-Date -Format 'HH:mm:ss')] $msg" }
+function Success($msg) { Write-Host "[$(Get-Date -Format 'HH:mm:ss')] $msg" -ForegroundColor Green }
+function Warn($msg)    { Write-Host "[$(Get-Date -Format 'HH:mm:ss')] $msg" -ForegroundColor Yellow }
+function Fail($msg)    { Write-Host "[$(Get-Date -Format 'HH:mm:ss')] $msg" -ForegroundColor Red }
+
+function Invoke-OrFail([scriptblock]$Script, [string]$ErrorMessage) {
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    & $Script
+    $ec = $LASTEXITCODE
+    $ErrorActionPreference = $prevEAP
+    if ($ec -ne 0) { Fail $ErrorMessage; exit 1 }
+}
+
+# ============================================================
+# [1/3] Git Push
+# ============================================================
+Log "=== [1/3] Git 작업 시작 ==="
+
+$lockFile = Join-Path (Get-Location) ".git/index.lock"
+if (Test-Path $lockFile) {
+    Warn "Git Lock 파일 감지 — 제거 시도..."
+    try { Remove-Item $lockFile -Force -ErrorAction Stop }
+    catch { Fail "Lock 파일 제거 실패. VS Code 등 다른 Git 프로그램을 종료하세요."; exit 1 }
+}
+
+$prevEAP = $ErrorActionPreference; $ErrorActionPreference = "Continue"
+$hasChanges = (git status --porcelain 2>&1 | Where-Object { $_ -is [string] })
+$ErrorActionPreference = $prevEAP
+if (-not [string]::IsNullOrWhiteSpace($hasChanges)) {
+    Log "변경사항 감지. 커밋을 진행합니다."
+    Invoke-OrFail { git add -A } "git add 실패"
+    $commitMsg = Read-Host "커밋 메시지 입력 (엔터 시 'deploy')"
+    if ([string]::IsNullOrWhiteSpace($commitMsg)) { $commitMsg = "deploy" }
+    Invoke-OrFail { git commit -m $commitMsg } "git commit 실패"
+}
+else {
+    Warn "커밋할 변경사항 없음."
+}
+
+# master 브랜치 확인
+$prevEAP = $ErrorActionPreference; $ErrorActionPreference = "Continue"
+$currentBranch = (git branch --show-current 2>&1 | Where-Object { $_ -is [string] })
+$ErrorActionPreference = $prevEAP
+if ($currentBranch -ne "master") {
+    Fail "현재 브랜치가 '$currentBranch'입니다. master 브랜치에서 실행하세요: git checkout master"
+    exit 1
+}
+
+Invoke-OrFail { git fetch origin master } "git fetch 실패"
+Invoke-OrFail { git pull origin master } "git pull 실패 (충돌 시 수동 해결 필요)"
+Invoke-OrFail { git push origin master } "git push 실패"
+Success "Git 동기화 완료"
+
+# ============================================================
+# [2/3] S3 업로드 (소스 패키지)
+# ============================================================
+Log "=== [2/3] S3 업로드 준비 ==="
+$zipPath = Join-Path $env:TEMP $ZIP_NAME
+if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+
+Log "압축 파일 생성 중 (git archive)..."
+Invoke-OrFail { git archive --format=zip HEAD -o $zipPath } "git archive 실패"
+
+Log "S3 업로드 중..."
+Invoke-OrFail {
+    aws s3 cp $zipPath "$S3_BUCKET/$ZIP_NAME" --profile $PROFILE_NAME --region $REGION
+} "S3 업로드 실패"
+
+Remove-Item $zipPath -ErrorAction SilentlyContinue
+Success "S3 업로드 완료: $S3_BUCKET/$ZIP_NAME"
+
+# ============================================================
+# [3/3] EC2 배포 (SSM Session Manager)
+#   ※ SSM RunCommand(SendCommand)는 AWSManagementConsoleACL 정책의
+#     aws:ViaAWSService 조건에 의해 차단되므로, Session Manager를 사용
+# ============================================================
+Log "=== [3/3] EC2 배포 준비 ==="
+
+# deploy-remote.sh를 S3에 업로드
+$deployScriptPath = Join-Path (Get-Location) "deploy-remote.sh"
+if (-not (Test-Path $deployScriptPath)) {
+    Fail "deploy-remote.sh 파일이 없습니다. 프로젝트 루트에 deploy-remote.sh가 필요합니다."
+    exit 1
+}
+
+Log "deploy-remote.sh S3 업로드 중..."
+Invoke-OrFail {
+    aws s3 cp $deployScriptPath "$S3_BUCKET/deploy-remote.sh" --profile $PROFILE_NAME --region $REGION
+} "deploy-remote.sh S3 업로드 실패"
+Success "배포 스크립트 업로드 완료"
+
+# 배포 명령어를 클립보드에 복사
+$deployCmd = "cd $REMOTE_DIR && aws s3 cp $S3_BUCKET/deploy-remote.sh . && sed -i 's/\r$//' deploy-remote.sh && chmod +x deploy-remote.sh && bash deploy-remote.sh"
+try {
+    Set-Clipboard -Value $deployCmd
+    Success "배포 명령어가 클립보드에 복사되었습니다!"
+} catch {
+    Warn "클립보드 복사 실패 (수동 복사 필요)"
+}
+
+Write-Host ""
+Write-Host "============================================================" -ForegroundColor Cyan
+Write-Host "  SSM 세션이 열리면 아래 명령어를 붙여넣기(Ctrl+V) 하세요:" -ForegroundColor Cyan
+Write-Host "============================================================" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "  $deployCmd" -ForegroundColor Yellow
+Write-Host ""
+Write-Host "  (이미 클립보드에 복사됨 — Ctrl+V로 붙여넣기)" -ForegroundColor DarkGray
+Write-Host ""
+Write-Host "============================================================" -ForegroundColor Cyan
+Write-Host ""
+
+# SSM 세션 시작 (대화형 — 사용자가 배포 명령어를 실행)
+Log "SSM 세션 연결 중..."
+$prevEAP = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
+
+aws ssm start-session `
+    --target $EC2_ID `
+    --profile $PROFILE_NAME `
+    --region $REGION
+
+$ErrorActionPreference = $prevEAP
+
+Write-Host ""
+Success "SSM 세션 종료"
+Write-Host ""
+Write-Host "  확인: http://<EC2_PUBLIC_IP>:8080" -ForegroundColor Cyan
+Write-Host "  재접속: aws ssm start-session --target $EC2_ID --region $REGION --profile $PROFILE_NAME" -ForegroundColor DarkGray
+Write-Host ""

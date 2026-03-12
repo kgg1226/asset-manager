@@ -17,18 +17,13 @@ node_modules/
 # ── Prisma generated client ──────────────────────────────────────────────────
 /generated/
 
+# ── SQLite (legacy, dev only) ────────────────────────────────────────────────
+*.db
+*.db.backup
+*.db-journal
+
 # ── Testing ──────────────────────────────────────────────────────────────────
 /coverage
-
-# ── Database files ───────────────────────────────────────────────────────────
-*.db
-*.db-shm
-*.db-wal
-*.db-backup
-*.db.backup
-*.sqlite
-*.sqlite3
-/prisma/*.db
 
 # ── Environment / Secrets ────────────────────────────────────────────────────
 .env

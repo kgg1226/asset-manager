@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
 import Link from "next/link";
 import DeleteButton from "./delete-button";
 import AssignButton from "./assign-button";
@@ -59,6 +60,7 @@ export default async function LicensesPage({
 }: {
   searchParams: Promise<{ sort?: string; order?: string; page?: string }>;
 }) {
+  const user = await getCurrentUser().catch(() => null);
   const params = await searchParams;
   const sortField = (["name", "totalQuantity", "assigned", "expiryDate"].includes(params.sort ?? "")
     ? params.sort
@@ -82,6 +84,8 @@ export default async function LicensesPage({
         expiryDate: true,
         noticePeriodDays: true,
         adminName: true,
+        parentId: true,
+        children: { select: { id: true, name: true }, orderBy: { name: "asc" } },
         assignments: {
           where: { returnedDate: null },
           select: {
@@ -125,6 +129,27 @@ export default async function LicensesPage({
     };
   });
 
+  // 계층 구조 정렬: 부모 먼저, 자식은 바로 부모 아래
+  const childrenMap = new Map<number, typeof enriched>();
+  const roots: typeof enriched = [];
+  for (const lic of enriched) {
+    if (lic.parentId == null) {
+      roots.push(lic);
+    } else {
+      const siblings = childrenMap.get(lic.parentId) ?? [];
+      siblings.push(lic);
+      childrenMap.set(lic.parentId, siblings);
+    }
+  }
+  const hierarchySorted: (typeof enriched[number] & { depth: number })[] = [];
+  function walkLicenses(items: typeof enriched, depth: number) {
+    for (const lic of items) {
+      hierarchySorted.push({ ...lic, depth });
+      const kids = childrenMap.get(lic.id);
+      if (kids) walkLicenses(kids, depth + 1);
+    }
+  }
+  // 정렬 적용 후 hierarchy walk
   enriched.sort((a, b) => {
     let cmp = 0;
     switch (sortField) {
@@ -146,6 +171,13 @@ export default async function LicensesPage({
     }
     return sortOrder === "desc" ? -cmp : cmp;
   });
+  walkLicenses(roots, 0);
+  // 계층에 포함되지 않은 고아 항목 추가 (parentId가 이 페이지에 없는 경우)
+  for (const lic of enriched) {
+    if (!hierarchySorted.find((h) => h.id === lic.id)) {
+      hierarchySorted.push({ ...lic, depth: 0 });
+    }
+  }
 
   const employees = await prisma.employee.findMany({
     select: { id: true, name: true, department: true },
@@ -167,15 +199,17 @@ export default async function LicensesPage({
       <div className="mx-auto max-w-7xl px-4">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900">라이선스 목록</h1>
-          <Link
-            href="/licenses/new"
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            + 새 라이선스
-          </Link>
+          {user && (
+            <Link
+              href="/licenses/new"
+              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              + 새 라이선스
+            </Link>
+          )}
         </div>
 
-        {enriched.length === 0 ? (
+        {hierarchySorted.length === 0 ? (
           <div className="rounded-lg bg-white p-12 text-center shadow-sm ring-1 ring-gray-200">
             <p className="text-gray-500">등록된 라이선스가 없습니다.</p>
             <Link
@@ -205,11 +239,11 @@ export default async function LicensesPage({
                     <th className="px-4 py-3 text-right text-xs font-medium uppercase text-gray-500">연간 비용</th>
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">담당자</th>
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">해지 통보</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium uppercase text-gray-500">관리</th>
+                    {user && <th className="px-4 py-3 text-center text-xs font-medium uppercase text-gray-500">관리</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {enriched.map((license) => {
+                  {hierarchySorted.map((license) => {
                     const badge = getNoticeBadge(license.expiryDate, license.noticePeriodDays);
                     const pct = license.maxCapacity > 0
                       ? Math.round((license.assignedCount / license.maxCapacity) * 100)
@@ -220,7 +254,10 @@ export default async function LicensesPage({
                     return (
                       <LicenseRow key={license.id} id={license.id}>
                         <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                          <span className="inline-flex items-center gap-1.5">
+                          <span className="inline-flex items-center gap-1.5" style={{ paddingLeft: license.depth > 0 ? `${license.depth * 16}px` : undefined }}>
+                            {license.depth > 0 && (
+                              <span className="text-gray-400 select-none">└─</span>
+                            )}
                             {license.name}
                             {license.licenseType === "VOLUME" && (
                               <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[10px] font-semibold text-purple-700">
@@ -273,23 +310,25 @@ export default async function LicensesPage({
                             <span className="text-gray-400">—</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-center">
-                          <div className="flex items-center justify-center gap-1">
-                            <AssignButton
-                              licenseId={license.id}
-                              licenseName={license.name}
-                              remaining={license.remainingCount}
-                              employees={employees}
-                              assignedEmployeeIds={license.assignedEmployeeIds}
-                              licenseType={license.licenseType}
-                            />
-                            <UnassignButton
-                              licenseName={license.name}
-                              assignedEmployees={license.assignedEmployees}
-                            />
-                            <DeleteButton id={license.id} name={license.name} />
-                          </div>
-                        </td>
+                        {user && (
+                          <td className="px-4 py-3 text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <AssignButton
+                                licenseId={license.id}
+                                licenseName={license.name}
+                                remaining={license.remainingCount}
+                                employees={employees}
+                                assignedEmployeeIds={license.assignedEmployeeIds}
+                                licenseType={license.licenseType}
+                              />
+                              <UnassignButton
+                                licenseName={license.name}
+                                assignedEmployees={license.assignedEmployees}
+                              />
+                              <DeleteButton id={license.id} name={license.name} />
+                            </div>
+                          </td>
+                        )}
                       </LicenseRow>
                     );
                   })}

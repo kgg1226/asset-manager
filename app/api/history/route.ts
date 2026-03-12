@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
 
 // GET /api/history — AuditLog 조회
 // Query: ?entityType=LICENSE&entityId=1&action=CREATED&actor=admin
 //        &from=2026-01-01&to=2026-12-31&page=1&limit=50
 export async function GET(request: NextRequest) {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
-  if (user.role !== "ADMIN") return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
 
   try {
     const { searchParams } = new URL(request.url);

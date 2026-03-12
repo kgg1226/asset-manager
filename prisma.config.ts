@@ -1,10 +1,8 @@
-import path from "path";
-import dotenv from "dotenv";
+import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
-// Prisma config 파일은 실행 위치가 달라질 수 있으므로 절대 경로로 .env 로딩
-dotenv.config({ path: path.resolve(process.cwd(), ".env") });
-
+// env() 헬퍼는 변수 미존재 시 에러를 던짐 → Docker 빌드(prisma generate)에서 실패
+// process.env 직접 참조로 빌드 시 안전하게 빈 문자열 허용
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
@@ -12,6 +10,6 @@ export default defineConfig({
     seed: "tsx prisma/seed.ts",
   },
   datasource: {
-    url: process.env["DATABASE_URL"] ?? "",
+    url: process.env.DATABASE_URL ?? "",
   },
 });
