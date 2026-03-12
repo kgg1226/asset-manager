@@ -1,12 +1,12 @@
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
-# --- [설정 구간] ---
-$PROFILE_NAME = "hyeongunk"
+# --- [설정 구간] — 실제 값으로 수정 후 deploy.ps1로 복사하세요 ---
+$PROFILE_NAME = "your-aws-profile"
 $REGION = "ap-northeast-2"
-$S3_BUCKET = "s3://triplecomma-releases/triplecomma-backoffice"
+$S3_BUCKET = "s3://your-bucket/your-path"
 $ZIP_NAME = "license-manager.zip"
-$EC2_ID = "i-0aeda7845a9634718"
+$EC2_ID = "i-xxxxxxxxxxxxxxxxx"
 $REMOTE_DIR = "/home/ssm-user/app"
 $APP_NAME = "license-manager"
 

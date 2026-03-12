@@ -119,7 +119,7 @@
 
 ```bash
 # [2단계] EC2 SSM 접속 후 실행
-aws ssm start-session --target i-0aeda7845a9634718 --region ap-northeast-2 --profile hyeongunk
+aws ssm start-session --target i-03b9c1979ef4a2142 --region ap-northeast-2 --profile hyeongunk
 
 cd /home/ssm-user/app
 aws s3 cp s3://triplecomma-releases/triplecomma-backoffice/license-manager.zip .
