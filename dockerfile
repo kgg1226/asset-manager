@@ -63,8 +63,9 @@ COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 
 EXPOSE 3000
 
-# entrypoint 스크립트 복사 및 실행 권한 부여
+# entrypoint + DB 초기화 스크립트 복사
 COPY entrypoint.sh ./entrypoint.sh
+COPY init-db.mjs ./init-db.mjs
 RUN chmod +x ./entrypoint.sh
 
 # 소유권 변경 (비root 사용자)

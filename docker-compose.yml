@@ -36,6 +36,8 @@ services:
       NODE_ENV: production
       DATABASE_URL: "postgresql://license_manager:license_manager_pass@postgres:5432/license_manager"
       SECURE_COOKIE: "false"
+      SEED_ADMIN_USERNAME: "admin"
+      SEED_ADMIN_PASSWORD: "${SEED_ADMIN_PASSWORD:-changeme123}"
     depends_on:
       postgres:
         condition: service_healthy
