@@ -2,15 +2,11 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
 import { handleValidationError, vNum } from "@/lib/validation";
 
 // ── GET /api/assets/expiring?days=30 ──
 
 export async function GET(request: NextRequest) {
-  const user = await getCurrentUser();
-  if (!user)
-    return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
 
   try {
     const withinDays =
@@ -22,7 +18,7 @@ export async function GET(request: NextRequest) {
 
     const assets = await prisma.asset.findMany({
       where: {
-        status: "ACTIVE",
+        status: { in: ["IN_STOCK", "IN_USE", "INACTIVE"] },
         expiryDate: {
           gte: now,
           lte: deadline,

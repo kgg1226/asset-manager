@@ -6,8 +6,6 @@ import { ValidationError, handleValidationError, handlePrismaError, vStrReq, vSt
 
 // GET /api/groups — 그룹 목록 조회
 export async function GET() {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
 
   try {
     const groups = await prisma.licenseGroup.findMany({

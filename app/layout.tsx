@@ -1,12 +1,11 @@
-// 변경: DB 에러 시 전체 앱 장애 방지(catch), 조직도 메뉴 추가
+// 변경: 상단 nav → 왼쪽 사이드바 레이아웃
 
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import Providers from "./providers";
-import LogoutButton from "./logout-button";
+import Sidebar from "./sidebar";
 import { getCurrentUser } from "@/lib/auth";
 import "./globals.css";
 
@@ -21,8 +20,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "License Manager",
-  description: "License management system",
+  title: "Asset Manager",
+  description: "Asset management system",
 };
 
 export default async function RootLayout({
@@ -34,11 +33,6 @@ export default async function RootLayout({
   const pathname = h.get("x-pathname") ?? "";
   const user = await getCurrentUser().catch(() => null);
 
-  // 세션 쿠키는 있지만 DB 세션이 만료/삭제된 경우 로그인으로 리다이렉트
-  if (!user && pathname !== "/login") {
-    redirect("/login");
-  }
-
   // 비밀번호 변경 필수인 경우 비밀번호 변경 페이지로 리다이렉트
   // (change-password 페이지에서는 리다이렉트 방지)
   if (
@@ -49,53 +43,21 @@ export default async function RootLayout({
     redirect("/change-password");
   }
 
+  const showSidebar = pathname !== "/login";
+
   return (
     <html lang="ko">
       <body
         className={`${geistSans.variable} ${geistMono.variable} font-[family-name:var(--font-geist-sans)] bg-gray-50 text-gray-900 antialiased`}
       >
-        {user && (
-          <nav className="border-b border-gray-200 bg-white">
-            <div className="mx-auto flex max-w-6xl items-center gap-6 px-4 py-3">
-              <Link href="/licenses" className="text-sm font-bold text-gray-900">
-                License Manager
-              </Link>
-              <div className="flex flex-1 gap-4">
-                <Link href="/dashboard" className="text-sm text-gray-600 hover:text-gray-900">
-                  대시보드
-                </Link>
-                <Link href="/licenses" className="text-sm text-gray-600 hover:text-gray-900">
-                  라이선스
-                </Link>
-                <Link href="/employees" className="text-sm text-gray-600 hover:text-gray-900">
-                  조직원
-                </Link>
-                <Link href="/org" className="text-sm text-gray-600 hover:text-gray-900">
-                  조직도
-                </Link>
-                <Link href="/settings/groups" className="text-sm text-gray-600 hover:text-gray-900">
-                  그룹 설정
-                </Link>
-                <Link href="/settings/import" className="text-sm text-gray-600 hover:text-gray-900">
-                  데이터 가져오기
-                </Link>
-                <Link href="/history" className="text-sm text-gray-600 hover:text-gray-900">
-                  이력
-                </Link>
-                {user.role === "ADMIN" && (
-                  <Link href="/admin/users" className="text-sm text-purple-600 hover:text-purple-800">
-                    관리자
-                  </Link>
-                )}
-              </div>
-              <div className="flex items-center gap-3 border-l border-gray-200 pl-4">
-                <span className="text-xs text-gray-400">{user.username}</span>
-                <LogoutButton />
-              </div>
-            </div>
-          </nav>
+        {showSidebar && (
+          <Sidebar
+            user={user ? { username: user.username, role: user.role } : null}
+          />
         )}
-        <Providers>{children}</Providers>
+        <main className={showSidebar ? "md:ml-60" : ""}>
+          <Providers>{children}</Providers>
+        </main>
       </body>
     </html>
   );

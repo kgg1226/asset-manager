@@ -22,8 +22,6 @@ type LicenseType = (typeof VALID_LICENSE_TYPES)[number];
 
 // GET /api/licenses/:id — 라이선스 상세 조회
 export async function GET(request: NextRequest, { params }: Params) {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
   try {
     const { id } = await params;
     const license = await prisma.license.findUnique({

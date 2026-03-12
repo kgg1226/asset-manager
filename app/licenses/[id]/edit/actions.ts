@@ -38,6 +38,7 @@ export async function updateLicense(
   const noticePeriodCustom = formData.get("noticePeriodCustom") as string;
   const adminName = formData.get("adminName") as string;
   const description = formData.get("description") as string;
+  const parentIdRaw = formData.get("parentId") as string;
 
   // Cost fields
   const paymentCycleRaw = formData.get("paymentCycle") as string;
@@ -168,6 +169,8 @@ export async function updateLicense(
         }
       }
 
+      const parentId = parentIdRaw ? Number(parentIdRaw) : null;
+
       const newData = {
         name: name.trim(),
         key: type === "VOLUME" ? (key?.trim() || null) : null,
@@ -187,6 +190,7 @@ export async function updateLicense(
         isVatIncluded,
         totalAmountForeign,
         totalAmountKRW,
+        parentId,
       };
 
       await tx.license.update({ where: { id }, data: newData });

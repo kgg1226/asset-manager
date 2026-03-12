@@ -20,12 +20,14 @@ function OrgUnitNode({
   companyId,
   allOrgs,
   onRefresh,
+  isAuthenticated,
 }: {
   unit: OrgUnit;
   subUnits: OrgUnit[];
   companyId: number;
   allOrgs: OrgUnit[];
   onRefresh: () => Promise<void>;
+  isAuthenticated: boolean;
 }) {
   const [open, setOpen] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -212,34 +214,38 @@ function OrgUnitNode({
         ) : (
           <>
             <span className="text-sm text-gray-700 flex-1">{unit.name}</span>
-            <button
-              onClick={startEdit}
-              className="text-gray-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50"
-              title="수정"
-            >
-              <Edit2 className="h-3.5 w-3.5" />
-            </button>
-            <button
-              onClick={handleDeleteClick}
-              disabled={isLoading}
-              className="text-gray-400 hover:text-red-600 p-1 rounded hover:bg-red-50 disabled:opacity-50"
-              title="삭제"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-            <button
-              onClick={() => setShowAddChild(true)}
-              className="text-gray-400 hover:text-green-600 p-1 rounded hover:bg-green-50"
-              title="하위 부서 추가"
-            >
-              <Plus className="h-3.5 w-3.5" />
-            </button>
+            {isAuthenticated && (
+              <>
+                <button
+                  onClick={startEdit}
+                  className="text-gray-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50"
+                  title="수정"
+                >
+                  <Edit2 className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={handleDeleteClick}
+                  disabled={isLoading}
+                  className="text-gray-400 hover:text-red-600 p-1 rounded hover:bg-red-50 disabled:opacity-50"
+                  title="삭제"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={() => setShowAddChild(true)}
+                  className="text-gray-400 hover:text-green-600 p-1 rounded hover:bg-green-50"
+                  title="하위 부서 추가"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              </>
+            )}
           </>
         )}
       </div>
 
-      {/* 하위 부서 추가 입력 */}
-      {showAddChild && (
+      {/* 하위 부서 추가 입력 (인증 사용자만) */}
+      {isAuthenticated && showAddChild && (
         <div className="ml-4 flex gap-1.5 py-2">
           <input
             autoFocus
@@ -286,6 +292,7 @@ function OrgUnitNode({
               companyId={companyId}
               allOrgs={allOrgs}
               onRefresh={onRefresh}
+              isAuthenticated={isAuthenticated}
             />
           ))}
         </div>
@@ -366,16 +373,74 @@ function OrgUnitNode({
 function CompanyNode({
   company,
   onRefresh,
+  isAuthenticated,
 }: {
   company: Company;
   onRefresh: () => Promise<void>;
+  isAuthenticated: boolean;
 }) {
   const [open, setOpen] = useState(true);
   const [showAddRoot, setShowAddRoot] = useState(false);
   const [newRootName, setNewRootName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [editingCompany, setEditingCompany] = useState(false);
+  const [editCompanyName, setEditCompanyName] = useState("");
+  const [showDeleteCompany, setShowDeleteCompany] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   const topOrgs = company.orgs.filter((o) => o.parentId === null);
+
+  const handleEditCompany = async () => {
+    if (!editCompanyName.trim()) {
+      toast.error("회사명은 필수입니다.");
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/org/companies/${company.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: editCompanyName.trim() }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        toast.error(err.error || "회사 수정에 실패했습니다.");
+        return;
+      }
+      toast.success("회사명이 수정되었습니다.");
+      setEditingCompany(false);
+      await onRefresh();
+    } catch {
+      toast.error("회사 수정에 실패했습니다.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteCompany = async () => {
+    if (deleteConfirmText !== "삭제하겠습니다") {
+      toast.error('정확히 "삭제하겠습니다"를 입력해주세요.');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/org/companies/${company.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const err = await res.json();
+        toast.error(err.error || "회사 삭제에 실패했습니다.");
+        setShowDeleteCompany(false);
+        setDeleteConfirmText("");
+        return;
+      }
+      toast.success("회사가 삭제되었습니다.");
+      setShowDeleteCompany(false);
+      await onRefresh();
+    } catch {
+      toast.error("회사 삭제에 실패했습니다.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleAddRootOrg = async () => {
     if (!newRootName.trim()) {
@@ -414,21 +479,106 @@ function CompanyNode({
 
   return (
     <div className="mb-4 rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
-      <div
-        className="flex cursor-pointer items-center gap-2 p-4"
-        onClick={() => setOpen(!open)}
-      >
-        {open ? (
-          <ChevronDown className="h-4 w-4 shrink-0 text-gray-400" />
-        ) : (
-          <ChevronRight className="h-4 w-4 shrink-0 text-gray-400" />
-        )}
+      <div className="flex items-center gap-2 p-4">
+        <div
+          className="cursor-pointer"
+          onClick={() => setOpen(!open)}
+        >
+          {open ? (
+            <ChevronDown className="h-4 w-4 shrink-0 text-gray-400" />
+          ) : (
+            <ChevronRight className="h-4 w-4 shrink-0 text-gray-400" />
+          )}
+        </div>
         <Building2 className="h-4 w-4 shrink-0 text-blue-600" />
-        <span className="font-medium text-gray-900">{company.name}</span>
-        <span className="ml-auto text-xs text-gray-400">
-          {company.orgs.length}개 조직
-        </span>
+        {editingCompany ? (
+          <div className="flex gap-1.5 flex-1">
+            <input
+              autoFocus
+              type="text"
+              value={editCompanyName}
+              onChange={(e) => setEditCompanyName(e.target.value)}
+              className="flex-1 border border-blue-300 rounded px-2 py-1 text-sm font-medium"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleEditCompany();
+                if (e.key === "Escape") setEditingCompany(false);
+              }}
+            />
+            <button
+              onClick={handleEditCompany}
+              disabled={isLoading}
+              className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+            >저장</button>
+            <button
+              onClick={() => setEditingCompany(false)}
+              className="text-xs px-2 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+            >취소</button>
+          </div>
+        ) : (
+          <>
+            <span
+              className="font-medium text-gray-900 flex-1 cursor-pointer"
+              onClick={() => setOpen(!open)}
+            >{company.name}</span>
+            <span className="text-xs text-gray-400">{company.orgs.length}개 조직</span>
+            <button
+              onClick={() => { setEditCompanyName(company.name); setEditingCompany(true); }}
+              className="text-gray-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50"
+              title="회사 수정"
+            >
+              <Edit2 className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => setShowDeleteCompany(true)}
+              className="text-gray-400 hover:text-red-600 p-1 rounded hover:bg-red-50"
+              title="회사 삭제"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </>
+        )}
       </div>
+
+      {/* 회사 삭제 확인 모달 */}
+      {showDeleteCompany && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg max-w-md w-full mx-4 p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">회사 삭제 확인</h3>
+            <div className="bg-red-50 border border-red-200 rounded p-3 mb-4 text-sm text-red-700">
+              <p className="font-medium mb-1">"{company.name}" 회사를 삭제합니다.</p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>소속 부서: {company.orgs.length}개</li>
+              </ul>
+              {company.orgs.length > 0 && (
+                <p className="mt-2 font-medium">⚠️ 소속 부서가 있으면 삭제할 수 없습니다. 먼저 부서를 삭제하세요.</p>
+              )}
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                다음 문구를 정확히 입력하세요: <span className="font-mono">삭제하겠습니다</span>
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="삭제하겠습니다"
+                className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => { setShowDeleteCompany(false); setDeleteConfirmText(""); }}
+                className="px-4 py-2 text-gray-700 border border-gray-300 rounded hover:bg-gray-50"
+              >취소</button>
+              <button
+                onClick={handleDeleteCompany}
+                disabled={isLoading || deleteConfirmText !== "삭제하겠습니다"}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+              >{isLoading ? "삭제 중..." : "삭제"}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {open && (
         <div className="border-t border-gray-100 px-4 pb-4 pt-2">
@@ -444,14 +594,15 @@ function CompanyNode({
                     companyId={company.id}
                     allOrgs={company.orgs}
                     onRefresh={onRefresh}
+                    isAuthenticated={isAuthenticated}
                   />
                 );
               })}
             </div>
           )}
 
-          {/* 최상위 부서 추가 */}
-          {showAddRoot ? (
+          {/* 최상위 부서 추가 (인증 사용자만) */}
+          {isAuthenticated && showAddRoot ? (
             <div className="flex gap-1.5 py-2">
               <input
                 autoFocus
@@ -485,7 +636,7 @@ function CompanyNode({
                 취소
               </button>
             </div>
-          ) : (
+          ) : isAuthenticated ? (
             <button
               onClick={() => setShowAddRoot(true)}
               className="text-xs px-3 py-1.5 bg-green-50 text-green-700 rounded border border-green-200 hover:bg-green-100"
@@ -493,7 +644,7 @@ function CompanyNode({
               <Plus className="h-3.5 w-3.5 inline mr-1" />
               부서 추가
             </button>
-          )}
+          ) : null}
 
           {topOrgs.length === 0 && !showAddRoot && (
             <p className="text-xs text-gray-400">등록된 조직이 없습니다.</p>
@@ -507,14 +658,16 @@ function CompanyNode({
 export default function OrgTree({
   companies: initialCompanies,
   onRefresh,
+  isAuthenticated,
 }: {
   companies: Company[];
   onRefresh: () => Promise<void>;
+  isAuthenticated: boolean;
 }) {
   return (
     <div>
       {initialCompanies.map((c) => (
-        <CompanyNode key={c.id} company={c} onRefresh={onRefresh} />
+        <CompanyNode key={c.id} company={c} onRefresh={onRefresh} isAuthenticated={isAuthenticated} />
       ))}
     </div>
   );
