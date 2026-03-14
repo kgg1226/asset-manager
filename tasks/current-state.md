@@ -4,7 +4,7 @@
 >
 > **📚 먼저 읽어야 할 문서**: [`tasks/README.md`](README.md) → [`tasks/VISION.md`](VISION.md) → [`tasks/TICKETS.md`](TICKETS.md)
 >
-> 최종 업데이트: 2026-03-12 (구현 현황 전수 점검)
+> 최종 업데이트: 2026-03-15 (Phase 5 구현 완료 + master 동기화)
 
 ---
 
@@ -13,13 +13,14 @@
 | 브랜치 | 상태 | 내용 |
 |---|---|---|
 | `master` | 기준 브랜치 | Phase 1~4 + 공개 열람 모드 (PR #44까지 머지) |
+| `claude/gracious-ritchie` | PR #50 대기 | Phase 5 구현 완료 |
 | `role/planning` | 운영 중 | 기획 문서 전담 |
 | `role/backend` | 운영 중 | 백엔드 코드 전담 |
 | `role/frontend` | 운영 중 | 프론트엔드 코드 전담 |
 | `role/devops` | 운영 중 | 배포/인프라 전담 |
 | `role/security` | 운영 중 | 보안 문서 전담 |
 
-> 오픈 PR: **0개** (모든 PR 정리 완료)
+> 오픈 PR: **1개** — PR #50 (Phase 5 구현)
 
 ---
 
@@ -42,6 +43,7 @@
 | **FE-001** — 비밀번호 변경 API + UI | ✅ 완료 | |
 | **자산 페이지** — Mock → 실제 API | ✅ 완료 | /hardware, /cloud, /domains |
 | **Phase 4** — Google Drive 연동 | 🟡 코드 완료 | 외부 OAuth 환경변수 설정만 남음 |
+| **Phase 5** — UX 개선 + 버그 수정 + 자산 고도화 | ✅ 구현 완료 | PR #50 (머지 대기) |
 | **EC2 배포** | ⏳ 대기 | 사람이 직접 실행 |
 
 ### 🔴 미완료 항목 (잔여 5%)
@@ -102,17 +104,32 @@
 - CSV 임포트 (라이선스, 조직원, 그룹, 배정)
 - 조직원 CRUD + 퇴사 처리 (7일 유예)
 
+### Phase 5 — UX 개선 + 자산 고도화 (PR #50)
+- 하드웨어 자산 등록 403 에러 수정, 라이선스 No Key 배지 제거
+- 프로필 페이지 (`/settings/profile`) + 비밀번호 변경
+- 이력 페이지 유형/액션별 색상 구분
+- 하드웨어 유형별 동적 폼 (Laptop/Desktop/Server/Network/Mobile/Monitor/Peripheral)
+- 도메인·SSL 상세 필드 (DomainDetail, 비용 주기 자동 계산)
+- PDF 보고서 한글 폰트 (NotoSansKR)
+- 환율 수동 동기화 버튼 (ADMIN 인증)
+- 만료 임박 자산 대시보드 위젯 (D-day 배지)
+- 설정 페이지 탭 구조화 (`/settings` 레이아웃)
+- 라이선스 유형 변경 시 활성 배정 유지 + 경고 메시지
+- 하드웨어 수명 주기 설정 API (`/api/admin/hardware-lifecycle`)
+
 ---
 
-## DB 스키마 (master 기준) — 15개 모델
+## DB 스키마 (master + PR #50 기준)
 
 | 테이블 | 주요 특징 |
 |---|---|
 | `License` | `parentId` (계층), 갱신 상태/이력/날짜 |
 | `Asset` | SW/Cloud/HW/Domain/Contract/Other, 만료일 관리 |
-| `HardwareDetail` | 제조사, 모델, 시리얼, 사양 |
+| `HardwareDetail` | 제조사, 모델, 시리얼, 사양 + Phase 5 확장 필드 (imei/storageType/resolution 등) |
 | `CloudDetail` | 플랫폼, 계정, 리전, 시트 수 |
+| `DomainDetail` | domainName/registrar/sslType/billingCycleMonths/autoRenew |
 | `ContractDetail` | 계약 유형, 거래처, 자동갱신 |
+| `HardwareLifecycleSetting` | deviceType별 기본 내용연수 |
 | `Employee` | 조직 이동, 퇴사 유예 |
 | `User` | `mustChangePassword` |
 | `OrgCompany` + `OrgUnit` | 회사-부서 계층 구조 |
@@ -128,6 +145,10 @@
 
 ## 🔴 다음 작업 (Phase 4 잔여 + Phase 5 시작)
 
+### 0. PR #50 머지 + EC2 배포
+
+> Phase 5 구현 완료. PR #50 리뷰 후 master 머지 필요.
+
 ### 즉시 처리 — Phase 4 마무리
 
 | 티켓 | Role | 내용 | 난이도 |
@@ -137,7 +158,7 @@
 | **OPS-020** | DevOps/사람 | Google Drive OAuth 환경변수 설정 | 🟢 낮음 |
 | **OPS-021** | DevOps/사람 | EC2 배포 실행 | 🟢 낮음 |
 
-### Phase 5 — 운영 품질 개선 (80% 이상 달성으로 추가 목표)
+### Phase 5+ — 운영 품질 개선 (추가 목표)
 
 > Phase 1~4 달성률 95%로 80% 기준 초과.
 > Phase 5 목표: 운영 안정성·사용자 경험·데이터 품질 강화.

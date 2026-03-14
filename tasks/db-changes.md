@@ -296,3 +296,154 @@ ALTER TABLE "AuditLog" ADD COLUMN "actorId"   INTEGER;  -- userId, SYSTEM이면 
 7. [ ] `NotificationLog` 테이블 생성
 8. [ ] AuditLog: `actorType`, `actorId` 추가
 9. [ ] `prisma generate` 실행 (호스트에서)
+
+---
+
+### [2026-03-15] Phase 5 — UX 개선 + 자산관리 고도화
+
+#### 배경
+실사용 피드백 기반으로 하드웨어·도메인 입력 필드 고도화, 프로필 페이지, 환율 자동화 등 추가.
+
+---
+
+#### 1. HardwareDetail 테이블 필드 추가
+
+**추가 컬럼** (장비 유형별 동적 필드):
+```sql
+ALTER TABLE "HardwareDetail" ADD COLUMN "cpu" TEXT;
+ALTER TABLE "HardwareDetail" ADD COLUMN "ram" INTEGER;          -- GB 단위
+ALTER TABLE "HardwareDetail" ADD COLUMN "storage" INTEGER;      -- GB 단위
+ALTER TABLE "HardwareDetail" ADD COLUMN "storageType" TEXT;     -- SSD / HDD
+ALTER TABLE "HardwareDetail" ADD COLUMN "imei" TEXT;            -- Mobile 전용
+ALTER TABLE "HardwareDetail" ADD COLUMN "phoneNumber" TEXT;     -- Mobile 전용
+ALTER TABLE "HardwareDetail" ADD COLUMN "portCount" INTEGER;    -- Network 전용
+ALTER TABLE "HardwareDetail" ADD COLUMN "connectionType" TEXT;  -- Peripheral 전용 (USB/BT/기타)
+ALTER TABLE "HardwareDetail" ADD COLUMN "resolution" TEXT;      -- 모니터 전용
+```
+
+**prisma/schema.prisma 변경:**
+```prisma
+model HardwareDetail {
+  // ... 기존 필드 유지 ...
+  cpu            String?
+  ram            Int?           // GB
+  storage        Int?           // GB
+  storageType    String?        // SSD | HDD
+  imei           String?
+  phoneNumber    String?
+  portCount      Int?
+  connectionType String?        // USB | BT | Other
+  resolution     String?
+}
+```
+
+---
+
+#### 2. 신규 테이블: DomainDetail
+
+도메인/SSL 자산 전용 상세 정보.
+
+```sql
+CREATE TABLE "DomainDetail" (
+  "id"             INTEGER PRIMARY KEY AUTOINCREMENT,
+  "assetId"        INTEGER NOT NULL UNIQUE REFERENCES "Asset"("id") ON DELETE CASCADE,
+  "domainName"     TEXT,                     -- example.com
+  "registrar"      TEXT,                     -- 등록 기관 (가비아, Route53 등)
+  "sslType"        TEXT,                     -- DV | OV | EV | WILDCARD | null (도메인만)
+  "issuer"         TEXT,                     -- SSL 발급 기관 (CA)
+  "billingCycleMonths" INTEGER DEFAULT 12,   -- 비용 주기 (개월 수)
+  "autoRenew"      BOOLEAN DEFAULT true      -- 자동 갱신 여부
+);
+```
+
+**prisma/schema.prisma:**
+```prisma
+model DomainDetail {
+  id                 Int     @id @default(autoincrement())
+  assetId            Int     @unique
+  domainName         String?
+  registrar          String?
+  sslType            String?        // DV | OV | EV | WILDCARD
+  issuer             String?        // CA (인증 기관)
+  billingCycleMonths Int     @default(12)
+  autoRenew          Boolean @default(true)
+  asset              Asset   @relation(fields: [assetId], references: [id], onDelete: Cascade)
+}
+```
+
+> Asset 모델에 `domainDetail DomainDetail?` 관계 추가 필요.
+
+---
+
+#### 3. 신규 테이블: HardwareLifecycleSetting
+
+관리자가 하드웨어 유형별 기본 내용연수를 설정.
+
+```sql
+CREATE TABLE "HardwareLifecycleSetting" (
+  "id"              INTEGER PRIMARY KEY AUTOINCREMENT,
+  "deviceType"      TEXT NOT NULL UNIQUE,    -- Laptop | Desktop | Server | Network | Mobile | Peripheral | Other
+  "usefulLifeYears" INTEGER NOT NULL DEFAULT 5,
+  "updatedAt"       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 기본값 시드
+INSERT INTO "HardwareLifecycleSetting" ("deviceType", "usefulLifeYears") VALUES
+  ('Laptop', 4),
+  ('Desktop', 5),
+  ('Server', 7),
+  ('Network', 7),
+  ('Mobile', 3),
+  ('Peripheral', 5),
+  ('Other', 5);
+```
+
+**prisma/schema.prisma:**
+```prisma
+model HardwareLifecycleSetting {
+  id              Int      @id @default(autoincrement())
+  deviceType      String   @unique
+  usefulLifeYears Int      @default(5)
+  updatedAt       DateTime @updatedAt
+}
+```
+
+---
+
+#### 4. User 테이블 필드 추가
+
+```sql
+ALTER TABLE "User" ADD COLUMN "lastLoginAt" DATETIME;
+```
+
+**prisma/schema.prisma (User 모델 변경):**
+```prisma
+model User {
+  // ... 기존 필드 ...
+  lastLoginAt        DateTime?              // 마지막 로그인 시각
+}
+```
+
+> 로그인 성공 시 `lastLoginAt` 업데이트 로직 추가 필요 (auth.ts 또는 login route).
+
+---
+
+#### 5. Asset 모델에 DomainDetail 관계 추가
+
+```prisma
+model Asset {
+  // ... 기존 필드 ...
+  domainDetail      DomainDetail?           // Phase 5 추가
+}
+```
+
+---
+
+#### 요약 체크리스트 (백엔드 실행 순서)
+
+1. [ ] HardwareDetail: cpu, ram, storage 등 9개 필드 추가
+2. [ ] DomainDetail 테이블 생성 + Asset 관계 추가
+3. [ ] HardwareLifecycleSetting 테이블 생성 + 시드 데이터
+4. [ ] User: lastLoginAt 필드 추가
+5. [ ] `prisma db push` 실행
+6. [ ] `prisma generate` 실행

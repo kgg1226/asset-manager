@@ -16,6 +16,15 @@ interface HardwareDetail {
   osVersion?: string | null; location?: string | null; usefulLifeYears: number;
   cpu?: string | null; ram?: string | null; storage?: string | null;
   gpu?: string | null; displaySize?: string | null;
+  storageType?: string | null; imei?: string | null; phoneNumber?: string | null;
+  portCount?: number | null; connectionType?: string | null; resolution?: string | null;
+  // 보증/구매 관리
+  warrantyEndDate?: string | null; warrantyProvider?: string | null;
+  purchaseOrderNumber?: string | null; invoiceNumber?: string | null;
+  condition?: string | null; notes?: string | null;
+  // 네트워크/인프라
+  secondaryIp?: string | null; subnetMask?: string | null; gateway?: string | null;
+  vlanId?: string | null; dnsName?: string | null; firmwareVersion?: string | null;
 }
 
 interface Asset {
@@ -356,6 +365,14 @@ export default function HardwareDetailPage() {
               {SHOW_NETWORK_FIELDS.has(deviceType) && hd.macAddress && <div><p className="text-sm text-gray-600">MAC Address</p><p className="mt-1 font-mono text-gray-900">{hd.macAddress}</p></div>}
 
               {hd.os && <div><p className="text-sm text-gray-600">OS</p><p className="mt-1 text-gray-900">{hd.os}{hd.osVersion && ` ${hd.osVersion}`}</p></div>}
+              {hd.cpu && <div><p className="text-sm text-gray-600">CPU</p><p className="mt-1 text-gray-900">{hd.cpu}</p></div>}
+              {hd.ram != null && <div><p className="text-sm text-gray-600">RAM</p><p className="mt-1 text-gray-900">{hd.ram} GB</p></div>}
+              {hd.storage != null && <div><p className="text-sm text-gray-600">저장장치</p><p className="mt-1 text-gray-900">{hd.storage} GB{hd.storageType && ` (${hd.storageType})`}</p></div>}
+              {hd.imei && <div><p className="text-sm text-gray-600">IMEI</p><p className="mt-1 font-mono text-gray-900">{hd.imei}</p></div>}
+              {hd.phoneNumber && <div><p className="text-sm text-gray-600">전화번호</p><p className="mt-1 text-gray-900">{hd.phoneNumber}</p></div>}
+              {hd.portCount != null && <div><p className="text-sm text-gray-600">포트 수</p><p className="mt-1 text-gray-900">{hd.portCount}</p></div>}
+              {hd.connectionType && <div><p className="text-sm text-gray-600">연결 방식</p><p className="mt-1 text-gray-900">{hd.connectionType}</p></div>}
+              {hd.resolution && <div><p className="text-sm text-gray-600">해상도</p><p className="mt-1 text-gray-900">{hd.resolution}</p></div>}
               {hd.location && <div><p className="text-sm text-gray-600">보관 위치</p><p className="mt-1 text-gray-900">{hd.location}</p></div>}
               {hd.condition && <div><p className="text-sm text-gray-600">상태 등급</p><p className="mt-1"><span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold ${hd.condition === "A" ? "bg-green-100 text-green-700" : hd.condition === "B" ? "bg-blue-100 text-blue-700" : hd.condition === "C" ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"}`}>{hd.condition}</span></p></div>}
             </div>

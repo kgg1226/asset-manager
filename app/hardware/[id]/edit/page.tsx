@@ -9,7 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 const CURRENCIES = ["USD", "KRW", "EUR", "JPY", "GBP", "CNY"];
 const BILLING_CYCLES = [{ value: "ONE_TIME", label: "일회성" }, { value: "MONTHLY", label: "월간" }, { value: "ANNUAL", label: "연간" }, { value: "USAGE_BASED", label: "사용량 기반" }];
-const DEVICE_TYPES = ["Laptop", "Desktop", "Server", "Network", "Mobile", "Other"];
+const DEVICE_TYPES = ["Laptop", "Desktop", "Server", "Network", "Mobile", "Monitor", "Peripheral", "Other"];
 
 export default function HardwareEditPage() {
   const router = useRouter();
@@ -22,8 +22,9 @@ export default function HardwareEditPage() {
   const [hw, setHw] = useState({
     assetTag: "", deviceType: "", manufacturer: "", model: "", serialNumber: "", hostname: "",
     macAddress: "", ipAddress: "", os: "", osVersion: "", location: "", usefulLifeYears: "5",
+    cpu: "", ram: "", storage: "", storageType: "SSD", imei: "", phoneNumber: "", portCount: "", connectionType: "", resolution: "",
     warrantyEndDate: "", warrantyProvider: "", purchaseOrderNumber: "", invoiceNumber: "", condition: "", notes: "",
-    secondaryIp: "", subnetMask: "", gateway: "", vlanId: "", dnsName: "", portCount: "", firmwareVersion: "",
+    secondaryIp: "", subnetMask: "", gateway: "", vlanId: "", dnsName: "", firmwareVersion: "",
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
@@ -44,12 +45,16 @@ export default function HardwareEditPage() {
             macAddress: h.macAddress || "", ipAddress: h.ipAddress || "", os: h.os || "",
             osVersion: h.osVersion || "", location: h.location || "",
             usefulLifeYears: h.usefulLifeYears != null ? String(h.usefulLifeYears) : "5",
+            cpu: h.cpu || "", ram: h.ram != null ? String(h.ram) : "",
+            storage: h.storage != null ? String(h.storage) : "", storageType: h.storageType || "SSD",
+            imei: h.imei || "", phoneNumber: h.phoneNumber || "",
+            portCount: h.portCount != null ? String(h.portCount) : "",
+            connectionType: h.connectionType || "", resolution: h.resolution || "",
             warrantyEndDate: h.warrantyEndDate ? h.warrantyEndDate.split("T")[0] : "",
             warrantyProvider: h.warrantyProvider || "", purchaseOrderNumber: h.purchaseOrderNumber || "",
             invoiceNumber: h.invoiceNumber || "", condition: h.condition || "", notes: h.notes || "",
             secondaryIp: h.secondaryIp || "", subnetMask: h.subnetMask || "", gateway: h.gateway || "",
-            vlanId: h.vlanId || "", dnsName: h.dnsName || "",
-            portCount: h.portCount != null ? String(h.portCount) : "", firmwareVersion: h.firmwareVersion || "",
+            vlanId: h.vlanId || "", dnsName: h.dnsName || "", firmwareVersion: h.firmwareVersion || "",
           });
         }
       } catch { toast.error("로드 실패"); router.push("/hardware"); }
@@ -82,6 +87,14 @@ export default function HardwareEditPage() {
           macAddress: hw.macAddress || null, ipAddress: hw.ipAddress || null, os: hw.os || null,
           osVersion: hw.osVersion || null, location: hw.location || null,
           usefulLifeYears: hw.usefulLifeYears ? Number(hw.usefulLifeYears) : 5,
+          cpu: hw.cpu || null,
+          ram: hw.ram ? Number(hw.ram) : null,
+          storage: hw.storage ? Number(hw.storage) : null,
+          storageType: hw.storageType || null,
+          imei: hw.imei || null,
+          phoneNumber: hw.phoneNumber || null,
+          connectionType: hw.connectionType || null,
+          resolution: hw.resolution || null,
           warrantyEndDate: hw.warrantyEndDate || null, warrantyProvider: hw.warrantyProvider || null,
           purchaseOrderNumber: hw.purchaseOrderNumber || null, invoiceNumber: hw.invoiceNumber || null,
           condition: hw.condition || null, notes: hw.notes || null,
@@ -136,8 +149,8 @@ export default function HardwareEditPage() {
               <div><label className="block text-sm font-medium text-gray-700 mb-2">장비 유형</label><select name="deviceType" value={hw.deviceType} onChange={onHwChange} className={ic}><option value="">선택</option>{DEVICE_TYPES.map((d) => <option key={d} value={d}>{d}</option>)}</select></div>
             </div>
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
-              <div><label className="block text-sm font-medium text-gray-700 mb-2">제조사</label><input type="text" name="manufacturer" value={hw.manufacturer} onChange={onHwChange} className={ic} /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-2">모델명</label><input type="text" name="model" value={hw.model} onChange={onHwChange} className={ic} /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">제조사</label><input type="text" name="manufacturer" value={hw.manufacturer} onChange={onHwChange} placeholder="Apple, Dell, Lenovo 등" className={ic} /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">모델명</label><input type="text" name="model" value={hw.model} onChange={onHwChange} placeholder="MacBook Pro M4 등" className={ic} /></div>
             </div>
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
               <div><label className="block text-sm font-medium text-gray-700 mb-2">시리얼 넘버</label><input type="text" name="serialNumber" value={hw.serialNumber} onChange={onHwChange} className={`${ic} font-mono`} /></div>
@@ -150,9 +163,49 @@ export default function HardwareEditPage() {
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-3">
               <div><label className="block text-sm font-medium text-gray-700 mb-2">OS</label><select name="os" value={hw.os} onChange={onHwChange} className={ic}><option value="">선택</option><option value="macOS">macOS</option><option value="Windows">Windows</option><option value="Linux">Linux</option><option value="Other">기타</option></select></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-2">OS 버전</label><input type="text" name="osVersion" value={hw.osVersion} onChange={onHwChange} className={ic} /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-2">내용연수 (년)</label><input type="number" name="usefulLifeYears" value={hw.usefulLifeYears} onChange={onHwChange} min="1" max="50" className={ic} /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">내용연수 (년)</label><input type="number" name="usefulLifeYears" value={hw.usefulLifeYears} onChange={onHwChange} min="1" max="50" className={ic} /><p className="mt-1 text-xs text-gray-500">감가상각 기준 (기본 5년)</p></div>
             </div>
             <div><label className="block text-sm font-medium text-gray-700 mb-2">보관 위치</label><input type="text" name="location" value={hw.location} onChange={onHwChange} className={ic} /></div>
+
+            {/* 유형별 동적 필드 — 장비 상세 정보 섹션 내부 */}
+            {["Laptop", "Desktop", "Server"].includes(hw.deviceType) && (<>
+              <div className="mt-6 mb-2 border-t border-gray-200 pt-4"><p className="text-sm font-semibold text-gray-700">{hw.deviceType} 상세</p></div>
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">CPU</label><input type="text" name="cpu" value={hw.cpu} onChange={onHwChange} placeholder="Intel i7, Apple M4" className={ic} /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">RAM (GB)</label><input type="number" name="ram" value={hw.ram} onChange={onHwChange} min="0" className={ic} /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">저장장치 (GB)</label><div className="flex gap-2"><input type="number" name="storage" value={hw.storage} onChange={onHwChange} min="0" className={ic} /><select name="storageType" value={hw.storageType} onChange={onHwChange} className="w-24 rounded-md border border-gray-300 px-2 py-2 text-sm"><option value="SSD">SSD</option><option value="HDD">HDD</option></select></div></div>
+              </div>
+            </>)}
+
+            {hw.deviceType === "Network" && (<>
+              <div className="mt-6 mb-2 border-t border-gray-200 pt-4"><p className="text-sm font-semibold text-gray-700">네트워크 장비 상세</p></div>
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">포트 수</label><input type="number" name="portCount" value={hw.portCount} onChange={onHwChange} min="0" className={ic} /></div>
+              </div>
+            </>)}
+
+            {hw.deviceType === "Mobile" && (<>
+              <div className="mt-6 mb-2 border-t border-gray-200 pt-4"><p className="text-sm font-semibold text-gray-700">모바일 기기 상세</p></div>
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">IMEI</label><input type="text" name="imei" value={hw.imei} onChange={onHwChange} placeholder="IMEI 번호" className={`${ic} font-mono`} /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">전화번호</label><input type="text" name="phoneNumber" value={hw.phoneNumber} onChange={onHwChange} placeholder="010-1234-5678" className={ic} /></div>
+              </div>
+            </>)}
+
+            {hw.deviceType === "Monitor" && (<>
+              <div className="mt-6 mb-2 border-t border-gray-200 pt-4"><p className="text-sm font-semibold text-gray-700">모니터 상세</p></div>
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">해상도</label><input type="text" name="resolution" value={hw.resolution} onChange={onHwChange} placeholder="2560x1440" className={ic} /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">연결 방식</label><select name="connectionType" value={hw.connectionType} onChange={onHwChange} className={ic}><option value="">선택</option><option value="HDMI">HDMI</option><option value="DisplayPort">DisplayPort</option><option value="USB-C">USB-C</option><option value="DVI">DVI</option><option value="VGA">VGA</option><option value="Other">기타</option></select></div>
+              </div>
+            </>)}
+
+            {hw.deviceType === "Peripheral" && (<>
+              <div className="mt-6 mb-2 border-t border-gray-200 pt-4"><p className="text-sm font-semibold text-gray-700">주변기기 상세</p></div>
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">연결 방식</label><select name="connectionType" value={hw.connectionType} onChange={onHwChange} className={ic}><option value="">선택</option><option value="USB">USB</option><option value="Bluetooth">Bluetooth</option><option value="Wireless">무선</option><option value="Other">기타</option></select></div>
+              </div>
+            </>)}
           </div>
 
           {/* 보증/구매 관리 */}

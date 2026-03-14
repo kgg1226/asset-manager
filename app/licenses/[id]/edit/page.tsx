@@ -31,6 +31,11 @@ export default async function EditLicensePage({ params }: Props) {
 
   if (!license) notFound();
 
+  // 활성 배정 수 계산 (유형 변경 경고용)
+  const activeAssignmentCount = await prisma.assignment.count({
+    where: { licenseId: Number(id), returnedDate: null },
+  });
+
   const seats = license.seats.map((s) => ({
     id: s.id,
     key: s.key,
@@ -46,5 +51,5 @@ export default async function EditLicensePage({ params }: Props) {
     orderBy: { name: "asc" },
   });
 
-  return <EditLicenseForm license={license} seats={seats} allLicenses={allLicenses} />;
+  return <EditLicenseForm license={license} seats={seats} allLicenses={allLicenses} activeAssignmentCount={activeAssignmentCount} />;
 }

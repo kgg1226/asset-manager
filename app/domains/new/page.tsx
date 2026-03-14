@@ -16,6 +16,8 @@ export default function DomainNewPage() {
   useEffect(() => { if (!loading && !user) router.push("/login"); }, [user, loading, router]);
 
   const [form, setForm] = useState({ name: "", description: "", vendor: "", cost: "", currency: "KRW", billingCycle: "ANNUAL", purchaseDate: "", expiryDate: "" });
+  const [domain, setDomain] = useState({ domainName: "", registrar: "", sslType: "", issuer: "", billingCycleMonths: "12", autoRenew: true });
+  const onDomainChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => { const { name, value } = e.target; setDomain((p) => ({ ...p, [name]: value })); };
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -43,6 +45,14 @@ export default function DomainNewPage() {
         vendor: form.vendor || null, cost: form.cost ? Number(form.cost) : null,
         currency: form.currency, billingCycle: form.billingCycle,
         purchaseDate: form.purchaseDate || null, expiryDate: form.expiryDate || null,
+        domainDetail: {
+          domainName: domain.domainName || null,
+          registrar: domain.registrar || null,
+          sslType: domain.sslType || null,
+          issuer: domain.issuer || null,
+          billingCycleMonths: domain.billingCycleMonths ? Number(domain.billingCycleMonths) : 12,
+          autoRenew: domain.autoRenew,
+        },
       };
       const res = await fetch("/api/assets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const json = await res.json();
@@ -77,7 +87,34 @@ export default function DomainNewPage() {
             </div>
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
               <div><label className="block text-sm font-medium text-gray-700 mb-2">구매일 / 등록일</label><input type="date" name="purchaseDate" value={form.purchaseDate} onChange={onChange} className={ic} /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-2">만료일 <span className="text-xs text-gray-400">(갱신 기준)</span></label><input type="date" name="expiryDate" value={form.expiryDate} onChange={onChange} className={ic} /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">갱신일</label><input type="date" name="expiryDate" value={form.expiryDate} onChange={onChange} className={ic} /></div>
+            </div>
+          </div>
+
+          <div className="rounded-lg bg-white p-6 shadow-sm">
+            <h2 className="mb-4 text-base font-semibold text-gray-900">도메인·SSL 상세</h2>
+            <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">도메인명</label><input type="text" name="domainName" value={domain.domainName} onChange={onDomainChange} placeholder="example.com" className={ic} /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">등록 기관</label><input type="text" name="registrar" value={domain.registrar} onChange={onDomainChange} placeholder="가비아, Route53 등" className={ic} /></div>
+            </div>
+            <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">SSL 유형</label><select name="sslType" value={domain.sslType} onChange={onDomainChange} className={ic}><option value="">해당 없음</option><option value="DV">DV (Domain Validation)</option><option value="OV">OV (Organization Validation)</option><option value="EV">EV (Extended Validation)</option><option value="WILDCARD">Wildcard</option></select></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">발급 기관 (CA)</label><input type="text" name="issuer" value={domain.issuer} onChange={onDomainChange} placeholder="Let's Encrypt, DigiCert 등" className={ic} /></div>
+            </div>
+            <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">비용 주기 (개월)</label>
+                <select name="billingCycleMonths" value={domain.billingCycleMonths} onChange={onDomainChange} className={ic}>
+                  <option value="1">1개월</option><option value="6">6개월</option><option value="12">1년</option><option value="24">2년</option><option value="36">3년</option><option value="60">5년</option><option value="120">10년</option>
+                </select>
+                {form.cost && domain.billingCycleMonths && (
+                  <p className="mt-1 text-xs text-blue-600">월 환산 비용: {(Number(form.cost) / Number(domain.billingCycleMonths)).toLocaleString("ko-KR", { maximumFractionDigits: 0 })} {form.currency}/월</p>
+                )}
+              </div>
+              <div className="flex items-center gap-2 pt-7">
+                <input type="checkbox" id="autoRenew" checked={domain.autoRenew} onChange={(e) => setDomain((p) => ({ ...p, autoRenew: e.target.checked }))} className="h-4 w-4 rounded border-gray-300" />
+                <label htmlFor="autoRenew" className="text-sm font-medium text-gray-700">자동 갱신</label>
+              </div>
             </div>
           </div>
 

@@ -72,8 +72,19 @@ export default function NewEmployeeForm({ companies }: { companies: Company[] })
 
           <fieldset className="space-y-4">
             <legend className="text-base font-semibold text-gray-900 border-b border-gray-200 pb-2 w-full">
-              조직 정보 (선택)
+              조직 정보
             </legend>
+            {/* 선택된 조직명을 department로 자동 세팅 */}
+            <input type="hidden" name="department" value={
+              (() => {
+                const orgName = selectedSubOrgId
+                  ? selectedCompany?.orgs.find(o => o.id === selectedSubOrgId)?.name
+                  : selectedOrgId
+                    ? selectedCompany?.orgs.find(o => o.id === selectedOrgId)?.name
+                    : selectedCompany?.name;
+                return orgName ?? "미소속";
+              })()
+            } />
 
             <Field label="회사">
               <select

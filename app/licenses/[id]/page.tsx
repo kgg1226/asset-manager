@@ -241,9 +241,7 @@ export default async function LicenseDetailPage({
   const typeLabel =
     license.licenseType === "VOLUME"
       ? "Volume"
-      : license.licenseType === "NO_KEY"
-        ? "No Key"
-        : null;
+      : null;
 
   // Compute cost breakdown for display
   const hasCostData =
@@ -557,7 +555,6 @@ export default async function LicenseDetailPage({
                   {license.children.map((child) => {
                     const childTypeLabel =
                       child.licenseType === "VOLUME" ? "Volume"
-                        : child.licenseType === "NO_KEY" ? "No Key"
                         : "Key Based";
                     return (
                       <tr key={child.id} className="hover:bg-gray-50">

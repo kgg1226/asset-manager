@@ -21,7 +21,11 @@ export async function createEmployee(
   const email = formData.get("email") as string;
   const title = formData.get("title") as string;
   const companyIdRaw = formData.get("companyId") as string;
-  const orgUnitIdRaw = formData.get("orgUnitId") as string;
+  const orgIdRaw = formData.get("orgId") as string;
+  const subOrgIdRaw = formData.get("subOrgId") as string;
+
+  // orgUnitId: 하위조직 > 조직 우선 순위
+  const orgUnitIdRaw = subOrgIdRaw || orgIdRaw;
 
   const errors: Record<string, string> = {};
 

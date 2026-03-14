@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ValidationError, handleValidationError } from "@/lib/validation";
 import React from "react";
+import path from "path";
 import {
   Document,
   Page,
@@ -21,7 +22,20 @@ import {
   View,
   StyleSheet,
   renderToBuffer,
+  Font,
 } from "@react-pdf/renderer";
+
+// ── 한글 폰트 등록 (폐쇄망 대응 — 로컬 번들) ───────────────────────────────
+const fontDir = path.join(process.cwd(), "public", "fonts");
+Font.register({
+  family: "NotoSansKR",
+  fonts: [
+    { src: path.join(fontDir, "NotoSansKR-Regular.ttf"), fontWeight: "normal" as const },
+    { src: path.join(fontDir, "NotoSansKR-Bold.ttf"), fontWeight: "bold" as const },
+  ],
+});
+// 하이퍼네이션 비활성화 (한글에서 불필요)
+Font.registerHyphenationCallback((word: string) => [word]);
 
 type Params = { params: Promise<{ yearMonth: string }> };
 
@@ -34,9 +48,12 @@ const TYPE_LABELS: Record<string, string> = {
   OTHER: "기타",
 };
 const STATUS_LABELS: Record<string, string> = {
-  ACTIVE: "사용 중",
+  IN_STOCK: "재고",
+  IN_USE: "사용 중",
   INACTIVE: "미사용",
-  DISPOSED: "폐기",
+  UNUSABLE: "불용",
+  PENDING_DISPOSAL: "폐기 대상",
+  DISPOSED: "폐기 완료",
 };
 
 // ── 헬퍼 ────────────────────────────────────────────────────────────────────
@@ -68,12 +85,12 @@ const s = StyleSheet.create({
   page: {
     padding: 40,
     fontSize: 10,
-    fontFamily: "Helvetica",
+    fontFamily: "NotoSansKR",
   },
   // Cover
   coverPage: {
     padding: 40,
-    fontFamily: "Helvetica",
+    fontFamily: "NotoSansKR",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -186,23 +203,23 @@ interface ReportData {
 function ReportDocument({ data }: { data: ReportData }) {
   return React.createElement(
     Document,
-    { title: `Asset Report ${data.period}`, author: "License Manager" },
+    { title: `자산 보고서 ${data.period}`, author: "Asset Manager" },
 
     // ── Cover Page ──
     React.createElement(
       Page,
       { size: "A4", style: s.coverPage },
-      React.createElement(Text, { style: s.coverTitle }, "Monthly Asset Report"),
+      React.createElement(Text, { style: s.coverTitle }, "월별 자산 보고서"),
       React.createElement(Text, { style: s.coverSubtitle }, `${data.period}`),
       React.createElement(
         Text,
         { style: s.coverSubtitle },
-        `Assets: ${data.assetCount} | Cost: ${fmtCurrency(data.totalMonthlyCost)} KRW`,
+        `자산 수: ${data.assetCount}건 | 월 비용: ${fmtCurrency(data.totalMonthlyCost)} 원`,
       ),
       React.createElement(
         Text,
         { style: s.coverMeta },
-        `Generated: ${fmtDate(new Date())} | License Manager`,
+        `생성일: ${fmtDate(new Date())} | Asset Manager`,
       ),
     ),
 
@@ -212,55 +229,55 @@ function ReportDocument({ data }: { data: ReportData }) {
       { size: "A4", style: s.page },
 
       // Summary section
-      React.createElement(Text, { style: s.sectionTitle }, "Summary"),
+      React.createElement(Text, { style: s.sectionTitle }, "요약"),
       React.createElement(
         View,
         { style: { marginBottom: 12 } },
-        summaryItem("Period", data.period),
-        summaryItem("Start Date", fmtDate(data.startDate)),
-        summaryItem("End Date", fmtDate(data.endDate)),
-        summaryItem("Total Assets", String(data.assetCount)),
-        summaryItem("Monthly Cost (KRW)", fmtCurrency(data.totalMonthlyCost)),
-        summaryItem("Report Generated", fmtDate(new Date())),
+        summaryItem("기간", data.period),
+        summaryItem("시작일", fmtDate(data.startDate)),
+        summaryItem("종료일", fmtDate(data.endDate)),
+        summaryItem("총 자산 수", `${data.assetCount}건`),
+        summaryItem("월 총 비용 (KRW)", `${fmtCurrency(data.totalMonthlyCost)} 원`),
+        summaryItem("보고서 생성일", fmtDate(new Date())),
       ),
 
       // By Type
-      React.createElement(Text, { style: s.sectionTitle }, "By Type"),
+      React.createElement(Text, { style: s.sectionTitle }, "유형별 현황"),
       tableView(
-        ["Type", "Count", "Monthly Cost (KRW)"],
+        ["유형", "건수", "월 비용 (KRW)"],
         [30, 20, 50],
         data.byType.map((t) => [
           TYPE_LABELS[t.type] ?? t.type,
-          String(t.count),
-          fmtCurrency(t.cost),
+          `${t.count}건`,
+          `${fmtCurrency(t.cost)} 원`,
         ]),
       ),
 
       // By Status
-      React.createElement(Text, { style: s.sectionTitle }, "By Status"),
+      React.createElement(Text, { style: s.sectionTitle }, "상태별 현황"),
       tableView(
-        ["Status", "Count", "Monthly Cost (KRW)"],
+        ["상태", "건수", "월 비용 (KRW)"],
         [30, 20, 50],
         data.byStatus.map((st) => [
           STATUS_LABELS[st.status] ?? st.status,
-          String(st.count),
-          fmtCurrency(st.cost),
+          `${st.count}건`,
+          `${fmtCurrency(st.cost)} 원`,
         ]),
       ),
 
       // By Department
-      React.createElement(Text, { style: s.sectionTitle }, "By Department"),
+      React.createElement(Text, { style: s.sectionTitle }, "부서별 현황"),
       tableView(
-        ["Department", "Count", "Monthly Cost (KRW)"],
+        ["부서", "건수", "월 비용 (KRW)"],
         [40, 15, 45],
-        data.byDept.map((d) => [d.dept, String(d.count), fmtCurrency(d.cost)]),
+        data.byDept.map((d) => [d.dept, `${d.count}건`, `${fmtCurrency(d.cost)} 원`]),
       ),
 
       // Footer
       React.createElement(
         View,
         { style: s.footer, fixed: true },
-        React.createElement(Text, null, "License Manager"),
+        React.createElement(Text, null, "Asset Manager"),
         React.createElement(
           Text,
           { render: ({ pageNumber, totalPages }: { pageNumber: number; totalPages: number }) => `${pageNumber} / ${totalPages}` },
@@ -272,9 +289,9 @@ function ReportDocument({ data }: { data: ReportData }) {
     React.createElement(
       Page,
       { size: "A4", style: { ...s.page, padding: 30 }, orientation: "landscape" },
-      React.createElement(Text, { style: s.sectionTitle }, "Asset Details"),
+      React.createElement(Text, { style: s.sectionTitle }, "자산 상세 목록"),
       tableView(
-        ["Name", "Type", "Status", "Vendor", "Cost/mo", "Assignee", "Expiry"],
+        ["자산명", "유형", "상태", "공급업체", "월 비용", "담당자", "만료일"],
         [22, 12, 10, 16, 14, 12, 14],
         data.assets.map((a) => [
           a.name,
@@ -289,7 +306,7 @@ function ReportDocument({ data }: { data: ReportData }) {
       React.createElement(
         View,
         { style: s.footer, fixed: true },
-        React.createElement(Text, null, "License Manager"),
+        React.createElement(Text, null, "Asset Manager"),
         React.createElement(
           Text,
           { render: ({ pageNumber, totalPages }: { pageNumber: number; totalPages: number }) => `${pageNumber} / ${totalPages}` },
@@ -386,7 +403,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
       se.count++; se.cost += mc;
       statusMap.set(asset.status, se);
 
-      const dept = asset.orgUnit?.name ?? asset.assignee?.department ?? "N/A";
+      const dept = asset.orgUnit?.name ?? asset.assignee?.department ?? "미지정";
       const de = deptMap.get(dept) ?? { count: 0, cost: 0 };
       de.count++; de.cost += mc;
       deptMap.set(dept, de);

@@ -168,17 +168,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
         select: { licenseType: true },
       });
 
-      // Block type conversion if active assignments exist
-      if (existing && licenseType !== undefined && existing.licenseType !== licenseType) {
-        const activeAssignments = await tx.assignment.count({
-          where: { licenseId, returnedDate: null },
-        });
-        if (activeAssignments > 0) {
-          throw new Error(
-            `활성 배정이 ${activeAssignments}건 있어 라이선스 유형을 변경할 수 없습니다. 먼저 모든 배정을 해제하세요.`
-          );
-        }
-      }
+      // Allow type conversion even with active assignments (warning handled on frontend)
 
       const newLicenseType = licenseType ?? existing?.licenseType;
 
