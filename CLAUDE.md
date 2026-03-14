@@ -198,7 +198,10 @@ deploy.ps1           ← EC2 배포 스크립트 (Windows PowerShell)
 .github/
   workflows/         ← CI/CD
 tasks/               ← 기획/보안/운영 문서 전체
-.env.example         ← 환경변수 템플릿
+examples/
+  .env.example       ← 환경변수 템플릿
+  .env.infra.example ← 인프라 접속 정보 템플릿
+  deploy.ps1.example ← 배포 스크립트 예시
 ```
 
 ## 주요 페이지 경로

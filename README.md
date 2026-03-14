@@ -84,7 +84,7 @@ npm run start
 
 ## 배포/인프라 가이드
 
-- 인프라 예시 환경변수: `.env.infra.example`
+- 인프라 예시 환경변수: `examples/.env.infra.example`
 - 실제 인프라 값은 `.env.infra` 로컬 파일 사용 (Git 추적 금지)
 - 폐쇄망 환경에서는 런타임 외부 호출(외부 API/CDN) 금지
 
