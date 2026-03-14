@@ -9,12 +9,17 @@ import { useAuth } from "@/hooks/useAuth";
 
 type AssetStatus = "IN_STOCK" | "IN_USE" | "INACTIVE" | "UNUSABLE" | "PENDING_DISPOSAL" | "DISPOSED";
 
+interface DomainDetail {
+  domainName?: string | null; registrar?: string | null; sslType?: string | null;
+  issuer?: string | null; billingCycleMonths?: number | null; autoRenew?: boolean;
+}
+
 interface Asset {
   id: number; name: string; status: AssetStatus; description?: string | null;
   vendor?: string | null; cost?: number | null; monthlyCost?: number | null;
   currency: string; billingCycle?: string | null; expiryDate?: string | null;
   purchaseDate?: string | null; assignee?: { id: number; name: string } | null;
-  createdAt: string; updatedAt: string;
+  domainDetail?: DomainDetail | null; createdAt: string; updatedAt: string;
 }
 
 const STATUS_LABELS: Record<AssetStatus, string> = { IN_STOCK: "재고", IN_USE: "사용 중", INACTIVE: "미사용", UNUSABLE: "불용", PENDING_DISPOSAL: "폐기 대상", DISPOSED: "폐기 완료" };
@@ -124,6 +129,20 @@ export default function DomainDetailPage() {
             <div className="border-t border-gray-200 pt-4"><p className="text-xs text-gray-500">생성: {new Date(asset.createdAt).toLocaleString("ko-KR")} \• 수정: {new Date(asset.updatedAt).toLocaleString("ko-KR")}</p></div>
           </div>
         </div>
+
+        {asset.domainDetail && (
+          <div className="mb-8 rounded-lg bg-white p-6 shadow-sm">
+            <h2 className="mb-4 text-lg font-bold text-gray-900">도메인·SSL 상세</h2>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {asset.domainDetail.domainName && <div><p className="text-sm text-gray-600">도메인명</p><p className="mt-1 text-gray-900">{asset.domainDetail.domainName}</p></div>}
+              {asset.domainDetail.registrar && <div><p className="text-sm text-gray-600">등록 기관</p><p className="mt-1 text-gray-900">{asset.domainDetail.registrar}</p></div>}
+              {asset.domainDetail.sslType && <div><p className="text-sm text-gray-600">SSL 유형</p><p className="mt-1 text-gray-900">{asset.domainDetail.sslType}</p></div>}
+              {asset.domainDetail.issuer && <div><p className="text-sm text-gray-600">발급 기관 (CA)</p><p className="mt-1 text-gray-900">{asset.domainDetail.issuer}</p></div>}
+              {asset.domainDetail.billingCycleMonths != null && <div><p className="text-sm text-gray-600">비용 주기</p><p className="mt-1 text-gray-900">{asset.domainDetail.billingCycleMonths >= 12 ? `${asset.domainDetail.billingCycleMonths / 12}년` : `${asset.domainDetail.billingCycleMonths}개월`}</p></div>}
+              <div><p className="text-sm text-gray-600">자동 갱신</p><p className="mt-1 text-gray-900">{asset.domainDetail.autoRenew ? "✓ 활성" : "✗ 비활성"}</p></div>
+            </div>
+          </div>
+        )}
 
         {user && (
           <div className="flex gap-3">

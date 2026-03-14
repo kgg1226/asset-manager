@@ -9,7 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 const CURRENCIES = ["USD", "KRW", "EUR", "JPY", "GBP", "CNY"];
 const BILLING_CYCLES = [{ value: "ONE_TIME", label: "일회성" }, { value: "MONTHLY", label: "월간" }, { value: "ANNUAL", label: "연간" }, { value: "USAGE_BASED", label: "사용량 기반" }];
-const DEVICE_TYPES = ["Laptop", "Desktop", "Server", "Network", "Mobile", "Other"];
+const DEVICE_TYPES = ["Laptop", "Desktop", "Server", "Network", "Mobile", "Peripheral", "Other"];
 
 export default function HardwareNewPage() {
   const router = useRouter();
@@ -17,7 +17,7 @@ export default function HardwareNewPage() {
   useEffect(() => { if (!loading && !user) router.push("/login"); }, [user, loading, router]);
 
   const [form, setForm] = useState({ name: "", description: "", vendor: "", cost: "", currency: "KRW", billingCycle: "ONE_TIME", purchaseDate: "", expiryDate: "" });
-  const [hw, setHw] = useState({ assetTag: "", deviceType: "", manufacturer: "", model: "", serialNumber: "", hostname: "", macAddress: "", ipAddress: "", os: "", osVersion: "", location: "", usefulLifeYears: "5" });
+  const [hw, setHw] = useState({ assetTag: "", deviceType: "", manufacturer: "", model: "", serialNumber: "", hostname: "", macAddress: "", ipAddress: "", os: "", osVersion: "", location: "", usefulLifeYears: "5", cpu: "", ram: "", storage: "", storageType: "SSD", imei: "", phoneNumber: "", portCount: "", connectionType: "", resolution: "" });
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -52,6 +52,15 @@ export default function HardwareNewPage() {
           macAddress: hw.macAddress || null, ipAddress: hw.ipAddress || null, os: hw.os || null,
           osVersion: hw.osVersion || null, location: hw.location || null,
           usefulLifeYears: hw.usefulLifeYears ? Number(hw.usefulLifeYears) : 5,
+          cpu: hw.cpu || null,
+          ram: hw.ram ? Number(hw.ram) : null,
+          storage: hw.storage ? Number(hw.storage) : null,
+          storageType: hw.storageType || null,
+          imei: hw.imei || null,
+          phoneNumber: hw.phoneNumber || null,
+          portCount: hw.portCount ? Number(hw.portCount) : null,
+          connectionType: hw.connectionType || null,
+          resolution: hw.resolution || null,
         },
       };
       const res = await fetch("/api/assets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
@@ -115,6 +124,47 @@ export default function HardwareNewPage() {
               <div><label className="block text-sm font-medium text-gray-700 mb-2">내용연수 (년)</label><input type="number" name="usefulLifeYears" value={hw.usefulLifeYears} onChange={onHwChange} min="1" max="50" className={ic} /><p className="mt-1 text-xs text-gray-500">감가상각 기준 (기본 5년)</p></div>
             </div>
             <div><label className="block text-sm font-medium text-gray-700 mb-2">보관 위치</label><input type="text" name="location" value={hw.location} onChange={onHwChange} placeholder="사무실, 서버실 등" className={ic} /></div>
+
+            {/* 유형별 동적 필드 */}
+            {["Laptop", "Desktop", "Server"].includes(hw.deviceType) && (
+              <div className="mt-6 rounded-md bg-blue-50 p-4">
+                <h3 className="mb-3 text-sm font-semibold text-blue-800">{hw.deviceType} 추가 정보</h3>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">CPU</label><input type="text" name="cpu" value={hw.cpu} onChange={onHwChange} placeholder="Intel i7, Apple M4" className={ic} /></div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">RAM (GB)</label><input type="number" name="ram" value={hw.ram} onChange={onHwChange} min="0" className={ic} /></div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">저장장치 (GB)</label><div className="flex gap-2"><input type="number" name="storage" value={hw.storage} onChange={onHwChange} min="0" className={ic} /><select name="storageType" value={hw.storageType} onChange={onHwChange} className="w-24 rounded-md border border-gray-300 px-2 py-2 text-sm"><option value="SSD">SSD</option><option value="HDD">HDD</option></select></div></div>
+                </div>
+              </div>
+            )}
+
+            {hw.deviceType === "Network" && (
+              <div className="mt-6 rounded-md bg-green-50 p-4">
+                <h3 className="mb-3 text-sm font-semibold text-green-800">네트워크 장비 추가 정보</h3>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">포트 수</label><input type="number" name="portCount" value={hw.portCount} onChange={onHwChange} min="0" className={ic} /></div>
+                </div>
+              </div>
+            )}
+
+            {hw.deviceType === "Mobile" && (
+              <div className="mt-6 rounded-md bg-purple-50 p-4">
+                <h3 className="mb-3 text-sm font-semibold text-purple-800">모바일 기기 추가 정보</h3>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">IMEI</label><input type="text" name="imei" value={hw.imei} onChange={onHwChange} placeholder="IMEI 번호" className={`${ic} font-mono`} /></div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">전화번호</label><input type="text" name="phoneNumber" value={hw.phoneNumber} onChange={onHwChange} placeholder="010-1234-5678" className={ic} /></div>
+                </div>
+              </div>
+            )}
+
+            {hw.deviceType === "Peripheral" && (
+              <div className="mt-6 rounded-md bg-amber-50 p-4">
+                <h3 className="mb-3 text-sm font-semibold text-amber-800">주변기기 추가 정보</h3>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">연결 방식</label><select name="connectionType" value={hw.connectionType} onChange={onHwChange} className={ic}><option value="">선택</option><option value="USB">USB</option><option value="Bluetooth">Bluetooth</option><option value="Wireless">무선</option><option value="Other">기타</option></select></div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">해상도 (모니터)</label><input type="text" name="resolution" value={hw.resolution} onChange={onHwChange} placeholder="2560x1440" className={ic} /></div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-3">

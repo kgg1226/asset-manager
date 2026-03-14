@@ -264,7 +264,7 @@ export default async function LicensesPage({
                                 Volume
                               </span>
                             )}
-                            {license.licenseType === "NO_KEY" && (
+                            {false && license.licenseType === "NO_KEY" && (
                               <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-600">
                                 No Key
                               </span>

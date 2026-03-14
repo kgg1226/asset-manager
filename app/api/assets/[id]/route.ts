@@ -37,6 +37,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
         company: { select: { id: true, name: true } },
         hardwareDetail: true,
         cloudDetail: true,
+        domainDetail: true,
       },
     });
 
@@ -134,6 +135,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
           company: { select: { id: true, name: true } },
           hardwareDetail: true,
           cloudDetail: true,
+          domainDetail: true,
         },
       });
 
@@ -154,6 +156,15 @@ export async function PUT(request: NextRequest, { params }: Params) {
             osVersion: vStr(hd.osVersion, 100),
             location: vStr(hd.location, 500),
             usefulLifeYears: vNum(hd.usefulLifeYears, { min: 1, max: 50, integer: true }) ?? 5,
+            cpu: vStr(hd.cpu, 255),
+            ram: vNum(hd.ram, { min: 0, integer: true }),
+            storage: vNum(hd.storage, { min: 0, integer: true }),
+            storageType: vStr(hd.storageType, 20),
+            imei: vStr(hd.imei, 50),
+            phoneNumber: vStr(hd.phoneNumber, 30),
+            portCount: vNum(hd.portCount, { min: 0, integer: true }),
+            connectionType: vStr(hd.connectionType, 50),
+            resolution: vStr(hd.resolution, 50),
           };
           await tx.hardwareDetail.upsert({
             where: { assetId },
@@ -186,6 +197,36 @@ export async function PUT(request: NextRequest, { params }: Params) {
           });
         } else {
           await tx.cloudDetail.deleteMany({ where: { assetId } });
+        }
+      }
+
+      if (body.domainDetail !== undefined) {
+        if (body.domainDetail) {
+          const dd = body.domainDetail;
+          const ddFields = {
+            domainName: vStr(dd.domainName, 255),
+            registrar: vStr(dd.registrar, 255),
+            sslType: vStr(dd.sslType, 50),
+            issuer: vStr(dd.issuer, 255),
+            billingCycleMonths: vNum(dd.billingCycleMonths, { min: 1, max: 120, integer: true }) ?? 12,
+            autoRenew: dd.autoRenew !== false,
+          };
+          await tx.domainDetail.upsert({
+            where: { assetId },
+            create: { assetId, ...ddFields },
+            update: ddFields,
+          });
+          // 월 환산 비용 자동 계산
+          const finalCost = data.cost !== undefined ? data.cost : (await tx.asset.findUnique({ where: { id: assetId }, select: { cost: true } }))?.cost;
+          if (finalCost != null && data.monthlyCost === undefined) {
+            const months = ddFields.billingCycleMonths;
+            await tx.asset.update({
+              where: { id: assetId },
+              data: { monthlyCost: Math.round((Number(finalCost) / months) * 100) / 100 },
+            });
+          }
+        } else {
+          await tx.domainDetail.deleteMany({ where: { assetId } });
         }
       }
 

@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser, hashPassword } from "@/lib/auth";
+import { getCurrentUser, hashPassword, verifyPassword } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit-log";
 
 export async function POST(request: NextRequest) {
@@ -12,10 +12,25 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { newPassword } = body;
+    const { currentPassword, newPassword } = body;
 
     if (!newPassword || typeof newPassword !== "string" || newPassword.length < 8 || newPassword.length > 128) {
       return NextResponse.json({ error: "비밀번호는 8자 이상 128자 이하여야 합니다." }, { status: 400 });
+    }
+
+    // mustChangePassword가 아닌 자발적 변경 시 현재 비밀번호 확인 필수
+    if (!user.mustChangePassword) {
+      if (!currentPassword || typeof currentPassword !== "string") {
+        return NextResponse.json({ error: "현재 비밀번호를 입력하세요." }, { status: 400 });
+      }
+
+      const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
+      if (!dbUser) return NextResponse.json({ error: "사용자를 찾을 수 없습니다." }, { status: 404 });
+
+      const valid = await verifyPassword(currentPassword, dbUser.password);
+      if (!valid) {
+        return NextResponse.json({ error: "현재 비밀번호가 올바르지 않습니다." }, { status: 400 });
+      }
     }
 
     const hash = await hashPassword(newPassword);

@@ -26,6 +26,7 @@ import {
   ChevronDown,
   ChevronRight,
   Package,
+  UserCircle,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -59,13 +60,14 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/hardware", label: "\uD558\uB4DC\uC6E8\uC5B4", icon: <HardDrive className="h-4 w-4" /> },
       { href: "/domains", label: "\uB3C4\uBA54\uC778\u00b7SSL", icon: <Globe className="h-4 w-4" /> },
       { href: "/reports", label: "\uBCF4\uACE0\uC11C", icon: <BarChart3 className="h-4 w-4" /> },
-      { href: "/history", label: "\uC774\uB825", icon: <History className="h-4 w-4" /> },
+      { href: "/history", label: "\uBCC0\uACBD \uC774\uB825", icon: <History className="h-4 w-4" /> },
     ],
   },
   {
     title: "\uC124\uC815",
     collapsible: true,
     items: [
+      { href: "/settings/profile", label: "\uB0B4 \uD504\uB85C\uD544", icon: <UserCircle className="h-4 w-4" />, authRequired: true },
       { href: "/settings/groups", label: "\uADF8\uB8F9 \uC124\uC815", icon: <Settings className="h-4 w-4" /> },
       { href: "/settings/import", label: "\uB370\uC774\uD130 \uAC00\uC838\uC624\uAE30", icon: <Upload className="h-4 w-4" />, authRequired: true },
     ],

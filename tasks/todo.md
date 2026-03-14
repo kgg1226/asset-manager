@@ -240,16 +240,145 @@
 
 ---
 
+## ✅ Phase 5 — UX 개선 + 버그 수정 + 자산관리 고도화 ✅ COMPLETED
+
+> **스펙**: `tasks/features/phase5-ux-improvements.md`
+> **DB 변경**: `tasks/db-changes.md` (2026-03-15 섹션)
+> **API 추가**: `tasks/api-spec.md` (Phase 5 섹션)
+> **담당**: Ralph loop 에이전트
+> **최종 업데이트**: 2026-03-15
+> **완료일**: 2026-03-15
+
+### 🔧 Sprint 1 — 버그 수정 ✅ COMPLETED
+
+- [x] **[P5-BUG-001]** 하드웨어 자산 등록 403 에러 수정 ✅
+  - `POST /api/assets`에서 ADMIN 전용 체크 제거 → 인증된 사용자 모두 등록 가능
+
+- [x] **[P5-BUG-002]** 라이선스 "No Key" 표시 제거 ✅
+  - 라이선스 목록·상세 페이지에서 NO_KEY 타입 배지 미표시
+
+- [x] **[P5-BUG-003]** 이력 페이지 이름 통일 → "변경 이력" ✅
+  - 사이드바, 페이지 제목 일괄 변경
+
+---
+
+### 🎨 Sprint 2 — UX 개선 ✅ COMPLETED
+
+- [x] **[P5-FE-001]** 내 프로필 페이지 (`/settings/profile`) ✅
+  - `GET/PUT /api/auth/me` 구현, 프로필 UI, 역할별 편집 범위 구분
+
+- [x] **[P5-FE-002]** 비밀번호 수동 변경 UI ✅
+  - `/settings/profile` 내 비밀번호 변경 섹션 (현재→새→확인 3단계)
+
+- [x] **[P5-FE-003]** 조직원 부서 → 조직/하위조직 선택 대체 ✅
+  - department 자동 세팅 (선택한 orgUnit 이름), 기존 호환성 유지
+
+- [x] **[P5-FE-004]** 이력 유형/액션별 색상 구분 ✅
+  - CREATED=초록, UPDATED=파랑, DELETED=빨강, 엔티티별 라벨 색상
+
+---
+
+### ⚙️ Sprint 3 — 자산관리 고도화 ✅ COMPLETED
+
+- [x] **[P5-BE-001]** DB 스키마 확장 ✅
+  - HardwareDetail 9개 필드, DomainDetail 모델, HardwareLifecycleSetting 모델
+
+- [x] **[P5-BE-002]** 하드웨어 유형별 동적 필드 API ✅
+  - POST/PUT에 cpu, ram, storage 등 새 필드 저장/수정
+
+- [x] **[P5-BE-003]** 하드웨어 수명 주기 설정 API ✅
+  - `GET/PUT /api/admin/hardware-lifecycle` ADMIN 전용
+
+- [x] **[P5-FE-005]** 하드웨어 유형별 동적 폼 UI ✅
+  - Laptop/Desktop/Server: CPU+RAM+Storage, Network: 포트, Mobile: IMEI, Peripheral: 연결방식+해상도
+  - 등록/수정 페이지 모두 적용, 상세 페이지에 새 필드 표시
+
+- [x] **[P5-BE-004]** 도메인/SSL 상세 API ✅
+  - DomainDetail 저장/수정, `monthlyCost = cost / billingCycleMonths` 자동 계산
+
+- [x] **[P5-FE-006]** 도메인/SSL 폼 개선 UI ✅
+  - 갱신일 라벨, 비용 주기 개월 선택 (1~120개월), 월 환산 비용 실시간 표시, 자동 갱신 체크박스
+  - 등록/수정/상세 페이지 모두 적용
+
+---
+
+### 📄 Sprint 4 — PDF/환율/추가 기능 ✅ COMPLETED
+
+- [x] **[P5-BE-005]** PDF 보고서 한글 깨짐 수정 ✅
+  - NotoSansKR Regular/Bold 폰트 번들링 (`public/fonts/`)
+  - `@react-pdf/renderer` Font.register로 한글 폰트 적용
+  - 모든 PDF 라벨을 한글로 변경 (커버, 요약, 테이블 헤더, 상태 라벨)
+  - 하이퍼네이션 비활성화
+
+- [x] **[P5-BE-006]** 환율 수동 동기화 기능 추가 ✅
+  - `POST /api/cron/exchange-rate-sync` ADMIN 세션으로도 호출 가능
+  - ADMIN 수동 동기화 시 기존 데이터 덮어쓰기 허용 (cron은 스킵)
+
+- [x] **[P5-FE-007]** 환율 관리 페이지 개선 ✅
+  - "지금 동기화" 버튼 (녹색) + 로딩 스피너
+  - 마지막 동기화 시각 표시, 소스별 배지 (API/수동)
+  - 동기화 결과 토스트 알림
+
+- [x] **[P5-FE-008]** 만료 임박 자산 대시보드 위젯 ✅
+  - D-7 빨강, D-30 주황, D-90 노랑 배지
+  - 클릭 시 자산 유형별 상세 페이지 이동
+  - 최대 20건 표시, 만료일 가까운 순 정렬
+
+- [x] **[P5-FE-009]** 설정 페이지 구조화 ✅
+  - `/settings` 레이아웃 + 상단 탭 내비게이션 (내 프로필/그룹 관리/데이터 가져오기)
+  - 탭: 프로필 / 그룹 관리 / CSV 가져오기 / 하드웨어 수명 주기
+  - ADMIN 전용 탭 구분
+
+---
+
+### 📋 Sprint 별 요약
+
+| Sprint | 티켓 수 | 역할 | 예상 난이도 |
+|---|---|---|---|
+| **Sprint 1** (버그) | 3 | BE 1, FE 2 | ⭐ 낮음 |
+| **Sprint 2** (UX) | 4 | BE 1, FE 3, 혼합 2 | ⭐⭐ 보통 |
+| **Sprint 3** (자산 고도화) | 6 | BE 4, FE 2 | ⭐⭐⭐ 높음 |
+| **Sprint 4** (PDF/환율/추가) | 5 | BE 2, FE 3 | ⭐⭐⭐ 높음 |
+
+---
+
+### 작업 순서 가이드 (Ralph loop 에이전트)
+
+```
+1. Sprint 1 먼저 완료 (버그 수정 — 체감 즉시 개선)
+2. Sprint 2 진행 (UX — 프로필/비밀번호/조직원 개선)
+3. Sprint 3 진행 (자산 고도화 — DB 스키마 먼저, API, 마지막 FE)
+4. Sprint 4 진행 (PDF/환율 — 난이도 높음, 충분한 테스트)
+```
+
+**BE 작업 순서 (의존성 반영)**:
+1. P5-BUG-001 (403 수정)
+2. P5-BE-001 (DB 스키마) ← 다른 BE 작업의 전제 조건
+3. P5-FE-001 중 BE 부분 (auth/me API)
+4. P5-BE-002, P5-BE-003 (하드웨어)
+5. P5-BE-004 (도메인)
+6. P5-BE-005 (PDF)
+7. P5-BE-006 (환율 배치)
+
+**FE 작업 순서 (BE 완료 후)**:
+1. P5-BUG-002, P5-BUG-003 (즉시 가능)
+2. P5-FE-004 (이력 색상 — 즉시 가능)
+3. P5-FE-001, P5-FE-002 (프로필 — BE auth/me 완료 후)
+4. P5-FE-003 (조직원 — 즉시 가능)
+5. P5-FE-005 (하드웨어 — BE-001,002 완료 후)
+6. P5-FE-006 (도메인 — BE-004 완료 후)
+7. P5-FE-007~009 (환율/대시보드/설정)
+
 ---
 
 ## 📋 요약: 이 파일의 역할
 
 | 섹션 | 상태 | 참고 |
 |------|------|------|
-| **우선순위 1 (Supabase 전환)** | ✅ COMPLETED | 역사 기록용 |
-| **우선순위 2 (배포 전 마무리)** | 🔴 NOW ACTIVE | 👉 `TICKETS.md` 참조 (상세) |
-| **우선순위 3 (배포 후)** | 📌 REFERENCE | 배포 후 진행 사항 |
-| **Phase 2-4 (미래 계획)** | 📚 ROADMAP | `VISION.md` 참조 |
+| **우선순위 1 (PostgreSQL 전환)** | ✅ COMPLETED | 역사 기록용 |
+| **우선순위 2 (배포 전 마무리)** | ✅ COMPLETED | 역사 기록용 |
+| **Phase 2-4** | ✅ COMPLETED | `current-state.md` 참조 |
+| **Phase 5 (UX + 버그 + 고도화)** | 🔴 NOW ACTIVE | 👉 `features/phase5-ux-improvements.md` |
 | **완료된 기능** | 📚 REFERENCE | 구현된 기능 목록 |
 
 ---

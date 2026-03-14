@@ -21,12 +21,15 @@ export async function createEmployee(
   const email = formData.get("email") as string;
   const title = formData.get("title") as string;
   const companyIdRaw = formData.get("companyId") as string;
-  const orgUnitIdRaw = formData.get("orgUnitId") as string;
+  const orgIdRaw = formData.get("orgId") as string;
+  const subOrgIdRaw = formData.get("subOrgId") as string;
+
+  // orgUnitId: 하위조직 > 조직 우선 순위
+  const orgUnitIdRaw = subOrgIdRaw || orgIdRaw;
 
   const errors: Record<string, string> = {};
 
   if (!name?.trim()) errors.name = "이름은 필수입니다.";
-  if (!department?.trim()) errors.department = "부서는 필수입니다.";
 
   if (Object.keys(errors).length > 0) {
     return { errors };
@@ -40,7 +43,7 @@ export async function createEmployee(
       const employee = await tx.employee.create({
         data: {
           name: name.trim(),
-          department: department.trim(),
+          department: department?.trim() || "미소속",
           email: email?.trim() || null,
           title: title?.trim() || null,
           companyId,

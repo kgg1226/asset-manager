@@ -14,6 +14,9 @@ interface HardwareDetail {
   model?: string | null; serialNumber?: string | null; hostname?: string | null;
   macAddress?: string | null; ipAddress?: string | null; os?: string | null;
   osVersion?: string | null; location?: string | null; usefulLifeYears: number;
+  cpu?: string | null; ram?: number | null; storage?: number | null; storageType?: string | null;
+  imei?: string | null; phoneNumber?: string | null; portCount?: number | null;
+  connectionType?: string | null; resolution?: string | null;
 }
 
 interface Asset {
@@ -129,6 +132,14 @@ export default function HardwareDetailPage() {
               {hd.macAddress && <div><p className="text-sm text-gray-600">MAC Address</p><p className="mt-1 font-mono text-gray-900">{hd.macAddress}</p></div>}
               {hd.ipAddress && <div><p className="text-sm text-gray-600">IP Address</p><p className="mt-1 font-mono text-gray-900">{hd.ipAddress}</p></div>}
               {hd.os && <div><p className="text-sm text-gray-600">OS</p><p className="mt-1 text-gray-900">{hd.os}{hd.osVersion && ` ${hd.osVersion}`}</p></div>}
+              {hd.cpu && <div><p className="text-sm text-gray-600">CPU</p><p className="mt-1 text-gray-900">{hd.cpu}</p></div>}
+              {hd.ram != null && <div><p className="text-sm text-gray-600">RAM</p><p className="mt-1 text-gray-900">{hd.ram} GB</p></div>}
+              {hd.storage != null && <div><p className="text-sm text-gray-600">저장장치</p><p className="mt-1 text-gray-900">{hd.storage} GB{hd.storageType && ` (${hd.storageType})`}</p></div>}
+              {hd.imei && <div><p className="text-sm text-gray-600">IMEI</p><p className="mt-1 font-mono text-gray-900">{hd.imei}</p></div>}
+              {hd.phoneNumber && <div><p className="text-sm text-gray-600">전화번호</p><p className="mt-1 text-gray-900">{hd.phoneNumber}</p></div>}
+              {hd.portCount != null && <div><p className="text-sm text-gray-600">포트 수</p><p className="mt-1 text-gray-900">{hd.portCount}</p></div>}
+              {hd.connectionType && <div><p className="text-sm text-gray-600">연결 방식</p><p className="mt-1 text-gray-900">{hd.connectionType}</p></div>}
+              {hd.resolution && <div><p className="text-sm text-gray-600">해상도</p><p className="mt-1 text-gray-900">{hd.resolution}</p></div>}
               {hd.location && <div><p className="text-sm text-gray-600">보관 위치</p><p className="mt-1 text-gray-900">{hd.location}</p></div>}
             </div>
           </div>

@@ -380,16 +380,95 @@
 
 ---
 
+## 내 프로필 (Phase 5)
+
+### GET /api/auth/me
+- 요청: (없음, 세션 쿠키로 식별)
+- 응답 200:
+  ```json
+  {
+    "id": 1,
+    "username": "admin",
+    "role": "ADMIN",
+    "createdAt": "ISO8601",
+    "lastLoginAt": "ISO8601 | null"
+  }
+  ```
+- 응답 401: `{ error: "Unauthorized" }`
+
+### PUT /api/auth/me
+- 요청:
+  ```json
+  {
+    "username": "new-username"
+  }
+  ```
+- ADMIN: username 변경 가능 (중복 체크 → 409)
+- USER: username 변경 불가 → 403
+- 응답 200: 수정된 User 정보
+- 비고: 비밀번호 변경은 기존 `POST /api/auth/change-password` 사용
+
+---
+
+## 하드웨어 수명 주기 설정 (Phase 5)
+
+### GET /api/admin/hardware-lifecycle
+- 응답 200: `HardwareLifecycleSetting[]`
+  ```json
+  [
+    { "id": 1, "deviceType": "Laptop", "usefulLifeYears": 4 },
+    { "id": 2, "deviceType": "Desktop", "usefulLifeYears": 5 },
+    { "id": 3, "deviceType": "Server", "usefulLifeYears": 7 }
+  ]
+  ```
+
+### PUT /api/admin/hardware-lifecycle
+- 요청:
+  ```json
+  {
+    "settings": [
+      { "deviceType": "Laptop", "usefulLifeYears": 4 },
+      { "deviceType": "Desktop", "usefulLifeYears": 5 }
+    ]
+  }
+  ```
+- ADMIN 전용
+- 응답 200: 수정된 설정 배열
+- AuditLog 기록
+
+---
+
+## 환율 자동 동기화 배치 (Phase 5)
+
+### POST /api/cron/exchange-rates
+- 요청 헤더: `Authorization: Bearer {CRON_SECRET}`
+- 동작:
+  1. 외부 환율 API 호출 (OpenExchangeRates 또는 한국은행)
+  2. USD/EUR/JPY/GBP/CNY → KRW 환율 조회
+  3. ExchangeRate 테이블에 오늘 날짜로 저장 (upsert)
+  4. AuditLog 기록 (actorType: "SYSTEM")
+  5. 실패 시 에러 로그 + 이전 환율 유지
+- 응답 200:
+  ```json
+  {
+    "success": true,
+    "date": "2026-03-15",
+    "rates": { "USD": 1350.50, "EUR": 1480.30, "JPY": 9.12 },
+    "source": "api"
+  }
+  ```
+- 응답 500: `{ error: "Exchange rate sync failed", details: "..." }`
+- 스케줄: 매일 09:00 KST, 실패 시 10:00 KST 1회 재시도
+
+---
+
 ## 미정의 / 확인 필요 항목
 
 | 엔드포인트 | 상태 | 비고 |
 |---|---|---|
-| `GET /api/org/units` | 🆕 신규 정의됨 | 위 스펙 참조 |
-| `POST /api/org/units` | 🆕 신규 정의됨 | 위 스펙 참조 |
-| `PUT /api/org/units/[id]` | 🆕 신규 정의됨 | 위 스펙 참조 |
-| `DELETE /api/org/units/[id]` | 🆕 신규 정의됨 | 위 스펙 참조 |
+| `GET /api/org/units` | ✅ 정의됨 | 위 스펙 참조 |
+| `POST /api/org/units` | ✅ 정의됨 | 위 스펙 참조 |
+| `PUT /api/org/units/[id]` | ✅ 정의됨 | 위 스펙 참조 |
+| `DELETE /api/org/units/[id]` | ✅ 정의됨 | 위 스펙 참조 |
 | `GET /api/history` | ❓ 확인 필요 | AuditLog 조회 REST API 여부 |
 | `POST /api/assignments` | ➡️ Server Action | REST API 없이 서버 액션으로 처리 |
-| 갱신 알림 스케줄러 | ❌ 미구현 | D-70/30/15/7 발송, 별도 스케줄러 또는 cron |
-| OFFBOARDING 자동 삭제 배치 | ❌ 미구현 | 매일 실행, offboardingUntil 경과 구성원 삭제 |
-| `mustChangePassword` 필드 | ❌ 미반영 | User 테이블에 추가 필요 (db-changes 반영 예정) |

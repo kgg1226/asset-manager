@@ -5,14 +5,20 @@ export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 50;
 
-const ENTITY_TYPES = ["", "LICENSE", "EMPLOYEE", "ASSIGNMENT", "SEAT"] as const;
-const ACTIONS = ["", "CREATED", "UPDATED", "DELETED", "ASSIGNED", "UNASSIGNED", "REVOKED", "IMPORTED"] as const;
+const ENTITY_TYPES = ["", "LICENSE", "ASSET", "EMPLOYEE", "ASSIGNMENT", "SEAT", "USER", "ORG", "ARCHIVE", "EXCHANGE_RATE", "ASSET_CATEGORY"] as const;
+const ACTIONS = ["", "CREATED", "UPDATED", "DELETED", "ASSIGNED", "UNASSIGNED", "RETURNED", "REVOKED", "IMPORTED", "LOGIN", "LOGOUT", "LOGIN_FAILED", "STATUS_CHANGE", "MEMBER_OFFBOARD", "PASSWORD_RESET"] as const;
 
 const entityLabel: Record<string, string> = {
   LICENSE: "라이선스",
+  ASSET: "자산",
   EMPLOYEE: "조직원",
   ASSIGNMENT: "할당",
   SEAT: "시트",
+  USER: "사용자",
+  ORG: "조직",
+  ARCHIVE: "증적",
+  EXCHANGE_RATE: "환율",
+  ASSET_CATEGORY: "자산카테고리",
 };
 
 const actionLabel: Record<string, string> = {
@@ -21,26 +27,45 @@ const actionLabel: Record<string, string> = {
   DELETED: "삭제",
   ASSIGNED: "할당",
   UNASSIGNED: "해제",
-  REVOKED: "해제",
+  RETURNED: "반납",
+  REVOKED: "회수",
   IMPORTED: "가져오기",
+  LOGIN: "로그인",
+  LOGOUT: "로그아웃",
+  LOGIN_FAILED: "로그인 실패",
+  STATUS_CHANGE: "상태 변경",
+  MEMBER_OFFBOARD: "퇴사 처리",
+  PASSWORD_RESET: "비밀번호 초기화",
 };
 
 const actionBadge: Record<string, string> = {
-  ASSIGNED: "text-green-700 bg-green-50",
-  RETURNED: "text-yellow-700 bg-yellow-50",
-  REVOKED: "text-red-700 bg-red-50",
-  UNASSIGNED: "text-red-700 bg-red-50",
-  CREATED: "text-purple-700 bg-purple-50",
-  UPDATED: "text-blue-700 bg-blue-50",
-  DELETED: "text-red-700 bg-red-50",
-  IMPORTED: "text-indigo-700 bg-indigo-50",
+  CREATED: "text-green-700 bg-green-100",
+  UPDATED: "text-blue-700 bg-blue-100",
+  DELETED: "text-red-700 bg-red-100",
+  ASSIGNED: "text-purple-700 bg-purple-100",
+  RETURNED: "text-yellow-700 bg-yellow-100",
+  UNASSIGNED: "text-orange-700 bg-orange-100",
+  REVOKED: "text-red-700 bg-red-100",
+  IMPORTED: "text-indigo-700 bg-indigo-100",
+  LOGIN: "text-gray-700 bg-gray-100",
+  LOGOUT: "text-gray-700 bg-gray-100",
+  LOGIN_FAILED: "text-red-700 bg-red-100",
+  STATUS_CHANGE: "text-amber-700 bg-amber-100",
+  MEMBER_OFFBOARD: "text-rose-700 bg-rose-100",
+  PASSWORD_RESET: "text-cyan-700 bg-cyan-100",
 };
 
 const entityBadge: Record<string, string> = {
-  LICENSE: "text-blue-700 bg-blue-50",
-  EMPLOYEE: "text-emerald-700 bg-emerald-50",
-  ASSIGNMENT: "text-orange-700 bg-orange-50",
-  SEAT: "text-violet-700 bg-violet-50",
+  LICENSE: "text-blue-700 bg-blue-100",
+  ASSET: "text-teal-700 bg-teal-100",
+  EMPLOYEE: "text-orange-700 bg-orange-100",
+  ASSIGNMENT: "text-purple-700 bg-purple-100",
+  SEAT: "text-violet-700 bg-violet-100",
+  USER: "text-gray-700 bg-gray-100",
+  ORG: "text-emerald-700 bg-emerald-100",
+  ARCHIVE: "text-cyan-700 bg-cyan-100",
+  EXCHANGE_RATE: "text-amber-700 bg-amber-100",
+  ASSET_CATEGORY: "text-pink-700 bg-pink-100",
 };
 
 type SearchParams = {
@@ -113,7 +138,7 @@ export default async function HistoryPage({
   return (
     <div className="min-h-screen bg-gray-50 py-10">
       <div className="mx-auto max-w-7xl px-4">
-        <h1 className="mb-6 text-2xl font-bold text-gray-900">감사 로그</h1>
+        <h1 className="mb-6 text-2xl font-bold text-gray-900">변경 이력</h1>
 
         {/* Filters */}
         <form className="mb-6 flex flex-wrap items-end gap-3 rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-200">
@@ -206,6 +231,10 @@ export default async function HistoryPage({
                           </Link>
                         ) : log.entityType === "EMPLOYEE" ? (
                           <Link href={`/employees/${log.entityId}`} className="text-blue-600 hover:underline">
+                            #{log.entityId}
+                          </Link>
+                        ) : log.entityType === "ASSET" ? (
+                          <Link href={`/hardware/${log.entityId}`} className="text-blue-600 hover:underline">
                             #{log.entityId}
                           </Link>
                         ) : (

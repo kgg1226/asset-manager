@@ -60,6 +60,7 @@ export async function GET(request: NextRequest) {
           company: { select: { id: true, name: true } },
           hardwareDetail: true,
           cloudDetail: true,
+          domainDetail: true,
         },
         orderBy: { [sortBy]: sortOrder },
         skip: (page - 1) * limit,
@@ -91,8 +92,6 @@ export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user)
     return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
-  if (user.role !== "ADMIN")
-    return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
 
   try {
     const body = await request.json();
@@ -188,6 +187,15 @@ export async function POST(request: NextRequest) {
             osVersion: vStr(hd.osVersion, 100),
             location: vStr(hd.location, 500),
             usefulLifeYears: vNum(hd.usefulLifeYears, { min: 1, max: 50, integer: true }) ?? 5,
+            cpu: vStr(hd.cpu, 255),
+            ram: vNum(hd.ram, { min: 0, integer: true }),
+            storage: vNum(hd.storage, { min: 0, integer: true }),
+            storageType: vStr(hd.storageType, 20),
+            imei: vStr(hd.imei, 50),
+            phoneNumber: vStr(hd.phoneNumber, 30),
+            portCount: vNum(hd.portCount, { min: 0, integer: true }),
+            connectionType: vStr(hd.connectionType, 50),
+            resolution: vStr(hd.resolution, 50),
           },
         });
       }
@@ -203,6 +211,30 @@ export async function POST(request: NextRequest) {
             seatCount: vNum(cd.seatCount, { min: 0, integer: true }),
           },
         });
+      }
+
+      if (typeVal === "DOMAIN_SSL" && body.domainDetail) {
+        const dd = body.domainDetail;
+        const billingCycleMonths = vNum(dd.billingCycleMonths, { min: 1, max: 120, integer: true }) ?? 12;
+        await tx.domainDetail.create({
+          data: {
+            assetId: created.id,
+            domainName: vStr(dd.domainName, 255),
+            registrar: vStr(dd.registrar, 255),
+            sslType: vStr(dd.sslType, 50),
+            issuer: vStr(dd.issuer, 255),
+            billingCycleMonths,
+            autoRenew: dd.autoRenew !== false,
+          },
+        });
+        // 도메인/SSL 월 환산 비용 자동 계산
+        if (costVal != null && !monthlyCostVal) {
+          monthlyCostVal = Math.round((costVal / billingCycleMonths) * 100) / 100;
+          await tx.asset.update({
+            where: { id: created.id },
+            data: { monthlyCost: monthlyCostVal },
+          });
+        }
       }
 
       // ── AuditLog ──
@@ -225,6 +257,7 @@ export async function POST(request: NextRequest) {
           company: { select: { id: true, name: true } },
           hardwareDetail: true,
           cloudDetail: true,
+          domainDetail: true,
         },
       });
     });

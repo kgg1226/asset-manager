@@ -4,7 +4,7 @@
 >
 > **📚 먼저 읽어야 할 문서**: [`tasks/README.md`](README.md) → [`tasks/VISION.md`](VISION.md) → [`tasks/TICKETS.md`](TICKETS.md)
 >
-> 최종 업데이트: 2026-03-11 (PR #42~44 머지 완료)
+> 최종 업데이트: 2026-03-15 (Phase 5 기획 완료)
 
 ---
 
@@ -40,6 +40,7 @@
 | **FE-001** — 비밀번호 변경 API + UI | ✅ 완료 | |
 | **자산 페이지** — Mock → 실제 API | ✅ 완료 | |
 | **Phase 4** — Google Drive 연동 | 🔴 미완성 | 외부 OAuth 환경변수 필요 |
+| **Phase 5** — UX 개선 + 버그 수정 + 자산 고도화 | 🔴 기획 완료 | `tasks/todo.md` Phase 5 섹션 참조 |
 | **EC2 배포** | ⏳ 대기 | 사람이 직접 실행 |
 
 ---
@@ -109,6 +110,18 @@
 ---
 
 ## 🔴 다음 작업
+
+### 0. Phase 5 실행 (Ralph loop 에이전트)
+
+> **스펙**: `tasks/features/phase5-ux-improvements.md`
+> **작업 목록**: `tasks/todo.md` Phase 5 섹션
+> **API 추가**: `tasks/api-spec.md` Phase 5 섹션
+> **DB 변경**: `tasks/db-changes.md` 2026-03-15 섹션
+
+**Sprint 1 (버그)**: 하드웨어 403 수정, No Key 제거, 이력 이름 통일
+**Sprint 2 (UX)**: 프로필 페이지, 비밀번호 변경, 조직원 부서 개선, 이력 색상
+**Sprint 3 (자산)**: DB 스키마 확장, 하드웨어 동적 필드, 도메인 상세, 수명 주기
+**Sprint 4 (PDF/환율)**: PDF 한글 수정, 환율 자동 갱신, 대시보드 위젯, 설정 구조화
 
 ### 1. EC2 배포 (사람이 직접 실행)
 

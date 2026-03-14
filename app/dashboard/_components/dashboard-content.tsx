@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import CategoryTabs from "./category-tabs";
 import DashboardMetricCards from "./metric-cards";
 import DashboardCharts from "./dashboard-charts";
+import ExpiringWidget from "./expiring-widget";
 import type { DashboardData, AssetCategory } from "@/lib/dashboard-aggregator";
 import { CATEGORY_LABELS } from "@/lib/dashboard-aggregator";
 
@@ -73,6 +74,7 @@ export default function DashboardContent({
         statusDistribution={data.charts.statusDistribution}
         growthTrend={data.charts.growthTrend}
       />
+      <ExpiringWidget items={data.expiringItems} />
     </div>
   );
 }
