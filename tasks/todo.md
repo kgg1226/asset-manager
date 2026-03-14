@@ -39,11 +39,11 @@
 
 ### 프론트엔드 (`role/frontend`)
 
-- [ ] **[FE-001]** `mustChangePassword` 강제 비밀번호 변경 UI
+- [x] **[FE-001]** `mustChangePassword` 강제 비밀번호 변경 UI ✅ 완료
   - 로그인 후 플래그 `true` 시 비밀번호 변경 페이지로 강제 리다이렉트
   - 변경 완료 시 `PUT /api/admin/users/[id]` 로 플래그 해제
 
-- [ ] **[FE-ORG-001]** `/org` 페이지 — 회사(Company) CRUD UI 추가
+- [x] **[FE-ORG-001]** `/org` 페이지 — 회사(Company) CRUD UI 추가 ✅ 완료
   - 상단 "새 회사 생성" 버튼 추가 (모달)
   - 회사 카드에 "수정" 버튼 추가 (모달)
   - 회사 카드에 "삭제" 버튼 추가 (확인 모달)
@@ -52,12 +52,12 @@
 
 ### 백엔드 (`role/backend`)
 
-- [ ] **[BE-ORG-001]** `PUT /api/org/companies/[id]` — 회사 이름 수정
+- [x] **[BE-ORG-001]** `PUT /api/org/companies/[id]` — 회사 이름 수정 ✅ 완료
   - 요청: `{ name: string }`
   - 중복 검증 (409 에러)
   - AuditLog 기록 (UPDATED)
 
-- [ ] **[BE-ORG-002]** `DELETE /api/org/companies/[id]` — 회사 삭제
+- [x] **[BE-ORG-002]** `DELETE /api/org/companies/[id]` — 회사 삭제 ✅ 완료
   - 소속 부서 확인 (있으면 409 에러)
   - AuditLog 기록 (DELETED)
 
@@ -378,7 +378,7 @@
 | **우선순위 1 (PostgreSQL 전환)** | ✅ COMPLETED | 역사 기록용 |
 | **우선순위 2 (배포 전 마무리)** | ✅ COMPLETED | 역사 기록용 |
 | **Phase 2-4** | ✅ COMPLETED | `current-state.md` 참조 |
-| **Phase 5 (UX + 버그 + 고도화)** | 🔴 NOW ACTIVE | 👉 `features/phase5-ux-improvements.md` |
+| **Phase 5 (UX + 버그 + 고도화)** | ✅ COMPLETED | PR #50 |
 | **완료된 기능** | 📚 REFERENCE | 구현된 기능 목록 |
 
 ---

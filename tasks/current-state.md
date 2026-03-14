@@ -4,7 +4,7 @@
 >
 > **📚 먼저 읽어야 할 문서**: [`tasks/README.md`](README.md) → [`tasks/VISION.md`](VISION.md) → [`tasks/TICKETS.md`](TICKETS.md)
 >
-> 최종 업데이트: 2026-03-15 (Phase 5 기획 완료)
+> 최종 업데이트: 2026-03-15 (Phase 5 구현 완료, PR #50)
 
 ---
 
@@ -13,13 +13,14 @@
 | 브랜치 | 상태 | 내용 |
 |---|---|---|
 | `master` | 기준 브랜치 | Phase 1~4 + 공개 열람 모드 (PR #44까지 머지) |
+| `claude/gracious-ritchie` | PR #50 대기 | Phase 5 구현 완료 |
 | `role/planning` | 운영 중 | 기획 문서 전담 |
 | `role/backend` | 운영 중 | 백엔드 코드 전담 |
 | `role/frontend` | 운영 중 | 프론트엔드 코드 전담 |
 | `role/devops` | 운영 중 | 배포/인프라 전담 |
 | `role/security` | 운영 중 | 보안 문서 전담 |
 
-> 오픈 PR: **0개** (모든 PR 정리 완료)
+> 오픈 PR: **1개** — PR #50 (Phase 5 구현)
 
 ---
 
@@ -40,7 +41,7 @@
 | **FE-001** — 비밀번호 변경 API + UI | ✅ 완료 | |
 | **자산 페이지** — Mock → 실제 API | ✅ 완료 | |
 | **Phase 4** — Google Drive 연동 | 🔴 미완성 | 외부 OAuth 환경변수 필요 |
-| **Phase 5** — UX 개선 + 버그 수정 + 자산 고도화 | 🔴 기획 완료 | `tasks/todo.md` Phase 5 섹션 참조 |
+| **Phase 5** — UX 개선 + 버그 수정 + 자산 고도화 | ✅ 구현 완료 | PR #50 (머지 대기) |
 | **EC2 배포** | ⏳ 대기 | 사람이 직접 실행 |
 
 ---
@@ -92,14 +93,30 @@
 - CSV 임포트 (라이선스, 조직원, 그룹, 배정)
 - 조직원 CRUD + 퇴사 처리 (7일 유예)
 
+### Phase 5 — UX 개선 + 자산 고도화 (PR #50)
+- 하드웨어 자산 등록 403 에러 수정, 라이선스 No Key 배지 제거
+- 프로필 페이지 (`/settings/profile`) + 비밀번호 변경
+- 이력 페이지 유형/액션별 색상 구분
+- 하드웨어 유형별 동적 폼 (Laptop/Desktop/Server/Network/Mobile/Monitor/Peripheral)
+- 도메인·SSL 상세 필드 (DomainDetail, 비용 주기 자동 계산)
+- PDF 보고서 한글 폰트 (NotoSansKR)
+- 환율 수동 동기화 버튼 (ADMIN 인증)
+- 만료 임박 자산 대시보드 위젯 (D-day 배지)
+- 설정 페이지 탭 구조화 (`/settings` 레이아웃)
+- 라이선스 유형 변경 시 활성 배정 유지 + 경고 메시지
+- 하드웨어 수명 주기 설정 API (`/api/admin/hardware-lifecycle`)
+
 ---
 
-## DB 스키마 (master 기준)
+## DB 스키마 (master + PR #50 기준)
 
 | 테이블 | 주요 특징 |
 |---|---|
 | `License` | `parentId` (계층), 갱신 상태/이력/날짜 |
 | `Asset` | SW/Cloud/HW/Domain/Other, 만료일 관리 |
+| `HardwareDetail` | 9개 확장 필드 (cpu/ram/storage/imei 등) |
+| `DomainDetail` | domainName/registrar/sslType/billingCycleMonths/autoRenew |
+| `HardwareLifecycleSetting` | deviceType별 기본 내용연수 |
 | `Employee` | 조직 이동, 퇴사 유예 |
 | `User` | `mustChangePassword` |
 | `ExchangeRate` | 일별 환율 (USD/EUR/JPY/GBP/CNY) |
@@ -111,17 +128,9 @@
 
 ## 🔴 다음 작업
 
-### 0. Phase 5 실행 (Ralph loop 에이전트)
+### 0. PR #50 머지 + EC2 배포
 
-> **스펙**: `tasks/features/phase5-ux-improvements.md`
-> **작업 목록**: `tasks/todo.md` Phase 5 섹션
-> **API 추가**: `tasks/api-spec.md` Phase 5 섹션
-> **DB 변경**: `tasks/db-changes.md` 2026-03-15 섹션
-
-**Sprint 1 (버그)**: 하드웨어 403 수정, No Key 제거, 이력 이름 통일
-**Sprint 2 (UX)**: 프로필 페이지, 비밀번호 변경, 조직원 부서 개선, 이력 색상
-**Sprint 3 (자산)**: DB 스키마 확장, 하드웨어 동적 필드, 도메인 상세, 수명 주기
-**Sprint 4 (PDF/환율)**: PDF 한글 수정, 환율 자동 갱신, 대시보드 위젯, 설정 구조화
+> Phase 5 구현 완료. PR #50 리뷰 후 master 머지 필요.
 
 ### 1. EC2 배포 (사람이 직접 실행)
 
