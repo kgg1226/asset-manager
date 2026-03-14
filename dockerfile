@@ -65,7 +65,7 @@ EXPOSE 3000
 
 # entrypoint + DB 초기화 스크립트 복사
 COPY entrypoint.sh ./entrypoint.sh
-COPY init-db.mjs ./init-db.mjs
+COPY scripts/init-db.mjs ./scripts/init-db.mjs
 RUN chmod +x ./entrypoint.sh
 
 # 소유권 변경 (비root 사용자)
