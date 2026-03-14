@@ -19,7 +19,13 @@ export default function HardwareEditPage() {
   useEffect(() => { if (!authLoading && !user) router.push("/login"); }, [user, authLoading, router]);
 
   const [form, setForm] = useState({ name: "", description: "", vendor: "", cost: "", currency: "KRW", billingCycle: "ONE_TIME", purchaseDate: "", expiryDate: "" });
-  const [hw, setHw] = useState({ assetTag: "", deviceType: "", manufacturer: "", model: "", serialNumber: "", hostname: "", macAddress: "", ipAddress: "", os: "", osVersion: "", location: "", usefulLifeYears: "5", cpu: "", ram: "", storage: "", storageType: "SSD", imei: "", phoneNumber: "", portCount: "", connectionType: "", resolution: "" });
+  const [hw, setHw] = useState({
+    assetTag: "", deviceType: "", manufacturer: "", model: "", serialNumber: "", hostname: "",
+    macAddress: "", ipAddress: "", os: "", osVersion: "", location: "", usefulLifeYears: "5",
+    cpu: "", ram: "", storage: "", storageType: "SSD", imei: "", phoneNumber: "", portCount: "", connectionType: "", resolution: "",
+    warrantyEndDate: "", warrantyProvider: "", purchaseOrderNumber: "", invoiceNumber: "", condition: "", notes: "",
+    secondaryIp: "", subnetMask: "", gateway: "", vlanId: "", dnsName: "", firmwareVersion: "",
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -44,6 +50,11 @@ export default function HardwareEditPage() {
             imei: h.imei || "", phoneNumber: h.phoneNumber || "",
             portCount: h.portCount != null ? String(h.portCount) : "",
             connectionType: h.connectionType || "", resolution: h.resolution || "",
+            warrantyEndDate: h.warrantyEndDate ? h.warrantyEndDate.split("T")[0] : "",
+            warrantyProvider: h.warrantyProvider || "", purchaseOrderNumber: h.purchaseOrderNumber || "",
+            invoiceNumber: h.invoiceNumber || "", condition: h.condition || "", notes: h.notes || "",
+            secondaryIp: h.secondaryIp || "", subnetMask: h.subnetMask || "", gateway: h.gateway || "",
+            vlanId: h.vlanId || "", dnsName: h.dnsName || "", firmwareVersion: h.firmwareVersion || "",
           });
         }
       } catch { toast.error("로드 실패"); router.push("/hardware"); }
@@ -82,9 +93,14 @@ export default function HardwareEditPage() {
           storageType: hw.storageType || null,
           imei: hw.imei || null,
           phoneNumber: hw.phoneNumber || null,
-          portCount: hw.portCount ? Number(hw.portCount) : null,
           connectionType: hw.connectionType || null,
           resolution: hw.resolution || null,
+          warrantyEndDate: hw.warrantyEndDate || null, warrantyProvider: hw.warrantyProvider || null,
+          purchaseOrderNumber: hw.purchaseOrderNumber || null, invoiceNumber: hw.invoiceNumber || null,
+          condition: hw.condition || null, notes: hw.notes || null,
+          secondaryIp: hw.secondaryIp || null, subnetMask: hw.subnetMask || null,
+          gateway: hw.gateway || null, vlanId: hw.vlanId || null, dnsName: hw.dnsName || null,
+          portCount: hw.portCount ? Number(hw.portCount) : null, firmwareVersion: hw.firmwareVersion || null,
         },
       };
       const res = await fetch(`/api/assets/${assetId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
@@ -191,6 +207,56 @@ export default function HardwareEditPage() {
               </div>
             </>)}
           </div>
+
+          {/* 보증/구매 관리 */}
+          <div className="rounded-lg bg-white p-6 shadow-sm">
+            <h2 className="mb-4 text-base font-semibold text-gray-900">보증 / 구매 관리</h2>
+            <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">보증 만료일</label><input type="date" name="warrantyEndDate" value={hw.warrantyEndDate} onChange={onHwChange} className={ic} /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">보증 업체</label><input type="text" name="warrantyProvider" value={hw.warrantyProvider} onChange={onHwChange} placeholder="제조사 AS센터, 리셀러 등" className={ic} /></div>
+            </div>
+            <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">PO 번호</label><input type="text" name="purchaseOrderNumber" value={hw.purchaseOrderNumber} onChange={onHwChange} className={`${ic} font-mono`} /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">인보이스 번호</label><input type="text" name="invoiceNumber" value={hw.invoiceNumber} onChange={onHwChange} className={`${ic} font-mono`} /></div>
+            </div>
+            <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">상태 등급</label>
+                <select name="condition" value={hw.condition} onChange={onHwChange} className={ic}>
+                  <option value="">미지정</option>
+                  <option value="A">A (최상)</option>
+                  <option value="B">B (양호)</option>
+                  <option value="C">C (보통)</option>
+                  <option value="D">D (불량)</option>
+                </select>
+              </div>
+            </div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-2">비고</label><textarea name="notes" value={hw.notes} onChange={(e) => setHw((p) => ({ ...p, notes: e.target.value }))} rows={2} className={ic} /></div>
+          </div>
+
+          {/* 네트워크/인프라 */}
+          {(hw.deviceType === "Server" || hw.deviceType === "Network") && (
+            <div className="rounded-lg bg-white p-6 shadow-sm">
+              <h2 className="mb-4 text-base font-semibold text-gray-900">네트워크 / 인프라</h2>
+              <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">보조 IP</label><input type="text" name="secondaryIp" value={hw.secondaryIp} onChange={onHwChange} className={`${ic} font-mono`} /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">서브넷 마스크</label><input type="text" name="subnetMask" value={hw.subnetMask} onChange={onHwChange} className={`${ic} font-mono`} /></div>
+              </div>
+              <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">게이트웨이</label><input type="text" name="gateway" value={hw.gateway} onChange={onHwChange} className={`${ic} font-mono`} /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">VLAN ID</label><input type="text" name="vlanId" value={hw.vlanId} onChange={onHwChange} className={`${ic} font-mono`} /></div>
+              </div>
+              <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">DNS 호스트명</label><input type="text" name="dnsName" value={hw.dnsName} onChange={onHwChange} className={`${ic} font-mono`} /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">펌웨어 버전</label><input type="text" name="firmwareVersion" value={hw.firmwareVersion} onChange={onHwChange} className={`${ic} font-mono`} /></div>
+              </div>
+              {hw.deviceType === "Network" && (
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                  <div><label className="block text-sm font-medium text-gray-700 mb-2">포트 수</label><input type="number" name="portCount" value={hw.portCount} onChange={onHwChange} min="0" className={ic} /></div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="flex gap-3">
             <button type="submit" disabled={isLoading} className="flex-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">{isLoading ? "수정 중..." : "수정"}</button>

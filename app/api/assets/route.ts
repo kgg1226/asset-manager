@@ -17,10 +17,15 @@ import {
 } from "@/lib/validation";
 import type { Prisma } from "@/generated/prisma/client";
 
-const ASSET_TYPES = ["SOFTWARE", "CLOUD", "HARDWARE", "DOMAIN_SSL", "OTHER"] as const;
+const ASSET_TYPES = ["SOFTWARE", "CLOUD", "HARDWARE", "DOMAIN_SSL", "CONTRACT", "OTHER"] as const;
 const ASSET_STATUSES = ["IN_STOCK", "IN_USE", "INACTIVE", "UNUSABLE", "PENDING_DISPOSAL", "DISPOSED"] as const;
 const BILLING_CYCLES = ["MONTHLY", "ANNUAL", "ONE_TIME", "USAGE_BASED"] as const;
-const SORT_FIELDS = ["name", "cost", "monthlyCost", "expiryDate", "createdAt"] as const;
+const SORT_FIELDS = ["name", "type", "status", "cost", "monthlyCost", "purchaseDate", "expiryDate", "createdAt"] as const;
+
+/** PC(Laptop/Desktop) 여부에 따라 감가상각 자동 계산 */
+function isPcDeviceType(deviceType: string | null | undefined): boolean {
+  return deviceType === "Laptop" || deviceType === "Desktop";
+}
 
 // ── GET /api/assets — 자산 목록 조회 ──
 
@@ -61,6 +66,7 @@ export async function GET(request: NextRequest) {
           hardwareDetail: true,
           cloudDetail: true,
           domainDetail: true,
+          contractDetail: true,
         },
         orderBy: { [sortBy]: sortOrder },
         skip: (page - 1) * limit,
@@ -114,9 +120,22 @@ export async function POST(request: NextRequest) {
     const orgUnitIdVal = vNum(body.orgUnitId, { min: 1, integer: true });
     const assigneeIdVal = vNum(body.assigneeId, { min: 1, integer: true });
 
-    // monthlyCost: 직접 입력 또는 자동 계산
+    // PC(Laptop/Desktop) 감가상각 자동 계산
+    let finalBillingCycle = billingCycleVal as string | null;
     let monthlyCostVal = vNum(body.monthlyCost, { min: 0 });
-    if (monthlyCostVal == null && costVal != null && billingCycleVal) {
+
+    const hdDeviceType = body.hardwareDetail?.deviceType;
+    if (typeVal === "HARDWARE" && isPcDeviceType(hdDeviceType)) {
+      // PC 자산: billingCycle = DEPRECIATION, monthlyCost 자동 계산
+      finalBillingCycle = "DEPRECIATION";
+      const usefulLife = vNum(body.hardwareDetail?.usefulLifeYears, { min: 1, max: 50, integer: true }) ?? 5;
+      if (costVal != null) {
+        monthlyCostVal = Math.floor(costVal / usefulLife / 12);
+      } else {
+        monthlyCostVal = null;
+      }
+    } else if (monthlyCostVal == null && costVal != null && billingCycleVal) {
+      // 비PC 자산: 기존 로직
       switch (billingCycleVal) {
         case "MONTHLY":
           monthlyCostVal = costVal;
@@ -157,7 +176,7 @@ export async function POST(request: NextRequest) {
         cost: costVal,
         monthlyCost: monthlyCostVal,
         currency: currencyVal ?? "KRW",
-        billingCycle: billingCycleVal,
+        billingCycle: finalBillingCycle,
         purchaseDate: purchaseDateVal,
         expiryDate: expiryDateVal,
         renewalDate: renewalDateVal,
@@ -186,16 +205,33 @@ export async function POST(request: NextRequest) {
             os: vStr(hd.os, 50),
             osVersion: vStr(hd.osVersion, 100),
             location: vStr(hd.location, 500),
-            usefulLifeYears: vNum(hd.usefulLifeYears, { min: 1, max: 50, integer: true }) ?? 5,
             cpu: vStr(hd.cpu, 255),
-            ram: vNum(hd.ram, { min: 0, integer: true }),
-            storage: vNum(hd.storage, { min: 0, integer: true }),
+            ram: vStr(hd.ram, 255),
+            storage: vStr(hd.storage, 255),
+            gpu: vStr(hd.gpu, 255),
+            displaySize: vStr(hd.displaySize, 100),
+            usefulLifeYears: vNum(hd.usefulLifeYears, { min: 1, max: 50, integer: true }) ?? 5,
+            // Phase 5 추가 필드
             storageType: vStr(hd.storageType, 20),
             imei: vStr(hd.imei, 50),
             phoneNumber: vStr(hd.phoneNumber, 30),
-            portCount: vNum(hd.portCount, { min: 0, integer: true }),
             connectionType: vStr(hd.connectionType, 50),
             resolution: vStr(hd.resolution, 50),
+            // 보증/구매 관리
+            warrantyEndDate: hd.warrantyEndDate ? new Date(hd.warrantyEndDate) : null,
+            warrantyProvider: vStr(hd.warrantyProvider, 255),
+            purchaseOrderNumber: vStr(hd.purchaseOrderNumber, 100),
+            invoiceNumber: vStr(hd.invoiceNumber, 100),
+            condition: vStr(hd.condition, 1),
+            notes: vStr(hd.notes, 2000),
+            // 네트워크/인프라
+            secondaryIp: vStr(hd.secondaryIp, 50),
+            subnetMask: vStr(hd.subnetMask, 50),
+            gateway: vStr(hd.gateway, 50),
+            vlanId: vStr(hd.vlanId, 20),
+            dnsName: vStr(hd.dnsName, 255),
+            portCount: vNum(hd.portCount, { min: 0, max: 10000, integer: true }),
+            firmwareVersion: vStr(hd.firmwareVersion, 100),
           },
         });
       }
@@ -209,6 +245,43 @@ export async function POST(request: NextRequest) {
             accountId: vStr(cd.accountId, 255),
             region: vStr(cd.region, 100),
             seatCount: vNum(cd.seatCount, { min: 0, integer: true }),
+            // 서비스 분류
+            serviceCategory: vStr(cd.serviceCategory, 50),
+            resourceType: vStr(cd.resourceType, 100),
+            resourceId: vStr(cd.resourceId, 500),
+            // 인프라 상세
+            instanceSpec: vStr(cd.instanceSpec, 100),
+            storageSize: vStr(cd.storageSize, 100),
+            endpoint: vStr(cd.endpoint, 500),
+            vpcId: vStr(cd.vpcId, 50),
+            availabilityZone: vStr(cd.availabilityZone, 50),
+            // 계약/구독 관리
+            contractStartDate: cd.contractStartDate ? new Date(cd.contractStartDate) : null,
+            contractTermMonths: vNum(cd.contractTermMonths, { min: 1, max: 120, integer: true }),
+            renewalDate: cd.renewalDate ? new Date(cd.renewalDate) : null,
+            cancellationNoticeDate: cd.cancellationNoticeDate ? new Date(cd.cancellationNoticeDate) : null,
+            cancellationNoticeDays: vNum(cd.cancellationNoticeDays, { min: 1, max: 365, integer: true }),
+            paymentMethod: vStr(cd.paymentMethod, 50),
+            contractNumber: vStr(cd.contractNumber, 255),
+            // 관리 정보
+            adminEmail: vStr(cd.adminEmail, 255),
+            adminSlackId: vStr(cd.adminSlackId, 50),
+            notifyChannels: vStr(cd.notifyChannels, 10),
+            autoRenew: cd.autoRenew != null ? Boolean(cd.autoRenew) : null,
+            notes: vStr(cd.notes, 2000),
+          },
+        });
+      }
+
+      if (typeVal === "CONTRACT" && body.contractDetail) {
+        const ct = body.contractDetail;
+        await tx.contractDetail.create({
+          data: {
+            assetId: created.id,
+            contractNumber: vStr(ct.contractNumber, 255),
+            counterparty: vStr(ct.counterparty, 255),
+            contractType: vStr(ct.contractType, 100),
+            autoRenew: ct.autoRenew === true,
           },
         });
       }
@@ -258,6 +331,7 @@ export async function POST(request: NextRequest) {
           hardwareDetail: true,
           cloudDetail: true,
           domainDetail: true,
+          contractDetail: true,
         },
       });
     });

@@ -6,13 +6,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { isCronAuthorized } from "@/lib/cron-auth";
 
 const SUPPORTED_CURRENCIES = ["USD", "EUR", "JPY", "GBP", "CNY"];
 
 export async function POST(request: NextRequest) {
   // CRON_SECRET 또는 ADMIN 세션으로 인증
-  const secret = request.headers.get("x-cron-secret") ?? request.headers.get("authorization")?.replace("Bearer ", "");
-  const isCron = process.env.CRON_SECRET && secret === process.env.CRON_SECRET;
+  const isCron = isCronAuthorized(request);
   if (!isCron) {
     const user = await getCurrentUser();
     if (!user || user.role !== "ADMIN") {

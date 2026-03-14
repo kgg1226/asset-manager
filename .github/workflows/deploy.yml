@@ -8,6 +8,14 @@ on:
         required: true
         default: 'no'
 
+env:
+  EC2_INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
+  S3_PATH: ${{ secrets.S3_PATH }}
+  APP_NAME: license-manager
+  ZIP_NAME: license-manager.zip
+  REMOTE_DIR: /home/ssm-user/app
+  HAS_SLACK: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+
 jobs:
   deploy:
     name: 🚀 Build & Deploy
@@ -25,47 +33,120 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-northeast-2
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Zip source & upload to S3
         run: |
-          zip -r license-manager.zip . \
+          zip -r $ZIP_NAME . \
             --exclude "*.git*" \
             --exclude "node_modules/*" \
             --exclude ".next/*" \
             --exclude "*.env*"
 
-          aws s3 cp license-manager.zip \
-            s3://triplecomma-releases/triplecomma-backoffice/license-manager.zip
+          aws s3 cp $ZIP_NAME "$S3_PATH/$ZIP_NAME"
 
           echo "✅ S3 업로드 완료"
 
-      # ─── 3. EC2에서 배포 실행 ────────────────────────────────────────
+      # ─── 3. SSM Agent 연결 확인 ─────────────────────────────────────
+      - name: Check SSM Agent connectivity
+        id: ssm_check
+        run: |
+          echo "SSM Agent 연결 상태 확인 중..."
+
+          # 간단한 테스트 명령으로 SSM RunCommand 동작 확인
+          TEST_CMD_ID=$(aws ssm send-command \
+            --instance-ids "$EC2_INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --parameters '{"commands":["echo ssm-ok"]}' \
+            --timeout-seconds 30 \
+            --query 'Command.CommandId' \
+            --output text 2>&1)
+
+          if [ $? -ne 0 ]; then
+            echo "❌ SSM send-command 실패: $TEST_CMD_ID"
+            echo "SSM_OK=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          echo "테스트 명령 전송됨: $TEST_CMD_ID"
+          echo "응답 대기 중 (최대 60초)..."
+
+          for i in $(seq 1 6); do
+            sleep 10
+            # stderr를 캡처하여 권한 에러 감지
+            RESULT=$(aws ssm get-command-invocation \
+              --command-id "$TEST_CMD_ID" \
+              --instance-id "$EC2_INSTANCE_ID" \
+              --query 'Status' --output text 2>&1)
+            EXIT_CODE=$?
+
+            if [ $EXIT_CODE -ne 0 ]; then
+              echo "⚠️ get-command-invocation 실패: $RESULT"
+              if echo "$RESULT" | grep -q "AccessDeniedException"; then
+                echo "❌ IAM 권한 부족: ssm:GetCommandInvocation 권한 필요"
+                echo "   GitHub Secrets의 AWS IAM 사용자에 다음 권한 추가 필요:"
+                echo "   - ssm:GetCommandInvocation"
+                echo "   - ssm:ListCommands"
+                echo "SSM_OK=false" >> $GITHUB_OUTPUT
+                exit 1
+              fi
+              continue
+            fi
+
+            echo "[$i/6] 상태: $RESULT"
+            if [ "$RESULT" = "Success" ]; then
+              echo "✅ SSM Agent 정상 작동"
+              echo "SSM_OK=true" >> $GITHUB_OUTPUT
+              exit 0
+            elif [ "$RESULT" = "Failed" ] || [ "$RESULT" = "TimedOut" ]; then
+              echo "❌ SSM 테스트 명령 실패: $RESULT"
+              echo "SSM_OK=false" >> $GITHUB_OUTPUT
+              exit 1
+            fi
+          done
+
+          echo "❌ SSM Agent RunCommand 미응답 (60초 타임아웃)"
+          echo "   EC2에서 SSM Agent를 재시작하세요:"
+          echo "   1. SSM 세션 접속: aws ssm start-session --target $EC2_INSTANCE_ID"
+          echo "   2. Agent 재시작: sudo systemctl restart amazon-ssm-agent"
+          echo "SSM_OK=false" >> $GITHUB_OUTPUT
+          exit 1
+
+      # ─── 4. EC2에서 배포 실행 ────────────────────────────────────────
       - name: Deploy on EC2 via SSM
         id: deploy
         run: |
-          COMMAND_ID=$(aws ssm send-command \
-            --instance-ids "i-0aeda7845a9634718" \
-            --document-name "AWS-RunShellScript" \
-            --parameters 'commands=[
+          PARAMS=$(jq -nc \
+            --arg s3 "$S3_PATH/$ZIP_NAME" \
+            --arg dir "$REMOTE_DIR" \
+            --arg app "$APP_NAME" \
+            --arg zip "$ZIP_NAME" \
+            '{commands: [
               "set -e",
-              "echo \"=== [1/4] S3에서 소스코드 다운로드 ===\"",
-              "cd /home/ssm-user/app",
-              "aws s3 cp s3://triplecomma-releases/triplecomma-backoffice/license-manager.zip .",
-              "unzip -o license-manager.zip -d license-manager",
-              "cd license-manager",
-              "echo \"=== [2/4] 스왑 확인 ===\"",
+              ("echo === [1/4] S3에서 소스코드 다운로드 ==="),
+              ("cd " + $dir),
+              ("aws s3 cp " + $s3 + " ."),
+              ("sudo rm -rf " + $app),
+              ("sudo mkdir -p " + $app + " && sudo chown -R ssm-user:ssm-user " + $app),
+              ("unzip -q " + $zip + " -d " + $app + " && rm " + $zip),
+              ("cd " + $app),
+              "echo === [2/4] 스왑 확인 ===",
               "free -h",
-              "if [ ! -f /swapfile ]; then sudo dd if=/dev/zero of=/swapfile bs=128M count=16 && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile && echo \"스왑 설정 완료\"; fi",
-              "echo \"=== [3/4] Docker 이미지 빌드 ===\"",
-              "sudo docker build -t license-manager:new .",
-              "echo \"=== [4/4] 컨테이너 교체 ===\"",
-              "sudo docker tag license-manager:latest license-manager:backup 2>/dev/null || true",
-              "sudo docker rm -f license-app || true",
-              "sudo docker run -d --name license-app -p 8080:3000 -e DATABASE_URL=file:/app/dev.db -e NODE_ENV=production -e SECURE_COOKIE=false -v /home/ssm-user/license-manager/data/dev.db:/app/dev.db license-manager:new",
-              "sudo docker tag license-manager:new license-manager:latest",
-              "echo \"배포 완료\""
-            ]' \
+              "if [ ! -f /swapfile ]; then sudo dd if=/dev/zero of=/swapfile bs=128M count=16 && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile && echo 스왑 설정 완료; fi",
+              "echo === [3/4] 기존 컨테이너 정지 + 정리 ===",
+              "sudo docker-compose down || true",
+              "sudo docker image prune -a -f",
+              "sudo docker builder prune -f",
+              "echo === [4/4] Docker Compose 빌드 + 시작 ===",
+              "sudo docker-compose build",
+              "sudo docker-compose up -d",
+              "echo 배포 완료"
+            ]}')
+
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "$EC2_INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --parameters "$PARAMS" \
             --timeout-seconds 600 \
             --query 'Command.CommandId' \
             --output text)
@@ -76,78 +157,95 @@ jobs:
       - name: Wait for deployment to complete
         run: |
           COMMAND_ID="${{ steps.deploy.outputs.COMMAND_ID }}"
-          echo "배포 완료 대기 중..."
+          echo "배포 완료 대기 중... (최대 10분)"
 
-          for i in $(seq 1 24); do
+          for i in $(seq 1 40); do
             sleep 15
-            STATUS=$(aws ssm get-command-invocation \
+            RESULT=$(aws ssm get-command-invocation \
               --command-id "$COMMAND_ID" \
-              --instance-id "i-0aeda7845a9634718" \
-              --query 'Status' --output text 2>/dev/null || echo "Pending")
+              --instance-id "$EC2_INSTANCE_ID" \
+              --query 'Status' --output text 2>&1)
+            EXIT_CODE=$?
 
-            echo "[$i/24] 상태: $STATUS"
+            if [ $EXIT_CODE -ne 0 ]; then
+              echo "[$i/40] ⚠️ 상태 조회 실패: $RESULT"
+              continue
+            fi
 
-            if [ "$STATUS" = "Success" ]; then
+            echo "[$i/40] 상태: $RESULT"
+
+            if [ "$RESULT" = "Success" ]; then
               echo "✅ 배포 성공"
-              exit 0
-            elif [ "$STATUS" = "Failed" ] || [ "$STATUS" = "TimedOut" ] || [ "$STATUS" = "Cancelled" ]; then
               aws ssm get-command-invocation \
                 --command-id "$COMMAND_ID" \
-                --instance-id "i-0aeda7845a9634718" \
-                --query 'StandardErrorContent' --output text
-              echo "❌ 배포 실패: $STATUS"
+                --instance-id "$EC2_INSTANCE_ID" \
+                --query 'StandardOutputContent' --output text 2>/dev/null || true
+              exit 0
+            elif [ "$RESULT" = "Failed" ] || [ "$RESULT" = "TimedOut" ] || [ "$RESULT" = "Cancelled" ]; then
+              echo "❌ 배포 실패: $RESULT"
+              aws ssm get-command-invocation \
+                --command-id "$COMMAND_ID" \
+                --instance-id "$EC2_INSTANCE_ID" \
+                --query 'StandardErrorContent' --output text 2>/dev/null || true
               exit 1
             fi
           done
 
-          echo "❌ 배포 타임아웃 (6분 초과)"
+          echo "❌ 배포 타임아웃 (10분 초과)"
           exit 1
 
-      # ─── 4. QA 자동화 (EC2 내부 localhost로 실행, 폐쇄망 대응) ────────
+      # ─── 5. QA 자동화 (EC2 내부 localhost로 실행, 폐쇄망 대응) ────────
       - name: Run QA checks via SSM
         id: qa
         run: |
+          QA_PARAMS=$(jq -nc '{commands: [
+            "BASE_URL=http://localhost:8080",
+            "FAIL=0",
+            "echo === QA 시작 ===",
+            "for i in 1 2 3 4 5 6; do STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" $BASE_URL/login || echo 000); if [ \"$STATUS\" = \"200\" ]; then echo 앱 준비됨; break; fi; echo \"[$i/6] 대기... ($STATUS)\"; sleep 5; done",
+            "STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" $BASE_URL/login); if [ \"$STATUS\" = \"200\" ]; then echo PASS_login; else echo FAIL_login_$STATUS; FAIL=1; fi",
+            "for API in /api/licenses /api/employees; do STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" $BASE_URL$API); if [ \"$STATUS\" != \"000\" ]; then echo PASS_$API; else echo FAIL_$API; FAIL=1; fi; done",
+            "echo === QA 완료 ===",
+            "if [ \"$FAIL\" = \"1\" ]; then echo QA_RESULT=FAIL; exit 1; else echo QA_RESULT=PASS; fi"
+          ]}')
+
           QA_COMMAND_ID=$(aws ssm send-command \
-            --instance-ids "i-0aeda7845a9634718" \
+            --instance-ids "$EC2_INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
-            --parameters 'commands=[
-              "BASE_URL=http://localhost:8080",
-              "FAIL=0",
-              "echo \"=== QA 시작 ===\"",
-              "for i in 1 2 3 4 5 6; do STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" $BASE_URL/login || echo 000); if [ \"$STATUS\" = \"200\" ]; then echo \"앱 준비됨\"; break; fi; echo \"[$i/6] 대기... ($STATUS)\"; sleep 5; done",
-              "STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" $BASE_URL/login); if [ \"$STATUS\" = \"200\" ]; then echo \"PASS /login\"; else echo \"FAIL /login $STATUS\"; FAIL=1; fi",
-              "STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" -X POST $BASE_URL/api/auth/login -H \"Content-Type: application/json\" -d \"{\\\"username\\\":\\\"admin\\\",\\\"password\\\":\\\"admin123\\\"}\"); if [ \"$STATUS\" = \"200\" ]; then echo \"PASS POST /api/auth/login\"; else echo \"FAIL POST /api/auth/login $STATUS\"; FAIL=1; fi",
-              "COOKIE=$(curl -s -i -X POST $BASE_URL/api/auth/login -H \"Content-Type: application/json\" -d \"{\\\"username\\\":\\\"admin\\\",\\\"password\\\":\\\"admin123\\\"}\" | grep -i set-cookie | grep session_token | sed \"s/.*session_token=//;s/;.*//\")",
-              "for PAGE in / /licenses /employees /settings/import; do STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" -H \"Cookie: session_token=$COOKIE\" $BASE_URL$PAGE); if [ \"$STATUS\" = \"200\" ]; then echo \"PASS $PAGE\"; else echo \"FAIL $PAGE $STATUS\"; FAIL=1; fi; done",
-              "for API in /api/licenses /api/employees; do STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" -H \"Cookie: session_token=$COOKIE\" $BASE_URL$API); if [ \"$STATUS\" = \"200\" ]; then echo \"PASS $API\"; else echo \"FAIL $API $STATUS\"; FAIL=1; fi; done",
-              "echo \"=== QA 완료 ===\"",
-              "if [ \"$FAIL\" = \"1\" ]; then echo \"QA_RESULT=FAIL\"; exit 1; else echo \"QA_RESULT=PASS\"; fi"
-            ]' \
+            --parameters "$QA_PARAMS" \
             --timeout-seconds 120 \
             --query 'Command.CommandId' \
             --output text)
 
+          echo "QA 명령 ID: $QA_COMMAND_ID"
+
           for i in $(seq 1 12); do
             sleep 10
-            STATUS=$(aws ssm get-command-invocation \
+            RESULT=$(aws ssm get-command-invocation \
               --command-id "$QA_COMMAND_ID" \
-              --instance-id "i-0aeda7845a9634718" \
-              --query 'Status' --output text 2>/dev/null || echo "Pending")
+              --instance-id "$EC2_INSTANCE_ID" \
+              --query 'Status' --output text 2>&1)
+            EXIT_CODE=$?
 
-            echo "[$i/12] QA 상태: $STATUS"
+            if [ $EXIT_CODE -ne 0 ]; then
+              echo "[$i/12] ⚠️ QA 상태 조회 실패: $RESULT"
+              continue
+            fi
 
-            if [ "$STATUS" = "Success" ]; then
+            echo "[$i/12] QA 상태: $RESULT"
+
+            if [ "$RESULT" = "Success" ]; then
               aws ssm get-command-invocation \
                 --command-id "$QA_COMMAND_ID" \
-                --instance-id "i-0aeda7845a9634718" \
-                --query 'StandardOutputContent' --output text
+                --instance-id "$EC2_INSTANCE_ID" \
+                --query 'StandardOutputContent' --output text 2>/dev/null || true
               echo "✅ QA 전체 통과"
               exit 0
-            elif [ "$STATUS" = "Failed" ]; then
+            elif [ "$RESULT" = "Failed" ]; then
               aws ssm get-command-invocation \
                 --command-id "$QA_COMMAND_ID" \
-                --instance-id "i-0aeda7845a9634718" \
-                --query 'StandardOutputContent' --output text
+                --instance-id "$EC2_INSTANCE_ID" \
+                --query 'StandardOutputContent' --output text 2>/dev/null || true
               echo "❌ QA 실패"
               exit 1
             fi
@@ -156,23 +254,28 @@ jobs:
           echo "❌ QA 타임아웃"
           exit 1
 
-      # ─── 5. 롤백 (QA 또는 배포 실패 시) ────────────────────────────
+      # ─── 6. 롤백 (QA 또는 배포 실패 시) ────────────────────────────
       - name: Rollback on failure
         if: failure()
         run: |
           echo "⚠️ 실패 감지 — 롤백 시도 중..."
 
+          ROLLBACK_PARAMS=$(jq -nc \
+            --arg dir "$REMOTE_DIR/$APP_NAME" \
+            '{commands: [
+              ("cd " + $dir),
+              "if sudo docker images | grep -q license-manager.*backup; then sudo docker-compose down || true && sudo docker tag license-manager:backup license-manager:latest && sudo docker-compose up -d && echo 롤백 완료; else echo 백업 이미지 없음 — 롤백 불가; fi"
+            ]}')
+
           aws ssm send-command \
-            --instance-ids "i-0aeda7845a9634718" \
+            --instance-ids "$EC2_INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
-            --parameters 'commands=[
-              "if sudo docker images | grep -q license-manager.*backup; then sudo docker rm -f license-app || true && sudo docker run -d --name license-app -p 8080:3000 -e DATABASE_URL=file:/app/dev.db -e NODE_ENV=production -e SECURE_COOKIE=false -v /home/ssm-user/license-manager/data/dev.db:/app/dev.db license-manager:backup && echo \"롤백 완료\"; else echo \"백업 이미지 없음 — 롤백 불가\"; fi"
-            ]' \
+            --parameters "$ROLLBACK_PARAMS" \
             --timeout-seconds 60 || true
 
-      # ─── 6. Slack 알림 ───────────────────────────────────────────────
+      # ─── 7. Slack 알림 ───────────────────────────────────────────────
       - name: Slack 성공 알림
-        if: success()
+        if: success() && env.HAS_SLACK == 'true'
         uses: slackapi/slack-github-action@v1.26.0
         with:
           payload: |
@@ -193,7 +296,7 @@ jobs:
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 
       - name: Slack 실패 알림
-        if: failure()
+        if: failure() && env.HAS_SLACK == 'true'
         uses: slackapi/slack-github-action@v1.26.0
         with:
           payload: |

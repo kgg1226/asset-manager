@@ -142,8 +142,8 @@ DATABASE_URL=postgresql://license_manager:license_manager_pass@localhost:5432/li
 - 단방향 폐쇄망 (내부→외부 접근 가능, 외부→내부 접근 불가)
 - 배포 방식: `deploy.ps1` 실행 → **[1/2] git push** + **[2/2] S3 업로드**까지 자동, EC2 배포는 출력된 명령어를 수동 실행
   - S3: `s3://triplecomma-releases/triplecomma-backoffice/license-manager.zip`
-  - EC2 ID: `i-0aeda7845a9634718` / AWS 프로필: `hyeongunk`
-  - EC2 접속: `aws ssm start-session --target i-0aeda7845a9634718 --region ap-northeast-2 --profile hyeongunk`
+  - EC2 ID: `i-03b9c1979ef4a2142` / AWS 프로필: `hyeongunk`
+  - EC2 접속: `aws ssm start-session --target i-03b9c1979ef4a2142 --region ap-northeast-2 --profile hyeongunk`
 - 포트: 로컬 dev `3000` / 컨테이너 `3000` / 호스트 `8080`
 - ⚠️ 배포 전 반드시 master 클린 상태 확인 (`deploy.ps1`은 master 브랜치에서만 실행 가능)
 - 프로덕션 컨테이너에서 `prisma CLI` 실행 금지

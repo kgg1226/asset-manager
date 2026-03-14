@@ -17,7 +17,7 @@ export async function createEmployee(
 ): Promise<FormState> {
   await requireAdmin();
   const name = formData.get("name") as string;
-  const department = formData.get("department") as string;
+  const department = (formData.get("department") as string) || null;
   const email = formData.get("email") as string;
   const title = formData.get("title") as string;
   const companyIdRaw = formData.get("companyId") as string;
@@ -43,7 +43,7 @@ export async function createEmployee(
       const employee = await tx.employee.create({
         data: {
           name: name.trim(),
-          department: department?.trim() || "미소속",
+          department: department?.trim() || "-",
           email: email?.trim() || null,
           title: title?.trim() || null,
           companyId,

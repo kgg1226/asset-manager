@@ -249,12 +249,12 @@ cat ~/.aws/credentials
 
 # SSM으로 접속
 aws ssm start-session \
-  --target i-0aeda7845a9634718 \
+  --target i-03b9c1979ef4a2142 \
   --region ap-northeast-2 \
   --profile hyeongunk
 
 # 또는 간단히
-aws ssm start-session --target i-0aeda7845a9634718
+aws ssm start-session --target i-03b9c1979ef4a2142
 ```
 
 ---

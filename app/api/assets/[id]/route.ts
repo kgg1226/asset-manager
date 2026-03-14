@@ -16,8 +16,12 @@ import {
   vDate,
 } from "@/lib/validation";
 
-const ASSET_TYPES = ["SOFTWARE", "CLOUD", "HARDWARE", "DOMAIN_SSL", "OTHER"] as const;
+const ASSET_TYPES = ["SOFTWARE", "CLOUD", "HARDWARE", "DOMAIN_SSL", "CONTRACT", "OTHER"] as const;
 const BILLING_CYCLES = ["MONTHLY", "ANNUAL", "ONE_TIME", "USAGE_BASED"] as const;
+
+function isPcDeviceType(deviceType: string | null | undefined): boolean {
+  return deviceType === "Laptop" || deviceType === "Desktop";
+}
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -38,6 +42,11 @@ export async function GET(_request: NextRequest, { params }: Params) {
         hardwareDetail: true,
         cloudDetail: true,
         domainDetail: true,
+        contractDetail: true,
+        licenseLinks: {
+          include: { license: { select: { id: true, name: true, licenseType: true, expiryDate: true } } },
+          orderBy: { createdAt: "desc" },
+        },
       },
     });
 
@@ -94,18 +103,38 @@ export async function PUT(request: NextRequest, { params }: Params) {
     if (body.orgUnitId !== undefined) data.orgUnitId = vNum(body.orgUnitId, { min: 1, integer: true });
     if (body.assigneeId !== undefined) data.assigneeId = vNum(body.assigneeId, { min: 1, integer: true });
 
-    // monthlyCost 자동 계산 (cost나 billingCycle이 변경되었으면)
-    if (body.monthlyCost === undefined && (body.cost !== undefined || body.billingCycle !== undefined)) {
-      const existing = await prisma.asset.findUnique({ where: { id: assetId }, select: { cost: true, billingCycle: true } });
+    // PC(Laptop/Desktop) 감가상각 자동 계산 또는 기존 방식
+    if (body.monthlyCost === undefined) {
+      const existing = await prisma.asset.findUnique({
+        where: { id: assetId },
+        select: { type: true, cost: true, billingCycle: true, hardwareDetail: { select: { deviceType: true, usefulLifeYears: true } } },
+      });
       if (existing) {
+        const assetType = existing.type;
+        const hdDeviceType = body.hardwareDetail?.deviceType ?? existing.hardwareDetail?.deviceType;
         const finalCost = data.cost !== undefined ? data.cost : existing.cost ? Number(existing.cost) : null;
-        const finalCycle = data.billingCycle !== undefined ? data.billingCycle : existing.billingCycle;
-        if (finalCost != null && finalCycle) {
-          switch (finalCycle) {
-            case "MONTHLY": data.monthlyCost = finalCost; break;
-            case "ANNUAL": data.monthlyCost = Math.round((finalCost / 12) * 100) / 100; break;
-            case "ONE_TIME": data.monthlyCost = 0; break;
-            case "USAGE_BASED": data.monthlyCost = finalCost; break;
+
+        if (assetType === "HARDWARE" && isPcDeviceType(hdDeviceType)) {
+          // PC 자산: 감가상각 자동 계산
+          const usefulLife = body.hardwareDetail?.usefulLifeYears
+            ? (vNum(body.hardwareDetail.usefulLifeYears, { min: 1, max: 50, integer: true }) ?? 5)
+            : (existing.hardwareDetail?.usefulLifeYears ?? 5);
+          data.billingCycle = "DEPRECIATION";
+          if (finalCost != null) {
+            data.monthlyCost = Math.floor(finalCost / usefulLife / 12);
+          } else {
+            data.monthlyCost = null;
+          }
+        } else if (body.cost !== undefined || body.billingCycle !== undefined) {
+          // 비PC 자산: 기존 로직
+          const finalCycle = data.billingCycle !== undefined ? data.billingCycle : existing.billingCycle;
+          if (finalCost != null && finalCycle) {
+            switch (finalCycle) {
+              case "MONTHLY": data.monthlyCost = finalCost; break;
+              case "ANNUAL": data.monthlyCost = Math.round((finalCost / 12) * 100) / 100; break;
+              case "ONE_TIME": data.monthlyCost = 0; break;
+              case "USAGE_BASED": data.monthlyCost = finalCost; break;
+            }
           }
         }
       }
@@ -136,6 +165,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
           hardwareDetail: true,
           cloudDetail: true,
           domainDetail: true,
+          contractDetail: true,
         },
       });
 
@@ -155,16 +185,33 @@ export async function PUT(request: NextRequest, { params }: Params) {
             os: vStr(hd.os, 50),
             osVersion: vStr(hd.osVersion, 100),
             location: vStr(hd.location, 500),
-            usefulLifeYears: vNum(hd.usefulLifeYears, { min: 1, max: 50, integer: true }) ?? 5,
             cpu: vStr(hd.cpu, 255),
-            ram: vNum(hd.ram, { min: 0, integer: true }),
-            storage: vNum(hd.storage, { min: 0, integer: true }),
-            storageType: vStr(hd.storageType, 20),
-            imei: vStr(hd.imei, 50),
-            phoneNumber: vStr(hd.phoneNumber, 30),
-            portCount: vNum(hd.portCount, { min: 0, integer: true }),
-            connectionType: vStr(hd.connectionType, 50),
-            resolution: vStr(hd.resolution, 50),
+            ram: vStr(hd.ram, 255),
+            storage: vStr(hd.storage, 255),
+            gpu: vStr(hd.gpu, 255),
+            displaySize: vStr(hd.displaySize, 100),
+            usefulLifeYears: vNum(hd.usefulLifeYears, { min: 1, max: 50, integer: true }) ?? 5,
+            // Phase 5 추가 필드
+            storageType: hd.storageType !== undefined ? vStr(hd.storageType, 20) : undefined,
+            imei: hd.imei !== undefined ? vStr(hd.imei, 50) : undefined,
+            phoneNumber: hd.phoneNumber !== undefined ? vStr(hd.phoneNumber, 30) : undefined,
+            connectionType: hd.connectionType !== undefined ? vStr(hd.connectionType, 50) : undefined,
+            resolution: hd.resolution !== undefined ? vStr(hd.resolution, 50) : undefined,
+            // 보증/구매 관리
+            warrantyEndDate: hd.warrantyEndDate !== undefined ? (hd.warrantyEndDate ? new Date(hd.warrantyEndDate) : null) : undefined,
+            warrantyProvider: hd.warrantyProvider !== undefined ? vStr(hd.warrantyProvider, 255) : undefined,
+            purchaseOrderNumber: hd.purchaseOrderNumber !== undefined ? vStr(hd.purchaseOrderNumber, 100) : undefined,
+            invoiceNumber: hd.invoiceNumber !== undefined ? vStr(hd.invoiceNumber, 100) : undefined,
+            condition: hd.condition !== undefined ? vStr(hd.condition, 1) : undefined,
+            notes: hd.notes !== undefined ? vStr(hd.notes, 2000) : undefined,
+            // 네트워크/인프라
+            secondaryIp: hd.secondaryIp !== undefined ? vStr(hd.secondaryIp, 50) : undefined,
+            subnetMask: hd.subnetMask !== undefined ? vStr(hd.subnetMask, 50) : undefined,
+            gateway: hd.gateway !== undefined ? vStr(hd.gateway, 50) : undefined,
+            vlanId: hd.vlanId !== undefined ? vStr(hd.vlanId, 20) : undefined,
+            dnsName: hd.dnsName !== undefined ? vStr(hd.dnsName, 255) : undefined,
+            portCount: hd.portCount !== undefined ? vNum(hd.portCount, { min: 0, max: 10000, integer: true }) : undefined,
+            firmwareVersion: hd.firmwareVersion !== undefined ? vStr(hd.firmwareVersion, 100) : undefined,
           };
           await tx.hardwareDetail.upsert({
             where: { assetId },
@@ -179,21 +226,37 @@ export async function PUT(request: NextRequest, { params }: Params) {
       if (body.cloudDetail !== undefined) {
         if (body.cloudDetail) {
           const cd = body.cloudDetail;
+          const cdFields = {
+            platform: vStr(cd.platform, 100),
+            accountId: vStr(cd.accountId, 255),
+            region: vStr(cd.region, 100),
+            seatCount: vNum(cd.seatCount, { min: 0, integer: true }),
+            serviceCategory: vStr(cd.serviceCategory, 50),
+            resourceType: vStr(cd.resourceType, 100),
+            resourceId: vStr(cd.resourceId, 500),
+            instanceSpec: vStr(cd.instanceSpec, 100),
+            storageSize: vStr(cd.storageSize, 100),
+            endpoint: vStr(cd.endpoint, 500),
+            vpcId: vStr(cd.vpcId, 50),
+            availabilityZone: vStr(cd.availabilityZone, 50),
+            // 계약/구독 관리
+            contractStartDate: cd.contractStartDate !== undefined ? (cd.contractStartDate ? new Date(cd.contractStartDate) : null) : undefined,
+            contractTermMonths: cd.contractTermMonths !== undefined ? vNum(cd.contractTermMonths, { min: 1, max: 120, integer: true }) : undefined,
+            renewalDate: cd.renewalDate !== undefined ? (cd.renewalDate ? new Date(cd.renewalDate) : null) : undefined,
+            cancellationNoticeDate: cd.cancellationNoticeDate !== undefined ? (cd.cancellationNoticeDate ? new Date(cd.cancellationNoticeDate) : null) : undefined,
+            cancellationNoticeDays: cd.cancellationNoticeDays !== undefined ? vNum(cd.cancellationNoticeDays, { min: 1, max: 365, integer: true }) : undefined,
+            paymentMethod: cd.paymentMethod !== undefined ? vStr(cd.paymentMethod, 50) : undefined,
+            contractNumber: cd.contractNumber !== undefined ? vStr(cd.contractNumber, 255) : undefined,
+            adminEmail: vStr(cd.adminEmail, 255),
+            adminSlackId: cd.adminSlackId !== undefined ? vStr(cd.adminSlackId, 50) : undefined,
+            notifyChannels: cd.notifyChannels !== undefined ? vStr(cd.notifyChannels, 10) : undefined,
+            autoRenew: cd.autoRenew != null ? Boolean(cd.autoRenew) : null,
+            notes: vStr(cd.notes, 2000),
+          };
           await tx.cloudDetail.upsert({
             where: { assetId },
-            create: {
-              assetId,
-              platform: vStr(cd.platform, 100),
-              accountId: vStr(cd.accountId, 255),
-              region: vStr(cd.region, 100),
-              seatCount: vNum(cd.seatCount, { min: 0, integer: true }),
-            },
-            update: {
-              platform: vStr(cd.platform, 100),
-              accountId: vStr(cd.accountId, 255),
-              region: vStr(cd.region, 100),
-              seatCount: vNum(cd.seatCount, { min: 0, integer: true }),
-            },
+            create: { assetId, ...cdFields },
+            update: cdFields,
           });
         } else {
           await tx.cloudDetail.deleteMany({ where: { assetId } });
@@ -227,6 +290,25 @@ export async function PUT(request: NextRequest, { params }: Params) {
           }
         } else {
           await tx.domainDetail.deleteMany({ where: { assetId } });
+        }
+      }
+
+      if (body.contractDetail !== undefined) {
+        if (body.contractDetail) {
+          const ct = body.contractDetail;
+          const ctFields = {
+            contractNumber: vStr(ct.contractNumber, 255),
+            counterparty: vStr(ct.counterparty, 255),
+            contractType: vStr(ct.contractType, 100),
+            autoRenew: ct.autoRenew === true,
+          };
+          await tx.contractDetail.upsert({
+            where: { assetId },
+            create: { assetId, ...ctFields },
+            update: ctFields,
+          });
+        } else {
+          await tx.contractDetail.deleteMany({ where: { assetId } });
         }
       }
 

@@ -1,7 +1,8 @@
+import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
-// Docker 환경: DATABASE_URL은 docker-compose의 environment 블록에서 주입됨
-// 로컬 개발: .env 파일은 Prisma CLI가 schema.prisma의 env() 함수로 자동 로딩
+// env() 헬퍼는 변수 미존재 시 에러를 던짐 → Docker 빌드(prisma generate)에서 실패
+// process.env 직접 참조로 빌드 시 안전하게 빈 문자열 허용
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
@@ -9,6 +10,6 @@ export default defineConfig({
     seed: "tsx prisma/seed.ts",
   },
   datasource: {
-    url: process.env["DATABASE_URL"] ?? "",
+    url: process.env.DATABASE_URL ?? "",
   },
 });
