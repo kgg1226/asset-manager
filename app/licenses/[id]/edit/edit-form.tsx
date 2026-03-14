@@ -183,7 +183,7 @@ export default function EditLicenseForm({
                     ⚠️ 현재 활성 배정이 {activeAssignmentCount}건 있습니다.
                   </p>
                   <p className="mt-1 text-xs text-amber-700">
-                    유형을 변경하면 기존 배정이 자동으로 반납 처리됩니다. 계속하시겠습니까?
+                    유형을 변경해도 기존 배정은 유지되지만, 시트(개별 키) 정보는 삭제됩니다.
                   </p>
                 </div>
               )}

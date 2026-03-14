@@ -94,7 +94,7 @@ export async function syncSeats(
 
 /**
  * KEY_BASED → VOLUME/NO_KEY 전환 시 모든 시트를 삭제한다.
- * 활성 배정이 1건이라도 있으면 전환 불가 에러.
+ * 활성 배정은 유지하되, seatId 연결만 해제한다.
  */
 export async function deleteAllSeats(
   tx: Tx,
@@ -115,14 +115,17 @@ export async function deleteAllSeats(
   const activeCount = stats.filter((s) => s.assignments.length > 0).length;
   const keyedCount = stats.filter((s) => s.key !== null).length;
 
-  // 활성 배정이 있으면 먼저 반납 처리 후 시트 삭제
+  // 활성 배정이 있으면 seatId만 null로 해제 (배정 자체는 유지)
   if (activeCount > 0) {
+    const activeSeatIds = stats
+      .filter((s) => s.assignments.length > 0)
+      .map((s) => s.id);
     await tx.assignment.updateMany({
-      where: { licenseId, returnedDate: null },
-      data: { returnedDate: new Date() },
+      where: { seatId: { in: activeSeatIds }, returnedDate: null },
+      data: { seatId: null },
     });
     console.log(
-      `[deleteAllSeats] licenseId=${licenseId}: 유형 변경으로 ${activeCount}개 배정 자동 반납`
+      `[deleteAllSeats] licenseId=${licenseId}: 유형 변경으로 ${activeCount}개 배정의 시트 연결 해제 (배정 유지)`
     );
   }
 
