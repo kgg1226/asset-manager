@@ -115,10 +115,14 @@ export async function deleteAllSeats(
   const activeCount = stats.filter((s) => s.assignments.length > 0).length;
   const keyedCount = stats.filter((s) => s.key !== null).length;
 
+  // 활성 배정이 있으면 먼저 반납 처리 후 시트 삭제
   if (activeCount > 0) {
-    throw new Error(
-      `배정 중인 시트가 ${activeCount}개 있어 라이선스 유형을 변경할 수 없습니다. ` +
-        `먼저 모든 배정을 해제하세요.`
+    await tx.assignment.updateMany({
+      where: { licenseId, returnedDate: null },
+      data: { returnedDate: new Date() },
+    });
+    console.log(
+      `[deleteAllSeats] licenseId=${licenseId}: 유형 변경으로 ${activeCount}개 배정 자동 반납`
     );
   }
 

@@ -68,10 +68,12 @@ export default function EditLicenseForm({
   license,
   seats: initialSeats,
   allLicenses = [],
+  activeAssignmentCount = 0,
 }: {
   license: License;
   seats: Seat[];
   allLicenses?: { id: number; name: string }[];
+  activeAssignmentCount?: number;
 }) {
   const initialState: FormState = {};
   const boundUpdate = updateLicense.bind(null, license.id);
@@ -175,6 +177,16 @@ export default function EditLicenseForm({
               <p className="mt-1 text-xs text-gray-500">
                 {LICENSE_TYPE_OPTIONS.find((o) => o.value === licenseType)?.description}
               </p>
+              {licenseType !== license.licenseType && activeAssignmentCount > 0 && (
+                <div className="mt-2 rounded-md bg-amber-50 p-3 ring-1 ring-amber-200">
+                  <p className="text-sm font-medium text-amber-800">
+                    ⚠️ 현재 활성 배정이 {activeAssignmentCount}건 있습니다.
+                  </p>
+                  <p className="mt-1 text-xs text-amber-700">
+                    유형을 변경하면 기존 배정이 자동으로 반납 처리됩니다. 계속하시겠습니까?
+                  </p>
+                </div>
+              )}
             </Field>
 
             {licenseType === "VOLUME" && (
