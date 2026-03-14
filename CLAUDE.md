@@ -99,10 +99,12 @@ git diff master...role/frontend --stat
 - **최우선**: `tasks/current-state.md` — 실제 완료 현황
 - 작업 전: `tasks/todo.md`, `tasks/lessons.md`
 - 코드 작성 전: `tasks/security/guidelines.md` 보안 규칙 확인
-- 에러 해결 후: `tasks/postmortem/` 해당 카테고리에 기록
+- **에러 해결 후**: `tasks/lessons.md`에 반드시 기록 (원인 + 해결 + 예방책)
 - API 구현/호출: `tasks/api-spec.md` 준수
 - DB 변경: `tasks/db-changes.md` 참조
 - 인프라 접속 정보: `.env.infra` 참조 (Git 미추적, 로컬 전용)
+
+> ⚠️ **에러 기록 의무**: 빌드 에러, 런타임 에러, 머지 충돌 등 **모든 에러를 해결한 후** 반드시 `tasks/lessons.md`에 날짜·원인·해결책을 기록한다. 역할 무관, 모든 세션이 준수해야 한다.
 
 ## 데이터베이스 연결 설정
 
