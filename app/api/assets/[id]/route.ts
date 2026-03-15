@@ -131,7 +131,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
           if (finalCost != null && finalCycle) {
             switch (finalCycle) {
               case "MONTHLY": data.monthlyCost = finalCost; break;
-              case "ANNUAL": data.monthlyCost = Math.round((finalCost / 12) * 100) / 100; break;
+              case "ANNUAL": data.monthlyCost = Math.round(finalCost / 12); break;
               case "ONE_TIME": data.monthlyCost = 0; break;
               case "USAGE_BASED": data.monthlyCost = finalCost; break;
             }
@@ -285,7 +285,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
             const months = ddFields.billingCycleMonths;
             await tx.asset.update({
               where: { id: assetId },
-              data: { monthlyCost: Math.round((Number(finalCost) / months) * 100) / 100 },
+              data: { monthlyCost: Math.round(Number(finalCost) / months) },
             });
           }
         } else {

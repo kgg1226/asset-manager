@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
           monthlyCostVal = costVal;
           break;
         case "ANNUAL":
-          monthlyCostVal = Math.round((costVal / 12) * 100) / 100;
+          monthlyCostVal = Math.round(costVal / 12);
           break;
         case "ONE_TIME":
           monthlyCostVal = 0;
@@ -302,7 +302,7 @@ export async function POST(request: NextRequest) {
         });
         // 도메인/SSL 월 환산 비용 자동 계산
         if (costVal != null && !monthlyCostVal) {
-          monthlyCostVal = Math.round((costVal / billingCycleMonths) * 100) / 100;
+          monthlyCostVal = Math.round(costVal / billingCycleMonths);
           await tx.asset.update({
             where: { id: created.id },
             data: { monthlyCost: monthlyCostVal },
