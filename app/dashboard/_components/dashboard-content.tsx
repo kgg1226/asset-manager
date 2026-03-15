@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "@/lib/i18n";
 import CategoryTabs from "./category-tabs";
 import DashboardMetricCards from "./metric-cards";
 import DashboardCharts from "./dashboard-charts";
@@ -13,6 +14,7 @@ export default function DashboardContent({
 }: {
   initialData: DashboardData;
 }) {
+  const { t } = useTranslation();
   const [data, setData] = useState<DashboardData>(initialData);
   const [selectedType, setSelectedType] = useState<AssetCategory | null>(null);
   const [loading, setLoading] = useState(false);
@@ -27,7 +29,7 @@ export default function DashboardContent({
         setData(json);
       }
     } catch (error) {
-      console.error("대시보드 데이터 로드 실패:", error);
+      console.error("Dashboard data load failed:", error);
     } finally {
       setLoading(false);
     }
@@ -37,7 +39,6 @@ export default function DashboardContent({
     (type: AssetCategory | null) => {
       setSelectedType(type);
       if (type === null) {
-        // 전체 탭은 초기 데이터 사용 (서버에서 받은 것)
         setData(initialData);
       } else {
         fetchData(type);
@@ -46,7 +47,6 @@ export default function DashboardContent({
     [initialData, fetchData]
   );
 
-  // initialData가 변경되면 (페이지 새로고침) 동기화
   useEffect(() => {
     if (selectedType === null) {
       setData(initialData);
@@ -54,17 +54,17 @@ export default function DashboardContent({
   }, [initialData, selectedType]);
 
   const title = selectedType
-    ? `${CATEGORY_LABELS[selectedType]} 자산 현황`
-    : "통합 자산 현황";
+    ? `${CATEGORY_LABELS[selectedType]} ${t.dashboard.totalAssets}`
+    : t.dashboard.title;
+
+  const subtitle = selectedType
+    ? `${CATEGORY_LABELS[selectedType]} ${t.dashboard.assetsByType}`
+    : `${t.dashboard.totalAssets} · ${t.dashboard.monthlyExpenses}`;
 
   return (
     <div className={loading ? "opacity-60 transition-opacity" : ""}>
       <h1 className="mb-2 text-2xl font-bold text-gray-900">{title}</h1>
-      <p className="mb-6 text-sm text-gray-500">
-        {selectedType
-          ? `${CATEGORY_LABELS[selectedType]} 카테고리의 자산 현황 및 비용 요약`
-          : "라이선스 포함 전체 IT 자산 현황 및 비용 요약"}
-      </p>
+      <p className="mb-6 text-sm text-gray-500">{subtitle}</p>
 
       <CategoryTabs selected={selectedType} onChange={handleTabChange} />
       <DashboardMetricCards metrics={data.metrics} />

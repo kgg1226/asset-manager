@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { createGroup, type FormState } from "./actions";
 import Link from "next/link";
+import { useTranslation } from "@/lib/i18n";
 
 type License = { id: number; name: string };
 
@@ -11,6 +12,7 @@ const initialState: FormState = {};
 export default function NewGroupForm({ licenses }: { licenses: License[] }) {
   const [state, formAction, isPending] = useActionState(createGroup, initialState);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const { t } = useTranslation();
 
   function toggleLicense(id: number) {
     setSelectedIds((prev) => {
@@ -30,30 +32,30 @@ export default function NewGroupForm({ licenses }: { licenses: License[] }) {
       <form action={formAction} className="space-y-6 rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
         <fieldset className="space-y-4">
           <legend className="text-base font-semibold text-gray-900 border-b border-gray-200 pb-2 w-full">
-            기본 정보
+            {t.license.groupName}
           </legend>
 
-          <Field label="그룹명" required error={state.errors?.name}>
-            <input type="text" name="name" required className="input" placeholder="예: 기본 소프트웨어" />
+          <Field label={t.license.groupName} required error={state.errors?.name}>
+            <input type="text" name="name" required className="input" />
           </Field>
 
-          <Field label="설명">
-            <textarea name="description" rows={2} className="input resize-y" placeholder="그룹에 대한 설명을 입력하세요." />
+          <Field label={t.common.description}>
+            <textarea name="description" rows={2} className="input resize-y" />
           </Field>
 
           <label className="flex items-center gap-2">
             <input type="checkbox" name="isDefault" className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-            <span className="text-sm font-medium text-gray-700">기본 그룹으로 설정 (신규 조직원에게 자동 배정)</span>
+            <span className="text-sm font-medium text-gray-700">{t.license.defaultGroup}</span>
           </label>
         </fieldset>
 
         <fieldset className="space-y-4">
           <legend className="text-base font-semibold text-gray-900 border-b border-gray-200 pb-2 w-full">
-            라이선스 선택
+            {t.license.title}
           </legend>
 
           {licenses.length === 0 ? (
-            <p className="text-sm text-gray-500">등록된 라이선스가 없습니다.</p>
+            <p className="text-sm text-gray-500">{t.common.noData}</p>
           ) : (
             <div className="max-h-60 space-y-1 overflow-y-auto rounded-md border border-gray-200 p-2">
               {licenses.map((license) => (
@@ -80,14 +82,14 @@ export default function NewGroupForm({ licenses }: { licenses: License[] }) {
 
         <div className="flex items-center justify-end gap-3 border-t border-gray-200 pt-4">
           <Link href="/settings/groups" className="rounded-md px-4 py-2 text-sm font-medium text-gray-700 ring-1 ring-gray-300 hover:bg-gray-50">
-            취소
+            {t.common.cancel}
           </Link>
           <button
             type="submit"
             disabled={isPending}
             className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
           >
-            {isPending ? "생성 중..." : "생성"}
+            {isPending ? `${t.common.create}...` : t.common.create}
           </button>
         </div>
       </form>

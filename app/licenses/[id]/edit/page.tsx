@@ -31,7 +31,7 @@ export default async function EditLicensePage({ params }: Props) {
 
   if (!license) notFound();
 
-  // 활성 배정 수 계산 (유형 변경 경고용)
+  // Count active assignments (for license type change warning)
   const activeAssignmentCount = await prisma.assignment.count({
     where: { licenseId: Number(id), returnedDate: null },
   });
@@ -44,9 +44,9 @@ export default async function EditLicensePage({ params }: Props) {
       : null,
   }));
 
-  // 상위 라이선스 선택용 목록 (자신 제외)
+  // Parent license candidates (excluding self; already-child licenses cannot be parent)
   const allLicenses = await prisma.license.findMany({
-    where: { id: { not: Number(id) }, parentId: null }, // 이미 하위 라이선스인 것은 상위가 될 수 없음
+    where: { id: { not: Number(id) }, parentId: null },
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });

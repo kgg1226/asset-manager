@@ -17,6 +17,7 @@ import {
   Filter,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n";
 
 // ── Types ──
 
@@ -54,6 +55,7 @@ interface LogStats {
 // ── Component ──
 
 export default function NotificationSettingsPage() {
+  const { t } = useTranslation();
   // Test state
   const [testChannel, setTestChannel] = useState<"EMAIL" | "SLACK" | "BOTH">("BOTH");
   const [testEmail, setTestEmail] = useState("");
@@ -136,7 +138,7 @@ export default function NotificationSettingsPage() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
               <Bell className="h-7 w-7 text-blue-600" />
-              알림 설정
+              {t.notification.title}
             </h1>
             <p className="mt-1 text-sm text-gray-500">이메일·Slack 연동 테스트 및 발송 이력 확인</p>
           </div>
@@ -168,7 +170,7 @@ export default function NotificationSettingsPage() {
                     {ch === "EMAIL" && <Mail className="h-3.5 w-3.5" />}
                     {ch === "SLACK" && <MessageSquare className="h-3.5 w-3.5" />}
                     {ch === "BOTH" && <Bell className="h-3.5 w-3.5" />}
-                    {{ EMAIL: "이메일", SLACK: "Slack", BOTH: "둘 다" }[ch]}
+                    {{ EMAIL: t.notification.emailChannel, SLACK: t.notification.slackChannel, BOTH: `${t.notification.emailChannel} + ${t.notification.slackChannel}` }[ch]}
                   </button>
                 ))}
               </div>
@@ -199,7 +201,7 @@ export default function NotificationSettingsPage() {
             ) : (
               <Send className="h-4 w-4" />
             )}
-            {isTesting ? "테스트 중..." : "테스트 발송"}
+            {isTesting ? t.common.loading : t.notification.testSend}
           </button>
 
           {/* Test Results */}
@@ -270,7 +272,7 @@ export default function NotificationSettingsPage() {
         {/* ── Notification Log Section ── */}
         <div className="rounded-lg bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-bold text-gray-900">발송 이력</h2>
+            <h2 className="text-lg font-bold text-gray-900">{t.notification.sendHistory}</h2>
             <button
               onClick={loadLogs}
               disabled={isLoadingLogs}
@@ -285,19 +287,19 @@ export default function NotificationSettingsPage() {
           {stats && (
             <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div className="rounded-md bg-gray-50 p-3 text-center">
-                <p className="text-xs text-gray-500">전체</p>
+                <p className="text-xs text-gray-500">{t.common.all}</p>
                 <p className="text-lg font-bold text-gray-900">{stats.total}</p>
               </div>
               <div className="rounded-md bg-green-50 p-3 text-center">
-                <p className="text-xs text-green-600">성공</p>
+                <p className="text-xs text-green-600">{t.common.success}</p>
                 <p className="text-lg font-bold text-green-700">{stats.ok}</p>
               </div>
               <div className="rounded-md bg-red-50 p-3 text-center">
-                <p className="text-xs text-red-600">실패</p>
+                <p className="text-xs text-red-600">{t.common.failure}</p>
                 <p className="text-lg font-bold text-red-700">{stats.fail}</p>
               </div>
               <div className="rounded-md bg-blue-50 p-3 text-center">
-                <p className="text-xs text-blue-600">이메일 / Slack</p>
+                <p className="text-xs text-blue-600">{t.notification.emailChannel} / {t.notification.slackChannel}</p>
                 <p className="text-lg font-bold text-blue-700">{stats.byChannel.EMAIL} / {stats.byChannel.SLACK}</p>
               </div>
             </div>
@@ -311,18 +313,18 @@ export default function NotificationSettingsPage() {
               onChange={(e) => setLogFilter((p) => ({ ...p, status: e.target.value }))}
               className="rounded-md border border-gray-300 px-2 py-1 text-sm"
             >
-              <option value="">모든 상태</option>
-              <option value="OK">성공</option>
-              <option value="FAIL">실패</option>
+              <option value="">{t.common.all} {t.common.status}</option>
+              <option value="OK">{t.common.success}</option>
+              <option value="FAIL">{t.common.failure}</option>
             </select>
             <select
               value={logFilter.channel}
               onChange={(e) => setLogFilter((p) => ({ ...p, channel: e.target.value }))}
               className="rounded-md border border-gray-300 px-2 py-1 text-sm"
             >
-              <option value="">모든 채널</option>
-              <option value="EMAIL">이메일</option>
-              <option value="SLACK">Slack</option>
+              <option value="">{t.common.all}</option>
+              <option value="EMAIL">{t.notification.emailChannel}</option>
+              <option value="SLACK">{t.notification.slackChannel}</option>
             </select>
           </div>
 
@@ -341,9 +343,9 @@ export default function NotificationSettingsPage() {
               </thead>
               <tbody>
                 {isLoadingLogs ? (
-                  <tr><td colSpan={6} className="px-3 py-6 text-center text-gray-400">로딩 중...</td></tr>
+                  <tr><td colSpan={6} className="px-3 py-6 text-center text-gray-400">{t.common.loading}</td></tr>
                 ) : logs.length === 0 ? (
-                  <tr><td colSpan={6} className="px-3 py-6 text-center text-gray-500">발송 이력이 없습니다</td></tr>
+                  <tr><td colSpan={6} className="px-3 py-6 text-center text-gray-500">{t.common.noData}</td></tr>
                 ) : (
                   logs.map((log) => (
                     <tr key={log.id} className="border-b hover:bg-gray-50">
@@ -356,7 +358,7 @@ export default function NotificationSettingsPage() {
                           log.channel === "EMAIL" ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"
                         }`}>
                           {log.channel === "EMAIL" ? <Mail className="h-3 w-3" /> : <MessageSquare className="h-3 w-3" />}
-                          {log.channel === "EMAIL" ? "이메일" : "Slack"}
+                          {log.channel === "EMAIL" ? t.notification.emailChannel : t.notification.slackChannel}
                         </span>
                       </td>
                       <td className="px-3 py-2 text-xs text-gray-700 max-w-[150px] truncate" title={log.recipient}>{log.recipient}</td>
@@ -371,9 +373,9 @@ export default function NotificationSettingsPage() {
                       </td>
                       <td className="px-3 py-2">
                         {log.status === "OK" ? (
-                          <span className="inline-flex items-center gap-1 text-xs text-green-600"><CheckCircle2 className="h-3.5 w-3.5" />성공</span>
+                          <span className="inline-flex items-center gap-1 text-xs text-green-600"><CheckCircle2 className="h-3.5 w-3.5" />{t.common.success}</span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-xs text-red-600"><XCircle className="h-3.5 w-3.5" />실패</span>
+                          <span className="inline-flex items-center gap-1 text-xs text-red-600"><XCircle className="h-3.5 w-3.5" />{t.common.failure}</span>
                         )}
                       </td>
                       <td className="px-3 py-2 text-xs text-red-600 max-w-[200px] truncate" title={log.errorMsg ?? ""}>

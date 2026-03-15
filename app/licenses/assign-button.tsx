@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { assignLicenses } from "@/lib/assignment-actions";
 import { useToast } from "@/app/toast";
+import { useTranslation } from "@/lib/i18n";
 
 type Employee = { id: number; name: string; department: string };
 type LicenseType = "NO_KEY" | "KEY_BASED" | "VOLUME";
@@ -23,6 +24,7 @@ export default function AssignButton({
   licenseType?: LicenseType;
 }) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -98,9 +100,9 @@ export default function AssignButton({
         onClick={() => setOpen(true)}
         disabled={remaining <= 0}
         className="rounded px-2 py-1 text-xs font-medium text-green-700 hover:bg-green-50 disabled:cursor-not-allowed disabled:text-gray-400 disabled:hover:bg-transparent"
-        title={remaining <= 0 ? "잔여 수량 없음" : `할당 (잔여 ${remaining})`}
+        title={remaining <= 0 ? t.license.unassigned : `${t.dashboard.assigned} (${remaining})`}
       >
-        할당
+        {t.dashboard.assigned}
       </button>
 
       {open && (
@@ -110,7 +112,7 @@ export default function AssignButton({
         >
           <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <h3 className="mb-1 text-lg font-semibold text-gray-900">
-              라이선스 할당
+              {t.license.seatAssignment}
               {typeLabel && (
                 <span className={`ml-2 rounded px-2 py-0.5 text-xs font-semibold ${licenseType === "VOLUME"
                   ? "bg-purple-100 text-purple-700"
@@ -121,11 +123,11 @@ export default function AssignButton({
               )}
             </h3>
             <p className="mb-1 text-sm text-gray-500">
-              {licenseName} — 잔여 {remaining}개
+              {licenseName} — {remaining}
             </p>
             {selected.size > 0 && (
               <p className="mb-1 text-xs text-blue-600">
-                {selected.size}명 선택 / 잔여 {remaining}개
+                {selected.size} / {remaining}
                 {selected.size >= remaining && (
                   <span className="ml-1 text-amber-600">(최대)</span>
                 )}
@@ -133,7 +135,7 @@ export default function AssignButton({
             )}
             {licenseType === "VOLUME" && (
               <p className="mb-3 text-xs text-purple-600">
-                이 키는 전사 공통키 입니다.
+                {t.license.volume}
               </p>
             )}
             {licenseType !== "VOLUME" && <div className="mb-2" />}
@@ -142,7 +144,7 @@ export default function AssignButton({
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="이름 또는 부서로 검색..."
+              placeholder={t.common.search}
               autoFocus
               className="input mb-3"
             />
@@ -150,7 +152,7 @@ export default function AssignButton({
             <div className="max-h-60 overflow-y-auto rounded-md border border-gray-200">
               {available.length === 0 ? (
                 <p className="p-4 text-center text-sm text-gray-500">
-                  {employees.length === assignedSet.size ? "모든 조직원에게 이미 할당되었습니다." : "검색 결과가 없습니다."}
+                  {t.common.noData}
                 </p>
               ) : (
                 available.map((emp) => {
@@ -186,7 +188,7 @@ export default function AssignButton({
                 onClick={close}
                 className="rounded-md px-4 py-2 text-sm font-medium text-gray-700 ring-1 ring-gray-300 hover:bg-gray-50"
               >
-                닫기
+                {t.common.close}
               </button>
               {selected.size > 0 && (
                 <button
@@ -194,7 +196,7 @@ export default function AssignButton({
                   disabled={isPending}
                   className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {isPending ? "할당 중..." : `${selected.size}명 할당`}
+                  {isPending ? t.common.loading : `${selected.size} ${t.dashboard.assigned}`}
                 </button>
               )}
             </div>

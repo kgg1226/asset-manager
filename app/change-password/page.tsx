@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n";
 
 export default function ChangePasswordPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -85,7 +87,7 @@ export default function ChangePasswordPage() {
       <div className="mx-auto max-w-md px-4">
         <div className="rounded-lg bg-white p-8 shadow-sm ring-1 ring-gray-200">
           <h1 className="mb-2 text-2xl font-bold text-gray-900">
-            비밀번호 변경 필수
+            {t.auth.changePassword}
           </h1>
           <p className="mb-6 text-sm text-gray-600">
             관리자가 임시 비밀번호를 발급했습니다.
@@ -97,7 +99,7 @@ export default function ChangePasswordPage() {
             {/* 새 비밀번호 입력 */}
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700">
-                새 비밀번호 *
+                {t.auth.newPassword} *
               </label>
               <input
                 type="password"
@@ -115,7 +117,7 @@ export default function ChangePasswordPage() {
             {/* 비밀번호 확인 입력 */}
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700">
-                비밀번호 확인 *
+                {t.auth.confirmPassword} *
               </label>
               <input
                 type="password"
@@ -136,7 +138,7 @@ export default function ChangePasswordPage() {
               disabled={isLoading || !newPassword || !confirmPassword}
               className="mt-6 w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
             >
-              {isLoading ? "변경 중..." : "비밀번호 변경"}
+              {isLoading ? t.common.loading : t.auth.changePassword}
             </button>
           </div>
 

@@ -1,8 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound, redirect } from "next/navigation";
-import EditGroupForm from "./edit-form";
-import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
+import EditPageClient from "./edit-page-client";
 
 export const dynamic = "force-dynamic";
 
@@ -22,17 +21,13 @@ export default async function EditGroupPage({ params }: { params: Promise<{ id: 
     orderBy: { name: "asc" },
   });
 
-  return (
-    <div className="min-h-screen bg-gray-50 py-10">
-      <div className="mx-auto max-w-2xl px-4">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">그룹 수정</h1>
-          <Link href="/settings/groups" className="text-sm text-gray-500 hover:text-gray-700">
-            &larr; 목록으로
-          </Link>
-        </div>
-        <EditGroupForm group={group} licenses={licenses} />
-      </div>
-    </div>
-  );
+  const serializedGroup = {
+    id: group.id,
+    name: group.name,
+    description: group.description,
+    isDefault: group.isDefault,
+    members: group.members.map((m) => ({ licenseId: m.licenseId })),
+  };
+
+  return <EditPageClient group={serializedGroup} licenses={licenses} />;
 }
