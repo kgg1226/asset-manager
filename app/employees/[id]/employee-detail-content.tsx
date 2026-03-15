@@ -92,8 +92,8 @@ export default function EmployeeDetailContent({
   const actionLabelMap: Record<string, string> = {
     ASSIGNED: t.dashboard.assigned,
     RETURNED: t.common.back,
-    REVOKED: t.common.delete,
-    UNASSIGNED: t.common.delete,
+    REVOKED: t.license.unassign,
+    UNASSIGNED: t.license.unassign,
     CREATED: t.history.created,
     UPDATED: t.history.updated,
     IMPORTED: t.common.import,

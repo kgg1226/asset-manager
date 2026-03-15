@@ -91,7 +91,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
     licenseType: a.license.licenseType as "NO_KEY" | "KEY_BASED" | "VOLUME",
     seatKey: a.seat?.key ?? null,
     volumeKey: a.license.licenseType === "VOLUME" ? a.license.key : null,
-    assignedDate: a.assignedDate.toLocaleDateString("ko-KR"),
+    assignedDate: a.assignedDate.toLocaleDateString(),
     reason: a.reason,
   }));
 
@@ -110,7 +110,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
       id: `ah-${h.id}`,
       action: h.action,
       description: `${licenseName} — ${actionLabel}${h.reason ? ` (${h.reason})` : ""}`,
-      createdAt: h.createdAt.toLocaleDateString("ko-KR"),
+      createdAt: h.createdAt.toLocaleDateString(),
     };
   });
 
@@ -124,8 +124,8 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
     id: a.id,
     licenseId: a.licenseId,
     licenseName: a.license.name,
-    assignedDate: a.assignedDate.toLocaleDateString("ko-KR"),
-    returnedDate: a.returnedDate?.toLocaleDateString("ko-KR") ?? null,
+    assignedDate: a.assignedDate.toLocaleDateString(),
+    returnedDate: a.returnedDate?.toLocaleDateString() ?? null,
   }));
 
   // Serialize employee data

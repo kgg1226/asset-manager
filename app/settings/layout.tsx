@@ -4,16 +4,18 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { UserCircle, Users, Upload } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-
-const TABS = [
-  { href: "/settings/profile", label: "내 프로필", icon: UserCircle, adminOnly: false },
-  { href: "/settings/groups", label: "그룹 관리", icon: Users, adminOnly: true },
-  { href: "/settings/import", label: "데이터 가져오기", icon: Upload, adminOnly: true },
-];
+import { useTranslation } from "@/lib/i18n";
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const { t } = useTranslation();
+
+  const TABS = [
+    { href: "/settings/profile", label: t.nav.profile, icon: UserCircle, adminOnly: false },
+    { href: "/settings/groups", label: t.nav.groupSettings, icon: Users, adminOnly: true },
+    { href: "/settings/import", label: t.nav.dataImport, icon: Upload, adminOnly: true },
+  ];
   const isAdmin = user?.role === "ADMIN";
 
   const visibleTabs = TABS.filter((t) => !t.adminOnly || isAdmin);

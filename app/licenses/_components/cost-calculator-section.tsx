@@ -65,6 +65,7 @@ export default function CostCalculatorSection({
   }, [paymentCycle, quantity, unitPrice, currency, exchangeRateStr, isVatIncluded]);
 
   const symbol = CURRENCY_SYMBOLS[currency];
+  const krwSymbol = CURRENCY_SYMBOLS["KRW"];
 
   return (
     <fieldset className="space-y-4">
@@ -109,7 +110,7 @@ export default function CostCalculatorSection({
       {/* Exchange rate */}
       <div>
         <label className="mb-1 block text-sm font-medium text-gray-700">
-          {t.license.exchangeRate} ({symbol} → ₩)
+          {t.license.exchangeRate} ({symbol} → {krwSymbol})
         </label>
         <input
           type="number"
@@ -153,7 +154,7 @@ export default function CostCalculatorSection({
           <dl className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
             <dt className="text-gray-600">{t.license.unitPrice} ({symbol})</dt>
             <dd className="text-right font-medium text-gray-900">
-              {preview.subtotal.toLocaleString("ko-KR")}
+              {preview.subtotal.toLocaleString()}
             </dd>
 
             {isVatIncluded ? (
@@ -165,21 +166,21 @@ export default function CostCalculatorSection({
               <>
                 <dt className="text-gray-600">VAT 10% ({symbol})</dt>
                 <dd className="text-right font-medium text-gray-900">
-                  + {preview.vatAmount.toLocaleString("ko-KR")}
+                  + {preview.vatAmount.toLocaleString()}
                 </dd>
               </>
             )}
 
             <dt className="font-medium text-gray-700">{t.common.total} ({symbol})</dt>
             <dd className="text-right font-semibold text-blue-700">
-              {preview.totalAmountForeign.toLocaleString("ko-KR")}
+              {preview.totalAmountForeign.toLocaleString()}
             </dd>
 
             {currency !== "KRW" && (
               <>
-                <dt className="font-medium text-gray-700">{t.common.total} (₩)</dt>
+                <dt className="font-medium text-gray-700">{t.common.total} ({krwSymbol})</dt>
                 <dd className="text-right font-semibold text-blue-700">
-                  ₩{preview.totalAmountKRW.toLocaleString("ko-KR")}
+                  {krwSymbol}{preview.totalAmountKRW.toLocaleString()}
                 </dd>
               </>
             )}
@@ -187,13 +188,13 @@ export default function CostCalculatorSection({
             <dt className="col-span-2 mt-1 border-t border-gray-200 pt-2 text-xs font-medium uppercase text-gray-500">
               {t.license.totalAmount}
             </dt>
-            <dt className="text-gray-600">{t.license.monthly} (₩)</dt>
+            <dt className="text-gray-600">{t.license.monthly} ({krwSymbol})</dt>
             <dd className="text-right text-gray-700">
-              ₩{preview.monthlyKRW.toLocaleString("ko-KR")}
+              {krwSymbol}{preview.monthlyKRW.toLocaleString()}
             </dd>
-            <dt className="text-gray-600">{t.license.yearly} (₩)</dt>
+            <dt className="text-gray-600">{t.license.yearly} ({krwSymbol})</dt>
             <dd className="text-right text-gray-700">
-              ₩{preview.annualKRW.toLocaleString("ko-KR")}
+              {krwSymbol}{preview.annualKRW.toLocaleString()}
             </dd>
           </dl>
         ) : (

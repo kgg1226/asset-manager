@@ -9,7 +9,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
 import CiaBadge from "@/app/_components/cia-badge";
 import { TourGuide } from "@/app/_components/tour-guide";
-import { HARDWARE_TOUR_KEY, hardwareSteps } from "@/app/_components/tours/hardware-tour";
+import { HARDWARE_TOUR_KEY, getHardwareSteps } from "@/app/_components/tours/hardware-tour";
+import HwAssignButton from "./hw-assign-button";
+import HwUnassignButton from "./hw-unassign-button";
 
 type AssetStatus = "IN_STOCK" | "IN_USE" | "INACTIVE" | "UNUSABLE" | "PENDING_DISPOSAL" | "DISPOSED";
 
@@ -21,7 +23,7 @@ interface Asset {
   hardwareDetail?: { deviceType?: string | null; manufacturer?: string | null; model?: string | null; condition?: string | null } | null;
 }
 
-const STATUS_LABELS: Record<AssetStatus, string> = { IN_STOCK: "재고", IN_USE: "사용 중", INACTIVE: "미사용", UNUSABLE: "불용", PENDING_DISPOSAL: "폐기 대상", DISPOSED: "폐기 완료" };
+const STATUS_KEYS: Record<AssetStatus, string> = { IN_STOCK: "statusInStock", IN_USE: "statusInUse", INACTIVE: "statusInactive", UNUSABLE: "statusUnusable", PENDING_DISPOSAL: "statusPendingDisposal", DISPOSED: "statusDisposed" };
 const STATUS_COLORS: Record<AssetStatus, string> = { IN_STOCK: "bg-gray-100 text-gray-800", IN_USE: "bg-green-100 text-green-800", INACTIVE: "bg-yellow-100 text-yellow-800", UNUSABLE: "bg-orange-100 text-orange-800", PENDING_DISPOSAL: "bg-red-100 text-red-800", DISPOSED: "bg-gray-800 text-gray-100" };
 
 type SortField = "name" | "deviceType" | "manufacturer" | "status" | "cost" | "assignee" | "purchaseDate";
@@ -29,7 +31,9 @@ type SortOrder = "asc" | "desc";
 
 function formatCost(cost: number | null | undefined, currency: string): string {
   if (cost == null) return "—";
-  return currency === "KRW" ? `${cost.toLocaleString("ko-KR")}원` : `${currency} ${cost.toLocaleString()}`;
+  const symbols: Record<string, string> = { KRW: "₩", USD: "$", EUR: "€", JPY: "¥", GBP: "£", CNY: "¥" };
+  const sym = symbols[currency] ?? currency;
+  return `${sym}${cost.toLocaleString()}`;
 }
 
 const STATUS_ORDER: Record<AssetStatus, number> = { IN_STOCK: 0, IN_USE: 1, INACTIVE: 2, UNUSABLE: 3, PENDING_DISPOSAL: 4, DISPOSED: 5 };
@@ -82,6 +86,8 @@ export default function HardwareListPage() {
   const { user } = useAuth();
   const { t } = useTranslation();
   const isAdmin = user?.role === "ADMIN";
+
+  const getStatusLabel = (s: AssetStatus) => (t.asset as Record<string, string>)[STATUS_KEYS[s]] ?? s;
 
   const [assets, setAssets] = useState<Asset[]>([]);
   const [total, setTotal] = useState(0);
@@ -154,7 +160,7 @@ export default function HardwareListPage() {
         <div className="mb-8 flex items-center justify-between">
           <h1 className="text-3xl font-bold text-gray-900">{t.hw.title}</h1>
           <div className="flex gap-2">
-            <TourGuide tourKey={HARDWARE_TOUR_KEY} steps={hardwareSteps} />
+            <TourGuide tourKey={HARDWARE_TOUR_KEY} steps={getHardwareSteps(t)} />
             <button onClick={loadAssets} disabled={isLoading} className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
               <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             </button>
@@ -172,8 +178,8 @@ export default function HardwareListPage() {
           </div>
           <div className="flex flex-wrap gap-2" data-tour="hw-status-filter">
             <button onClick={() => setSelectedStatus("")} className={`rounded-full px-3 py-1 text-sm ${selectedStatus === "" ? "bg-blue-600 text-white" : "bg-gray-100"}`}>{t.common.all} {t.common.status}</button>
-            {(Object.keys(STATUS_LABELS) as AssetStatus[]).map((s) => (
-              <button key={s} onClick={() => setSelectedStatus(s)} className={`rounded-full px-3 py-1 text-sm ${selectedStatus === s ? "bg-blue-600 text-white" : "bg-gray-100"}`}>{STATUS_LABELS[s]}</button>
+            {(Object.keys(STATUS_KEYS) as AssetStatus[]).map((s) => (
+              <button key={s} onClick={() => setSelectedStatus(s)} className={`rounded-full px-3 py-1 text-sm ${selectedStatus === s ? "bg-blue-600 text-white" : "bg-gray-100"}`}>{getStatusLabel(s)}</button>
             ))}
           </div>
         </div>
@@ -182,14 +188,14 @@ export default function HardwareListPage() {
           <table className="w-full min-w-[900px]">
             <thead className="border-b bg-gray-50">
               <tr>
-                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600" onClick={() => handleSort("name")}>{t.asset.assetName}<SortIcon field="name" /></th>
-                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600" onClick={() => handleSort("deviceType")}>{t.hw.deviceType}<SortIcon field="deviceType" /></th>
-                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600" onClick={() => handleSort("manufacturer")}>{t.hw.manufacturer} / {t.hw.model}<SortIcon field="manufacturer" /></th>
-                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600" onClick={() => handleSort("status")}>{t.common.status}<SortIcon field="status" /></th>
-                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600" onClick={() => handleSort("cost")}>{t.asset.cost}<SortIcon field="cost" /></th>
-                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600" onClick={() => handleSort("assignee")}>{t.asset.assignee}<SortIcon field="assignee" /></th>
-                <th className="px-6 py-3 text-left text-xs font-semibold">{t.cia.title}</th>
-                {isAdmin && <th className="px-6 py-3 text-right text-xs font-semibold">{t.common.actions}</th>}
+                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("name")}>{t.asset.assetName}<SortIcon field="name" /></th>
+                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("deviceType")}>{t.hw.deviceType}<SortIcon field="deviceType" /></th>
+                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("manufacturer")}>{t.hw.manufacturer} / {t.hw.model}<SortIcon field="manufacturer" /></th>
+                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("status")}>{t.common.status}<SortIcon field="status" /></th>
+                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("cost")}>{t.asset.cost}<SortIcon field="cost" /></th>
+                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("assignee")}>{t.asset.assignee}<SortIcon field="assignee" /></th>
+                <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.cia.title}</th>
+                {isAdmin && <th className="px-6 py-3 text-right text-xs font-semibold whitespace-nowrap">{t.common.actions}</th>}
               </tr>
             </thead>
             <tbody>
@@ -204,7 +210,7 @@ export default function HardwareListPage() {
                     <td className="px-6 py-4 text-sm text-gray-600">{a.hardwareDetail?.deviceType || "—"}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{[a.hardwareDetail?.manufacturer, a.hardwareDetail?.model].filter(Boolean).join(" ") || "—"}</td>
                     <td className="px-6 py-4">
-                      <span className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${STATUS_COLORS[a.status]}`}>{STATUS_LABELS[a.status]}</span>
+                      <span className={`inline-block whitespace-nowrap rounded-full px-2 py-1 text-xs font-medium ${STATUS_COLORS[a.status]}`}>{getStatusLabel(a.status)}</span>
                       {a.hardwareDetail?.condition && <span className={`ml-1 inline-block rounded px-1.5 py-0.5 text-xs font-bold ${a.hardwareDetail.condition === "A" ? "bg-green-100 text-green-700" : a.hardwareDetail.condition === "B" ? "bg-blue-100 text-blue-700" : a.hardwareDetail.condition === "C" ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"}`}>{a.hardwareDetail.condition}</span>}
                     </td>
                     <td className="px-6 py-4 text-sm">{formatCost(a.cost, a.currency)}</td>
@@ -212,7 +218,13 @@ export default function HardwareListPage() {
                     <td className="px-6 py-4 text-sm"><CiaBadge ciaC={a.ciaC} ciaI={a.ciaI} ciaA={a.ciaA} /></td>
                     {isAdmin && (
                       <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end gap-1">
+                          {!a.assignee && a.status === "IN_STOCK" && (
+                            <HwAssignButton assetId={a.id} assetName={a.name} onDone={loadAssets} />
+                          )}
+                          {a.assignee && (
+                            <HwUnassignButton assetId={a.id} assetName={a.name} assigneeName={a.assignee.name} onDone={loadAssets} />
+                          )}
                           <button onClick={() => router.push(`/hardware/${a.id}`)} className="rounded p-1 hover:bg-gray-200" title={t.common.detail}><Eye className="h-4 w-4" /></button>
                           <button onClick={() => router.push(`/hardware/${a.id}/edit`)} className="rounded p-1 hover:bg-gray-200" title={t.common.edit}><Edit className="h-4 w-4" /></button>
                           <button onClick={() => handleDelete(a.id, a.name)} className="rounded p-1 hover:bg-gray-200" title={t.common.delete}><Trash2 className="h-4 w-4 text-red-600" /></button>

@@ -81,7 +81,7 @@ export default function NewLicensePage() {
                 type="text"
                 name="name"
                 required
-                placeholder="예: Microsoft 365 Business"
+                placeholder="Microsoft 365 Business"
                 className="input"
               />
             </Field>
@@ -119,7 +119,7 @@ export default function NewLicensePage() {
                 <input
                   type="text"
                   name="key"
-                  placeholder="예: XXXXX-XXXXX-XXXXX-XXXXX"
+                  placeholder="XXXXX-XXXXX-XXXXX-XXXXX"
                   className="input"
                 />
               </Field>

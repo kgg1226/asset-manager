@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { TrendingUp, Save, RefreshCw, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/i18n";
+import { TourGuide } from "@/app/_components/tour-guide";
+import { EXCHANGE_RATES_TOUR_KEY, getExchangeRatesSteps } from "@/app/_components/tours/exchange-rates-tour";
 
 const CURRENCIES = [
   { code: "USD", name: "US Dollar" },
@@ -109,10 +111,11 @@ export default function ExchangeRatesPage() {
         <div className="mb-6 flex items-center gap-3">
           <TrendingUp className="h-6 w-6 text-blue-600" />
           <h1 className="text-2xl font-bold text-gray-900">{t.header.exchangeRate}</h1>
+          <TourGuide tourKey={EXCHANGE_RATES_TOUR_KEY} steps={getExchangeRatesSteps(t)} />
         </div>
 
         {/* sync card */}
-        <div className="mb-4 rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-200">
+        <div className="mb-4 rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-200" data-tour="exchange-rates-sync">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-700">API Sync</p>
@@ -137,7 +140,7 @@ export default function ExchangeRatesPage() {
           </div>
         </div>
 
-        <div className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
+        <div className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200" data-tour="exchange-rates-table">
           <div className="mb-6 flex items-end gap-3">
             <div>
               <label className="block text-xs font-medium uppercase text-gray-500 mb-1">{t.common.date}</label>

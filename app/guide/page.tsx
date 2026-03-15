@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import {
   CheckCircle2,
@@ -13,11 +13,12 @@ import {
   FileSignature,
   Bell,
   Settings,
-  Users,
   ArrowRight,
   BookOpen,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
+import { TourGuide } from "@/app/_components/tour-guide";
+import { GUIDE_TOUR_KEY, getGuideSteps } from "@/app/_components/tours/guide-tour";
 
 interface Step {
   id: string;
@@ -35,255 +36,250 @@ interface GuideSection {
   steps: Step[];
 }
 
-const GUIDE_SECTIONS: GuideSection[] = [
-  {
-    id: "start",
-    icon: <Settings className="h-5 w-5" />,
-    title: "시작하기",
-    subtitle: "시스템 기본 설정",
-    steps: [
-      {
-        id: "s1",
-        title: "1. 조직 구조 설정",
-        description: "회사와 부서를 등록하세요. 자산 배정과 보고서의 기반이 됩니다.",
-        details: [
-          "조직도 페이지에서 회사 → 부서 → 팀 순으로 등록",
-          "조직원을 해당 부서에 배정",
-          "조직원의 이메일을 정확히 입력해야 알림이 발송됩니다",
-        ],
-        link: { href: "/org", label: "조직도 설정" },
-      },
-      {
-        id: "s2",
-        title: "2. 조직원 등록",
-        description: "자산을 배정받을 조직원을 등록합니다.",
-        details: [
-          "수동 등록: 조직원 > 새 조직원 등록",
-          "일괄 등록: 설정 > 데이터 가져오기에서 CSV 파일 업로드",
-          "부서, 직급, 이메일 정보를 정확히 입력하세요",
-        ],
-        link: { href: "/employees", label: "조직원 관리" },
-      },
-      {
-        id: "s3",
-        title: "3. 환경변수 설정 (서버 관리자)",
-        description: "이메일·Slack 알림을 위한 서버 환경변수를 설정합니다.",
-        details: [
-          "SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM — 이메일 발송용",
-          "SLACK_WEBHOOK_URL — Slack Incoming Webhook URL",
-          "docker-compose.yml 또는 .env 파일에서 설정",
-          "설정 후 '알림 설정' 페이지에서 테스트 발송으로 확인하세요",
-        ],
-        link: { href: "/settings/notifications", label: "알림 테스트" },
-      },
-    ],
-  },
-  {
-    id: "hardware",
-    icon: <HardDrive className="h-5 w-5" />,
-    title: "하드웨어 자산",
-    subtitle: "노트북, 서버, 네트워크 장비 관리",
-    steps: [
-      {
-        id: "h1",
-        title: "1. 하드웨어 등록",
-        description: "장비 유형별로 자산을 등록합니다.",
-        details: [
-          "장비 유형: Laptop / Desktop / Server / Network / Mobile / Other",
-          "기본 정보: 자산명, 제조사, 모델, 시리얼 넘버",
-          "Server/Network 장비는 IP, 서브넷, VLAN 등 네트워크 정보 입력 가능",
-          "상태 등급 (A~D)으로 자산 컨디션 관리",
-        ],
-        link: { href: "/hardware/new", label: "하드웨어 등록" },
-      },
-      {
-        id: "h2",
-        title: "2. 보증/구매 관리",
-        description: "보증 기간과 구매 정보를 기록합니다.",
-        details: [
-          "보증 만료일, 보증 업체 정보 기록",
-          "PO 번호, 인보이스 번호로 구매 이력 추적",
-          "보증 만료 시 상세 페이지에서 경고 표시",
-        ],
-      },
-      {
-        id: "h3",
-        title: "3. 자산 배정/회수",
-        description: "조직원에게 장비를 배정하고 회수합니다.",
-        details: [
-          "상세 페이지에서 담당자 배정",
-          "회수 시 상태를 '재고'로 변경",
-          "배정/회수 이력은 감사 로그에 자동 기록",
-        ],
-      },
-    ],
-  },
-  {
-    id: "cloud",
-    icon: <Cloud className="h-5 w-5" />,
-    title: "클라우드 자산",
-    subtitle: "AWS, GCP, SaaS 구독 관리",
-    steps: [
-      {
-        id: "c1",
-        title: "1. 클라우드 자산 등록",
-        description: "클라우드 서비스와 SaaS 구독을 등록합니다.",
-        details: [
-          "플랫폼 선택: AWS / GCP / Azure / Slack / GitHub 등",
-          "서비스 분류: IaaS / PaaS / SaaS / Security 등",
-          "리소스 타입과 ID를 기록하여 실제 리소스와 매핑",
-        ],
-        link: { href: "/cloud/new", label: "클라우드 등록" },
-      },
-      {
-        id: "c2",
-        title: "2. 계약/구독 관리",
-        description: "계약 기간, 갱신일, 해지 통보 기한을 설정합니다.",
-        details: [
-          "계약 시작일 + 계약 기간(개월) 입력",
-          "갱신 예정일: 자동 갱신 서비스의 다음 갱신일",
-          "해지 통보 기한: 이 날짜 전에 해지를 통보해야 함",
-          "결제 수단, 계약 번호 등 관리 정보 기록",
-        ],
-      },
-      {
-        id: "c3",
-        title: "3. 알림 설정",
-        description: "갱신일·해지 통보 기한 D-day 알림을 받으세요.",
-        details: [
-          "알림 채널: 이메일 / Slack / 둘 다 / 끄기",
-          "관리자 이메일과 Slack ID를 입력하면 해당 담당자에게 직접 알림",
-          "D-70, D-30, D-15, D-7 시점에 자동 알림 발송",
-          "Slack ID는 'U'로 시작하는 멤버 ID (프로필에서 확인 가능)",
-        ],
-        link: { href: "/settings/notifications", label: "알림 테스트" },
-      },
-    ],
-  },
-  {
-    id: "license",
-    icon: <FileText className="h-5 w-5" />,
-    title: "소프트웨어 라이선스",
-    subtitle: "라이선스 키, 시트 배정, 그룹 관리",
-    steps: [
-      {
-        id: "l1",
-        title: "1. 라이선스 등록",
-        description: "소프트웨어 라이선스를 등록하고 시트를 관리합니다.",
-        details: [
-          "라이선스 타입: 키 기반 / 볼륨 / 키 없음",
-          "수량, 단가, 결제 주기 (월/연) 설정",
-          "만료일 기반으로 D-day 알림 자동 발송",
-        ],
-        link: { href: "/licenses/new", label: "라이선스 등록" },
-      },
-      {
-        id: "l2",
-        title: "2. 시트 배정",
-        description: "조직원에게 라이선스 시트를 배정합니다.",
-        details: [
-          "라이선스 상세 페이지에서 시트 추가 및 배정",
-          "시트별 키를 개별 관리 가능",
-          "사용량 = 배정된 시트 / 전체 수량",
-        ],
-      },
-      {
-        id: "l3",
-        title: "3. 라이선스 그룹 설정",
-        description: "관련 라이선스를 그룹으로 묶어 체계적으로 관리합니다.",
-        details: [
-          "설정 > 그룹 설정에서 그룹 생성 (예: 'Office 365', '개발 도구')",
-          "그룹에 라이선스를 추가하여 관련 라이선스를 묶어 관리",
-          "기본 그룹 설정: 신규 라이선스가 자동으로 포함될 그룹 지정 가능",
-          "그룹별 라이선스 수량과 비용을 한눈에 파악",
-        ],
-        link: { href: "/settings/groups", label: "그룹 설정" },
-      },
-    ],
-  },
-  {
-    id: "domain",
-    icon: <Globe className="h-5 w-5" />,
-    title: "도메인·SSL",
-    subtitle: "도메인, SSL 인증서 만료 관리",
-    steps: [
-      {
-        id: "d1",
-        title: "도메인/SSL 등록",
-        description: "도메인과 SSL 인증서의 만료일을 관리합니다.",
-        details: [
-          "만료일 기반으로 자동 갱신 알림",
-          "등록기관, 레코드 정보 기록",
-        ],
-        link: { href: "/domains/new", label: "도메인 등록" },
-      },
-    ],
-  },
-  {
-    id: "contract",
-    icon: <FileSignature className="h-5 w-5" />,
-    title: "업체 계약",
-    subtitle: "유지보수, SLA, 외주 계약 관리",
-    steps: [
-      {
-        id: "ct1",
-        title: "계약 등록",
-        description: "업체 계약을 등록하고 만료일을 관리합니다.",
-        details: [
-          "계약 유형: 유지보수 / SLA / 외주 / 기타",
-          "계약 상대방, 자동 갱신 여부 기록",
-          "만료일 기반 알림",
-        ],
-        link: { href: "/contracts/new", label: "계약 등록" },
-      },
-    ],
-  },
-  {
-    id: "notification",
-    icon: <Bell className="h-5 w-5" />,
-    title: "알림 시스템",
-    subtitle: "이메일·Slack 알림 설정 및 테스트",
-    steps: [
-      {
-        id: "n1",
-        title: "1. 환경변수 설정",
-        description: "알림 발송을 위한 SMTP와 Slack Webhook을 설정합니다.",
-        details: [
-          "이메일: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM",
-          "Slack: SLACK_WEBHOOK_URL (Incoming Webhook)",
-          "서버의 .env 파일 또는 docker-compose.yml environment 섹션에서 설정",
-        ],
-      },
-      {
-        id: "n2",
-        title: "2. 연동 테스트",
-        description: "설정이 올바른지 테스트 발송으로 확인합니다.",
-        details: [
-          "알림 설정 페이지에서 '테스트 발송' 버튼 클릭",
-          "이메일/Slack 각각 독립적으로 테스트 가능",
-          "실패 시 상세 오류 메시지와 해결 방법을 확인하세요",
-        ],
-        link: { href: "/settings/notifications", label: "알림 테스트 페이지" },
-      },
-      {
-        id: "n3",
-        title: "3. 알림 이력 확인",
-        description: "발송된 알림의 성공/실패 이력을 확인합니다.",
-        details: [
-          "알림 설정 페이지 하단에서 최근 발송 이력 확인",
-          "실패한 알림의 오류 메시지로 문제 원인 파악",
-          "채널별, 상태별 필터링 지원",
-        ],
-        link: { href: "/settings/notifications", label: "발송 이력 보기" },
-      },
-    ],
-  },
-];
-
 export default function GuidePage() {
   const { t } = useTranslation();
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({ start: true });
   const [completedSteps, setCompletedSteps] = useState<Record<string, boolean>>({});
+
+  const GUIDE_SECTIONS: GuideSection[] = useMemo(() => [
+    {
+      id: "start",
+      icon: <Settings className="h-5 w-5" />,
+      title: t.guide.gettingStarted,
+      subtitle: t.guide.systemSetup,
+      steps: [
+        {
+          id: "s1",
+          title: t.guide.orgSetup,
+          description: t.guide.orgSetupDesc,
+          details: [
+            t.guide.orgSetupDetail1,
+            t.guide.orgSetupDetail2,
+            t.guide.orgSetupDetail3,
+          ],
+          link: { href: "/org", label: t.guide.orgChartSetup },
+        },
+        {
+          id: "s2",
+          title: t.guide.employeeRegister,
+          description: t.guide.employeeRegisterDesc,
+          details: [
+            t.guide.empRegisterDetail1,
+            t.guide.empRegisterDetail2,
+            t.guide.empRegisterDetail3,
+          ],
+          link: { href: "/employees", label: t.guide.employeeMgmt },
+        },
+        {
+          id: "s3",
+          title: t.guide.envSetup,
+          description: t.guide.envSetupDesc,
+          details: [
+            "SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM",
+            "SLACK_WEBHOOK_URL — Slack Incoming Webhook URL",
+            "docker-compose.yml / .env",
+          ],
+          link: { href: "/settings/notifications", label: t.guide.notifyTest },
+        },
+      ],
+    },
+    {
+      id: "hardware",
+      icon: <HardDrive className="h-5 w-5" />,
+      title: t.hw.title,
+      subtitle: t.guide.hwAssetsDesc,
+      steps: [
+        {
+          id: "h1",
+          title: t.guide.hwRegister,
+          description: t.guide.hwRegisterDesc,
+          details: [
+            "Laptop / Desktop / Server / Network / Mobile / Other",
+            `${t.asset.assetName}, ${t.hw.manufacturer}, ${t.hw.model}, ${t.hw.serialNumber}`,
+            `Server/Network: ${t.hw.ipAddress}, ${t.hw.subnetMask}, ${t.hw.vlanId}`,
+            `${t.hw.condition} (A~D)`,
+          ],
+          link: { href: "/hardware/new", label: t.hw.newHardware },
+        },
+        {
+          id: "h2",
+          title: t.guide.warrantyMgmt,
+          description: t.guide.warrantyMgmtDesc,
+          details: [
+            `${t.hw.warrantyExpiry}, ${t.hw.warrantyProvider}`,
+            `${t.hw.poNumber}, ${t.hw.invoiceNumber}`,
+          ],
+        },
+        {
+          id: "h3",
+          title: t.guide.assetAssign,
+          description: t.guide.assetAssignDesc,
+          details: [
+            t.hw.assignAsset,
+            t.hw.unassignAsset,
+            t.history.title,
+          ],
+        },
+      ],
+    },
+    {
+      id: "cloud",
+      icon: <Cloud className="h-5 w-5" />,
+      title: t.cloud.title,
+      subtitle: t.guide.cloudAssetsDesc,
+      steps: [
+        {
+          id: "c1",
+          title: t.guide.cloudRegister,
+          description: t.guide.cloudRegisterDesc,
+          details: [
+            `${t.cloud.platform}: AWS / GCP / Azure / Slack / GitHub`,
+            `${t.cloud.serviceCategory}: IaaS / PaaS / SaaS / Security`,
+            `${t.cloud.resourceType} & ${t.cloud.resourceId}`,
+          ],
+          link: { href: "/cloud/new", label: t.cloud.newCloud },
+        },
+        {
+          id: "c2",
+          title: t.guide.contractMgmt,
+          description: t.guide.contractMgmtDesc,
+          details: [
+            `${t.cloud.contractStartDate} + ${t.cloud.contractTermMonths}`,
+            t.cloud.renewalDate,
+            t.cloud.cancellationDeadline,
+            `${t.cloud.paymentMethod}, ${t.cloud.contractSubscriptionNumber}`,
+          ],
+        },
+        {
+          id: "c3",
+          title: t.guide.notifySetup,
+          description: t.guide.notifySetupDesc,
+          details: [
+            `${t.cloud.notifyChannel}: ${t.cloud.emailOnly} / ${t.cloud.slackOnly} / ${t.cloud.emailAndSlack} / ${t.cloud.notifyOff}`,
+            `${t.cloud.adminEmail} & ${t.cloud.slackMemberId}`,
+            "D-70, D-30, D-15, D-7",
+          ],
+          link: { href: "/settings/notifications", label: t.guide.notifyTest },
+        },
+      ],
+    },
+    {
+      id: "license",
+      icon: <FileText className="h-5 w-5" />,
+      title: t.license.title,
+      subtitle: t.guide.swLicensesDesc,
+      steps: [
+        {
+          id: "l1",
+          title: t.guide.licenseRegister,
+          description: t.guide.licenseRegisterDesc,
+          details: [
+            `${t.license.licenseType}: ${t.license.keyBased} / ${t.license.volume} / ${t.license.noKey}`,
+            `${t.license.quantity}, ${t.license.unitPrice}, ${t.license.paymentCycle} (${t.license.monthly}/${t.license.yearly})`,
+            `${t.license.expiryDate} → D-day`,
+          ],
+          link: { href: "/licenses/new", label: t.license.newLicense },
+        },
+        {
+          id: "l2",
+          title: t.guide.seatAssignGuide,
+          description: t.guide.seatAssignGuideDesc,
+          details: [
+            t.license.seatAssignment,
+            t.license.key,
+            `${t.license.usageRate} = ${t.license.seat} / ${t.license.quantity}`,
+          ],
+        },
+        {
+          id: "l3",
+          title: t.guide.groupSetup,
+          description: t.guide.groupSetupDesc,
+          details: [
+            `${t.license.groupSettings} (e.g. 'Office 365')`,
+            t.license.group,
+            t.license.defaultGroup,
+            t.license.licenseCount,
+          ],
+          link: { href: "/settings/groups", label: t.license.groupSettings },
+        },
+      ],
+    },
+    {
+      id: "domain",
+      icon: <Globe className="h-5 w-5" />,
+      title: t.domain.title,
+      subtitle: t.guide.domainSslDesc,
+      steps: [
+        {
+          id: "d1",
+          title: t.guide.domainRegister,
+          description: t.guide.domainRegisterDesc,
+          details: [
+            `${t.asset.expiryDate} → D-day`,
+            t.domain.registrar,
+          ],
+          link: { href: "/domains/new", label: t.guide.domainRegisterLink },
+        },
+      ],
+    },
+    {
+      id: "contract",
+      icon: <FileSignature className="h-5 w-5" />,
+      title: t.contract.title,
+      subtitle: t.guide.contractsDesc,
+      steps: [
+        {
+          id: "ct1",
+          title: t.guide.contractRegister,
+          description: t.guide.contractRegisterDesc,
+          details: [
+            `${t.contract.contractType}: ${t.contract.typeMaintenance} / ${t.contract.sla} / ${t.contract.outsourcing} / ${t.contract.typeOther}`,
+            `${t.contract.counterparty}, ${t.contract.autoRenewal}`,
+            `${t.asset.expiryDate} → D-day`,
+          ],
+          link: { href: "/contracts/new", label: t.guide.contractRegisterLink },
+        },
+      ],
+    },
+    {
+      id: "notification",
+      icon: <Bell className="h-5 w-5" />,
+      title: t.notification.title,
+      subtitle: t.guide.notifySystemDesc,
+      steps: [
+        {
+          id: "n1",
+          title: t.guide.envSetupNotify,
+          description: t.guide.envSetupNotifyDesc,
+          details: [
+            "SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM",
+            "SLACK_WEBHOOK_URL (Incoming Webhook)",
+            ".env / docker-compose.yml",
+          ],
+        },
+        {
+          id: "n2",
+          title: t.guide.testNotify,
+          description: t.guide.testNotifyDesc,
+          details: [
+            t.notification.testSend,
+            `${t.notification.emailChannel} / ${t.notification.slackChannel}`,
+          ],
+          link: { href: "/settings/notifications", label: t.guide.notifyTestPage },
+        },
+        {
+          id: "n3",
+          title: t.guide.historyCheck,
+          description: t.guide.historyCheckDesc,
+          details: [
+            t.notification.sendHistory,
+            `${t.common.success} / ${t.common.failure}`,
+          ],
+          link: { href: "/settings/notifications", label: t.guide.sendHistoryView },
+        },
+      ],
+    },
+  ], [t]);
 
   const toggleSection = (id: string) => {
     setExpandedSections((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -305,12 +301,13 @@ export default function GuidePage() {
           <div className="flex items-center gap-3 mb-2">
             <BookOpen className="h-7 w-7 text-blue-600" />
             <h1 className="text-3xl font-bold text-gray-900">{t.guide.title}</h1>
+            <TourGuide tourKey={GUIDE_TOUR_KEY} steps={getGuideSteps(t)} />
           </div>
           <p className="text-gray-600">{t.guide.subtitle}</p>
         </div>
 
         {/* Progress Bar */}
-        <div className="mb-8 rounded-lg bg-white p-5 shadow-sm">
+        <div className="mb-8 rounded-lg bg-white p-5 shadow-sm" data-tour="guide-progress">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-gray-700">{t.guide.progress}</span>
             <span className="text-sm font-bold text-blue-600">{doneSteps}/{totalSteps} {t.guide.completed} ({progress}%)</span>
@@ -324,7 +321,7 @@ export default function GuidePage() {
         </div>
 
         {/* Sections */}
-        <div className="space-y-4">
+        <div className="space-y-4" data-tour="guide-sections">
           {GUIDE_SECTIONS.map((section) => {
             const isExpanded = expandedSections[section.id];
             const sectionDone = section.steps.filter((s) => completedSteps[s.id]).length;
@@ -393,17 +390,17 @@ export default function GuidePage() {
         </div>
 
         {/* Quick Links */}
-        <div className="mt-8 rounded-lg bg-blue-50 p-5">
+        <div className="mt-8 rounded-lg bg-blue-50 p-5" data-tour="guide-quick-links">
           <h3 className="text-sm font-semibold text-blue-900 mb-3">{t.guide.quickLinks}</h3>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {[
-              { href: "/hardware/new", label: "하드웨어 등록" },
-              { href: "/cloud/new", label: "클라우드 등록" },
-              { href: "/licenses/new", label: "라이선스 등록" },
-              { href: "/employees", label: "조직원 관리" },
-              { href: "/settings/groups", label: "그룹 설정" },
-              { href: "/settings/notifications", label: "알림 설정" },
-              { href: "/history", label: "감사 로그" },
+              { href: "/hardware/new", label: t.hw.newHardware },
+              { href: "/cloud/new", label: t.cloud.newCloud },
+              { href: "/licenses/new", label: t.license.newLicense },
+              { href: "/employees", label: t.employee.title },
+              { href: "/settings/groups", label: t.license.groupSettings },
+              { href: "/settings/notifications", label: t.notification.title },
+              { href: "/history", label: t.history.title },
             ].map((link) => (
               <Link key={link.href} href={link.href} className="rounded-md bg-white px-3 py-2 text-xs font-medium text-blue-700 shadow-sm hover:bg-blue-100 transition-colors text-center">
                 {link.label}

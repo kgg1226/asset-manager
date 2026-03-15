@@ -43,9 +43,7 @@ function MetricCard({
 }
 
 function formatCost(value: number): string {
-  if (value >= 100_000_000) return `₩${(value / 100_000_000).toFixed(1)}억`;
-  if (value >= 10_000) return `₩${Math.round(value / 10_000).toLocaleString("ko-KR")}만`;
-  return `₩${value.toLocaleString("ko-KR")}`;
+  return `₩${value.toLocaleString()}`;
 }
 
 export default function DashboardMetricCards({ metrics }: { metrics: DashboardMetrics }) {
@@ -55,7 +53,7 @@ export default function DashboardMetricCards({ metrics }: { metrics: DashboardMe
     <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <MetricCard
         title={t.dashboard.totalAssets}
-        value={metrics.totalAssets.toLocaleString("ko-KR")}
+        value={metrics.totalAssets.toLocaleString()}
         unit={t.dashboard.items}
         description={`${t.dashboard.active} ${metrics.activeCount} · ${t.dashboard.available} ${metrics.inactiveCount} · ${t.dashboard.expired} ${metrics.disposedCount}`}
         accent="blue"
@@ -68,14 +66,14 @@ export default function DashboardMetricCards({ metrics }: { metrics: DashboardMe
       />
       <MetricCard
         title={`30${t.dashboard.expiringAssets}`}
-        value={metrics.expiring30.toLocaleString("ko-KR")}
+        value={metrics.expiring30.toLocaleString()}
         unit={t.dashboard.items}
         description={t.dashboard.expiringAssets}
         accent={metrics.expiring30 > 0 ? "red" : "gray"}
       />
       <MetricCard
         title={`90${t.dashboard.expiringAssets}`}
-        value={metrics.expiring90.toLocaleString("ko-KR")}
+        value={metrics.expiring90.toLocaleString()}
         unit={t.dashboard.items}
         description={t.dashboard.expiringAssets}
         accent={metrics.expiring90 > 0 ? "yellow" : "gray"}

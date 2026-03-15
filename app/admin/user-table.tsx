@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { createUser, deleteUser, changePassword, updateRole } from "./actions";
+import { useTranslation } from "@/lib/i18n";
 
 type User = {
   id: number;
@@ -21,29 +22,29 @@ export default function UserTable({
   users: User[];
   currentUserId: number;
 }) {
+  const { t } = useTranslation();
   const [showAddForm, setShowAddForm] = useState(false);
   const [passwordTarget, setPasswordTarget] = useState<User | null>(null);
 
   return (
     <div className="space-y-6">
-      {/* 계정 목록 */}
       <div className="rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-          <h2 className="text-base font-semibold text-gray-900">계정 목록</h2>
+          <h2 className="text-base font-semibold text-gray-900">{t.admin.accountList}</h2>
           <button
             onClick={() => setShowAddForm(true)}
             className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
           >
-            + 새 계정
+            {t.admin.newAccount}
           </button>
         </div>
         <table className="min-w-full divide-y divide-gray-100">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">사용자명</th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">역할</th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">가입일</th>
-              <th className="px-6 py-3 text-center text-xs font-medium uppercase text-gray-500">관리</th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">{t.auth.username}</th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">{t.admin.role}</th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">{t.admin.joinDate}</th>
+              <th className="px-6 py-3 text-center text-xs font-medium uppercase text-gray-500">{t.admin.manage}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -59,10 +60,8 @@ export default function UserTable({
         </table>
       </div>
 
-      {/* 새 계정 추가 모달 */}
       {showAddForm && <AddUserModal onClose={() => setShowAddForm(false)} />}
 
-      {/* 비밀번호 변경 모달 */}
       {passwordTarget && (
         <ChangePasswordModal
           user={passwordTarget}
@@ -82,6 +81,7 @@ function UserRow({
   isSelf: boolean;
   onChangePassword: () => void;
 }) {
+  const { t } = useTranslation();
   const [roleError, setRoleError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -92,7 +92,7 @@ function UserRow({
   }
 
   async function handleDelete() {
-    if (!window.confirm(`"${user.username}" 계정을 삭제하시겠습니까?`)) return;
+    if (!window.confirm(`"${user.username}" - ${t.admin.confirmDeleteAccount}`)) return;
     setDeleting(true);
     const result = await deleteUser(user.id);
     if (result?.error) {
@@ -107,7 +107,7 @@ function UserRow({
         {user.username}
         {isSelf && (
           <span className="ml-2 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">
-            나
+            {t.admin.me}
           </span>
         )}
       </td>
@@ -121,15 +121,15 @@ function UserRow({
                 ? "bg-purple-100 text-purple-700 hover:bg-purple-200"
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             } disabled:cursor-not-allowed disabled:opacity-50`}
-            title={isSelf ? "자신의 역할은 변경할 수 없습니다" : "클릭하여 역할 변경"}
+            title={isSelf ? t.admin.cannotChangeOwnRole : t.admin.clickToChangeRole}
           >
-            {user.role === "ADMIN" ? "관리자" : "일반"}
+            {user.role === "ADMIN" ? t.header.administrator : t.header.user}
           </button>
           {roleError && <p className="text-xs text-red-600">{roleError}</p>}
         </div>
       </td>
       <td className="px-6 py-3 text-sm text-gray-500">
-        {new Date(user.createdAt).toLocaleDateString("ko-KR")}
+        {new Date(user.createdAt).toLocaleDateString()}
       </td>
       <td className="px-6 py-3 text-center">
         <div className="flex items-center justify-center gap-2">
@@ -137,14 +137,14 @@ function UserRow({
             onClick={onChangePassword}
             className="rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
           >
-            비밀번호 변경
+            {t.auth.changePassword}
           </button>
           <button
             onClick={handleDelete}
             disabled={isSelf || deleting}
             className="rounded px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {deleting ? "..." : "삭제"}
+            {deleting ? "..." : t.common.delete}
           </button>
         </div>
       </td>
@@ -153,32 +153,33 @@ function UserRow({
 }
 
 function AddUserModal({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
   const [state, formAction, isPending] = useActionState(createUser, initialState);
 
   return (
-    <Modal title="새 계정 추가" onClose={onClose}>
+    <Modal title={t.admin.addNewAccount} onClose={onClose}>
       <form action={formAction} className="space-y-4">
         {state.error && (
           <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">{state.error}</p>
         )}
-        <Field label="사용자명">
+        <Field label={t.auth.username}>
           <input type="text" name="username" required autoFocus className="input" />
         </Field>
-        <Field label="비밀번호">
+        <Field label={t.auth.password}>
           <input type="password" name="password" required minLength={4} className="input" />
         </Field>
-        <Field label="역할">
+        <Field label={t.admin.role}>
           <select name="role" className="input">
-            <option value="USER">일반</option>
-            <option value="ADMIN">관리자</option>
+            <option value="USER">{t.header.user}</option>
+            <option value="ADMIN">{t.header.administrator}</option>
           </select>
         </Field>
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="rounded-md px-4 py-2 text-sm font-medium text-gray-700 ring-1 ring-gray-300 hover:bg-gray-50">
-            취소
+            {t.common.cancel}
           </button>
           <button type="submit" disabled={isPending} className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
-            {isPending ? "생성 중..." : "생성"}
+            {isPending ? t.admin.creating : t.common.create}
           </button>
         </div>
       </form>
@@ -187,24 +188,25 @@ function AddUserModal({ onClose }: { onClose: () => void }) {
 }
 
 function ChangePasswordModal({ user, onClose }: { user: User; onClose: () => void }) {
+  const { t } = useTranslation();
   const bound = changePassword.bind(null, user.id);
   const [state, formAction, isPending] = useActionState(bound, initialState);
 
   return (
-    <Modal title={`비밀번호 변경 — ${user.username}`} onClose={onClose}>
+    <Modal title={`${t.auth.changePassword} — ${user.username}`} onClose={onClose}>
       <form action={formAction} className="space-y-4">
         {state.error && (
           <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">{state.error}</p>
         )}
-        <Field label="새 비밀번호">
+        <Field label={t.auth.newPassword}>
           <input type="password" name="password" required minLength={4} autoFocus className="input" />
         </Field>
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="rounded-md px-4 py-2 text-sm font-medium text-gray-700 ring-1 ring-gray-300 hover:bg-gray-50">
-            취소
+            {t.common.cancel}
           </button>
           <button type="submit" disabled={isPending} className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
-            {isPending ? "변경 중..." : "변경"}
+            {isPending ? t.admin.changing : t.auth.changePassword}
           </button>
         </div>
       </form>

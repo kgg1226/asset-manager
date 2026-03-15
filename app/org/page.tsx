@@ -8,6 +8,8 @@ import SecurityOrgChart from "./security-org-chart";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
+import { TourGuide } from "@/app/_components/tour-guide";
+import { ORG_TOUR_KEY, getOrgSteps } from "@/app/_components/tours/org-tour";
 
 type OrgUnit = { id: number; name: string; parentId: number | null };
 type Company = { id: number; name: string; orgs: OrgUnit[] };
@@ -95,20 +97,26 @@ export default function OrgPage() {
       <div className="mx-auto max-w-5xl px-4">
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">{t.org.title}</h1>
-          {user && activeTab === "manage" && (
-            <button
-              onClick={() => { setShowCreateCompany(true); setNewCompanyName(""); }}
-              className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-            >
-              <Plus className="h-4 w-4" />
-              {t.org.newCompany}
-            </button>
-          )}
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-gray-900">{t.org.title}</h1>
+            <TourGuide tourKey={ORG_TOUR_KEY} steps={getOrgSteps(t)} />
+          </div>
+          <div className="flex gap-2">
+            {user && activeTab === "manage" && (
+              <button
+                data-tour="org-new-company"
+                onClick={() => { setShowCreateCompany(true); setNewCompanyName(""); }}
+                className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                <Plus className="h-4 w-4" />
+                {t.org.newCompany}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Tabs */}
-        <div className="mb-6 border-b border-gray-200">
+        <div className="mb-6 border-b border-gray-200" data-tour="org-tabs">
           <div className="-mb-px flex gap-6">
             {tabs.map(({ key, label, icon: Icon }) => (
               <button
@@ -139,7 +147,7 @@ export default function OrgPage() {
                   type="text"
                   value={newCompanyName}
                   onChange={(e) => setNewCompanyName(e.target.value)}
-                  placeholder="예: (주)트리플콤마"
+                  placeholder={t.org.companyName}
                   className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") handleCreateCompany();
@@ -163,6 +171,7 @@ export default function OrgPage() {
         )}
 
         {/* Tab content */}
+        <div data-tour="org-tree">
         {activeTab === "manage" && (
           companies.length === 0 ? (
             <div className="rounded-lg bg-white p-8 text-center shadow-sm ring-1 ring-gray-200">
@@ -180,6 +189,7 @@ export default function OrgPage() {
         {activeTab === "security" && (
           <SecurityOrgChart />
         )}
+        </div>
       </div>
     </div>
   );

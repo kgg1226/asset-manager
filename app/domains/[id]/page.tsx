@@ -25,7 +25,7 @@ interface Asset {
   ciaC?: number | null; ciaI?: number | null; ciaA?: number | null;
 }
 
-const STATUS_LABELS: Record<AssetStatus, string> = { IN_STOCK: "재고", IN_USE: "사용 중", INACTIVE: "미사용", UNUSABLE: "불용", PENDING_DISPOSAL: "폐기 대상", DISPOSED: "폐기 완료" };
+const STATUS_KEYS: Record<AssetStatus, string> = { IN_STOCK: "statusInStock", IN_USE: "statusInUse", INACTIVE: "statusInactive", UNUSABLE: "statusUnusable", PENDING_DISPOSAL: "statusPendingDisposal", DISPOSED: "statusDisposed" };
 const STATUS_COLORS: Record<AssetStatus, string> = { IN_STOCK: "bg-blue-100 text-blue-800", IN_USE: "bg-green-100 text-green-800", INACTIVE: "bg-gray-100 text-gray-800", UNUSABLE: "bg-yellow-100 text-yellow-800", PENDING_DISPOSAL: "bg-orange-100 text-orange-800", DISPOSED: "bg-red-100 text-red-800" };
 
 export default function DomainDetailPage() {
@@ -79,7 +79,9 @@ export default function DomainDetailPage() {
   if (isLoading) return <div className="min-h-screen bg-gray-50 p-6"><div className="mx-auto max-w-4xl"><p className="text-center text-gray-600">{t.common.loading}</p></div></div>;
   if (!asset) return <div className="min-h-screen bg-gray-50 p-6"><div className="mx-auto max-w-4xl"><p className="text-center text-red-600">{t.common.noData}</p><div className="mt-4 text-center"><Link href="/domains" className="text-blue-600 hover:underline">{t.common.list}</Link></div></div></div>;
 
-  const fmtCost = (v: number | null | undefined) => v != null ? (asset.currency === "KRW" ? `${v.toLocaleString("ko-KR")}원` : `${asset.currency} ${v.toLocaleString()}`) : "—";
+  const getStatusLabel = (s: AssetStatus) => (t.asset as Record<string, string>)[STATUS_KEYS[s]] ?? s;
+  const syms: Record<string, string> = { KRW: "₩", USD: "$", EUR: "€", JPY: "¥", GBP: "£", CNY: "¥" };
+  const fmtCost = (v: number | null | undefined) => v != null ? `${syms[asset.currency] ?? asset.currency}${v.toLocaleString()}` : "—";
 
   // 만료일 긴급도
   const daysUntilExpiry = asset.expiryDate ? Math.ceil((new Date(asset.expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
@@ -92,9 +94,9 @@ export default function DomainDetailPage() {
           <Link href="/domains" className="rounded-md p-2 hover:bg-gray-200"><ArrowLeft className="h-5 w-5" /></Link>
           <div className="flex-1">
             <h1 className="text-3xl font-bold text-gray-900">{asset.name}</h1>
-            <p className="mt-1 text-sm text-gray-500">{t.domain.title} \• {t.asset.purchaseDate}: {new Date(asset.createdAt).toLocaleDateString("ko-KR")}</p>
+            <p className="mt-1 text-sm text-gray-500">{t.domain.title} \• {t.asset.purchaseDate}: {new Date(asset.createdAt).toLocaleDateString()}</p>
           </div>
-          <span className={`inline-block rounded-full px-3 py-1 text-sm font-medium ${STATUS_COLORS[asset.status]}`}>{STATUS_LABELS[asset.status]}</span>
+          <span className={`inline-block whitespace-nowrap rounded-full px-3 py-1 text-sm font-medium ${STATUS_COLORS[asset.status]}`}>{getStatusLabel(asset.status)}</span>
         </div>
 
         <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -103,7 +105,7 @@ export default function DomainDetailPage() {
           <div className="rounded-lg bg-white p-6 shadow-sm">
             <p className="text-sm text-gray-600">{t.asset.expiryDate}</p>
             <p className={`mt-2 text-2xl font-bold ${expiryColor}`}>
-              {asset.expiryDate ? new Date(asset.expiryDate).toLocaleDateString("ko-KR") : "—"}
+              {asset.expiryDate ? new Date(asset.expiryDate).toLocaleDateString() : "—"}
             </p>
             {daysUntilExpiry != null && daysUntilExpiry <= 30 && (
               <p className={`mt-1 text-sm font-medium ${expiryColor}`}>
@@ -126,11 +128,11 @@ export default function DomainDetailPage() {
               <div><p className="text-sm text-gray-600">{t.license.monthly} {t.asset.cost}</p><p className="mt-1 text-gray-900">{fmtCost(asset.monthlyCost)}</p></div>
             </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div><p className="text-sm text-gray-600">{t.asset.purchaseDate}</p><p className="mt-1 text-gray-900">{asset.purchaseDate ? new Date(asset.purchaseDate).toLocaleDateString("ko-KR") : "—"}</p></div>
-              <div><p className="text-sm text-gray-600">{t.asset.expiryDate}</p><p className="mt-1 text-gray-900">{asset.expiryDate ? new Date(asset.expiryDate).toLocaleDateString("ko-KR") : "—"}</p></div>
+              <div><p className="text-sm text-gray-600">{t.asset.purchaseDate}</p><p className="mt-1 text-gray-900">{asset.purchaseDate ? new Date(asset.purchaseDate).toLocaleDateString() : "—"}</p></div>
+              <div><p className="text-sm text-gray-600">{t.asset.expiryDate}</p><p className="mt-1 text-gray-900">{asset.expiryDate ? new Date(asset.expiryDate).toLocaleDateString() : "—"}</p></div>
             </div>
             {asset.assignee && <div><p className="text-sm text-gray-600">{t.asset.assignee}</p><p className="mt-1"><Link href={`/employees/${asset.assignee.id}`} className="text-blue-600 hover:underline">{asset.assignee.name}</Link></p></div>}
-            <div className="border-t border-gray-200 pt-4"><p className="text-xs text-gray-500">생성: {new Date(asset.createdAt).toLocaleString("ko-KR")} \• 수정: {new Date(asset.updatedAt).toLocaleString("ko-KR")}</p></div>
+            <div className="border-t border-gray-200 pt-4"><p className="text-xs text-gray-500">{t.common.createdAt}: {new Date(asset.createdAt).toLocaleString()} &bull; {t.common.updatedAt}: {new Date(asset.updatedAt).toLocaleString()}</p></div>
           </div>
         </div>
 
@@ -162,7 +164,7 @@ export default function DomainDetailPage() {
           <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
             <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
               <h2 className="mb-4 text-lg font-bold">{t.common.status}</h2>
-              <div className="mb-6 space-y-2">{(Object.keys(STATUS_LABELS) as AssetStatus[]).map((s) => (<label key={s} className="flex items-center gap-2"><input type="radio" name="status" value={s} checked={newStatus === s} onChange={(e) => setNewStatus(e.target.value as AssetStatus)} className="h-4 w-4" /><span className="text-sm text-gray-700">{STATUS_LABELS[s]}</span></label>))}</div>
+              <div className="mb-6 space-y-2">{(Object.keys(STATUS_KEYS) as AssetStatus[]).map((s) => (<label key={s} className="flex items-center gap-2"><input type="radio" name="status" value={s} checked={newStatus === s} onChange={(e) => setNewStatus(e.target.value as AssetStatus)} className="h-4 w-4" /><span className="text-sm text-gray-700">{getStatusLabel(s)}</span></label>))}</div>
               <div className="flex gap-3">
                 <button onClick={handleStatusChange} disabled={isUpdatingStatus || newStatus === asset.status} className="flex-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">{t.common.confirm}</button>
                 <button onClick={() => setShowStatusModal(false)} className="flex-1 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">{t.common.cancel}</button>

@@ -36,11 +36,11 @@ type LicenseOwner = {
 type OrgUnit = { id: number; name: string; companyId: number };
 type User = { id: number; username: string };
 
-const STATUS_LABELS: Record<RenewalStatus, string> = {
-  BEFORE_RENEWAL: "갱신 전",
-  IN_PROGRESS: "진행 중",
-  NOT_RENEWING: "갱신 안함",
-  RENEWED: "갱신 완료",
+const RENEWAL_STATUS_KEYS: Record<RenewalStatus, string> = {
+  BEFORE_RENEWAL: "renewalBeforeRenewal",
+  IN_PROGRESS: "renewalInProgress",
+  NOT_RENEWING: "renewalNotRenewing",
+  RENEWED: "renewalRenewed",
 };
 
 const STATUS_COLORS: Record<RenewalStatus, string> = {
@@ -132,7 +132,7 @@ function RenewalStatusPanel({
             <span
               className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_COLORS[displayStatus]}`}
             >
-              {STATUS_LABELS[displayStatus]}
+              {(t.license as Record<string, string>)[RENEWAL_STATUS_KEYS[displayStatus]] ?? displayStatus}
             </span>
             <button
               onClick={() => { setShowStatusForm(!showStatusForm); setError(""); }}
@@ -159,9 +159,9 @@ function RenewalStatusPanel({
                 onChange={(e) => setSelectedStatus(e.target.value as RenewalStatus)}
                 className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                {Object.entries(STATUS_LABELS).map(([val, label]) => (
+                {(Object.keys(RENEWAL_STATUS_KEYS) as RenewalStatus[]).map((val) => (
                   <option key={val} value={val}>
-                    {label}
+                    {(t.license as Record<string, string>)[RENEWAL_STATUS_KEYS[val]] ?? val}
                   </option>
                 ))}
               </select>
@@ -205,7 +205,7 @@ function RenewalStatusPanel({
             <span className="flex items-center gap-1 text-xs text-gray-700">
               <Calendar className="h-3.5 w-3.5 text-gray-400" />
               {renewalDate
-                ? new Date(renewalDate).toLocaleDateString("ko-KR")
+                ? new Date(renewalDate).toLocaleDateString()
                 : "—"}
               {renewalDateManual && (
                 <span className="ml-1 rounded bg-amber-100 px-1 text-[10px] text-amber-700">
@@ -301,13 +301,13 @@ function RenewalHistoryPanel({ licenseId }: { licenseId: number }) {
                 {item.fromStatus ? (
                   <>
                     <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${STATUS_COLORS[(item.fromStatus as RenewalStatus)] ?? "bg-gray-100 text-gray-600"}`}>
-                      {STATUS_LABELS[(item.fromStatus as RenewalStatus)] ?? item.fromStatus}
+                      {(t.license as Record<string, string>)[RENEWAL_STATUS_KEYS[(item.fromStatus as RenewalStatus)]] ?? item.fromStatus}
                     </span>
                     {" → "}
                   </>
                 ) : null}
                 <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${STATUS_COLORS[(item.toStatus as RenewalStatus)] ?? "bg-gray-100 text-gray-600"}`}>
-                  {STATUS_LABELS[(item.toStatus as RenewalStatus)] ?? item.toStatus}
+                  {(t.license as Record<string, string>)[RENEWAL_STATUS_KEYS[(item.toStatus as RenewalStatus)]] ?? item.toStatus}
                 </span>
               </p>
               {item.memo && (
@@ -315,7 +315,7 @@ function RenewalHistoryPanel({ licenseId }: { licenseId: number }) {
               )}
             </div>
             <time className="shrink-0 text-[10px] text-gray-400">
-              {new Date(item.createdAt).toLocaleDateString("ko-KR")}
+              {new Date(item.createdAt).toLocaleDateString()}
             </time>
           </div>
         ))}

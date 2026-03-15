@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { User, Lock, Save } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
+import { TourGuide } from "@/app/_components/tour-guide";
+import { PROFILE_TOUR_KEY, getProfileSteps } from "@/app/_components/tours/profile-tour";
 
 interface UserProfile {
   id: number;
@@ -124,10 +126,13 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-gray-50 py-10">
       <div className="mx-auto max-w-2xl px-4 space-y-6">
-        <h2 className="text-xl font-bold text-gray-900">{t.nav.profile}</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-xl font-bold text-gray-900">{t.nav.profile}</h2>
+          <TourGuide tourKey={PROFILE_TOUR_KEY} steps={getProfileSteps(t)} />
+        </div>
 
         {/* 기본 정보 */}
-        <div className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
+        <div className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200" data-tour="profile-info">
           <div className="mb-4 flex items-center gap-2">
             <User className="h-5 w-5 text-gray-600" />
             <h2 className="text-lg font-semibold text-gray-900">{t.nav.profile}</h2>
@@ -213,7 +218,7 @@ export default function ProfilePage() {
         </div>
 
         {/* 비밀번호 변경 */}
-        <div className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
+        <div className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200" data-tour="profile-password">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Lock className="h-5 w-5 text-gray-600" />

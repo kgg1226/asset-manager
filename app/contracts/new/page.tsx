@@ -11,12 +11,13 @@ import CiaScoreInput from "@/app/_components/cia-score-input";
 import type { CiaLevel } from "@/lib/cia";
 
 const CURRENCIES = ["USD", "KRW", "EUR", "JPY", "GBP", "CNY"];
-const BILLING_CYCLES = [
-  { value: "MONTHLY", label: "월간" },
-  { value: "ANNUAL", label: "연간" },
-  { value: "ONE_TIME", label: "일회성" },
-];
-const CONTRACT_TYPES = ["유지보수", "라이선스", "구독", "용역", "임대", "기타"];
+const BILLING_CYCLE_VALUES = ["MONTHLY", "ANNUAL", "ONE_TIME"] as const;
+const BILLING_CYCLE_KEY_MAP: Record<string, string> = {
+  MONTHLY: "monthly",
+  ANNUAL: "yearly",
+  ONE_TIME: "oneTime",
+};
+const CONTRACT_TYPE_KEYS = ["typeMaintenance", "typeLicense", "typeSubscription", "typeService", "typeLease", "typeOther"] as const;
 
 export default function ContractNewPage() {
   const router = useRouter();
@@ -40,7 +41,7 @@ export default function ContractNewPage() {
     const e: Record<string, string> = {};
     if (!form.name.trim()) e.name = `${t.asset.assetName} ${t.common.required}`;
     if (!form.cost) e.cost = `${t.asset.cost} ${t.common.required}`;
-    else if (isNaN(Number(form.cost)) || Number(form.cost) < 0) e.cost = `${t.asset.cost} ${t.common.error}`;
+    else if (isNaN(Number(form.cost)) || Number(form.cost) < 0) e.cost = t.common.invalidCost;
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -57,12 +58,12 @@ export default function ContractNewPage() {
   };
 
   if (loading || !user) {
-    return <div className="min-h-screen bg-gray-50 p-6"><div className="mx-auto max-w-2xl"><p className="text-center text-gray-500">{loading ? t.common.loading : `${t.common.login} ${t.common.required}`}</p></div></div>;
+    return <div className="min-h-screen bg-gray-50 p-6"><div className="mx-auto max-w-2xl"><p className="text-center text-gray-500">{loading ? t.common.loading : t.common.login}</p></div></div>;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) { toast.error(t.common.error); return; }
+    if (!validate()) { toast.error(t.common.validationCheck); return; }
     setIsLoading(true);
     try {
       const payload = {
@@ -80,7 +81,7 @@ export default function ContractNewPage() {
       };
       const res = await fetch("/api/assets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "등록 실패");
+      if (!res.ok) throw new Error(json.error || t.common.registerFail);
       toast.success(t.toast.createSuccess);
       router.push(`/contracts/${json.id}`);
     } catch (err) {
@@ -130,7 +131,7 @@ export default function ContractNewPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t.license.paymentCycle}</label>
                 <select name="billingCycle" value={form.billingCycle} onChange={onChange} className={inputCls}>
-                  {BILLING_CYCLES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                  {BILLING_CYCLE_VALUES.map((v) => <option key={v} value={v}>{(t.license as Record<string, string>)[BILLING_CYCLE_KEY_MAP[v]] ?? v}</option>)}
                 </select>
               </div>
             </div>
@@ -163,7 +164,10 @@ export default function ContractNewPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t.contract.contractType}</label>
                 <select name="contractType" value={contract.contractType} onChange={onContractChange} className={inputCls}>
                   <option value="">{t.common.none}</option>
-                  {CONTRACT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                  {CONTRACT_TYPE_KEYS.map((key) => {
+                    const label = (t.contract as Record<string, string>)[key] ?? key;
+                    return <option key={key} value={label}>{label}</option>;
+                  })}
                 </select>
               </div>
               <div className="flex items-end">

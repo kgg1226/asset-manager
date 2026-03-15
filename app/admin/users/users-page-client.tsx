@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useTranslation } from "@/lib/i18n";
 import UserTable from "./user-table";
+import { TourGuide } from "@/app/_components/tour-guide";
+import { ADMIN_USERS_TOUR_KEY, getAdminUsersSteps } from "@/app/_components/tours/admin-users-tour";
 
 type UserData = {
   id: number;
@@ -33,17 +35,18 @@ export default function UsersPageClient({
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{t.header.userManagement}</h1>
             <p className="mt-1 text-sm text-gray-500">
-              {t.header.administrator === "관리자"
-                ? "관리자만 이 페이지에 접근할 수 있습니다."
-                : "Only administrators can access this page."}
+              {t.admin.adminOnly}
             </p>
           </div>
-          <Link
-            href="/licenses"
-            className="text-sm text-gray-500 hover:text-gray-700"
-          >
-            &larr; {t.common.list}
-          </Link>
+          <div className="flex items-center gap-2">
+            <TourGuide tourKey={ADMIN_USERS_TOUR_KEY} steps={getAdminUsersSteps(t)} />
+            <Link
+              href="/licenses"
+              className="text-sm text-gray-500 hover:text-gray-700"
+            >
+              &larr; {t.common.list}
+            </Link>
+          </div>
         </div>
 
         {/* search / filter */}
@@ -51,6 +54,7 @@ export default function UsersPageClient({
           method="get"
           action="/admin/users"
           className="mb-4 flex flex-wrap gap-2"
+          data-tour="admin-users-search"
         >
           <input
             type="search"
@@ -84,10 +88,12 @@ export default function UsersPageClient({
           )}
         </form>
 
-        <UserTable
-          users={users as Parameters<typeof UserTable>[0]["users"]}
-          currentUserId={currentUserId}
-        />
+        <div data-tour="admin-users-table">
+          <UserTable
+            users={users as Parameters<typeof UserTable>[0]["users"]}
+            currentUserId={currentUserId}
+          />
+        </div>
       </div>
     </div>
   );

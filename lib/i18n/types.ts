@@ -44,6 +44,20 @@ export type TranslationDict = {
     failure: string;
     error: string;
     warning: string;
+    select: string;
+    validationCheck: string;
+    registerFail: string;
+    invalidCost: string;
+    unspecified: string;
+    processing: string;
+    deleting: string;
+    assign: string;
+    assigning: string;
+    retrieving: string;
+    createdAt: string;
+    updatedAt: string;
+    reason: string;
+    reasonOptional: string;
   };
 
   // Navigation / Sidebar
@@ -141,6 +155,13 @@ export type TranslationDict = {
     licenseCount: string;
     assignedTo: string;
     unassigned: string;
+    unassign: string;
+    oneTime: string;
+    usageBased: string;
+    renewalBeforeRenewal: string;
+    renewalInProgress: string;
+    renewalNotRenewing: string;
+    renewalRenewed: string;
   };
 
   // Employee
@@ -158,6 +179,15 @@ export type TranslationDict = {
     onLeave: string;
     assignedAssets: string;
     assignedLicenses: string;
+    offboard: string;
+    offboarding: string;
+    offboardComplete: string;
+    gracePeriodEnd: string;
+    autoDeleteNotice: string;
+    offboardWarning1: string;
+    offboardWarning2: string;
+    offboardWarning3: string;
+    offboardFail: string;
   };
 
   // Assets (common for hardware/cloud/domain/contract)
@@ -174,8 +204,12 @@ export type TranslationDict = {
     statusMaintenance: string;
     statusDisposed: string;
     statusExpired: string;
+    statusInactive: string;
+    statusUnusable: string;
+    statusPendingDisposal: string;
     register: string;
     editAsset: string;
+    registeredDate: string;
   };
 
   // Hardware
@@ -250,6 +284,41 @@ export type TranslationDict = {
     rackStandard: string;
     rackNonStandard: string;
     componentType: string;
+    displaySize: string;
+    phoneNumber: string;
+    conditionGrade: string;
+    warrantyPurchase: string;
+    acquisitionCost: string;
+    annualDepreciation: string;
+    monthlyDepreciation: string;
+    accumulatedDepreciation: string;
+    residualValue: string;
+    elapsed: string;
+    depreciationPct: string;
+    years: string;
+    months: string;
+    markUnusable: string;
+    markDisposed: string;
+    unusableConfirm: string;
+    unusableWarning: string;
+    disposedConfirm: string;
+    disposedWarning: string;
+    reasonPlaceholderUnusable: string;
+    reasonPlaceholderDisposed: string;
+    assignAsset: string;
+    unassignAsset: string;
+    assignHistory: string;
+    actionAssigned: string;
+    actionRetrieved: string;
+    searchEmployee: string;
+    searchByName: string;
+    noEmployees: string;
+    assignPlaceholder: string;
+    unassignDesc: string;
+    unassignPlaceholder: string;
+    deleteConfirmTitle: string;
+    deleteConfirmMessage: string;
+    unusableAutoNote: string;
   };
 
   // Cloud
@@ -266,6 +335,51 @@ export type TranslationDict = {
     contractPeriod: string;
     renewalDate: string;
     cancellationDeadline: string;
+    infraDetail: string;
+    instanceSpec: string;
+    storageSize: string;
+    endpoint: string;
+    vpcId: string;
+    availabilityZone: string;
+    autoRenew: string;
+    autoRenewYes: string;
+    autoRenewNo: string;
+    contractStartDate: string;
+    contractTermMonths: string;
+    cancellationNotice: string;
+    cancellationNoticeDays: string;
+    cancellationNoticeHelper: string;
+    paymentMethod: string;
+    paymentCard: string;
+    paymentTransfer: string;
+    paymentInvoice: string;
+    paymentOther: string;
+    contractSubscriptionNumber: string;
+    notifySettings: string;
+    notifyChannel: string;
+    emailOnly: string;
+    slackOnly: string;
+    emailAndSlack: string;
+    notifyOff: string;
+    notifyHelper: string;
+    adminEmail: string;
+    adminEmailHelper: string;
+    slackMemberId: string;
+    slackIdHelper: string;
+    managementInfo: string;
+    notes: string;
+    additionalMemo: string;
+    accountIdPlaceholder: string;
+    regionPlaceholder: string;
+    resourceIdPlaceholder: string;
+    serviceClassification: string;
+    category: string;
+    contractManagement: string;
+    daysAgo: string;
+    daysBefore: string;
+    admin: string;
+    units: string;
+    monthsUnit: string;
   };
 
   // Domain / SSL
@@ -274,6 +388,15 @@ export type TranslationDict = {
     newDomain: string;
     registrar: string;
     daysLeft: string;
+    months1: string;
+    months6: string;
+    years1: string;
+    years2: string;
+    years3: string;
+    years5: string;
+    years10: string;
+    monthlyCost: string;
+    perMonth: string;
   };
 
   // Contract
@@ -286,6 +409,12 @@ export type TranslationDict = {
     maintenance: string;
     sla: string;
     outsourcing: string;
+    typeMaintenance: string;
+    typeLicense: string;
+    typeSubscription: string;
+    typeService: string;
+    typeLease: string;
+    typeOther: string;
   };
 
   // Org Chart
@@ -303,6 +432,36 @@ export type TranslationDict = {
     unassignedPerson: string;
     members: string;
     orgs: string;
+    departmentNameRequired: string;
+    departmentEditFailed: string;
+    departmentEdited: string;
+    deletePreviewFailed: string;
+    deleteConfirmText: string;
+    deleteConfirmPrompt: string;
+    departmentDeleteFailed: string;
+    departmentDeleted: string;
+    departmentCreateFailed: string;
+    departmentCreated: string;
+    departmentName: string;
+    departmentDeleteConfirm: string;
+    departmentDeleteImpact: string;
+    subDepartmentCount: string;
+    andMore: string;
+    affectedMemberCount: string;
+    enterConfirmText: string;
+    companyNameRequired: string;
+    companyEditFailed: string;
+    companyEdited: string;
+    companyDeleteFailed: string;
+    companyDeleted: string;
+    editCompany: string;
+    deleteCompany: string;
+    companyDeleteConfirm: string;
+    companyDeleteMessage: string;
+    departmentCount: string;
+    cannotDeleteWithDepartments: string;
+    noOrganizations: string;
+    addSubDepartment: string;
   };
 
   // Reports
@@ -313,6 +472,16 @@ export type TranslationDict = {
     download: string;
     sendEmail: string;
     period: string;
+    loadFail: string;
+    emailSendFail: string;
+    emailSent: string;
+    totalMonthlyCost: string;
+    assetCount: string;
+    expiringWarning: string;
+    costByType: string;
+    costByDept: string;
+    monthlyCost: string;
+    emailPlaceholder: string;
   };
 
   // History / Audit
@@ -354,15 +523,100 @@ export type TranslationDict = {
     progress: string;
     completed: string;
     quickLinks: string;
+    // Guide sections
+    gettingStarted: string;
+    systemSetup: string;
+    orgSetup: string;
+    orgSetupDesc: string;
+    employeeRegister: string;
+    employeeRegisterDesc: string;
+    envSetup: string;
+    envSetupDesc: string;
+    hwAssetsDesc: string;
+    hwRegister: string;
+    hwRegisterDesc: string;
+    warrantyMgmt: string;
+    warrantyMgmtDesc: string;
+    assetAssign: string;
+    assetAssignDesc: string;
+    cloudAssetsDesc: string;
+    cloudRegister: string;
+    cloudRegisterDesc: string;
+    contractMgmt: string;
+    contractMgmtDesc: string;
+    notifySetup: string;
+    notifySetupDesc: string;
+    swLicensesDesc: string;
+    licenseRegister: string;
+    licenseRegisterDesc: string;
+    seatAssignGuide: string;
+    seatAssignGuideDesc: string;
+    groupSetup: string;
+    groupSetupDesc: string;
+    domainSslDesc: string;
+    domainRegister: string;
+    domainRegisterDesc: string;
+    contractsDesc: string;
+    contractRegister: string;
+    contractRegisterDesc: string;
+    notifySystemDesc: string;
+    envSetupNotify: string;
+    envSetupNotifyDesc: string;
+    testNotify: string;
+    testNotifyDesc: string;
+    historyCheck: string;
+    historyCheckDesc: string;
+    orgChartSetup: string;
+    notifyTest: string;
+    employeeMgmt: string;
+    domainRegisterLink: string;
+    contractRegisterLink: string;
+    notifyTestPage: string;
+    sendHistoryView: string;
+    // Detail bullet points
+    orgSetupDetail1: string;
+    orgSetupDetail2: string;
+    orgSetupDetail3: string;
+    empRegisterDetail1: string;
+    empRegisterDetail2: string;
+    empRegisterDetail3: string;
   };
 
   // Notifications
   notification: {
     title: string;
+    subtitle: string;
     testSend: string;
+    testSection: string;
+    testDescription: string;
+    testChannel: string;
     emailChannel: string;
     slackChannel: string;
     sendHistory: string;
+    refresh: string;
+    time: string;
+    channel: string;
+    recipient: string;
+    target: string;
+    errorCol: string;
+    recipientEmail: string;
+    recipientEmailPlaceholder: string;
+    testSuccess: string;
+    testPartialFail: string;
+    testRequestFail: string;
+    loadFail: string;
+    allChannelSuccess: string;
+    someChannelFail: string;
+    troubleshootGuide: string;
+    smtpEnvCheck: string;
+    smtpClosedNetwork: string;
+    smtpSecure: string;
+    slackWebhookEnable: string;
+    slackWebhookEnv: string;
+    slackWebhookExpired: string;
+    slackChannelAccess: string;
+    networkCheck: string;
+    smtpAuthCheck: string;
   };
 
   // Auth / Login
@@ -375,6 +629,38 @@ export type TranslationDict = {
     currentPassword: string;
     newPassword: string;
     confirmPassword: string;
+    passwordRequired: string;
+    passwordMinLength: string;
+    passwordMismatch: string;
+    passwordChanged: string;
+    passwordChangeFail: string;
+    passwordStrengthWarning: string;
+    sessionFetchFail: string;
+    authRequired: string;
+    tempPasswordNotice: string;
+    passwordHint: string;
+    reenterPassword: string;
+    securityTips: string;
+    securityTip1: string;
+    securityTip2: string;
+    securityTip3: string;
+  };
+
+  // Admin
+  admin: {
+    accountList: string;
+    newAccount: string;
+    role: string;
+    joinDate: string;
+    manage: string;
+    me: string;
+    cannotChangeOwnRole: string;
+    clickToChangeRole: string;
+    confirmDeleteAccount: string;
+    addNewAccount: string;
+    creating: string;
+    changing: string;
+    adminOnly: string;
   };
 
   // Toast messages
@@ -390,5 +676,162 @@ export type TranslationDict = {
     loginFail: string;
     logoutSuccess: string;
     confirmDelete: string;
+    confirmUnassign: string;
+    loadFail: string;
+  };
+
+  // Tour guide
+  tour: {
+    // UI controls
+    nextBtn: string;
+    prevBtn: string;
+    doneBtn: string;
+    guideBtn: string;
+    guideBtnTooltip: string;
+    // Dashboard tour
+    dashboardWelcomeTitle: string;
+    dashboardWelcomeDesc: string;
+    sidebarTitle: string;
+    sidebarDesc: string;
+    globalSearchTitle: string;
+    globalSearchDesc: string;
+    userMenuTitle: string;
+    userMenuDesc: string;
+    dashboardSummaryTitle: string;
+    dashboardSummaryDesc: string;
+    dashboardCategoriesTitle: string;
+    dashboardCategoriesDesc: string;
+    // Licenses tour
+    licensesTitle: string;
+    licensesDesc: string;
+    licenseTableTitle: string;
+    licenseTableDesc: string;
+    licenseNewTitle: string;
+    licenseNewDesc: string;
+    licenseAssignTitle: string;
+    licenseAssignDesc: string;
+    // Cloud tour
+    cloudTitle: string;
+    cloudDesc: string;
+    cloudNewTitle: string;
+    cloudNewDesc: string;
+    cloudTableTitle: string;
+    cloudTableDesc: string;
+    // Hardware tour
+    hwTitle: string;
+    hwDesc: string;
+    hwSearchTitle: string;
+    hwSearchDesc: string;
+    hwStatusFilterTitle: string;
+    hwStatusFilterDesc: string;
+    hwNewTitle: string;
+    hwNewDesc: string;
+    hwTableTitle: string;
+    hwTableDesc: string;
+    hwActionsTitle: string;
+    hwActionsDesc: string;
+    // Domains tour
+    domainsTitle: string;
+    domainsDesc: string;
+    domainNewTitle: string;
+    domainNewDesc: string;
+    domainTableTitle: string;
+    domainTableDesc: string;
+    // Employees tour
+    empTitle: string;
+    empDesc: string;
+    empSearchTitle: string;
+    empSearchDesc: string;
+    empFilterTitle: string;
+    empFilterDesc: string;
+    empNewTitle: string;
+    empNewDesc: string;
+    empTableTitle: string;
+    empTableDesc: string;
+    // History tour
+    historyTitle: string;
+    historyDesc: string;
+    historyFilterTitle: string;
+    historyFilterDesc: string;
+    historyTableTitle: string;
+    historyTableDesc: string;
+    // Contracts tour
+    contractsTitle: string;
+    contractsDesc: string;
+    contractSearchTitle: string;
+    contractSearchDesc: string;
+    contractFilterTitle: string;
+    contractFilterDesc: string;
+    contractNewTitle: string;
+    contractNewDesc: string;
+    contractTableTitle: string;
+    contractTableDesc: string;
+    // Org chart tour
+    orgTitle: string;
+    orgDesc: string;
+    orgTabsTitle: string;
+    orgTabsDesc: string;
+    orgNewCompanyTitle: string;
+    orgNewCompanyDesc: string;
+    orgTreeTitle: string;
+    orgTreeDesc: string;
+    // Reports tour
+    reportsTitle: string;
+    reportsDesc: string;
+    reportPeriodTitle: string;
+    reportPeriodDesc: string;
+    reportExportTitle: string;
+    reportExportDesc: string;
+    reportEmailTitle: string;
+    reportEmailDesc: string;
+    // Settings - Groups tour
+    groupsTitle: string;
+    groupsDesc: string;
+    groupNewTitle: string;
+    groupNewDesc: string;
+    groupTableTitle: string;
+    groupTableDesc: string;
+    // Settings - Import tour
+    importTitle: string;
+    importDesc: string;
+    importFormTitle: string;
+    importFormDesc: string;
+    // Settings - Notifications tour
+    notifTitle: string;
+    notifDesc: string;
+    notifTestTitle: string;
+    notifTestDesc: string;
+    notifLogTitle: string;
+    notifLogDesc: string;
+    // Settings - Profile tour
+    profileTitle: string;
+    profileDesc: string;
+    profileInfoTitle: string;
+    profileInfoDesc: string;
+    profilePasswordTitle: string;
+    profilePasswordDesc: string;
+    // Admin - Users tour
+    adminUsersTitle: string;
+    adminUsersDesc: string;
+    adminUsersSearchTitle: string;
+    adminUsersSearchDesc: string;
+    adminUsersTableTitle: string;
+    adminUsersTableDesc: string;
+    // Admin - Exchange Rates tour
+    exchangeRatesTitle: string;
+    exchangeRatesDesc: string;
+    exchangeRatesSyncTitle: string;
+    exchangeRatesSyncDesc: string;
+    exchangeRatesTableTitle: string;
+    exchangeRatesTableDesc: string;
+    // Guide page tour
+    guideTourTitle: string;
+    guideTourDesc: string;
+    guideProgressTitle: string;
+    guideProgressDesc: string;
+    guideSectionsTitle: string;
+    guideSectionsDesc: string;
+    guideQuickLinksTitle: string;
+    guideQuickLinksDesc: string;
   };
 };

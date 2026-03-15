@@ -46,9 +46,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 function formatCostAxis(value: number): string {
   if (value === 0) return "0";
-  if (value >= 100_000_000) return `${(value / 100_000_000).toFixed(0)}억`;
-  if (value >= 10_000) return `${(value / 10_000).toFixed(0)}만`;
-  return value.toLocaleString("ko-KR");
+  return `₩${value.toLocaleString()}`;
 }
 
 function CostTooltip({
@@ -65,7 +63,7 @@ function CostTooltip({
     <div className="rounded-lg bg-white p-3 shadow-lg ring-1 ring-gray-200 text-sm">
       <p className="mb-1 font-medium text-gray-700">{label}</p>
       <p className="text-blue-600 font-semibold">
-        ₩{payload[0].value.toLocaleString("ko-KR")}
+        ₩{payload[0].value.toLocaleString()}
       </p>
     </div>
   );
@@ -169,7 +167,7 @@ export default function DashboardCharts({
                 <Tooltip
                   formatter={(value: number, _name: string, props: { payload?: TypeDistPoint }) => {
                     const cost = props.payload?.cost ?? 0;
-                    return [`${value}${t.dashboard.items} · ₩${cost.toLocaleString("ko-KR")}`, ""];
+                    return [`${value}${t.dashboard.items} · ₩${cost.toLocaleString()}`, ""];
                   }}
                 />
               </PieChart>

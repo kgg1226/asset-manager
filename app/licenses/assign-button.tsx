@@ -100,9 +100,9 @@ export default function AssignButton({
         onClick={() => setOpen(true)}
         disabled={remaining <= 0}
         className="rounded px-2 py-1 text-xs font-medium text-green-700 hover:bg-green-50 disabled:cursor-not-allowed disabled:text-gray-400 disabled:hover:bg-transparent"
-        title={remaining <= 0 ? t.license.unassigned : `${t.dashboard.assigned} (${remaining})`}
+        title={remaining <= 0 ? t.license.unassigned : `${t.common.assign} (${remaining})`}
       >
-        {t.dashboard.assigned}
+        {t.common.assign}
       </button>
 
       {open && (
@@ -196,7 +196,7 @@ export default function AssignButton({
                   disabled={isPending}
                   className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {isPending ? t.common.loading : `${selected.size} ${t.dashboard.assigned}`}
+                  {isPending ? t.common.loading : `${selected.size} ${t.common.assign}`}
                 </button>
               )}
             </div>

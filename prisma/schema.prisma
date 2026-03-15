@@ -85,6 +85,7 @@ model Employee {
   assignments      Assignment[]
   assets           Asset[]
   assetAssignmentHistories AssetAssignmentHistory[]
+  securityOrgCharts SecurityOrgChart[]
   company          OrgCompany?   @relation(fields: [companyId], references: [id])
   orgUnit          OrgUnit?      @relation("OrgMembers", fields: [orgUnitId], references: [id])
 
@@ -584,4 +585,22 @@ enum ArchiveStatus {
   RUNNING     // 실행 중
   COMPLETED   // 완료
   FAILED      // 실패
+}
+
+// ── 정보보호 조직도 ──
+
+model SecurityOrgChart {
+  id         Int       @id @default(autoincrement())
+  title      String                                       // 직책/역할 (예: 정보보호 최고책임자)
+  employeeId Int?                                         // 담당자 (FK → Employee)
+  parentId   Int?                                         // 상위 직책 (self-relation)
+  sortOrder  Int       @default(0)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  employee   Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  parent     SecurityOrgChart?  @relation("SecurityHierarchy", fields: [parentId], references: [id])
+  children   SecurityOrgChart[] @relation("SecurityHierarchy")
+
+  @@index([parentId])
 }
