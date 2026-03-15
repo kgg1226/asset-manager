@@ -119,6 +119,9 @@ export async function POST(request: NextRequest) {
     const companyIdVal = vNum(body.companyId, { min: 1, integer: true });
     const orgUnitIdVal = vNum(body.orgUnitId, { min: 1, integer: true });
     const assigneeIdVal = vNum(body.assigneeId, { min: 1, integer: true });
+    const ciaCVal = vNum(body.ciaC, { min: 1, max: 3, integer: true });
+    const ciaIVal = vNum(body.ciaI, { min: 1, max: 3, integer: true });
+    const ciaAVal = vNum(body.ciaA, { min: 1, max: 3, integer: true });
 
     // PC(Laptop/Desktop) 감가상각 자동 계산
     let finalBillingCycle = billingCycleVal as string | null;
@@ -141,7 +144,7 @@ export async function POST(request: NextRequest) {
           monthlyCostVal = costVal;
           break;
         case "ANNUAL":
-          monthlyCostVal = Math.round((costVal / 12) * 100) / 100;
+          monthlyCostVal = Math.round(costVal / 12);
           break;
         case "ONE_TIME":
           monthlyCostVal = 0;
@@ -180,6 +183,9 @@ export async function POST(request: NextRequest) {
         purchaseDate: purchaseDateVal,
         expiryDate: expiryDateVal,
         renewalDate: renewalDateVal,
+        ciaC: ciaCVal,
+        ciaI: ciaIVal,
+        ciaA: ciaAVal,
         createdBy: user.id,
         ...(companyIdVal && { company: { connect: { id: companyIdVal } } }),
         ...(orgUnitIdVal && { orgUnit: { connect: { id: orgUnitIdVal } } }),
@@ -302,7 +308,7 @@ export async function POST(request: NextRequest) {
         });
         // 도메인/SSL 월 환산 비용 자동 계산
         if (costVal != null && !monthlyCostVal) {
-          monthlyCostVal = Math.round((costVal / billingCycleMonths) * 100) / 100;
+          monthlyCostVal = Math.round(costVal / billingCycleMonths);
           await tx.asset.update({
             where: { id: created.id },
             data: { monthlyCost: monthlyCostVal },

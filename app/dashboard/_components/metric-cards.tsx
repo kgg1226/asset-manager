@@ -1,6 +1,9 @@
+"use client";
+
+import { useTranslation } from "@/lib/i18n";
 import type { DashboardMetrics } from "@/lib/dashboard-aggregator";
 
-// ── 스타일 ──
+// ── Styles ──
 
 const accentStyles = {
   blue: { border: "border-blue-500", icon: "text-blue-500" },
@@ -46,33 +49,35 @@ function formatCost(value: number): string {
 }
 
 export default function DashboardMetricCards({ metrics }: { metrics: DashboardMetrics }) {
+  const { t } = useTranslation();
+
   return (
     <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <MetricCard
-        title="전체 자산"
+        title={t.dashboard.totalAssets}
         value={metrics.totalAssets.toLocaleString("ko-KR")}
-        unit="개"
-        description={`사용 중 ${metrics.activeCount} · 미사용 ${metrics.inactiveCount} · 폐기 ${metrics.disposedCount}`}
+        unit={t.dashboard.items}
+        description={`${t.dashboard.active} ${metrics.activeCount} · ${t.dashboard.available} ${metrics.inactiveCount} · ${t.dashboard.expired} ${metrics.disposedCount}`}
         accent="blue"
       />
       <MetricCard
-        title="월간 비용"
+        title={t.dashboard.monthlyExpenses}
         value={formatCost(metrics.totalMonthlyCostKRW)}
-        description={`연간 환산 ${formatCost(metrics.totalAnnualCostKRW)}`}
+        description={`${t.common.total} ${formatCost(metrics.totalAnnualCostKRW)}`}
         accent="green"
       />
       <MetricCard
-        title="30일 내 만료"
+        title={`30${t.dashboard.expiringAssets}`}
         value={metrics.expiring30.toLocaleString("ko-KR")}
-        unit="개"
-        description="즉각적인 갱신·해지 검토 필요"
+        unit={t.dashboard.items}
+        description={t.dashboard.expiringAssets}
         accent={metrics.expiring30 > 0 ? "red" : "gray"}
       />
       <MetricCard
-        title="90일 내 만료"
+        title={`90${t.dashboard.expiringAssets}`}
         value={metrics.expiring90.toLocaleString("ko-KR")}
-        unit="개"
-        description="사전 계획이 필요한 자산"
+        unit={t.dashboard.items}
+        description={t.dashboard.expiringAssets}
         accent={metrics.expiring90 > 0 ? "yellow" : "gray"}
       />
     </div>

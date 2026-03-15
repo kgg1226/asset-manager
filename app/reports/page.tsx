@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { BarChart3, Download, FileSpreadsheet, FileText, Send } from "lucide-react";
 import Link from "next/link";
+import { useTranslation } from "@/lib/i18n";
 
 const TYPE_LABELS: Record<string, string> = {
   SOFTWARE: "소프트웨어",
@@ -30,6 +31,7 @@ function getCurrentYearMonth(): string {
 }
 
 export default function ReportsPage() {
+  const { t } = useTranslation();
   const [yearMonth, setYearMonth] = useState(getCurrentYearMonth());
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -82,14 +84,14 @@ export default function ReportsPage() {
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <BarChart3 className="h-6 w-6 text-blue-600" />
-            <h1 className="text-2xl font-bold text-gray-900">월별 자산 보고서</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{t.report.monthlyReport}</h1>
           </div>
         </div>
 
         {/* 월 선택 */}
         <div className="mb-6 flex items-end gap-4 rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-200">
           <div>
-            <label className="block text-xs font-medium uppercase text-gray-500 mb-1">기간 선택</label>
+            <label className="block text-xs font-medium uppercase text-gray-500 mb-1">{t.report.period}</label>
             <input
               type="month"
               value={yearMonth}
@@ -102,7 +104,7 @@ export default function ReportsPage() {
             disabled={loading}
             className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
           >
-            {loading ? "조회 중..." : "보고서 조회"}
+            {loading ? t.common.loading : t.report.generate}
           </button>
 
           {data && (
@@ -125,7 +127,7 @@ export default function ReportsPage() {
                 href={`/reports/${yearMonth}`}
                 className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
-                상세 보기
+                {t.common.detail}
               </Link>
             </div>
           )}
@@ -220,7 +222,7 @@ export default function ReportsPage() {
             <div className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
               <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-gray-900">
                 <Send className="h-4 w-4 text-blue-500" />
-                이메일 발송
+                {t.report.sendEmail}
               </h2>
               <div className="flex items-center gap-3">
                 <input
@@ -236,7 +238,7 @@ export default function ReportsPage() {
                   className="inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
                 >
                   <Send className="h-4 w-4" />
-                  {emailSending ? "발송 중..." : "발송"}
+                  {emailSending ? t.common.loading : t.common.submit}
                 </button>
               </div>
               {emailResult && (
@@ -251,7 +253,7 @@ export default function ReportsPage() {
         {!data && !loading && !error && (
           <div className="rounded-lg bg-white p-12 text-center shadow-sm ring-1 ring-gray-200">
             <BarChart3 className="mx-auto h-12 w-12 text-gray-300" />
-            <p className="mt-3 text-gray-500">기간을 선택하고 보고서를 조회하세요.</p>
+            <p className="mt-3 text-gray-500">{t.common.noData}</p>
           </div>
         )}
       </div>

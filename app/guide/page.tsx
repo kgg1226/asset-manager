@@ -17,6 +17,7 @@ import {
   ArrowRight,
   BookOpen,
 } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 
 interface Step {
   id: string;
@@ -163,7 +164,7 @@ const GUIDE_SECTIONS: GuideSection[] = [
     id: "license",
     icon: <FileText className="h-5 w-5" />,
     title: "소프트웨어 라이선스",
-    subtitle: "라이선스 키, 시트 배정 관리",
+    subtitle: "라이선스 키, 시트 배정, 그룹 관리",
     steps: [
       {
         id: "l1",
@@ -185,6 +186,18 @@ const GUIDE_SECTIONS: GuideSection[] = [
           "시트별 키를 개별 관리 가능",
           "사용량 = 배정된 시트 / 전체 수량",
         ],
+      },
+      {
+        id: "l3",
+        title: "3. 라이선스 그룹 설정",
+        description: "관련 라이선스를 그룹으로 묶어 체계적으로 관리합니다.",
+        details: [
+          "설정 > 그룹 설정에서 그룹 생성 (예: 'Office 365', '개발 도구')",
+          "그룹에 라이선스를 추가하여 관련 라이선스를 묶어 관리",
+          "기본 그룹 설정: 신규 라이선스가 자동으로 포함될 그룹 지정 가능",
+          "그룹별 라이선스 수량과 비용을 한눈에 파악",
+        ],
+        link: { href: "/settings/groups", label: "그룹 설정" },
       },
     ],
   },
@@ -268,6 +281,7 @@ const GUIDE_SECTIONS: GuideSection[] = [
 ];
 
 export default function GuidePage() {
+  const { t } = useTranslation();
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({ start: true });
   const [completedSteps, setCompletedSteps] = useState<Record<string, boolean>>({});
 
@@ -290,16 +304,16 @@ export default function GuidePage() {
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
             <BookOpen className="h-7 w-7 text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-900">관리자 가이드</h1>
+            <h1 className="text-3xl font-bold text-gray-900">{t.guide.title}</h1>
           </div>
-          <p className="text-gray-600">시스템을 단계별로 설정하세요. 완료한 항목을 체크하면 진행률을 추적할 수 있습니다.</p>
+          <p className="text-gray-600">{t.guide.subtitle}</p>
         </div>
 
         {/* Progress Bar */}
         <div className="mb-8 rounded-lg bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">전체 진행률</span>
-            <span className="text-sm font-bold text-blue-600">{doneSteps}/{totalSteps} 완료 ({progress}%)</span>
+            <span className="text-sm font-medium text-gray-700">{t.guide.progress}</span>
+            <span className="text-sm font-bold text-blue-600">{doneSteps}/{totalSteps} {t.guide.completed} ({progress}%)</span>
           </div>
           <div className="h-3 w-full rounded-full bg-gray-200 overflow-hidden">
             <div
@@ -380,13 +394,14 @@ export default function GuidePage() {
 
         {/* Quick Links */}
         <div className="mt-8 rounded-lg bg-blue-50 p-5">
-          <h3 className="text-sm font-semibold text-blue-900 mb-3">빠른 링크</h3>
+          <h3 className="text-sm font-semibold text-blue-900 mb-3">{t.guide.quickLinks}</h3>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {[
               { href: "/hardware/new", label: "하드웨어 등록" },
               { href: "/cloud/new", label: "클라우드 등록" },
               { href: "/licenses/new", label: "라이선스 등록" },
               { href: "/employees", label: "조직원 관리" },
+              { href: "/settings/groups", label: "그룹 설정" },
               { href: "/settings/notifications", label: "알림 설정" },
               { href: "/history", label: "감사 로그" },
             ].map((link) => (

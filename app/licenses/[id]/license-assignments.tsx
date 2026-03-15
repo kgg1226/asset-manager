@@ -4,6 +4,7 @@ import { useState } from "react";
 import { unassignLicenses } from "@/lib/assignment-actions";
 import { useToast } from "@/app/toast";
 import Link from "next/link";
+import { useTranslation } from "@/lib/i18n";
 
 type LicenseType = "NO_KEY" | "KEY_BASED" | "VOLUME";
 
@@ -26,6 +27,7 @@ export default function LicenseAssignments({
   assignments: AssignmentRow[];
 }) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [isPending, setIsPending] = useState(false);
   const [confirm, setConfirm] = useState(false);
@@ -85,7 +87,7 @@ export default function LicenseAssignments({
     <div className="mb-6">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-900">
-          활성 할당 ({assignments.length})
+          {t.dashboard.assigned} ({assignments.length})
         </h2>
         {selected.size > 0 && (
           <button
@@ -93,14 +95,14 @@ export default function LicenseAssignments({
             disabled={isPending}
             className="rounded-md bg-orange-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-700 disabled:opacity-50"
           >
-            {isPending ? "처리 중..." : `${selected.size}건 해제`}
+            {isPending ? t.common.loading : `${selected.size}`}
           </button>
         )}
       </div>
 
       {assignments.length === 0 ? (
         <div className="rounded-lg bg-white p-6 text-center shadow-sm ring-1 ring-gray-200">
-          <p className="text-sm text-gray-500">할당된 조직원이 없습니다.</p>
+          <p className="text-sm text-gray-500">{t.common.noData}</p>
         </div>
       ) : (
         <div className="overflow-x-auto rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
@@ -116,16 +118,16 @@ export default function LicenseAssignments({
                   />
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                  이름
+                  {t.common.name}
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                  부서
+                  {t.employee.department}
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                  키
+                  {t.license.key}
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                  배정일
+                  {t.license.purchaseDate}
                 </th>
               </tr>
             </thead>
@@ -183,26 +185,26 @@ export default function LicenseAssignments({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
             <h3 className="mb-2 text-lg font-semibold text-gray-900">
-              할당 해제 확인
+              {t.common.confirm}
             </h3>
             <p className="mb-1 text-sm text-gray-600">
-              선택한 {selected.size}건의 할당을 해제하시겠습니까?
+              {t.toast.confirmDelete} ({selected.size})
             </p>
             <p className="mb-4 text-xs text-gray-500">
-              이 작업은 이력에 기록됩니다.
+              {t.history.title}
             </p>
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setConfirm(false)}
                 className="rounded-md px-4 py-2 text-sm font-medium text-gray-700 ring-1 ring-gray-300 hover:bg-gray-50"
               >
-                취소
+                {t.common.cancel}
               </button>
               <button
                 onClick={handleUnassign}
                 className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
               >
-                해제
+                {t.common.confirm}
               </button>
             </div>
           </div>

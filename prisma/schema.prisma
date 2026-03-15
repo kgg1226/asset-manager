@@ -327,6 +327,11 @@ model Asset {
   orgUnitId       Int?                                // 배정 부서
   assigneeId      Int?                                // 배정 조직원
 
+  // CIA 보안 등급 (1=낮음, 2=보통, 3=높음)
+  ciaC            Int?                                // 기밀성 Confidentiality
+  ciaI            Int?                                // 무결성 Integrity
+  ciaA            Int?                                // 가용성 Availability
+
   // 메타
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt

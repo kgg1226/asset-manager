@@ -102,6 +102,9 @@ export async function PUT(request: NextRequest, { params }: Params) {
     if (body.companyId !== undefined) data.companyId = vNum(body.companyId, { min: 1, integer: true });
     if (body.orgUnitId !== undefined) data.orgUnitId = vNum(body.orgUnitId, { min: 1, integer: true });
     if (body.assigneeId !== undefined) data.assigneeId = vNum(body.assigneeId, { min: 1, integer: true });
+    if (body.ciaC !== undefined) data.ciaC = vNum(body.ciaC, { min: 1, max: 3, integer: true });
+    if (body.ciaI !== undefined) data.ciaI = vNum(body.ciaI, { min: 1, max: 3, integer: true });
+    if (body.ciaA !== undefined) data.ciaA = vNum(body.ciaA, { min: 1, max: 3, integer: true });
 
     // PC(Laptop/Desktop) 감가상각 자동 계산 또는 기존 방식
     if (body.monthlyCost === undefined) {
@@ -131,7 +134,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
           if (finalCost != null && finalCycle) {
             switch (finalCycle) {
               case "MONTHLY": data.monthlyCost = finalCost; break;
-              case "ANNUAL": data.monthlyCost = Math.round((finalCost / 12) * 100) / 100; break;
+              case "ANNUAL": data.monthlyCost = Math.round(finalCost / 12); break;
               case "ONE_TIME": data.monthlyCost = 0; break;
               case "USAGE_BASED": data.monthlyCost = finalCost; break;
             }
@@ -285,7 +288,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
             const months = ddFields.billingCycleMonths;
             await tx.asset.update({
               where: { id: assetId },
-              data: { monthlyCost: Math.round((Number(finalCost) / months) * 100) / 100 },
+              data: { monthlyCost: Math.round(Number(finalCost) / months) },
             });
           }
         } else {

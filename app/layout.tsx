@@ -51,15 +51,17 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} font-[family-name:var(--font-geist-sans)] bg-gray-50 text-gray-900 antialiased`}
       >
-        {showSidebar && (
-          <>
-            <TopHeader user={userProp} />
-            <Sidebar />
-          </>
-        )}
-        <main className={showSidebar ? "md:ml-60 pt-14" : ""}>
-          <Providers>{children}</Providers>
-        </main>
+        <Providers>
+          {showSidebar && (
+            <>
+              <TopHeader user={userProp} />
+              <Sidebar />
+            </>
+          )}
+          <main className={showSidebar ? "md:ml-60 pt-14" : ""}>
+            {children}
+          </main>
+        </Providers>
       </body>
     </html>
   );

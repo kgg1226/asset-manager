@@ -67,6 +67,14 @@
 
 ## 백엔드
 
+### [2026-03-15] prisma import는 반드시 named import 사용
+
+`lib/prisma.ts`는 `export const prisma`(named export)만 제공.
+→ `import { prisma } from "@/lib/prisma"` ✅
+→ `import prisma from "@/lib/prisma"` ❌ (default export 없음 → 빌드 에러)
+
+머지 시 새로 추가된 API 라우트가 default import를 사용하면 빌드 실패함. 머지 후 반드시 빌드 확인.
+
 ## DevOps
 
 ### [2026-03-10] node:alpine 비root 사용자는 `node`

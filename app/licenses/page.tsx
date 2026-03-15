@@ -1,58 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import Link from "next/link";
-import DeleteButton from "./delete-button";
-import AssignButton from "./assign-button";
-import UnassignButton from "./unassign-button";
-import LicenseRow from "./license-row";
-import LicenseTourWrapper from "./license-tour-wrapper";
+import LicensesContent from "./licenses-content";
 
 export const dynamic = "force-dynamic";
 
 type SortField = "name" | "totalQuantity" | "assigned" | "expiryDate";
 type SortOrder = "asc" | "desc";
-
-const SORTABLE_COLUMNS: { key: SortField; label: string }[] = [
-  { key: "name", label: "라이선스명" },
-  { key: "totalQuantity", label: "수량" },
-  { key: "assigned", label: "배정 현황" },
-  { key: "expiryDate", label: "갱신일" },
-];
-
-function formatAnnualCost(
-  totalAmountKRW: number | null,
-  paymentCycle: "MONTHLY" | "YEARLY" | null
-): string {
-  if (!totalAmountKRW || !paymentCycle) return "—";
-  const annual =
-    paymentCycle === "YEARLY" ? totalAmountKRW : totalAmountKRW * 12;
-  return "₩" + annual.toLocaleString("ko-KR");
-}
-
-function getNoticeBadge(
-  expiryDate: Date | null,
-  noticePeriodDays: number | null
-): { label: string; variant: "red" | "yellow" | "green" } | null {
-  if (!expiryDate || !noticePeriodDays) return null;
-
-  const noticeDate = new Date(expiryDate);
-  noticeDate.setDate(noticeDate.getDate() - noticePeriodDays);
-
-  const now = new Date();
-  const diffMs = noticeDate.getTime() - now.getTime();
-  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffDays < 0) return { label: "기한 초과", variant: "red" };
-  if (diffDays <= 7) return { label: `D-${diffDays}`, variant: "red" };
-  if (diffDays <= 30) return { label: `D-${diffDays}`, variant: "yellow" };
-  return { label: `D-${diffDays}`, variant: "green" };
-}
-
-const badgeColors = {
-  red: "bg-red-100 text-red-700",
-  yellow: "bg-yellow-100 text-yellow-800",
-  green: "bg-green-100 text-green-700",
-};
 
 const ITEMS_PER_PAGE = 50;
 
@@ -130,7 +83,7 @@ export default async function LicensesPage({
     };
   });
 
-  // 계층 구조 정렬: 부모 먼저, 자식은 바로 부모 아래
+  // Hierarchy sort: parents first, children right below parent
   const childrenMap = new Map<number, typeof enriched>();
   const roots: typeof enriched = [];
   for (const lic of enriched) {
@@ -150,7 +103,7 @@ export default async function LicensesPage({
       if (kids) walkLicenses(kids, depth + 1);
     }
   }
-  // 정렬 적용 후 hierarchy walk
+  // Apply sort then hierarchy walk
   enriched.sort((a, b) => {
     let cmp = 0;
     switch (sortField) {
@@ -173,7 +126,7 @@ export default async function LicensesPage({
     return sortOrder === "desc" ? -cmp : cmp;
   });
   walkLicenses(roots, 0);
-  // 계층에 포함되지 않은 고아 항목 추가 (parentId가 이 페이지에 없는 경우)
+  // Add orphan items (parentId not in current page)
   for (const lic of enriched) {
     if (!hierarchySorted.find((h) => h.id === lic.id)) {
       hierarchySorted.push({ ...lic, depth: 0 });
@@ -185,241 +138,26 @@ export default async function LicensesPage({
     orderBy: { name: "asc" },
   });
 
-  function sortUrl(field: SortField): string {
-    const nextOrder = sortField === field && sortOrder === "asc" ? "desc" : "asc";
-    return `/licenses?sort=${field}&order=${nextOrder}`;
-  }
-
-  function sortIndicator(field: SortField): string {
-    if (sortField !== field) return "";
-    return sortOrder === "asc" ? " ↑" : " ↓";
-  }
+  // Serialize dates for client component
+  const serializedLicenses = hierarchySorted.map((lic) => ({
+    ...lic,
+    purchaseDate: lic.purchaseDate?.toISOString() ?? null,
+    expiryDate: lic.expiryDate?.toISOString() ?? null,
+    children: undefined,
+    assignments: undefined,
+    seats: undefined,
+  }));
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10">
-      <div className="mx-auto max-w-7xl px-4">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">라이선스 목록</h1>
-          <div className="flex gap-2">
-            <LicenseTourWrapper />
-            {user && (
-              <Link
-                href="/licenses/new"
-                data-tour="license-new-btn"
-                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-              >
-                + 새 라이선스
-              </Link>
-            )}
-          </div>
-        </div>
-
-        {hierarchySorted.length === 0 ? (
-          <div className="rounded-lg bg-white p-12 text-center shadow-sm ring-1 ring-gray-200">
-            <p className="text-gray-500">등록된 라이선스가 없습니다.</p>
-            <Link
-              href="/licenses/new"
-              className="mt-3 inline-block text-sm text-blue-600 hover:underline"
-            >
-              첫 번째 라이선스를 등록하세요 &rarr;
-            </Link>
-          </div>
-        ) : (
-          <>
-            <div className="overflow-x-auto rounded-lg bg-white shadow-sm ring-1 ring-gray-200" data-tour="license-table">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    {SORTABLE_COLUMNS.map((col) => (
-                      <th key={col.key} className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                        <Link
-                          href={sortUrl(col.key)}
-                          className="inline-flex items-center gap-1 hover:text-gray-900"
-                        >
-                          {col.label}
-                          <span className="text-blue-500">{sortIndicator(col.key)}</span>
-                        </Link>
-                      </th>
-                    ))}
-                    <th className="px-4 py-3 text-right text-xs font-medium uppercase text-gray-500">연간 비용</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">담당자</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">해지 통보</th>
-                    {user && <th className="px-4 py-3 text-center text-xs font-medium uppercase text-gray-500">관리</th>}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {hierarchySorted.map((license) => {
-                    const badge = getNoticeBadge(license.expiryDate, license.noticePeriodDays);
-                    const pct = license.maxCapacity > 0
-                      ? Math.round((license.assignedCount / license.maxCapacity) * 100)
-                      : 0;
-                    const barColor =
-                      pct >= 100 ? "bg-red-500" : pct >= 80 ? "bg-yellow-500" : "bg-blue-500";
-
-                    return (
-                      <LicenseRow key={license.id} id={license.id}>
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                          <span className="inline-flex items-center gap-1.5" style={{ paddingLeft: license.depth > 0 ? `${license.depth * 16}px` : undefined }}>
-                            {license.depth > 0 && (
-                              <span className="text-gray-400 select-none">└─</span>
-                            )}
-                            {license.name}
-                            {license.licenseType === "VOLUME" && (
-                              <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[10px] font-semibold text-purple-700">
-                                Volume
-                              </span>
-                            )}
-                            {false && license.licenseType === "NO_KEY" && (
-                              <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-600">
-                                No Key
-                              </span>
-                            )}
-                            {license.licenseType === "KEY_BASED" && license.missingKeyCount > 0 && (
-                              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
-                                키 미등록 {license.missingKeyCount}
-                              </span>
-                            )}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600 tabular-nums">
-                          {license.maxCapacity}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <div className="h-2 w-20 rounded-full bg-gray-200">
-                              <div
-                                className={`h-2 rounded-full ${barColor}`}
-                                style={{ width: `${Math.min(pct, 100)}%` }}
-                              />
-                            </div>
-                            <span className="text-sm tabular-nums text-gray-600">
-                              {license.assignedCount} / {license.maxCapacity}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
-                          {license.expiryDate?.toLocaleDateString("ko-KR") ?? "—"}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600 text-right tabular-nums">
-                          {formatAnnualCost(license.totalAmountKRW, license.paymentCycle)}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
-                          {license.adminName ?? "—"}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          {badge ? (
-                            <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${badgeColors[badge.variant]}`}>
-                              {badge.label}
-                            </span>
-                          ) : (
-                            <span className="text-gray-400">—</span>
-                          )}
-                        </td>
-                        {user && (
-                          <td className="px-4 py-3 text-center">
-                            <div className="flex items-center justify-center gap-1">
-                              <AssignButton
-                                licenseId={license.id}
-                                licenseName={license.name}
-                                remaining={license.remainingCount}
-                                employees={employees}
-                                assignedEmployeeIds={license.assignedEmployeeIds}
-                                licenseType={license.licenseType}
-                              />
-                              <UnassignButton
-                                licenseName={license.name}
-                                assignedEmployees={license.assignedEmployees}
-                              />
-                              <DeleteButton id={license.id} name={license.name} />
-                            </div>
-                          </td>
-                        )}
-                      </LicenseRow>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination */}
-            {totalCount > ITEMS_PER_PAGE && (
-              <div className="mt-6 flex items-center justify-between">
-                <div className="text-sm text-gray-600">
-                  총 <span className="font-medium">{totalCount}</span>개 라이선스
-                  <span className="ml-2">
-                    ({(currentPage - 1) * ITEMS_PER_PAGE + 1}-
-                    {Math.min(currentPage * ITEMS_PER_PAGE, totalCount)})
-                  </span>
-                </div>
-
-                <div className="flex gap-1">
-                  {currentPage > 1 && (
-                    <Link
-                      href={`/licenses?sort=${sortField}&order=${sortOrder}&page=1`}
-                      className="inline-flex items-center gap-1 rounded px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
-                    >
-                      ← 처음
-                    </Link>
-                  )}
-
-                  {currentPage > 1 && (
-                    <Link
-                      href={`/licenses?sort=${sortField}&order=${sortOrder}&page=${currentPage - 1}`}
-                      className="inline-flex items-center gap-1 rounded px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
-                    >
-                      ‹ 이전
-                    </Link>
-                  )}
-
-                  <div className="flex items-center gap-0.5">
-                    {Array.from({ length: Math.min(5, Math.ceil(totalCount / ITEMS_PER_PAGE)) }).map(
-                      (_, i) => {
-                        const pageNum =
-                          currentPage <= 3
-                            ? i + 1
-                            : i + currentPage - 2;
-                        const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
-                        if (pageNum > totalPages) return null;
-                        return (
-                          <Link
-                            key={pageNum}
-                            href={`/licenses?sort=${sortField}&order=${sortOrder}&page=${pageNum}`}
-                            className={`inline-flex items-center justify-center rounded px-2 py-1.5 text-sm ${
-                              currentPage === pageNum
-                                ? "bg-blue-600 text-white font-medium"
-                                : "text-gray-600 hover:bg-gray-100"
-                            }`}
-                          >
-                            {pageNum}
-                          </Link>
-                        );
-                      }
-                    )}
-                  </div>
-
-                  {currentPage < Math.ceil(totalCount / ITEMS_PER_PAGE) && (
-                    <Link
-                      href={`/licenses?sort=${sortField}&order=${sortOrder}&page=${currentPage + 1}`}
-                      className="inline-flex items-center gap-1 rounded px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
-                    >
-                      다음 ›
-                    </Link>
-                  )}
-
-                  {currentPage < Math.ceil(totalCount / ITEMS_PER_PAGE) && (
-                    <Link
-                      href={`/licenses?sort=${sortField}&order=${sortOrder}&page=${Math.ceil(totalCount / ITEMS_PER_PAGE)}`}
-                      className="inline-flex items-center gap-1 rounded px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
-                    >
-                      끝 →
-                    </Link>
-                  )}
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </div>
+    <LicensesContent
+      licenses={serializedLicenses as any}
+      employees={employees.map(e => ({ ...e, department: e.department ?? "" }))}
+      totalCount={totalCount}
+      currentPage={currentPage}
+      itemsPerPage={ITEMS_PER_PAGE}
+      sortField={sortField}
+      sortOrder={sortOrder}
+      isLoggedIn={!!user}
+    />
   );
 }

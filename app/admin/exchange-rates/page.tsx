@@ -3,13 +3,14 @@
 import { useState, useEffect } from "react";
 import { TrendingUp, Save, RefreshCw, Zap } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n";
 
 const CURRENCIES = [
-  { code: "USD", name: "미국 달러" },
-  { code: "EUR", name: "유로" },
-  { code: "JPY", name: "일본 엔" },
-  { code: "GBP", name: "영국 파운드" },
-  { code: "CNY", name: "중국 위안" },
+  { code: "USD", name: "US Dollar" },
+  { code: "EUR", name: "Euro" },
+  { code: "JPY", name: "Japanese Yen" },
+  { code: "GBP", name: "British Pound" },
+  { code: "CNY", name: "Chinese Yuan" },
 ];
 
 type RateEntry = { currency: string; rateToKRW: number | null; source: string | null; updatedAt?: string | null };
@@ -27,6 +28,7 @@ export default function ExchangeRatesPage() {
   const [syncing, setSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const { t } = useTranslation();
 
   async function loadRates(d: string) {
     setLoading(true);
@@ -71,11 +73,11 @@ export default function ExchangeRatesPage() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
-      setResult({ ok: true, message: `${date} 환율 ${json.updated}개 저장 완료` });
-      toast.success(`환율 ${json.updated}개 저장 완료`);
+      setResult({ ok: true, message: t.toast.saveSuccess });
+      toast.success(t.toast.saveSuccess);
     } catch (e) {
-      setResult({ ok: false, message: e instanceof Error ? e.message : "저장 실패" });
-      toast.error("환율 저장 실패");
+      setResult({ ok: false, message: e instanceof Error ? e.message : t.toast.saveFail });
+      toast.error(t.toast.saveFail);
     } finally {
       setSaving(false);
     }
@@ -87,14 +89,13 @@ export default function ExchangeRatesPage() {
     try {
       const res = await fetch("/api/cron/exchange-rate-sync", { method: "POST" });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "동기화 실패");
-      toast.success("환율 동기화 완료");
-      setResult({ ok: true, message: `외부 API에서 환율을 동기화했습니다.` });
+      if (!res.ok) throw new Error(json.error || t.common.error);
+      toast.success(t.common.success);
+      setResult({ ok: true, message: t.common.success });
       setLastSyncTime(new Date().toISOString());
-      // 동기화 후 현재 날짜 데이터 다시 로드
       await loadRates(date);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "동기화 실패";
+      const msg = e instanceof Error ? e.message : t.common.error;
       toast.error(msg);
       setResult({ ok: false, message: msg });
     } finally {
@@ -107,18 +108,18 @@ export default function ExchangeRatesPage() {
       <div className="mx-auto max-w-2xl px-4">
         <div className="mb-6 flex items-center gap-3">
           <TrendingUp className="h-6 w-6 text-blue-600" />
-          <h1 className="text-2xl font-bold text-gray-900">환율 관리</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t.header.exchangeRate}</h1>
         </div>
 
-        {/* 동기화 카드 */}
+        {/* sync card */}
         <div className="mb-4 rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-700">외부 API 환율 동기화</p>
+              <p className="text-sm font-medium text-gray-700">API Sync</p>
               <p className="text-xs text-gray-400">
                 {lastSyncTime
-                  ? `마지막 동기화: ${new Date(lastSyncTime).toLocaleString("ko-KR")}`
-                  : "자동 동기화: 매일 09:00"}
+                  ? `${new Date(lastSyncTime).toLocaleString()}`
+                  : "09:00 daily"}
               </p>
             </div>
             <button
@@ -131,7 +132,7 @@ export default function ExchangeRatesPage() {
               ) : (
                 <Zap className="h-4 w-4" />
               )}
-              {syncing ? "동기화 중..." : "지금 동기화"}
+              {syncing ? t.common.loading : "Sync"}
             </button>
           </div>
         </div>
@@ -139,7 +140,7 @@ export default function ExchangeRatesPage() {
         <div className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
           <div className="mb-6 flex items-end gap-3">
             <div>
-              <label className="block text-xs font-medium uppercase text-gray-500 mb-1">날짜</label>
+              <label className="block text-xs font-medium uppercase text-gray-500 mb-1">{t.common.date}</label>
               <input
                 type="date"
                 value={date}
@@ -153,11 +154,11 @@ export default function ExchangeRatesPage() {
               className="inline-flex items-center gap-1 rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
             >
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-              불러오기
+              {t.common.search}
             </button>
           </div>
 
-          <p className="mb-4 text-xs text-gray-400">기준: 1 통화 = ? KRW (예: USD 1 = 1,350 KRW)</p>
+          <p className="mb-4 text-xs text-gray-400">1 {t.license.currency} = ? KRW</p>
 
           <div className="space-y-3">
             {CURRENCIES.map(({ code, name }) => (
@@ -178,7 +179,7 @@ export default function ExchangeRatesPage() {
                 <span className="text-sm text-gray-400">KRW</span>
                 {sources[code] && (
                   <span className={`rounded-full px-2 py-0.5 text-xs ${sources[code] === "api" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>
-                    {sources[code] === "api" ? "API" : "수동"}
+                    {sources[code] === "api" ? "API" : "Manual"}
                   </span>
                 )}
               </div>
@@ -192,24 +193,12 @@ export default function ExchangeRatesPage() {
               className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
             >
               <Save className="h-4 w-4" />
-              {saving ? "저장 중..." : "수동 저장"}
+              {saving ? t.common.loading : t.common.save}
             </button>
             {result && (
               <p className={`text-sm ${result.ok ? "text-green-600" : "text-red-600"}`}>{result.message}</p>
             )}
           </div>
-        </div>
-
-        <div className="mt-4 rounded-lg bg-blue-50 p-4 ring-1 ring-blue-200">
-          <p className="text-sm text-blue-700">
-            <strong>자동 동기화:</strong> 매일 09:00 배치가 실행됩니다.
-            <br />
-            <strong>수동 동기화:</strong> 상단 &quot;지금 동기화&quot; 버튼을 클릭하면 즉시 외부 API에서 최신 환율을 가져옵니다.
-            <br />
-            <span className="text-xs text-blue-500">
-              외부 API: <code className="rounded bg-blue-100 px-1 font-mono text-xs">OPEN_EXCHANGE_RATES_APP_ID</code> 설정 시 우선 사용, 미설정 시 무료 API 시도.
-            </span>
-          </p>
         </div>
       </div>
     </div>

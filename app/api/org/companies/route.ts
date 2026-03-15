@@ -15,6 +15,12 @@ export async function GET() {
         orgs: {
           include: {
             children: true,
+            members: {
+              where: { status: "ACTIVE" },
+              select: { id: true, name: true, title: true },
+              orderBy: { name: "asc" },
+            },
+            _count: { select: { members: true } },
           },
           orderBy: { name: "asc" },
         },

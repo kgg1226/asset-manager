@@ -5,14 +5,7 @@ import type { ImportType, ImportResult } from "@/lib/csv-import";
 import { importCsv, getTemplateCsv } from "./actions";
 import { templates } from "./templates";
 import { useToast } from "@/app/toast";
-
-const importTypes: { value: ImportType; label: string }[] = [
-  { value: "licenses", label: "라이선스" },
-  { value: "employees", label: "조직원" },
-  { value: "groups", label: "그룹" },
-  { value: "assignments", label: "할당" },
-  { value: "seats", label: "시트(키)" },
-];
+import { useTranslation } from "@/lib/i18n";
 
 export default function ImportForm() {
   const [type, setType] = useState<ImportType>("licenses");
@@ -21,6 +14,15 @@ export default function ImportForm() {
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { t } = useTranslation();
+
+  const importTypes: { value: ImportType; label: string }[] = [
+    { value: "licenses", label: t.license.title },
+    { value: "employees", label: t.employee.title },
+    { value: "groups", label: t.license.group },
+    { value: "assignments", label: t.license.seatAssignment },
+    { value: "seats", label: t.license.seat },
+  ];
 
   async function handleDownloadTemplate() {
     const csv = await getTemplateCsv(type);
@@ -57,9 +59,9 @@ export default function ImportForm() {
       setResult(res);
       if (res.success) {
         const parts: string[] = [];
-        if (res.created > 0) parts.push(`${res.created}건 생성`);
-        if (res.updated > 0) parts.push(`${res.updated}건 업데이트`);
-        toast(parts.join(", ") || "가져오기 완료");
+        if (res.created > 0) parts.push(`${res.created} ${t.common.create}`);
+        if (res.updated > 0) parts.push(`${res.updated} ${t.common.edit}`);
+        toast(parts.join(", ") || t.common.success);
         setFile(null);
         if (fileInputRef.current) fileInputRef.current.value = "";
       } else if (res.message) {
@@ -74,13 +76,13 @@ export default function ImportForm() {
     <div className="space-y-6">
       {/* Type Selector */}
       <div>
-        <label className="mb-2 block text-sm font-medium text-gray-700">가져오기 유형</label>
+        <label className="mb-2 block text-sm font-medium text-gray-700">{t.common.type}</label>
         <div className="flex flex-wrap gap-3">
-          {importTypes.map((t) => (
+          {importTypes.map((it) => (
             <label
-              key={t.value}
+              key={it.value}
               className={`cursor-pointer rounded-lg border px-4 py-2 text-sm font-medium transition ${
-                type === t.value
+                type === it.value
                   ? "border-blue-600 bg-blue-50 text-blue-700"
                   : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
               }`}
@@ -88,12 +90,12 @@ export default function ImportForm() {
               <input
                 type="radio"
                 name="importType"
-                value={t.value}
-                checked={type === t.value}
-                onChange={() => { setType(t.value); setResult(null); }}
+                value={it.value}
+                checked={type === it.value}
+                onChange={() => { setType(it.value); setResult(null); }}
                 className="sr-only"
               />
-              {t.label}
+              {it.label}
             </label>
           ))}
         </div>
@@ -103,9 +105,9 @@ export default function ImportForm() {
       <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-gray-700">CSV 템플릿</p>
+            <p className="text-sm font-medium text-gray-700">CSV</p>
             <p className="mt-1 text-xs text-gray-500">
-              필수 컬럼: {getRequiredHeaders(type).join(", ")} | 전체: {template.headers.join(", ")}
+              {t.common.required}: {getRequiredHeaders(type).join(", ")} | {t.common.all}: {template.headers.join(", ")}
             </p>
           </div>
           <button
@@ -113,7 +115,7 @@ export default function ImportForm() {
             onClick={handleDownloadTemplate}
             className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
-            템플릿 다운로드
+            {t.common.export}
           </button>
         </div>
       </div>
@@ -135,22 +137,22 @@ export default function ImportForm() {
               onClick={() => handleFileChange(null)}
               className="mt-2 text-xs text-red-600 hover:underline"
             >
-              파일 제거
+              {t.common.delete}
             </button>
           </div>
         ) : (
           <div className="text-center">
             <p className="text-sm text-gray-600">
-              CSV 파일을 드래그하거나{" "}
+              CSV{" "}
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 className="font-medium text-blue-600 hover:underline"
               >
-                파일 선택
+                {t.common.search}
               </button>
             </p>
-            <p className="mt-1 text-xs text-gray-400">최대 5MB, .csv 파일만 가능</p>
+            <p className="mt-1 text-xs text-gray-400">Max 5MB, .csv</p>
           </div>
         )}
         <input
@@ -169,7 +171,7 @@ export default function ImportForm() {
         onClick={handleSubmit}
         className="w-full rounded-md bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {isPending ? "처리 중..." : "가져오기"}
+        {isPending ? `${t.common.loading}` : t.common.import}
       </button>
 
       {/* Results */}
@@ -181,26 +183,26 @@ export default function ImportForm() {
         >
           {result.success ? (
             <div>
-              <p className="text-sm font-medium text-green-800">가져오기 완료</p>
+              <p className="text-sm font-medium text-green-800">{t.common.success}</p>
               <p className="mt-1 text-sm text-green-700">
-                {result.created > 0 && `${result.created}건 생성`}
+                {result.created > 0 && `${result.created} ${t.common.create}`}
                 {result.created > 0 && result.updated > 0 && ", "}
-                {result.updated > 0 && `${result.updated}건 업데이트`}
+                {result.updated > 0 && `${result.updated} ${t.common.edit}`}
               </p>
             </div>
           ) : (
             <div>
               <p className="text-sm font-medium text-red-800">
-                {result.message || `${result.errors.length}개의 오류가 발견되었습니다.`}
+                {result.message || `${result.errors.length} ${t.common.error}`}
               </p>
               {result.errors.length > 0 && (
                 <div className="mt-3 max-h-64 overflow-auto rounded border border-red-200 bg-white">
                   <table className="min-w-full text-xs">
                     <thead className="bg-red-50">
                       <tr>
-                        <th className="px-3 py-2 text-left font-medium text-red-700">행</th>
-                        <th className="px-3 py-2 text-left font-medium text-red-700">컬럼</th>
-                        <th className="px-3 py-2 text-left font-medium text-red-700">오류</th>
+                        <th className="px-3 py-2 text-left font-medium text-red-700">#</th>
+                        <th className="px-3 py-2 text-left font-medium text-red-700">{t.common.name}</th>
+                        <th className="px-3 py-2 text-left font-medium text-red-700">{t.common.error}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-red-100">
