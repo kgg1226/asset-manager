@@ -47,6 +47,24 @@
 
 ## 프론트엔드
 
+### [2026-03-15] API limit 검증과 프론트 요청값 불일치
+
+**원인**: 하드웨어/계약 목록 페이지에서 `limit=1000` 요청 → API에서 `max: 100` 검증으로 400 에러 → 빈 목록 표시
+**해결**: 프론트 limit을 100으로 변경 (PR #56)
+**예방**: API 검증 제한값 변경 시 프론트 호출부도 반드시 확인
+
+### [2026-03-15] deploy.ps1 git tracked 상태로 반복 업로드
+
+**원인**: `.gitignore`에 등록되어 있어도 이미 `git add`로 tracked된 파일은 무시되지 않음
+**해결**: `git rm --cached deploy.ps1`로 인덱스에서 제거 (PR #54)
+**예방**: 민감 파일은 최초 커밋 전 `.gitignore` 등록. 이미 tracked된 경우 `git rm --cached` 필수
+
+### [2026-03-15] prisma db push 누락으로 column not found
+
+**원인**: 스키마에 cpu 등 새 필드 추가 후 `prisma db push` 미실행 → DB 테이블에 컬럼 없음
+**해결**: `npx prisma db push`로 동기화
+**예방**: schema.prisma 변경 후 반드시 `npx prisma db push` 실행
+
 ## 백엔드
 
 ### [2026-03-15] prisma import는 반드시 named import 사용

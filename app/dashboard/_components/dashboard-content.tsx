@@ -8,6 +8,8 @@ import DashboardCharts from "./dashboard-charts";
 import ExpiringWidget from "./expiring-widget";
 import type { DashboardData, AssetCategory } from "@/lib/dashboard-aggregator";
 import { CATEGORY_LABELS } from "@/lib/dashboard-aggregator";
+import { TourGuide } from "@/app/_components/tour-guide";
+import { DASHBOARD_TOUR_KEY, dashboardSteps } from "@/app/_components/tours/dashboard-tour";
 
 export default function DashboardContent({
   initialData,
@@ -63,11 +65,18 @@ export default function DashboardContent({
 
   return (
     <div className={loading ? "opacity-60 transition-opacity" : ""}>
-      <h1 className="mb-2 text-2xl font-bold text-gray-900">{title}</h1>
+      <div className="mb-2 flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+        <TourGuide tourKey={DASHBOARD_TOUR_KEY} steps={dashboardSteps} />
+      </div>
       <p className="mb-6 text-sm text-gray-500">{subtitle}</p>
 
-      <CategoryTabs selected={selectedType} onChange={handleTabChange} />
-      <DashboardMetricCards metrics={data.metrics} />
+      <div data-tour="dashboard-categories">
+        <CategoryTabs selected={selectedType} onChange={handleTabChange} />
+      </div>
+      <div data-tour="dashboard-summary">
+        <DashboardMetricCards metrics={data.metrics} />
+      </div>
       <DashboardCharts
         monthlyTrend={data.charts.monthlyTrend}
         typeDistribution={data.charts.typeDistribution}

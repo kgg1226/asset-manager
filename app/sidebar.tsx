@@ -89,7 +89,7 @@ export default function Sidebar() {
   };
 
   const sidebarContent = (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col" data-tour="sidebar">
       {/* Brand */}
       <div className="flex h-14 items-center gap-2 border-b border-gray-200 px-4">
         <Package className="h-5 w-5 text-blue-600" />
