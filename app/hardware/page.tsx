@@ -94,7 +94,7 @@ export default function HardwareListPage() {
       params.set("type", "HARDWARE");
       if (searchQuery) params.set("search", searchQuery);
       if (selectedStatus) params.set("status", selectedStatus);
-      params.set("limit", "1000");
+      params.set("limit", "100");
       const res = await fetch(`/api/assets?${params}`);
       if (!res.ok) throw new Error("Failed");
       const data = await res.json();
