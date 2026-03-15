@@ -11,8 +11,8 @@ import CiaScoreInput from "@/app/_components/cia-score-input";
 import type { CiaLevel } from "@/lib/cia";
 
 const CURRENCIES = ["USD", "KRW", "EUR", "JPY", "GBP", "CNY"];
-const BILLING_CYCLES = [{ value: "ONE_TIME", label: "일회성" }, { value: "MONTHLY", label: "월간" }, { value: "ANNUAL", label: "연간" }, { value: "USAGE_BASED", label: "사용량 기반" }];
-const DEVICE_TYPES = ["Laptop", "Desktop", "Server", "Network", "Mobile", "Monitor", "Peripheral", "Other"];
+const BILLING_CYCLE_VALUES = ["ONE_TIME", "MONTHLY", "ANNUAL", "USAGE_BASED"];
+const DEVICE_TYPES = ["Laptop", "Desktop", "Server", "Network", "Mobile", "Monitor", "Peripheral", "SecurityDevice", "Storage", "Backup", "Rack", "Component", "Facility", "Other"];
 
 export default function HardwareNewPage() {
   const router = useRouter();
@@ -113,7 +113,7 @@ export default function HardwareNewPage() {
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-3">
               <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.asset.cost} <span className="text-red-500">*</span></label><input type="number" name="cost" value={form.cost} onChange={onChange} placeholder="0" min="0" step="0.01" className={errors.cost ? ec : ic} />{errors.cost && <p className="mt-1 text-sm text-red-500">{errors.cost}</p>}</div>
               <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.license.currency}</label><select name="currency" value={form.currency} onChange={onChange} className={ic}>{CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}</select></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.license.paymentCycle}</label><select name="billingCycle" value={form.billingCycle} onChange={onChange} className={ic}>{BILLING_CYCLES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}</select></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.license.paymentCycle}</label><select name="billingCycle" value={form.billingCycle} onChange={onChange} className={ic}>{BILLING_CYCLE_VALUES.map((v) => <option key={v} value={v}>{(t.license as Record<string, string>)[v === "ONE_TIME" ? "oneTime" : v === "MONTHLY" ? "monthly" : v === "ANNUAL" ? "yearly" : "usageBased"] ?? v}</option>)}</select></div>
             </div>
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
               <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.asset.purchaseDate}</label><input type="date" name="purchaseDate" value={form.purchaseDate} onChange={onChange} className={ic} /></div>
@@ -125,7 +125,7 @@ export default function HardwareNewPage() {
             <h2 className="mb-4 text-base font-semibold text-gray-900">{t.hw.title} {t.common.detail}</h2>
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
               <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.assetTag}</label><input type="text" name="assetTag" value={hw.assetTag} onChange={onHwChange} placeholder={t.hw.assetTag} className={ic} /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.deviceType}</label><select name="deviceType" value={hw.deviceType} onChange={onHwChange} className={ic}><option value="">{t.common.search}</option>{DEVICE_TYPES.map((d) => <option key={d} value={d}>{d}</option>)}</select></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.deviceType}</label><select name="deviceType" value={hw.deviceType} onChange={onHwChange} className={ic}><option value="">{t.common.search}</option>{DEVICE_TYPES.map((d) => <option key={d} value={d}>{(t.hw as Record<string, string>)[d.charAt(0).toLowerCase() + d.slice(1)] ?? d}</option>)}</select></div>
             </div>
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
               <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.manufacturer}</label><input type="text" name="manufacturer" value={hw.manufacturer} onChange={onHwChange} placeholder="Apple, Dell, Lenovo" className={ic} /></div>
@@ -152,14 +152,14 @@ export default function HardwareNewPage() {
               <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
                 <div><label className="block text-sm font-medium text-gray-700 mb-2">CPU</label><input type="text" name="cpu" value={hw.cpu} onChange={onHwChange} placeholder="Intel i7, Apple M4" className={ic} /></div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-2">RAM (GB)</label><input type="number" name="ram" value={hw.ram} onChange={onHwChange} min="0" className={ic} /></div>
-                <div><label className="block text-sm font-medium text-gray-700 mb-2">저장장치 (GB)</label><div className="flex gap-2"><input type="number" name="storage" value={hw.storage} onChange={onHwChange} min="0" className={ic} /><select name="storageType" value={hw.storageType} onChange={onHwChange} className="w-24 rounded-md border border-gray-300 px-2 py-2 text-sm"><option value="SSD">SSD</option><option value="HDD">HDD</option></select></div></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.storageCap}</label><div className="flex gap-2"><input type="number" name="storage" value={hw.storage} onChange={onHwChange} min="0" className={ic} /><select name="storageType" value={hw.storageType} onChange={onHwChange} className="w-24 rounded-md border border-gray-300 px-2 py-2 text-sm"><option value="SSD">SSD</option><option value="HDD">HDD</option></select></div></div>
               </div>
             </>)}
 
             {hw.deviceType === "Network" && (<>
               <div className="mt-6 mb-2 border-t border-gray-200 pt-4"><p className="text-sm font-semibold text-gray-700">{t.hw.network} {t.common.detail}</p></div>
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <div><label className="block text-sm font-medium text-gray-700 mb-2">포트 수</label><input type="number" name="portCount" value={hw.portCount} onChange={onHwChange} min="0" className={ic} /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.portCount}</label><input type="number" name="portCount" value={hw.portCount} onChange={onHwChange} min="0" className={ic} /></div>
               </div>
             </>)}
 
@@ -172,66 +172,105 @@ export default function HardwareNewPage() {
             </>)}
 
             {hw.deviceType === "Monitor" && (<>
-              <div className="mt-6 mb-2 border-t border-gray-200 pt-4"><p className="text-sm font-semibold text-gray-700">모니터 {t.common.detail}</p></div>
+              <div className="mt-6 mb-2 border-t border-gray-200 pt-4"><p className="text-sm font-semibold text-gray-700">{t.hw.monitor} {t.common.detail}</p></div>
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <div><label className="block text-sm font-medium text-gray-700 mb-2">해상도</label><input type="text" name="resolution" value={hw.resolution} onChange={onHwChange} placeholder="2560x1440" className={ic} /></div>
-                <div><label className="block text-sm font-medium text-gray-700 mb-2">연결 방식</label><select name="connectionType" value={hw.connectionType} onChange={onHwChange} className={ic}><option value="">선택</option><option value="HDMI">HDMI</option><option value="DisplayPort">DisplayPort</option><option value="USB-C">USB-C</option><option value="DVI">DVI</option><option value="VGA">VGA</option><option value="Other">{t.hw.other}</option></select></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.resolution}</label><input type="text" name="resolution" value={hw.resolution} onChange={onHwChange} placeholder="2560x1440" className={ic} /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.connectionType}</label><select name="connectionType" value={hw.connectionType} onChange={onHwChange} className={ic}><option value="">{t.common.search}</option><option value="HDMI">HDMI</option><option value="DisplayPort">DisplayPort</option><option value="USB-C">USB-C</option><option value="DVI">DVI</option><option value="VGA">VGA</option><option value="Other">{t.hw.other}</option></select></div>
               </div>
             </>)}
 
             {hw.deviceType === "Peripheral" && (<>
-              <div className="mt-6 mb-2 border-t border-gray-200 pt-4"><p className="text-sm font-semibold text-gray-700">주변기기 {t.common.detail}</p></div>
+              <div className="mt-6 mb-2 border-t border-gray-200 pt-4"><p className="text-sm font-semibold text-gray-700">{t.hw.peripheral} {t.common.detail}</p></div>
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <div><label className="block text-sm font-medium text-gray-700 mb-2">연결 방식</label><select name="connectionType" value={hw.connectionType} onChange={onHwChange} className={ic}><option value="">선택</option><option value="USB">USB</option><option value="Bluetooth">Bluetooth</option><option value="Wireless">무선</option><option value="Other">{t.hw.other}</option></select></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.connectionType}</label><select name="connectionType" value={hw.connectionType} onChange={onHwChange} className={ic}><option value="">{t.common.search}</option><option value="USB">USB</option><option value="Bluetooth">Bluetooth</option><option value="Wireless">Wireless</option><option value="Other">{t.hw.other}</option></select></div>
+              </div>
+            </>)}
+
+            {hw.deviceType === "SecurityDevice" && (<>
+              <div className="mt-6 mb-2 border-t border-gray-200 pt-4"><p className="text-sm font-semibold text-gray-700">{t.hw.securityDevice} {t.common.detail}</p></div>
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.deviceType}</label><select name="connectionType" value={hw.connectionType} onChange={onHwChange} className={ic}><option value="">{t.common.search}</option><option value="Firewall">{t.hw.firewall}</option><option value="IDS">{t.hw.ids}</option><option value="IPS">{t.hw.ips}</option><option value="VPN">{t.hw.vpn}</option><option value="WAF">{t.hw.waf}</option><option value="Antivirus">{t.hw.antivirus}</option><option value="NAC">{t.hw.nac}</option><option value="DLP">{t.hw.dlp}</option><option value="UTM">UTM</option><option value="Other">{t.hw.other}</option></select></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.firmwareVersion}</label><input type="text" name="firmwareVersion" value={hw.firmwareVersion} onChange={onHwChange} placeholder="v2.4.1" className={`${ic} font-mono`} /></div>
+              </div>
+            </>)}
+
+            {hw.deviceType === "Storage" && (<>
+              <div className="mt-6 mb-2 border-t border-gray-200 pt-4"><p className="text-sm font-semibold text-gray-700">{t.hw.storage} {t.common.detail}</p></div>
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.deviceType}</label><select name="connectionType" value={hw.connectionType} onChange={onHwChange} className={ic}><option value="">{t.common.search}</option><option value="StorageDevice">{t.hw.storageDevice}</option><option value="SAN">{t.hw.san}</option><option value="NAS">{t.hw.nas}</option><option value="Other">{t.hw.other}</option></select></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.storageCap}</label><input type="number" name="storage" value={hw.storage} onChange={onHwChange} min="0" className={ic} /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.firmwareVersion}</label><input type="text" name="firmwareVersion" value={hw.firmwareVersion} onChange={onHwChange} placeholder="v2.4.1" className={`${ic} font-mono`} /></div>
+              </div>
+            </>)}
+
+            {hw.deviceType === "Backup" && (<>
+              <div className="mt-6 mb-2 border-t border-gray-200 pt-4"><p className="text-sm font-semibold text-gray-700">{t.hw.backup} {t.common.detail}</p></div>
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.deviceType}</label><select name="connectionType" value={hw.connectionType} onChange={onHwChange} className={ic}><option value="">{t.common.search}</option><option value="PTL">PTL</option><option value="VTL">VTL</option><option value="External">External</option><option value="Other">{t.hw.other}</option></select></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.storageCap}</label><input type="number" name="storage" value={hw.storage} onChange={onHwChange} min="0" className={ic} /></div>
+              </div>
+            </>)}
+
+            {hw.deviceType === "Rack" && (<>
+              <div className="mt-6 mb-2 border-t border-gray-200 pt-4"><p className="text-sm font-semibold text-gray-700">{t.hw.rack} {t.common.detail}</p></div>
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.rackSize}</label><select name="connectionType" value={hw.connectionType} onChange={onHwChange} className={ic}><option value="">{t.common.search}</option><option value="Standard">{t.hw.rackStandard}</option><option value="NonStandard">{t.hw.rackNonStandard}</option></select></div>
+              </div>
+            </>)}
+
+            {hw.deviceType === "Component" && (<>
+              <div className="mt-6 mb-2 border-t border-gray-200 pt-4"><p className="text-sm font-semibold text-gray-700">{t.hw.component} {t.common.detail}</p></div>
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.componentType}</label><select name="connectionType" value={hw.connectionType} onChange={onHwChange} className={ic}><option value="">{t.common.search}</option><option value="Disk">Disk</option><option value="CPU">CPU</option><option value="Memory">Memory</option><option value="NIC">NIC</option><option value="HBA">HBA</option><option value="PSU">PSU</option><option value="Other">{t.hw.other}</option></select></div>
               </div>
             </>)}
           </div>
 
           {/* 보증/구매 관리 */}
           <div className="rounded-lg bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-base font-semibold text-gray-900">보증 / 구매 관리</h2>
+            <h2 className="mb-4 text-base font-semibold text-gray-900">{t.hw.warranty}</h2>
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
-              <div><label className="block text-sm font-medium text-gray-700 mb-2">보증 만료일</label><input type="date" name="warrantyEndDate" value={hw.warrantyEndDate} onChange={onHwChange} className={ic} /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-2">보증 업체</label><input type="text" name="warrantyProvider" value={hw.warrantyProvider} onChange={onHwChange} className={ic} /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.warrantyExpiry}</label><input type="date" name="warrantyEndDate" value={hw.warrantyEndDate} onChange={onHwChange} className={ic} /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.warrantyProvider}</label><input type="text" name="warrantyProvider" value={hw.warrantyProvider} onChange={onHwChange} className={ic} /></div>
             </div>
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
-              <div><label className="block text-sm font-medium text-gray-700 mb-2">PO 번호</label><input type="text" name="purchaseOrderNumber" value={hw.purchaseOrderNumber} onChange={onHwChange} className={`${ic} font-mono`} /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-2">인보이스 번호</label><input type="text" name="invoiceNumber" value={hw.invoiceNumber} onChange={onHwChange} className={`${ic} font-mono`} /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.poNumber}</label><input type="text" name="purchaseOrderNumber" value={hw.purchaseOrderNumber} onChange={onHwChange} className={`${ic} font-mono`} /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.invoiceNumber}</label><input type="text" name="invoiceNumber" value={hw.invoiceNumber} onChange={onHwChange} className={`${ic} font-mono`} /></div>
             </div>
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">상태 등급</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.condition}</label>
                 <select name="condition" value={hw.condition} onChange={onHwChange} className={ic}>
                   <option value="">{t.common.none}</option>
-                  <option value="A">A (최상)</option>
-                  <option value="B">B (양호)</option>
-                  <option value="C">C (보통)</option>
-                  <option value="D">D (불량)</option>
+                  <option value="A">{t.hw.conditionA}</option>
+                  <option value="B">{t.hw.conditionB}</option>
+                  <option value="C">{t.hw.conditionC}</option>
+                  <option value="D">{t.hw.conditionD}</option>
                 </select>
               </div>
             </div>
-            <div><label className="block text-sm font-medium text-gray-700 mb-2">비고</label><textarea name="notes" value={hw.notes} onChange={(e) => setHw((p) => ({ ...p, notes: e.target.value }))} rows={2} className={ic} /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.notes}</label><textarea name="notes" value={hw.notes} onChange={(e) => setHw((p) => ({ ...p, notes: e.target.value }))} rows={2} className={ic} /></div>
           </div>
 
           {/* 네트워크/인프라 (Server, Network 장비용) */}
-          {(hw.deviceType === "Server" || hw.deviceType === "Network") && (
+          {["Server", "Network", "SecurityDevice", "Storage"].includes(hw.deviceType) && (
             <div className="rounded-lg bg-white p-6 shadow-sm">
-              <h2 className="mb-4 text-base font-semibold text-gray-900">네트워크 / 인프라</h2>
+              <h2 className="mb-4 text-base font-semibold text-gray-900">{t.hw.networkInfra}</h2>
               <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
-                <div><label className="block text-sm font-medium text-gray-700 mb-2">보조 IP</label><input type="text" name="secondaryIp" value={hw.secondaryIp} onChange={onHwChange} placeholder="관리용/이중화 IP" className={`${ic} font-mono`} /></div>
-                <div><label className="block text-sm font-medium text-gray-700 mb-2">서브넷 마스크</label><input type="text" name="subnetMask" value={hw.subnetMask} onChange={onHwChange} placeholder="255.255.255.0" className={`${ic} font-mono`} /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.secondaryIp}</label><input type="text" name="secondaryIp" value={hw.secondaryIp} onChange={onHwChange} placeholder="10.0.0.2" className={`${ic} font-mono`} /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.subnetMask}</label><input type="text" name="subnetMask" value={hw.subnetMask} onChange={onHwChange} placeholder="255.255.255.0" className={`${ic} font-mono`} /></div>
               </div>
               <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
-                <div><label className="block text-sm font-medium text-gray-700 mb-2">게이트웨이</label><input type="text" name="gateway" value={hw.gateway} onChange={onHwChange} placeholder="192.168.1.1" className={`${ic} font-mono`} /></div>
-                <div><label className="block text-sm font-medium text-gray-700 mb-2">VLAN ID</label><input type="text" name="vlanId" value={hw.vlanId} onChange={onHwChange} placeholder="100" className={`${ic} font-mono`} /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.gateway}</label><input type="text" name="gateway" value={hw.gateway} onChange={onHwChange} placeholder="192.168.1.1" className={`${ic} font-mono`} /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.vlanId}</label><input type="text" name="vlanId" value={hw.vlanId} onChange={onHwChange} placeholder="100" className={`${ic} font-mono`} /></div>
               </div>
               <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
-                <div><label className="block text-sm font-medium text-gray-700 mb-2">DNS 호스트명</label><input type="text" name="dnsName" value={hw.dnsName} onChange={onHwChange} placeholder="server01.internal.corp" className={`${ic} font-mono`} /></div>
-                <div><label className="block text-sm font-medium text-gray-700 mb-2">펌웨어 버전</label><input type="text" name="firmwareVersion" value={hw.firmwareVersion} onChange={onHwChange} placeholder="v2.4.1" className={`${ic} font-mono`} /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.dnsHostname}</label><input type="text" name="dnsName" value={hw.dnsName} onChange={onHwChange} placeholder="server01.internal.corp" className={`${ic} font-mono`} /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.firmwareVersion}</label><input type="text" name="firmwareVersion" value={hw.firmwareVersion} onChange={onHwChange} placeholder="v2.4.1" className={`${ic} font-mono`} /></div>
               </div>
               {hw.deviceType === "Network" && (
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                  <div><label className="block text-sm font-medium text-gray-700 mb-2">포트 수</label><input type="number" name="portCount" value={hw.portCount} onChange={onHwChange} min="0" placeholder="24, 48 등" className={ic} /></div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.portCount}</label><input type="number" name="portCount" value={hw.portCount} onChange={onHwChange} min="0" placeholder="24, 48" className={ic} /></div>
                 </div>
               )}
             </div>

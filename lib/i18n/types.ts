@@ -200,7 +200,56 @@ export type TranslationDict = {
     server: string;
     network: string;
     mobile: string;
+    monitor: string;
+    peripheral: string;
+    securityDevice: string;
+    storage: string;
+    backup: string;
+    rack: string;
+    component: string;
+    facility: string;
     other: string;
+    // security device subtypes
+    firewall: string;
+    ids: string;
+    ips: string;
+    vpn: string;
+    waf: string;
+    antivirus: string;
+    nac: string;
+    dlp: string;
+    // storage subtypes
+    san: string;
+    nas: string;
+    storageDevice: string;
+    // warranty/purchase
+    warranty: string;
+    warrantyExpiry: string;
+    warrantyProvider: string;
+    poNumber: string;
+    invoiceNumber: string;
+    condition: string;
+    conditionA: string;
+    conditionB: string;
+    conditionC: string;
+    conditionD: string;
+    notes: string;
+    // network/infra
+    networkInfra: string;
+    secondaryIp: string;
+    subnetMask: string;
+    gateway: string;
+    vlanId: string;
+    dnsHostname: string;
+    firmwareVersion: string;
+    portCount: string;
+    resolution: string;
+    connectionType: string;
+    storageCap: string;
+    rackSize: string;
+    rackStandard: string;
+    rackNonStandard: string;
+    componentType: string;
   };
 
   // Cloud
