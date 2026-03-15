@@ -9,10 +9,9 @@
 - 포트: 호스트 8080 → 컨테이너 3000
 
 ## 세션 역할 체제
-이 프로젝트는 5개 역할로 분리 운영된다:
+이 프로젝트는 4개 역할로 분리 운영된다:
 - 🎯 기획: `/planning` 으로 진입
-- 🎨 프론트엔드: `/frontend` 으로 진입
-- ⚙️ 백엔드: `/backend` 으로 진입
+- 💻 개발(FE+BE 통합): `/frontend` 또는 `/backend` 으로 진입
 - 🔧 DevOps: `/devops` 으로 진입
 - 🔒 보안: `/security` 으로 진입
 
@@ -27,8 +26,7 @@
 ```
 master             ← 배포 기준. PR 머지만 허용, 직접 커밋 금지
   ├── role/planning   ← 기획 전담
-  ├── role/backend    ← 백엔드 전담
-  ├── role/frontend   ← 프론트엔드 전담
+  ├── role/dev        ← 개발 전담 (FE+BE 통합)
   ├── role/devops     ← DevOps 전담
   └── role/security   ← 보안 전담
 ```
@@ -38,8 +36,7 @@ master             ← 배포 기준. PR 머지만 허용, 직접 커밋 금지
 | 역할 | 소유 경로 | 절대 수정 금지 |
 |---|---|---|
 | **기획** | `tasks/` (security/ 제외), `CLAUDE.md` | 코드 파일 일체 |
-| **백엔드** | `app/api/`, `lib/`, `prisma/schema.prisma`, `prisma.config.ts` | `tasks/`, 페이지 파일 |
-| **프론트엔드** | `app/` (api/ 제외), `public/` | `tasks/`, `app/api/`, `lib/` |
+| **개발** | `app/`, `lib/`, `prisma/schema.prisma`, `prisma.config.ts`, `public/`, `hooks/` | `tasks/` |
 | **DevOps** | `dockerfile`, `docker-compose*.yml`, `deploy.ps1`, `deploy.sh`, `.github/` | `tasks/`, 코드 파일 |
 | **보안** | `tasks/security/` | 그 외 모든 파일 |
 
@@ -80,17 +77,16 @@ git merge master   # 또는 필요 시: git rebase master
 2. `tasks/todo.md` — 잔여 작업 목록
 3. `tasks/security/guidelines.md` — 보안 규칙
 4. 역할별 추가 참조:
-   - 프론트엔드: `tasks/api-spec.md` (호출할 API 스펙)
-   - 백엔드: `tasks/api-spec.md`, `tasks/db-changes.md`
+   - 개발: `tasks/api-spec.md`, `tasks/db-changes.md`
    - DevOps: `.env.infra` (Git 미추적, 로컬 전용)
 
 ### 3단계 — 다른 역할 코드 확인 (필요 시)
 ```bash
-# 백엔드 브랜치의 특정 파일 확인
-git show role/backend:app/api/org/units/route.ts
+# 개발 브랜치의 특정 파일 확인
+git show role/dev:app/api/org/units/route.ts
 
-# 프론트엔드 브랜치 변경 파일 목록
-git diff master...role/frontend --stat
+# 개발 브랜치 변경 파일 목록
+git diff master...role/dev --stat
 ```
 
 ---
@@ -157,10 +153,12 @@ DATABASE_URL=postgresql://license_manager:license_manager_pass@localhost:5432/li
 ## 실제 디렉토리 구조
 ```
 app/
-  api/               ← API Route (백엔드 전담)
+  api/               ← API Route (개발 전담)
     admin/           ← 사용자 관리 API
+    assets/          ← 자산(클라우드/하드웨어/도메인) API
     assignments/     ← 할당 API
     auth/            ← 인증 API
+    contracts/       ← 계약 API
     cron/            ← 배치/스케줄러 API
     employees/       ← 구성원 API
     groups/          ← 그룹 API
@@ -168,20 +166,28 @@ app/
     licenses/        ← 라이선스 API
     org/             ← 조직 API
     seats/           ← 시트 API
-  admin/             ← 사용자 관리 페이지 (프론트엔드 전담)
-  dashboard/
-  employees/
-  history/
-  licenses/
-  login/
-  org/
-  settings/
+  _components/       ← 공통 컴포넌트
+  admin/             ← 사용자 관리 페이지
+  cloud/             ← 클라우드 자산 페이지
+  contracts/         ← 계약 관리 페이지
+  dashboard/         ← 대시보드
+  domains/           ← 도메인·SSL 페이지
+  employees/         ← 조직원 페이지
+  hardware/          ← 하드웨어 자산 페이지
+  history/           ← 감사 로그 페이지
+  licenses/          ← 라이선스 페이지
+  login/             ← 로그인
+  org/               ← 조직도
+  reports/           ← 보고서
+  settings/          ← 설정 (그룹/CSV가져오기/알림/프로필)
   layout.tsx
   page.tsx           ← / → /licenses 리다이렉트
 lib/
   auth.ts            ← 인증 (세션/bcrypt)
   prisma.ts          ← Prisma 클라이언트 singleton
   audit-log.ts       ← 감사 로그 기록
+  i18n/              ← 다국어 지원 (KO/EN/JA/ZH/VI/ZH-TW)
+  cia.ts             ← CIA 보안 등급
   assignment-actions.ts
   cost-calculator.ts
   csv-import.ts
@@ -216,14 +222,35 @@ examples/
 | `/licenses/new` | 라이선스 등록 |
 | `/licenses/[id]` | 라이선스 상세 |
 | `/licenses/[id]/edit` | 라이선스 수정 |
+| `/cloud` | 클라우드 자산 목록 |
+| `/cloud/new` | 클라우드 자산 등록 |
+| `/cloud/[id]` | 클라우드 자산 상세 |
+| `/cloud/[id]/edit` | 클라우드 자산 수정 |
+| `/hardware` | 하드웨어 자산 목록 |
+| `/hardware/new` | 하드웨어 자산 등록 |
+| `/hardware/[id]` | 하드웨어 자산 상세 |
+| `/hardware/[id]/edit` | 하드웨어 자산 수정 |
+| `/domains` | 도메인·SSL 목록 |
+| `/domains/new` | 도메인·SSL 등록 |
+| `/domains/[id]` | 도메인·SSL 상세 |
+| `/domains/[id]/edit` | 도메인·SSL 수정 |
+| `/contracts` | 계약 목록 |
+| `/contracts/new` | 계약 등록 |
+| `/contracts/[id]` | 계약 상세 |
+| `/contracts/[id]/edit` | 계약 수정 |
 | `/employees` | 조직원 목록 |
 | `/employees/new` | 조직원 등록 |
 | `/employees/[id]` | 조직원 상세 |
+| `/reports` | 월별 보고서 |
+| `/reports/[yearMonth]` | 보고서 상세 |
 | `/settings/groups` | 그룹 목록 |
 | `/settings/import` | CSV 가져오기 |
+| `/settings/notifications` | 알림 설정 |
+| `/settings/profile` | 프로필 설정 |
 | `/org` | 조직도 |
 | `/history` | 감사 로그 |
 | `/admin/users` | 사용자 관리 (ADMIN 전용) |
+| `/guide` | 사용 가이드 |
 
 ## 폐쇄망 제약
 - 런타임에 외부 URL 호출 금지
