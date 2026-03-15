@@ -19,22 +19,27 @@ interface Asset {
   ciaC?: number | null; ciaI?: number | null; ciaA?: number | null;
 }
 
-const STATUS_LABELS: Record<AssetStatus, string> = { IN_STOCK: "재고", IN_USE: "사용 중", INACTIVE: "미사용", UNUSABLE: "불용", PENDING_DISPOSAL: "폐기 대상", DISPOSED: "폐기 완료" };
+const STATUS_KEYS: Record<AssetStatus, string> = { IN_STOCK: "statusInStock", IN_USE: "statusInUse", INACTIVE: "statusInactive", UNUSABLE: "statusUnusable", PENDING_DISPOSAL: "statusPendingDisposal", DISPOSED: "statusDisposed" };
 const STATUS_COLORS: Record<AssetStatus, string> = { IN_STOCK: "bg-blue-100 text-blue-800", IN_USE: "bg-green-100 text-green-800", INACTIVE: "bg-gray-100 text-gray-800", UNUSABLE: "bg-yellow-100 text-yellow-800", PENDING_DISPOSAL: "bg-orange-100 text-orange-800", DISPOSED: "bg-red-100 text-red-800" };
 
 function formatCost(cost: number | null | undefined, currency: string): string {
   if (cost == null) return "—";
-  return currency === "KRW" ? `${cost.toLocaleString("ko-KR")}원` : `${currency} ${cost.toLocaleString()}`;
+  const symbols: Record<string, string> = { KRW: "₩", USD: "$", EUR: "€", JPY: "¥", GBP: "£", CNY: "¥" };
+  const sym = symbols[currency] ?? currency;
+  return `${sym}${cost.toLocaleString()}`;
 }
 function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleDateString("ko-KR");
+  return new Date(dateStr).toLocaleDateString();
 }
 
 export default function DomainsListPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { t } = useTranslation();
+
+  const getStatusLabel = (s: AssetStatus) => (t.asset as Record<string, string>)[STATUS_KEYS[s]] ?? s;
+
   const [assets, setAssets] = useState<Asset[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -92,8 +97,8 @@ export default function DomainsListPage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <button onClick={() => setSelectedStatus("")} className={`rounded-full px-3 py-1 text-sm ${selectedStatus === "" ? "bg-blue-600 text-white" : "bg-gray-100"}`}>{t.common.all} {t.common.status}</button>
-            {(Object.keys(STATUS_LABELS) as AssetStatus[]).map((s) => (
-              <button key={s} onClick={() => setSelectedStatus(s)} className={`rounded-full px-3 py-1 text-sm ${selectedStatus === s ? "bg-blue-600 text-white" : "bg-gray-100"}`}>{STATUS_LABELS[s]}</button>
+            {(Object.keys(STATUS_KEYS) as AssetStatus[]).map((s) => (
+              <button key={s} onClick={() => setSelectedStatus(s)} className={`rounded-full px-3 py-1 text-sm ${selectedStatus === s ? "bg-blue-600 text-white" : "bg-gray-100"}`}>{getStatusLabel(s)}</button>
             ))}
           </div>
         </div>
@@ -102,14 +107,14 @@ export default function DomainsListPage() {
           <table className="w-full min-w-[700px]">
             <thead className="border-b bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold">{t.asset.assetName}</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold">{t.asset.vendor}</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold">{t.common.status}</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold">{t.asset.cost}</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold">{t.asset.expiryDate}</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold">{t.asset.assignee}</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold">{t.cia.title}</th>
-                <th className="px-6 py-3 text-right text-xs font-semibold">{t.common.actions}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.asset.assetName}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.asset.vendor}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.common.status}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.asset.cost}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.asset.expiryDate}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.asset.assignee}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.cia.title}</th>
+                <th className="px-6 py-3 text-right text-xs font-semibold whitespace-nowrap">{t.common.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -122,7 +127,7 @@ export default function DomainsListPage() {
                   <tr key={a.id} className="border-b hover:bg-gray-50">
                     <td className="px-6 py-4 font-medium"><Link href={`/domains/${a.id}`} className="text-blue-600 hover:underline">{a.name}</Link></td>
                     <td className="px-6 py-4 text-sm text-gray-600">{a.vendor || "—"}</td>
-                    <td className="px-6 py-4"><span className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${STATUS_COLORS[a.status]}`}>{STATUS_LABELS[a.status]}</span></td>
+                    <td className="px-6 py-4"><span className={`inline-block whitespace-nowrap rounded-full px-2 py-1 text-xs font-medium ${STATUS_COLORS[a.status]}`}>{getStatusLabel(a.status)}</span></td>
                     <td className="px-6 py-4 text-sm">{formatCost(a.cost, a.currency)}</td>
                     <td className="px-6 py-4 text-sm">{formatDate(a.expiryDate)}</td>
                     <td className="px-6 py-4 text-sm">{a.assignee?.name || "—"}</td>

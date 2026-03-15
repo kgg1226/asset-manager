@@ -1,23 +1,31 @@
 "use client";
 
 import type { CiaLevel } from "@/lib/cia";
-import { getCiaLevelLabel, getCiaLevelColor } from "@/lib/cia";
+import { getCiaLevelColor } from "@/lib/cia";
+import { useTranslation } from "@/lib/i18n";
 
 interface CiaScoreInputProps {
   initialValues?: { ciaC: CiaLevel | null; ciaI: CiaLevel | null; ciaA: CiaLevel | null };
   onChange: (values: { ciaC: CiaLevel | null; ciaI: CiaLevel | null; ciaA: CiaLevel | null }) => void;
 }
 
-const DIMENSIONS = [
-  { key: "ciaC" as const, label: "기밀성 (C)", description: "정보 유출 시 영향도" },
-  { key: "ciaI" as const, label: "무결성 (I)", description: "정보 변조 시 영향도" },
-  { key: "ciaA" as const, label: "가용성 (A)", description: "서비스 중단 시 영향도" },
-];
-
 const LEVELS: CiaLevel[] = [1, 2, 3];
 
 export default function CiaScoreInput({ initialValues, onChange }: CiaScoreInputProps) {
+  const { t } = useTranslation();
   const values = initialValues ?? { ciaC: null, ciaI: null, ciaA: null };
+
+  const DIMENSIONS = [
+    { key: "ciaC" as const, label: t.cia.confidentiality, description: t.cia.confidentiality },
+    { key: "ciaI" as const, label: t.cia.integrity, description: t.cia.integrity },
+    { key: "ciaA" as const, label: t.cia.availability, description: t.cia.availability },
+  ];
+
+  const LEVEL_LABELS: Record<CiaLevel, string> = {
+    1: t.cia.low,
+    2: t.cia.medium,
+    3: t.cia.high,
+  };
 
   const handleChange = (key: "ciaC" | "ciaI" | "ciaA", level: CiaLevel | null) => {
     onChange({ ...values, [key]: level });
@@ -25,8 +33,8 @@ export default function CiaScoreInput({ initialValues, onChange }: CiaScoreInput
 
   return (
     <div className="rounded-lg bg-white p-6 shadow-sm">
-      <h2 className="mb-4 text-base font-semibold text-gray-900">보안 등급 (CIA)</h2>
-      <p className="mb-4 text-xs text-gray-500">자산의 기밀성, 무결성, 가용성 등급을 설정합니다. (1=낮음, 2=보통, 3=높음)</p>
+      <h2 className="mb-4 text-base font-semibold text-gray-900">{t.cia.title}</h2>
+      <p className="mb-4 text-xs text-gray-500">{t.cia.evaluateAll}</p>
       <div className="space-y-4">
         {DIMENSIONS.map(({ key, label, description }) => (
           <div key={key}>
@@ -42,7 +50,7 @@ export default function CiaScoreInput({ initialValues, onChange }: CiaScoreInput
                     : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50"
                 }`}
               >
-                미설정
+                {t.cia.notEvaluated}
               </button>
               {LEVELS.map((level) => (
                 <button
@@ -55,7 +63,7 @@ export default function CiaScoreInput({ initialValues, onChange }: CiaScoreInput
                       : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50"
                   }`}
                 >
-                  {level} - {getCiaLevelLabel(level)}
+                  {level} - {LEVEL_LABELS[level]}
                 </button>
               ))}
             </div>

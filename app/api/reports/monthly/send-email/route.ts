@@ -20,18 +20,22 @@ import { ValidationError, handleValidationError } from "@/lib/validation";
 import nodemailer from "nodemailer";
 import ExcelJS from "exceljs";
 
-// ── 유형·상태 한글 라벨 ─────────────────────────────────────────────────────
+// ── Type / Status labels (English fallback for server-side) ──────────────────
 const TYPE_LABELS: Record<string, string> = {
-  SOFTWARE: "소프트웨어",
-  CLOUD: "클라우드",
-  HARDWARE: "하드웨어",
-  DOMAIN_SSL: "도메인·SSL",
-  OTHER: "기타",
+  SOFTWARE: "Software",
+  CLOUD: "Cloud",
+  HARDWARE: "Hardware",
+  DOMAIN_SSL: "Domain/SSL",
+  OTHER: "Other",
 };
 const STATUS_LABELS: Record<string, string> = {
-  ACTIVE: "사용 중",
-  INACTIVE: "미사용",
-  DISPOSED: "폐기",
+  IN_STOCK: "In Stock",
+  IN_USE: "In Use",
+  ACTIVE: "Active",
+  INACTIVE: "Inactive",
+  UNUSABLE: "Unusable",
+  PENDING_DISPOSAL: "Pending Disposal",
+  DISPOSED: "Disposed",
 };
 
 // ── 헬퍼 ────────────────────────────────────────────────────────────────────
@@ -122,55 +126,55 @@ async function generateExcelBuffer(
     row.height = 28;
   }
 
-  // Sheet 1: 요약
-  const wsSummary = wb.addWorksheet("요약");
+  // Sheet 1: Summary
+  const wsSummary = wb.addWorksheet("Summary");
   wsSummary.columns = [
-    { header: "항목", key: "label", width: 25 },
-    { header: "값", key: "value", width: 30 },
+    { header: "Item", key: "label", width: 25 },
+    { header: "Value", key: "value", width: 30 },
   ];
   styleHeader(wsSummary, 2);
-  wsSummary.addRow({ label: "보고서 기간", value: period });
-  wsSummary.addRow({ label: "시작일", value: formatDate(startDate) });
-  wsSummary.addRow({ label: "종료일", value: formatDate(endDate) });
-  wsSummary.addRow({ label: "총 자산 수", value: assets.length });
-  wsSummary.addRow({ label: "월 비용 합계 (KRW)", value: formatCurrency(Math.round(totalMonthlyCost)) });
-  wsSummary.addRow({ label: "보고서 생성일", value: formatDate(new Date()) });
+  wsSummary.addRow({ label: "Report Period", value: period });
+  wsSummary.addRow({ label: "Start Date", value: formatDate(startDate) });
+  wsSummary.addRow({ label: "End Date", value: formatDate(endDate) });
+  wsSummary.addRow({ label: "Total Assets", value: assets.length });
+  wsSummary.addRow({ label: "Monthly Cost Total (KRW)", value: formatCurrency(Math.round(totalMonthlyCost)) });
+  wsSummary.addRow({ label: "Report Generated", value: formatDate(new Date()) });
 
-  // Sheet 2: 유형별
-  const wsType = wb.addWorksheet("유형별");
+  // Sheet 2: By Type
+  const wsType = wb.addWorksheet("By Type");
   wsType.columns = [
-    { header: "유형", key: "type", width: 20 },
-    { header: "자산 수", key: "count", width: 12 },
-    { header: "월 비용 (KRW)", key: "cost", width: 20 },
+    { header: "Type", key: "type", width: 20 },
+    { header: "Asset Count", key: "count", width: 12 },
+    { header: "Monthly Cost (KRW)", key: "cost", width: 20 },
   ];
   styleHeader(wsType, 3);
   for (const [type, data] of typeMap) {
     wsType.addRow({ type: TYPE_LABELS[type] ?? type, count: data.count, cost: formatCurrency(Math.round(data.cost)) });
   }
 
-  // Sheet 3: 상태별
-  const wsStatus = wb.addWorksheet("상태별");
+  // Sheet 3: By Status
+  const wsStatus = wb.addWorksheet("By Status");
   wsStatus.columns = [
-    { header: "상태", key: "status", width: 15 },
-    { header: "자산 수", key: "count", width: 12 },
-    { header: "월 비용 (KRW)", key: "cost", width: 20 },
+    { header: "Status", key: "status", width: 15 },
+    { header: "Asset Count", key: "count", width: 12 },
+    { header: "Monthly Cost (KRW)", key: "cost", width: 20 },
   ];
   styleHeader(wsStatus, 3);
   for (const [status, data] of statusMap) {
     wsStatus.addRow({ status: STATUS_LABELS[status] ?? status, count: data.count, cost: formatCurrency(Math.round(data.cost)) });
   }
 
-  // Sheet 4: 상세 목록
-  const wsDetail = wb.addWorksheet("상세 목록");
+  // Sheet 4: Detail
+  const wsDetail = wb.addWorksheet("Detail");
   wsDetail.columns = [
-    { header: "자산명", key: "name", width: 30 },
-    { header: "유형", key: "type", width: 15 },
-    { header: "상태", key: "status", width: 12 },
-    { header: "공급업체", key: "vendor", width: 20 },
-    { header: "월 비용", key: "monthlyCost", width: 15 },
-    { header: "통화", key: "currency", width: 8 },
-    { header: "담당자", key: "assignee", width: 15 },
-    { header: "만료일", key: "expiryDate", width: 14 },
+    { header: "Asset Name", key: "name", width: 30 },
+    { header: "Type", key: "type", width: 15 },
+    { header: "Status", key: "status", width: 12 },
+    { header: "Vendor", key: "vendor", width: 20 },
+    { header: "Monthly Cost", key: "monthlyCost", width: 15 },
+    { header: "Currency", key: "currency", width: 8 },
+    { header: "Assignee", key: "assignee", width: 15 },
+    { header: "Expiry Date", key: "expiryDate", width: 14 },
   ];
   styleHeader(wsDetail, 8);
   for (const a of assets) {
@@ -189,7 +193,7 @@ async function generateExcelBuffer(
   return wb.xlsx.writeBuffer();
 }
 
-// ── 이메일 HTML 템플릿 ──────────────────────────────────────────────────────
+// ── Email HTML template ──────────────────────────────────────────────────────
 function buildEmailHtml(
   period: string,
   assetCount: number,
@@ -201,7 +205,7 @@ function buildEmailHtml(
       (t) =>
         `<tr>
           <td style="padding:6px 12px;border-bottom:1px solid #eee">${TYPE_LABELS[t.type] ?? t.type}</td>
-          <td style="padding:6px 12px;border-bottom:1px solid #eee;text-align:right">${t.count}건</td>
+          <td style="padding:6px 12px;border-bottom:1px solid #eee;text-align:right">${t.count}</td>
           <td style="padding:6px 12px;border-bottom:1px solid #eee;text-align:right">${formatCurrency(Math.round(t.cost))} KRW</td>
         </tr>`,
     )
@@ -209,33 +213,33 @@ function buildEmailHtml(
 
   return `
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head><meta charset="utf-8"></head>
-<body style="font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;color:#333;max-width:600px;margin:0 auto;padding:20px">
+<body style="font-family:Arial,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;color:#333;max-width:600px;margin:0 auto;padding:20px">
   <div style="background:#2563EB;color:#fff;padding:20px 24px;border-radius:8px 8px 0 0">
-    <h2 style="margin:0;font-size:18px">📊 월별 자산 비용 리포트</h2>
-    <p style="margin:8px 0 0;opacity:0.9;font-size:14px">기간: ${period}</p>
+    <h2 style="margin:0;font-size:18px">Monthly Asset Cost Report</h2>
+    <p style="margin:8px 0 0;opacity:0.9;font-size:14px">Period: ${period}</p>
   </div>
 
   <div style="background:#f9fafb;padding:20px 24px;border:1px solid #e5e7eb;border-top:none">
     <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
       <tr>
-        <td style="padding:8px 0;font-weight:bold;width:50%">총 자산 수</td>
-        <td style="padding:8px 0;text-align:right;font-size:18px;color:#2563EB;font-weight:bold">${assetCount}건</td>
+        <td style="padding:8px 0;font-weight:bold;width:50%">Total Assets</td>
+        <td style="padding:8px 0;text-align:right;font-size:18px;color:#2563EB;font-weight:bold">${assetCount}</td>
       </tr>
       <tr>
-        <td style="padding:8px 0;font-weight:bold">월 비용 합계</td>
+        <td style="padding:8px 0;font-weight:bold">Monthly Cost Total</td>
         <td style="padding:8px 0;text-align:right;font-size:18px;color:#2563EB;font-weight:bold">${formatCurrency(Math.round(totalCost))} KRW</td>
       </tr>
     </table>
 
-    <h3 style="font-size:14px;margin:16px 0 8px;color:#374151">유형별 현황</h3>
+    <h3 style="font-size:14px;margin:16px 0 8px;color:#374151">By Type</h3>
     <table style="width:100%;border-collapse:collapse;font-size:13px">
       <thead>
         <tr style="background:#e5e7eb">
-          <th style="padding:6px 12px;text-align:left">유형</th>
-          <th style="padding:6px 12px;text-align:right">수량</th>
-          <th style="padding:6px 12px;text-align:right">월 비용</th>
+          <th style="padding:6px 12px;text-align:left">Type</th>
+          <th style="padding:6px 12px;text-align:right">Count</th>
+          <th style="padding:6px 12px;text-align:right">Monthly Cost</th>
         </tr>
       </thead>
       <tbody>
@@ -246,8 +250,8 @@ function buildEmailHtml(
 
   <div style="padding:16px 24px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;background:#fff">
     <p style="margin:0;font-size:13px;color:#6b7280">
-      자세한 내용은 첨부된 Excel 파일을 참고하세요.<br>
-      이 이메일은 License Manager 시스템에서 자동 발송되었습니다.
+      Please refer to the attached Excel file for details.<br>
+      This email was automatically sent by the License Manager system.
     </p>
   </div>
 </body>
@@ -340,10 +344,10 @@ export async function POST(request: NextRequest) {
     // ── 이메일 HTML 생성 ──
     const html = buildEmailHtml(period, assets.length, totalMonthlyCost, byType);
     const textContent =
-      `[월별 자산 비용 리포트 - ${period}]\n` +
-      `총 자산 수: ${assets.length}건\n` +
-      `월 비용 합계: ${formatCurrency(Math.round(totalMonthlyCost))} KRW\n\n` +
-      `자세한 내용은 첨부된 Excel 파일을 참고하세요.`;
+      `[Monthly Asset Cost Report - ${period}]\n` +
+      `Total Assets: ${assets.length}\n` +
+      `Monthly Cost Total: ${formatCurrency(Math.round(totalMonthlyCost))} KRW\n\n` +
+      `Please refer to the attached Excel file for details.`;
 
     // ── SMTP 발송 ──
     const port = Number(process.env.SMTP_PORT ?? 587);
@@ -359,7 +363,7 @@ export async function POST(request: NextRequest) {
     await transporter.sendMail({
       from: SMTP_FROM,
       to: validEmails.join(", "),
-      subject: `[자산 보고서] ${period} 월별 자산 비용 리포트`,
+      subject: `[Asset Report] ${period} Monthly Asset Cost Report`,
       text: textContent,
       html,
       attachments: [

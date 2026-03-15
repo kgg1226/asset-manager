@@ -1,5 +1,3 @@
-// 변경: 로컬 requireAdmin() 삭제 후 lib/auth.ts에서 import — 중복 제거
-
 "use server";
 
 import { prisma } from "@/lib/prisma";
@@ -15,14 +13,14 @@ export async function createUser(_prev: FormState, formData: FormData): Promise<
   const password = formData.get("password") as string;
   const role = formData.get("role") as "ADMIN" | "USER";
 
-  if (!username || !password) return { error: "사용자명과 비밀번호는 필수입니다." };
-  if (password.length < 8) return { error: "비밀번호는 8자 이상이어야 합니다." };
+  if (!username || !password) return { error: "Username and password are required." };
+  if (password.length < 8) return { error: "Password must be at least 8 characters." };
 
   try {
     const hash = await hashPassword(password);
     await prisma.user.create({ data: { username, password: hash, role: role === "ADMIN" ? "ADMIN" : "USER" } });
   } catch {
-    return { error: "이미 사용 중인 사용자명입니다." };
+    return { error: "Username already exists." };
   }
 
   revalidatePath("/admin");
@@ -31,7 +29,7 @@ export async function createUser(_prev: FormState, formData: FormData): Promise<
 
 export async function deleteUser(userId: number): Promise<FormState> {
   const me = await requireAdmin();
-  if (me.id === userId) return { error: "자기 자신은 삭제할 수 없습니다." };
+  if (me.id === userId) return { error: "Cannot delete your own account." };
 
   await prisma.user.delete({ where: { id: userId } });
   revalidatePath("/admin");
@@ -42,7 +40,7 @@ export async function changePassword(userId: number, _prev: FormState, formData:
   await requireAdmin();
 
   const password = formData.get("password") as string;
-  if (!password || password.length < 8) return { error: "비밀번호는 8자 이상이어야 합니다." };
+  if (!password || password.length < 8) return { error: "Password must be at least 8 characters." };
 
   const hash = await hashPassword(password);
   await prisma.user.update({ where: { id: userId }, data: { password: hash } });
@@ -52,7 +50,7 @@ export async function changePassword(userId: number, _prev: FormState, formData:
 
 export async function updateRole(userId: number, role: "ADMIN" | "USER"): Promise<FormState> {
   const me = await requireAdmin();
-  if (me.id === userId) return { error: "자신의 권한은 변경할 수 없습니다." };
+  if (me.id === userId) return { error: "Cannot change your own role." };
 
   await prisma.user.update({ where: { id: userId }, data: { role } });
   revalidatePath("/admin");

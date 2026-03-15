@@ -71,7 +71,7 @@ export default function UnassignButton({
 
     setIsPending(false);
     if (totalReturned > 0) {
-      toast(`${totalReturned}건 할당 해제 완료`, "success");
+      toast(`${totalReturned} ${t.license.unassign}`, "success");
       setOpen(false);
       setSelected(new Set());
     } else if (!hasError) {
@@ -87,7 +87,7 @@ export default function UnassignButton({
         onClick={() => setOpen(true)}
         className="rounded px-2 py-1 text-xs font-medium text-orange-600 hover:bg-orange-50"
       >
-        {t.common.delete}
+        {t.license.unassign}
       </button>
 
       {open && (
@@ -161,7 +161,7 @@ export default function UnassignButton({
           <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
             <h3 className="mb-2 text-lg font-semibold text-gray-900">{t.common.confirm}</h3>
             <p className="mb-4 text-sm text-gray-600">
-              {t.toast.confirmDelete} ({selected.size})
+              {t.toast.confirmUnassign} ({selected.size})
             </p>
             <div className="flex justify-end gap-2">
               <button

@@ -39,7 +39,7 @@ export default function HardwareEditPage() {
     (async () => {
       try {
         const res = await fetch(`/api/assets/${assetId}`);
-        if (!res.ok) { toast.error("로드 실패"); router.push("/hardware"); return; }
+        if (!res.ok) { toast.error(t.toast.loadFail); router.push("/hardware"); return; }
         const d = await res.json();
         setForm({ name: d.name || "", description: d.description || "", vendor: d.vendor || "", cost: d.cost != null ? String(d.cost) : "", currency: d.currency || "KRW", billingCycle: d.billingCycle || "ONE_TIME", purchaseDate: d.purchaseDate ? d.purchaseDate.split("T")[0] : "", expiryDate: d.expiryDate ? d.expiryDate.split("T")[0] : "" });
         setCia({ ciaC: (d.ciaC as CiaLevel) ?? null, ciaI: (d.ciaI as CiaLevel) ?? null, ciaA: (d.ciaA as CiaLevel) ?? null });
@@ -63,15 +63,15 @@ export default function HardwareEditPage() {
             vlanId: h.vlanId || "", dnsName: h.dnsName || "", firmwareVersion: h.firmwareVersion || "",
           });
         }
-      } catch { toast.error("로드 실패"); router.push("/hardware"); }
+      } catch { toast.error(t.toast.loadFail); router.push("/hardware"); }
       finally { setIsLoadingData(false); }
     })();
   }, [assetId, router]);
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!form.name.trim()) e.name = "자산명은 필수입니다";
-    if (form.cost && (isNaN(Number(form.cost)) || Number(form.cost) < 0)) e.cost = "유효한 비용";
+    if (!form.name.trim()) e.name = `${t.asset.assetName} ${t.common.required}`;
+    if (form.cost && (isNaN(Number(form.cost)) || Number(form.cost) < 0)) e.cost = t.common.invalidCost;
     setErrors(e); return Object.keys(e).length === 0;
   };
 
@@ -80,7 +80,7 @@ export default function HardwareEditPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) { toast.error("입력 값 확인"); return; }
+    if (!validate()) { toast.error(t.common.validationCheck); return; }
     setIsLoading(true);
     try {
       const payload = {
@@ -112,9 +112,9 @@ export default function HardwareEditPage() {
       };
       const res = await fetch(`/api/assets/${assetId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "수정 실패");
+      if (!res.ok) throw new Error(json.error || t.toast.updateFail);
       toast.success(t.toast.updateSuccess); router.push(`/hardware/${assetId}`);
-    } catch (err) { toast.error(err instanceof Error ? err.message : "수정 실패"); }
+    } catch (err) { toast.error(err instanceof Error ? err.message : t.toast.updateFail); }
     finally { setIsLoading(false); }
   };
 

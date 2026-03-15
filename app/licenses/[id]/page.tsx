@@ -168,7 +168,7 @@ export default async function LicenseDetailPage({
     employeeId: a.employee.id,
     employeeName: a.employee.name,
     department: a.employee.department ?? "",
-    assignedDate: a.assignedDate.toLocaleDateString("ko-KR"),
+    assignedDate: a.assignedDate.toLocaleDateString(),
     seatKey: a.seat?.key ?? null,
     licenseType: license.licenseType as "NO_KEY" | "KEY_BASED" | "VOLUME",
     volumeKey: license.licenseType === "VOLUME" ? license.key : null,

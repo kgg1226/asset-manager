@@ -86,7 +86,7 @@ function useActionLabels(): Record<string, string> {
     ASSIGNED: t.dashboard.assigned,
     UNASSIGNED: t.license.unassigned,
     RETURNED: t.common.back,
-    REVOKED: t.common.delete,
+    REVOKED: t.license.unassign,
     IMPORTED: t.common.import,
     LOGIN: t.common.login,
     LOGOUT: t.common.logout,

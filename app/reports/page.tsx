@@ -7,14 +7,6 @@ import { useTranslation } from "@/lib/i18n";
 import { TourGuide } from "@/app/_components/tour-guide";
 import { REPORTS_TOUR_KEY, getReportsSteps } from "@/app/_components/tours/reports-tour";
 
-const TYPE_LABELS: Record<string, string> = {
-  SOFTWARE: "소프트웨어",
-  CLOUD: "클라우드",
-  HARDWARE: "하드웨어",
-  DOMAIN_SSL: "도메인/SSL",
-  OTHER: "기타",
-};
-
 type ReportData = {
   period: string;
   startDate: string;
@@ -34,6 +26,13 @@ function getCurrentYearMonth(): string {
 
 export default function ReportsPage() {
   const { t } = useTranslation();
+  const TYPE_LABELS: Record<string, string> = {
+    SOFTWARE: t.nav.licenses,
+    CLOUD: t.cloud.title,
+    HARDWARE: t.hw.title,
+    DOMAIN_SSL: t.domain.title,
+    OTHER: t.hw.other,
+  };
   const [yearMonth, setYearMonth] = useState(getCurrentYearMonth());
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -50,11 +49,11 @@ export default function ReportsPage() {
       const res = await fetch(`/api/reports/monthly/${yearMonth}/data`);
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
-        throw new Error(json.error ?? "보고서 데이터를 불러오는데 실패했습니다.");
+        throw new Error(json.error ?? t.report.loadFail);
       }
       setData(await res.json());
     } catch (e) {
-      setError(e instanceof Error ? e.message : "오류가 발생했습니다.");
+      setError(e instanceof Error ? e.message : t.common.error);
     } finally {
       setLoading(false);
     }
@@ -71,10 +70,10 @@ export default function ReportsPage() {
         body: JSON.stringify({ recipients: emailInput.split(",").map((e) => e.trim()).filter(Boolean) }),
       });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json.error ?? "이메일 발송에 실패했습니다.");
-      setEmailResult("이메일이 발송되었습니다.");
+      if (!res.ok) throw new Error(json.error ?? t.report.emailSendFail);
+      setEmailResult(t.report.emailSent);
     } catch (e) {
-      setEmailResult(e instanceof Error ? e.message : "오류가 발생했습니다.");
+      setEmailResult(e instanceof Error ? e.message : t.common.error);
     } finally {
       setEmailSending(false);
     }
@@ -146,43 +145,43 @@ export default function ReportsPage() {
           <>
             {/* 요약 카드 */}
             <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <SummaryCard label="기간" value={data.period} />
+              <SummaryCard label={t.report.period} value={data.period} />
               <SummaryCard
-                label="월간 총 비용"
-                value={`₩${data.summary.totalMonthlyCost.toLocaleString("ko-KR")}`}
+                label={t.report.totalMonthlyCost}
+                value={`₩${data.summary.totalMonthlyCost.toLocaleString()}`}
                 highlight
               />
-              <SummaryCard label="자산 수" value={`${data.summary.assetCount}개`} />
+              <SummaryCard label={t.report.assetCount} value={`${data.summary.assetCount}${t.dashboard.items}`} />
             </div>
 
             {data.expiringCount > 0 && (
               <div className="mb-4 rounded-md bg-yellow-50 p-3 text-sm text-yellow-800 ring-1 ring-yellow-200">
-                ⚠️ 30일 이내 만료 예정 자산: <strong>{data.expiringCount}개</strong>
+                {t.report.expiringWarning} <strong>{data.expiringCount}{t.dashboard.items}</strong>
               </div>
             )}
 
             <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
               {/* 유형별 비용 */}
               <div className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
-                <h2 className="mb-4 text-base font-semibold text-gray-900">유형별 비용</h2>
+                <h2 className="mb-4 text-base font-semibold text-gray-900">{t.report.costByType}</h2>
                 <table className="min-w-full">
                   <thead>
                     <tr className="border-b border-gray-200">
-                      <th className="pb-2 text-left text-xs font-medium uppercase text-gray-500">유형</th>
-                      <th className="pb-2 text-right text-xs font-medium uppercase text-gray-500">자산 수</th>
-                      <th className="pb-2 text-right text-xs font-medium uppercase text-gray-500">월간 비용</th>
+                      <th className="pb-2 text-left text-xs font-medium uppercase text-gray-500">{t.common.type}</th>
+                      <th className="pb-2 text-right text-xs font-medium uppercase text-gray-500">{t.report.assetCount}</th>
+                      <th className="pb-2 text-right text-xs font-medium uppercase text-gray-500">{t.report.monthlyCost}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {data.byType.length === 0 ? (
-                      <tr><td colSpan={3} className="py-4 text-center text-sm text-gray-400">데이터 없음</td></tr>
+                      <tr><td colSpan={3} className="py-4 text-center text-sm text-gray-400">{t.common.noData}</td></tr>
                     ) : (
                       data.byType.map((row) => (
                         <tr key={row.type}>
                           <td className="py-2 text-sm text-gray-900">{TYPE_LABELS[row.type] ?? row.type}</td>
-                          <td className="py-2 text-right text-sm text-gray-600">{row.count}개</td>
+                          <td className="py-2 text-right text-sm text-gray-600">{row.count}{t.dashboard.items}</td>
                           <td className="py-2 text-right text-sm font-medium text-gray-900">
-                            ₩{row.cost.toLocaleString("ko-KR")}
+                            ₩{row.cost.toLocaleString()}
                           </td>
                         </tr>
                       ))
@@ -193,25 +192,25 @@ export default function ReportsPage() {
 
               {/* 부서별 비용 */}
               <div className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
-                <h2 className="mb-4 text-base font-semibold text-gray-900">부서별 비용</h2>
+                <h2 className="mb-4 text-base font-semibold text-gray-900">{t.report.costByDept}</h2>
                 <table className="min-w-full">
                   <thead>
                     <tr className="border-b border-gray-200">
-                      <th className="pb-2 text-left text-xs font-medium uppercase text-gray-500">부서</th>
-                      <th className="pb-2 text-right text-xs font-medium uppercase text-gray-500">자산 수</th>
-                      <th className="pb-2 text-right text-xs font-medium uppercase text-gray-500">월간 비용</th>
+                      <th className="pb-2 text-left text-xs font-medium uppercase text-gray-500">{t.employee.department}</th>
+                      <th className="pb-2 text-right text-xs font-medium uppercase text-gray-500">{t.report.assetCount}</th>
+                      <th className="pb-2 text-right text-xs font-medium uppercase text-gray-500">{t.report.monthlyCost}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {data.byDepartment.length === 0 ? (
-                      <tr><td colSpan={3} className="py-4 text-center text-sm text-gray-400">데이터 없음</td></tr>
+                      <tr><td colSpan={3} className="py-4 text-center text-sm text-gray-400">{t.common.noData}</td></tr>
                     ) : (
                       data.byDepartment.map((row) => (
                         <tr key={row.department}>
                           <td className="py-2 text-sm text-gray-900">{row.department}</td>
-                          <td className="py-2 text-right text-sm text-gray-600">{row.count}개</td>
+                          <td className="py-2 text-right text-sm text-gray-600">{row.count}{t.dashboard.items}</td>
                           <td className="py-2 text-right text-sm font-medium text-gray-900">
-                            ₩{row.cost.toLocaleString("ko-KR")}
+                            ₩{row.cost.toLocaleString()}
                           </td>
                         </tr>
                       ))
@@ -232,7 +231,7 @@ export default function ReportsPage() {
                   type="text"
                   value={emailInput}
                   onChange={(e) => setEmailInput(e.target.value)}
-                  placeholder="이메일 주소 (쉼표로 구분)"
+                  placeholder={t.report.emailPlaceholder}
                   className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
                 <button
@@ -245,7 +244,7 @@ export default function ReportsPage() {
                 </button>
               </div>
               {emailResult && (
-                <p className={`mt-2 text-sm ${emailResult.includes("발송") ? "text-green-600" : "text-red-600"}`}>
+                <p className={`mt-2 text-sm ${emailResult === t.report.emailSent ? "text-green-600" : "text-red-600"}`}>
                   {emailResult}
                 </p>
               )}

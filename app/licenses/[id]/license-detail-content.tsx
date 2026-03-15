@@ -144,24 +144,21 @@ export default function LicenseDetailContent({
 }: LicenseDetailContentProps) {
   const { t, locale } = useTranslation();
 
-  const localeTag = locale === "en" ? "en-US" : "ko-KR";
-
   function formatDate(dateStr: string | null): string {
     if (!dateStr) return "\u2014";
-    return new Date(dateStr).toLocaleDateString(localeTag);
+    return new Date(dateStr).toLocaleDateString();
   }
 
   function formatPrice(price: number | null): string {
     if (price === null) return "\u2014";
-    if (locale === "en") return "\u20A9" + price.toLocaleString("en-US");
-    return price.toLocaleString("ko-KR") + "\uC6D0";
+    return `${CURRENCY_SYMBOLS[license.currency as Currency] ?? license.currency} ${price.toLocaleString()}`;
   }
 
   const actionLabelMap: Record<string, string> = {
     ASSIGNED: t.license.assignedTo.split(" ")[0] || t.dashboard.assigned,
     RETURNED: t.history.title.includes("History") ? "Returned" : "\uBC18\uB0A9",
-    REVOKED: t.history.title.includes("History") ? "Revoked" : "\uD574\uC81C",
-    UNASSIGNED: t.license.unassigned,
+    REVOKED: t.license.unassign,
+    UNASSIGNED: t.license.unassign,
     CREATED: t.history.created,
     UPDATED: t.history.updated,
     DELETED: t.history.deleted,
@@ -172,6 +169,7 @@ export default function LicenseDetailContent({
     license.licenseType === "VOLUME" ? t.license.volume : null;
 
   const currencySymbol = CURRENCY_SYMBOLS[license.currency as Currency];
+  const krwSymbol = CURRENCY_SYMBOLS["KRW"];
 
   return (
     <div className="min-h-screen bg-gray-50 py-10">
@@ -321,41 +319,41 @@ export default function LicenseDetailContent({
               <InfoItem
                 icon={<CreditCard className="h-4 w-4" />}
                 label={`${t.license.unitPrice} (${currencySymbol})`}
-                value={`${currencySymbol}${license.unitPrice!.toLocaleString(localeTag)}`}
+                value={`${currencySymbol}${license.unitPrice!.toLocaleString()}`}
               />
               <InfoItem
                 icon={<CreditCard className="h-4 w-4" />}
                 label={t.license.quantity}
-                value={`${license.quantity!.toLocaleString(localeTag)}${locale === "en" ? "" : "\uAC1C"}`}
+                value={`${license.quantity!.toLocaleString()}${locale === "en" ? "" : "\uAC1C"}`}
               />
               <InfoItem
                 icon={<CreditCard className="h-4 w-4" />}
                 label={`${t.license.totalAmount} (${currencySymbol})`}
-                value={`${currencySymbol}${costBreakdown.totalAmountForeign.toLocaleString(localeTag)} (${t.license.vatIncluded})`}
+                value={`${currencySymbol}${costBreakdown.totalAmountForeign.toLocaleString()} (${t.license.vatIncluded})`}
               />
               {license.currency !== "KRW" && (
                 <InfoItem
                   icon={<CreditCard className="h-4 w-4" />}
                   label={t.license.exchangeRate}
-                  value={`1 ${license.currency} = \u20A9${license.exchangeRate.toLocaleString(localeTag)}`}
+                  value={`1 ${license.currency} = ${krwSymbol}${license.exchangeRate.toLocaleString()}`}
                 />
               )}
             </dl>
             <div className="mt-4 grid grid-cols-2 gap-4 rounded-md bg-blue-50 p-4 sm:grid-cols-2">
               <div>
                 <p className="text-xs font-medium uppercase text-gray-500">
-                  {t.license.monthly} (\u20A9)
+                  {t.license.monthly} ({krwSymbol})
                 </p>
                 <p className="mt-1 text-xl font-bold text-blue-700">
-                  \u20A9{costBreakdown.monthlyKRW.toLocaleString(localeTag)}
+                  {krwSymbol}{costBreakdown.monthlyKRW.toLocaleString()}
                 </p>
               </div>
               <div>
                 <p className="text-xs font-medium uppercase text-gray-500">
-                  {t.license.yearly} (\u20A9)
+                  {t.license.yearly} ({krwSymbol})
                 </p>
                 <p className="mt-1 text-xl font-bold text-blue-700">
-                  \u20A9{costBreakdown.annualKRW.toLocaleString(localeTag)}
+                  {krwSymbol}{costBreakdown.annualKRW.toLocaleString()}
                 </p>
               </div>
             </div>

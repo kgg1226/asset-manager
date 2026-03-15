@@ -21,7 +21,7 @@ interface Asset {
   contractDetail?: { contractNumber?: string | null; counterparty?: string | null; contractType?: string | null; autoRenew?: boolean } | null;
 }
 
-const STATUS_LABELS: Record<AssetStatus, string> = { IN_STOCK: "재고", IN_USE: "사용 중", INACTIVE: "미사용", UNUSABLE: "불용", PENDING_DISPOSAL: "폐기 대상", DISPOSED: "폐기 완료" };
+const STATUS_KEYS: Record<AssetStatus, string> = { IN_STOCK: "statusInStock", IN_USE: "statusInUse", INACTIVE: "statusInactive", UNUSABLE: "statusUnusable", PENDING_DISPOSAL: "statusPendingDisposal", DISPOSED: "statusDisposed" };
 const STATUS_COLORS: Record<AssetStatus, string> = { IN_STOCK: "bg-gray-100 text-gray-800", IN_USE: "bg-green-100 text-green-800", INACTIVE: "bg-yellow-100 text-yellow-800", UNUSABLE: "bg-orange-100 text-orange-800", PENDING_DISPOSAL: "bg-red-100 text-red-800", DISPOSED: "bg-gray-800 text-gray-100" };
 
 type SortField = "name" | "counterparty" | "contractType" | "status" | "cost" | "expiryDate" | "assignee";
@@ -29,12 +29,14 @@ type SortOrder = "asc" | "desc";
 
 function formatCost(cost: number | null | undefined, currency: string): string {
   if (cost == null) return "—";
-  return currency === "KRW" ? `${cost.toLocaleString("ko-KR")}원` : `${currency} ${cost.toLocaleString()}`;
+  const symbols: Record<string, string> = { KRW: "₩", USD: "$", EUR: "€", JPY: "¥", GBP: "£", CNY: "¥" };
+  const sym = symbols[currency] ?? currency;
+  return `${sym}${cost.toLocaleString()}`;
 }
 
 function formatDate(d: string | null | undefined): string {
   if (!d) return "—";
-  return new Date(d).toLocaleDateString("ko-KR");
+  return new Date(d).toLocaleDateString();
 }
 
 const STATUS_ORDER: Record<AssetStatus, number> = { IN_STOCK: 0, IN_USE: 1, INACTIVE: 2, UNUSABLE: 3, PENDING_DISPOSAL: 4, DISPOSED: 5 };
@@ -72,6 +74,8 @@ export default function ContractListPage() {
   const { user } = useAuth();
   const { t } = useTranslation();
   const isAdmin = user?.role === "ADMIN";
+
+  const getStatusLabel = (s: AssetStatus) => (t.asset as Record<string, string>)[STATUS_KEYS[s]] ?? s;
 
   const [assets, setAssets] = useState<Asset[]>([]);
   const [total, setTotal] = useState(0);
@@ -155,8 +159,8 @@ export default function ContractListPage() {
           </div>
           <div className="flex flex-wrap gap-2" data-tour="contract-filter">
             <button onClick={() => setSelectedStatus("")} className={`rounded-full px-3 py-1 text-sm ${selectedStatus === "" ? "bg-blue-600 text-white" : "bg-gray-100"}`}>{t.common.all} {t.common.status}</button>
-            {(Object.keys(STATUS_LABELS) as AssetStatus[]).map((s) => (
-              <button key={s} onClick={() => setSelectedStatus(s)} className={`rounded-full px-3 py-1 text-sm ${selectedStatus === s ? "bg-blue-600 text-white" : "bg-gray-100"}`}>{STATUS_LABELS[s]}</button>
+            {(Object.keys(STATUS_KEYS) as AssetStatus[]).map((s) => (
+              <button key={s} onClick={() => setSelectedStatus(s)} className={`rounded-full px-3 py-1 text-sm ${selectedStatus === s ? "bg-blue-600 text-white" : "bg-gray-100"}`}>{getStatusLabel(s)}</button>
             ))}
           </div>
         </div>
@@ -165,15 +169,15 @@ export default function ContractListPage() {
           <table className="w-full min-w-[800px]">
             <thead className="border-b bg-gray-50">
               <tr>
-                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600" onClick={() => handleSort("name")}>{t.asset.assetName}<SortIcon field="name" /></th>
-                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600" onClick={() => handleSort("counterparty")}>{t.contract.counterparty}<SortIcon field="counterparty" /></th>
-                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600" onClick={() => handleSort("contractType")}>{t.contract.contractType}<SortIcon field="contractType" /></th>
-                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600" onClick={() => handleSort("status")}>{t.common.status}<SortIcon field="status" /></th>
-                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600" onClick={() => handleSort("cost")}>{t.asset.cost}<SortIcon field="cost" /></th>
-                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600" onClick={() => handleSort("expiryDate")}>{t.asset.expiryDate}<SortIcon field="expiryDate" /></th>
-                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600" onClick={() => handleSort("assignee")}>{t.asset.assignee}<SortIcon field="assignee" /></th>
-                <th className="px-6 py-3 text-left text-xs font-semibold">{t.cia.title}</th>
-                {isAdmin && <th className="px-6 py-3 text-right text-xs font-semibold">{t.common.actions}</th>}
+                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("name")}>{t.asset.assetName}<SortIcon field="name" /></th>
+                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("counterparty")}>{t.contract.counterparty}<SortIcon field="counterparty" /></th>
+                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("contractType")}>{t.contract.contractType}<SortIcon field="contractType" /></th>
+                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("status")}>{t.common.status}<SortIcon field="status" /></th>
+                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("cost")}>{t.asset.cost}<SortIcon field="cost" /></th>
+                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("expiryDate")}>{t.asset.expiryDate}<SortIcon field="expiryDate" /></th>
+                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("assignee")}>{t.asset.assignee}<SortIcon field="assignee" /></th>
+                <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.cia.title}</th>
+                {isAdmin && <th className="px-6 py-3 text-right text-xs font-semibold whitespace-nowrap">{t.common.actions}</th>}
               </tr>
             </thead>
             <tbody>
@@ -187,7 +191,7 @@ export default function ContractListPage() {
                     <td className="px-6 py-4 font-medium"><Link href={`/contracts/${a.id}`} className="text-blue-600 hover:underline">{a.name}</Link></td>
                     <td className="px-6 py-4 text-sm text-gray-600">{a.contractDetail?.counterparty || a.vendor || "—"}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{a.contractDetail?.contractType || "—"}</td>
-                    <td className="px-6 py-4"><span className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${STATUS_COLORS[a.status]}`}>{STATUS_LABELS[a.status]}</span></td>
+                    <td className="px-6 py-4"><span className={`inline-block whitespace-nowrap rounded-full px-2 py-1 text-xs font-medium ${STATUS_COLORS[a.status]}`}>{getStatusLabel(a.status)}</span></td>
                     <td className="px-6 py-4 text-sm">{formatCost(a.cost, a.currency)}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{formatDate(a.expiryDate)}</td>
                     <td className="px-6 py-4 text-sm">{a.assignee ? <Link href={`/employees/${a.assignee.id}`} className="text-blue-600 hover:underline">{a.assignee.name}</Link> : <span className="text-gray-400">{t.license.unassigned}</span>}</td>

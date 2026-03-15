@@ -11,12 +11,13 @@ import CiaScoreInput from "@/app/_components/cia-score-input";
 import type { CiaLevel } from "@/lib/cia";
 
 const CURRENCIES = ["USD", "KRW", "EUR", "JPY", "GBP", "CNY"];
-const BILLING_CYCLES = [
-  { value: "MONTHLY", label: "월간" },
-  { value: "ANNUAL", label: "연간" },
-  { value: "ONE_TIME", label: "일회성" },
-];
-const CONTRACT_TYPES = ["유지보수", "라이선스", "구독", "용역", "임대", "기타"];
+const BILLING_CYCLE_VALUES = ["MONTHLY", "ANNUAL", "ONE_TIME"] as const;
+const BILLING_CYCLE_KEY_MAP: Record<string, string> = {
+  MONTHLY: "monthly",
+  ANNUAL: "yearly",
+  ONE_TIME: "oneTime",
+};
+const CONTRACT_TYPE_KEYS = ["typeMaintenance", "typeLicense", "typeSubscription", "typeService", "typeLease", "typeOther"] as const;
 
 export default function ContractEditPage() {
   const router = useRouter();
@@ -84,7 +85,7 @@ export default function ContractEditPage() {
       };
       const res = await fetch(`/api/assets/${assetId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "수정 실패");
+      if (!res.ok) throw new Error(json.error || t.toast.updateFail);
       toast.success(t.toast.updateSuccess);
       router.push(`/contracts/${assetId}`);
     } catch (err) { toast.error(err instanceof Error ? err.message : t.toast.updateFail); }
@@ -133,7 +134,7 @@ export default function ContractEditPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t.license.paymentCycle}</label>
-                <select name="billingCycle" value={form.billingCycle} onChange={onChange} className={inputCls}>{BILLING_CYCLES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}</select>
+                <select name="billingCycle" value={form.billingCycle} onChange={onChange} className={inputCls}>{BILLING_CYCLE_VALUES.map((v) => <option key={v} value={v}>{(t.license as Record<string, string>)[BILLING_CYCLE_KEY_MAP[v]] ?? v}</option>)}</select>
               </div>
             </div>
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -153,7 +154,10 @@ export default function ContractEditPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t.contract.contractType}</label>
                 <select name="contractType" value={contract.contractType} onChange={onContractChange} className={inputCls}>
                   <option value="">{t.common.none}</option>
-                  {CONTRACT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                  {CONTRACT_TYPE_KEYS.map((key) => {
+                    const label = (t.contract as Record<string, string>)[key] ?? key;
+                    return <option key={key} value={label}>{label}</option>;
+                  })}
                 </select>
               </div>
               <div className="flex items-end">

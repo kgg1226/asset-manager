@@ -25,13 +25,13 @@ interface Asset {
   cloudDetail?: { platform?: string | null; accountId?: string | null; resourceType?: string | null } | null;
 }
 
-const STATUS_LABELS: Record<AssetStatus, string> = {
-  IN_STOCK: "재고",
-  IN_USE: "사용 중",
-  INACTIVE: "미사용",
-  UNUSABLE: "불용",
-  PENDING_DISPOSAL: "폐기 대상",
-  DISPOSED: "폐기 완료",
+const STATUS_KEYS: Record<AssetStatus, string> = {
+  IN_STOCK: "statusInStock",
+  IN_USE: "statusInUse",
+  INACTIVE: "statusInactive",
+  UNUSABLE: "statusUnusable",
+  PENDING_DISPOSAL: "statusPendingDisposal",
+  DISPOSED: "statusDisposed",
 };
 
 const STATUS_COLORS: Record<AssetStatus, string> = {
@@ -45,19 +45,23 @@ const STATUS_COLORS: Record<AssetStatus, string> = {
 
 function formatCost(cost: number | null | undefined, currency: string): string {
   if (cost == null) return "—";
-  if (currency === "KRW") return `${cost.toLocaleString("ko-KR")}원`;
-  return `${currency} ${cost.toLocaleString()}`;
+  const symbols: Record<string, string> = { KRW: "₩", USD: "$", EUR: "€", JPY: "¥", GBP: "£", CNY: "¥" };
+  const sym = symbols[currency] ?? currency;
+  return `${sym}${cost.toLocaleString()}`;
 }
 
 function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleDateString("ko-KR");
+  return new Date(dateStr).toLocaleDateString();
 }
 
 export default function CloudListPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { t } = useTranslation();
+
+  const getStatusLabel = (s: AssetStatus) => (t.asset as Record<string, string>)[STATUS_KEYS[s]] ?? s;
+
   const [assets, setAssets] = useState<Asset[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -133,9 +137,9 @@ export default function CloudListPage() {
             <button onClick={() => setSelectedStatus("")} className={`rounded-full px-3 py-1 text-sm ${selectedStatus === "" ? "bg-blue-600 text-white" : "bg-gray-100"}`}>
               {t.common.all} {t.common.status}
             </button>
-            {(Object.keys(STATUS_LABELS) as AssetStatus[]).map((status) => (
+            {(Object.keys(STATUS_KEYS) as AssetStatus[]).map((status) => (
               <button key={status} onClick={() => setSelectedStatus(status)} className={`rounded-full px-3 py-1 text-sm ${selectedStatus === status ? "bg-blue-600 text-white" : "bg-gray-100"}`}>
-                {STATUS_LABELS[status]}
+                {getStatusLabel(status)}
               </button>
             ))}
           </div>
@@ -145,14 +149,14 @@ export default function CloudListPage() {
           <table className="w-full min-w-[800px]">
             <thead className="border-b bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold">{t.asset.assetName}</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold">{t.cloud.platform}</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold">{t.common.status}</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold">{t.asset.cost}</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold">{t.asset.expiryDate}</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold">{t.asset.assignee}</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold">{t.cia.title}</th>
-                <th className="px-6 py-3 text-right text-xs font-semibold">{t.common.actions}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.asset.assetName}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.cloud.platform}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.common.status}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.asset.cost}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.asset.expiryDate}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.asset.assignee}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.cia.title}</th>
+                <th className="px-6 py-3 text-right text-xs font-semibold whitespace-nowrap">{t.common.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -171,7 +175,7 @@ export default function CloudListPage() {
                       {asset.cloudDetail?.resourceType && <span className="ml-1.5 inline-flex rounded bg-indigo-50 px-1.5 py-0.5 text-xs text-indigo-600">{asset.cloudDetail.resourceType}</span>}
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${STATUS_COLORS[asset.status]}`}>{STATUS_LABELS[asset.status]}</span>
+                      <span className={`inline-block whitespace-nowrap rounded-full px-2 py-1 text-xs font-medium ${STATUS_COLORS[asset.status]}`}>{getStatusLabel(asset.status)}</span>
                     </td>
                     <td className="px-6 py-4 text-sm">{formatCost(asset.cost, asset.currency)}</td>
                     <td className="px-6 py-4 text-sm">{formatDate(asset.expiryDate)}</td>

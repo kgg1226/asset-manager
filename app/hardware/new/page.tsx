@@ -36,9 +36,9 @@ export default function HardwareNewPage() {
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!form.name.trim()) e.name = "자산명은 필수입니다";
-    if (!form.cost) e.cost = "비용은 필수입니다";
-    else if (isNaN(Number(form.cost)) || Number(form.cost) < 0) e.cost = "유효한 비용을 입력해주세요";
+    if (!form.name.trim()) e.name = `${t.asset.assetName} ${t.common.required}`;
+    if (!form.cost) e.cost = `${t.asset.cost} ${t.common.required}`;
+    else if (isNaN(Number(form.cost)) || Number(form.cost) < 0) e.cost = t.common.invalidCost;
     setErrors(e); return Object.keys(e).length === 0;
   };
 
@@ -52,7 +52,7 @@ export default function HardwareNewPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) { toast.error("입력 값을 확인해주세요"); return; }
+    if (!validate()) { toast.error(t.common.validationCheck); return; }
     setIsLoading(true);
     try {
       const payload = {
@@ -86,10 +86,10 @@ export default function HardwareNewPage() {
       };
       const res = await fetch("/api/assets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "등록 실패");
+      if (!res.ok) throw new Error(json.error || t.common.registerFail);
       toast.success(t.toast.createSuccess);
       router.push(`/hardware/${json.id}`);
-    } catch (err) { toast.error(err instanceof Error ? err.message : "등록 실패"); }
+    } catch (err) { toast.error(err instanceof Error ? err.message : t.common.registerFail); }
     finally { setIsLoading(false); }
   };
 

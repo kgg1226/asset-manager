@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useTranslation } from "@/lib/i18n";
+import { CURRENCY_SYMBOLS } from "@/lib/cost-calculator";
 import DeleteButton from "./delete-button";
 import AssignButton from "./assign-button";
 import UnassignButton from "./unassign-button";
@@ -87,7 +88,7 @@ export default function LicensesContent({
     if (!totalAmountKRW || !paymentCycle) return "\u2014";
     const annual =
       paymentCycle === "YEARLY" ? totalAmountKRW : totalAmountKRW * 12;
-    return "\u20A9" + annual.toLocaleString(locale === "en" ? "en-US" : "ko-KR");
+    return CURRENCY_SYMBOLS["KRW"] + annual.toLocaleString();
   }
 
   function getNoticeBadge(
@@ -122,7 +123,7 @@ export default function LicensesContent({
   function formatDate(dateStr: string | null): string {
     if (!dateStr) return "\u2014";
     const date = new Date(dateStr);
-    return date.toLocaleDateString(locale === "en" ? "en-US" : "ko-KR");
+    return date.toLocaleDateString();
   }
 
   return (
@@ -159,7 +160,7 @@ export default function LicensesContent({
                 <thead className="bg-gray-50">
                   <tr>
                     {SORTABLE_COLUMNS.map((col) => (
-                      <th key={col.key} className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">
+                      <th key={col.key} className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 whitespace-nowrap">
                         <Link
                           href={sortUrl(col.key)}
                           className="inline-flex items-center gap-1 hover:text-gray-900"
@@ -169,17 +170,17 @@ export default function LicensesContent({
                         </Link>
                       </th>
                     ))}
-                    <th className="px-4 py-3 text-right text-xs font-medium uppercase text-gray-500">
+                    <th className="px-4 py-3 text-right text-xs font-medium uppercase text-gray-500 whitespace-nowrap">
                       {t.license.yearly} {t.asset.cost}
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 whitespace-nowrap">
                       {t.license.adminName}
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 whitespace-nowrap">
                       {t.license.noticePeriod}
                     </th>
                     {isLoggedIn && (
-                      <th className="px-4 py-3 text-center text-xs font-medium uppercase text-gray-500">
+                      <th className="px-4 py-3 text-center text-xs font-medium uppercase text-gray-500 whitespace-nowrap">
                         {t.common.actions}
                       </th>
                     )}

@@ -32,7 +32,7 @@ interface Asset {
   createdAt: string; updatedAt: string;
 }
 
-const STATUS_LABELS: Record<AssetStatus, string> = { IN_STOCK: "재고", IN_USE: "사용 중", INACTIVE: "미사용", UNUSABLE: "불용", PENDING_DISPOSAL: "폐기 대상", DISPOSED: "폐기 완료" };
+const STATUS_KEYS: Record<AssetStatus, string> = { IN_STOCK: "statusInStock", IN_USE: "statusInUse", INACTIVE: "statusInactive", UNUSABLE: "statusUnusable", PENDING_DISPOSAL: "statusPendingDisposal", DISPOSED: "statusDisposed" };
 const STATUS_COLORS: Record<AssetStatus, string> = { IN_STOCK: "bg-blue-100 text-blue-800", IN_USE: "bg-green-100 text-green-800", INACTIVE: "bg-gray-100 text-gray-800", UNUSABLE: "bg-yellow-100 text-yellow-800", PENDING_DISPOSAL: "bg-orange-100 text-orange-800", DISPOSED: "bg-red-100 text-red-800" };
 
 export default function CloudDetailPage() {
@@ -89,7 +89,9 @@ export default function CloudDetailPage() {
   if (isLoading) return <div className="min-h-screen bg-gray-50 p-6"><div className="mx-auto max-w-4xl"><p className="text-center text-gray-600">{t.common.loading}</p></div></div>;
   if (!asset) return <div className="min-h-screen bg-gray-50 p-6"><div className="mx-auto max-w-4xl"><p className="text-center text-red-600">{t.common.noData}</p><div className="mt-4 text-center"><Link href="/cloud" className="text-blue-600 hover:underline">{t.common.list}</Link></div></div></div>;
 
-  const fmtCost = (v: number | null | undefined) => v != null ? (asset.currency === "KRW" ? `${v.toLocaleString("ko-KR")}원` : `${asset.currency} ${v.toLocaleString()}`) : "—";
+  const getStatusLabel = (s: AssetStatus) => (t.asset as Record<string, string>)[STATUS_KEYS[s]] ?? s;
+  const syms: Record<string, string> = { KRW: "₩", USD: "$", EUR: "€", JPY: "¥", GBP: "£", CNY: "¥" };
+  const fmtCost = (v: number | null | undefined) => v != null ? `${syms[asset.currency] ?? asset.currency}${v.toLocaleString()}` : "—";
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -98,9 +100,9 @@ export default function CloudDetailPage() {
           <Link href="/cloud" className="rounded-md p-2 hover:bg-gray-200"><ArrowLeft className="h-5 w-5" /></Link>
           <div className="flex-1">
             <h1 className="text-3xl font-bold text-gray-900">{asset.name}</h1>
-            <p className="mt-1 text-sm text-gray-500">클라우드 \• 등록일: {new Date(asset.createdAt).toLocaleDateString("ko-KR")}</p>
+            <p className="mt-1 text-sm text-gray-500">{t.cloud.title} &bull; {t.asset.registeredDate}: {new Date(asset.createdAt).toLocaleDateString()}</p>
           </div>
-          <span className={`inline-block rounded-full px-3 py-1 text-sm font-medium ${STATUS_COLORS[asset.status]}`}>{STATUS_LABELS[asset.status]}</span>
+          <span className={`inline-block whitespace-nowrap rounded-full px-3 py-1 text-sm font-medium ${STATUS_COLORS[asset.status]}`}>{getStatusLabel(asset.status)}</span>
         </div>
 
         {/* 요약 카드 */}
@@ -115,7 +117,7 @@ export default function CloudDetailPage() {
           </div>
           <div className="rounded-lg bg-white p-6 shadow-sm">
             <p className="text-sm text-gray-600">{t.asset.expiryDate}</p>
-            <p className="mt-2 text-2xl font-bold text-gray-900">{asset.expiryDate ? new Date(asset.expiryDate).toLocaleDateString("ko-KR") : "—"}</p>
+            <p className="mt-2 text-2xl font-bold text-gray-900">{asset.expiryDate ? new Date(asset.expiryDate).toLocaleDateString() : "—"}</p>
           </div>
         </div>
 
@@ -132,9 +134,9 @@ export default function CloudDetailPage() {
               <div><p className="text-sm text-gray-600">{t.asset.cost}</p><p className="mt-1 text-gray-900">{fmtCost(asset.cost)}</p></div>
               <div><p className="text-sm text-gray-600">{t.license.monthly} {t.asset.cost}</p><p className="mt-1 text-gray-900">{fmtCost(asset.monthlyCost)}</p></div>
             </div>
-            {asset.expiryDate && <div><p className="text-sm text-gray-600">{t.asset.expiryDate}</p><p className="mt-1 text-gray-900">{new Date(asset.expiryDate).toLocaleDateString("ko-KR")}</p></div>}
+            {asset.expiryDate && <div><p className="text-sm text-gray-600">{t.asset.expiryDate}</p><p className="mt-1 text-gray-900">{new Date(asset.expiryDate).toLocaleDateString()}</p></div>}
             {asset.assignee && <div><p className="text-sm text-gray-600">{t.asset.assignee}</p><p className="mt-1"><Link href={`/employees/${asset.assignee.id}`} className="text-blue-600 hover:underline">{asset.assignee.name}</Link></p></div>}
-            <div className="border-t border-gray-200 pt-4"><p className="text-xs text-gray-500">생성: {new Date(asset.createdAt).toLocaleString("ko-KR")} \• 수정: {new Date(asset.updatedAt).toLocaleString("ko-KR")}</p></div>
+            <div className="border-t border-gray-200 pt-4"><p className="text-xs text-gray-500">{t.common.createdAt}: {new Date(asset.createdAt).toLocaleString()} &bull; {t.common.updatedAt}: {new Date(asset.updatedAt).toLocaleString()}</p></div>
           </div>
         </div>
 
@@ -148,31 +150,31 @@ export default function CloudDetailPage() {
                 {cd.platform && <div><p className="text-sm text-gray-600">{t.cloud.platform}</p><p className="mt-1 text-gray-900">{cd.platform}</p></div>}
                 {cd.accountId && <div><p className="text-sm text-gray-600">{t.cloud.accountId}</p><p className="mt-1 font-mono text-gray-900">{cd.accountId}</p></div>}
                 {cd.region && <div><p className="text-sm text-gray-600">{t.cloud.region}</p><p className="mt-1 text-gray-900">{cd.region}</p></div>}
-                {cd.seatCount != null && <div><p className="text-sm text-gray-600">{t.cloud.seatCount}</p><p className="mt-1 text-gray-900">{cd.seatCount}개</p></div>}
-                {cd.adminEmail && <div><p className="text-sm text-gray-600">관리자</p><p className="mt-1 text-gray-900">{cd.adminEmail}</p></div>}
-                {cd.autoRenew != null && <div><p className="text-sm text-gray-600">자동 갱신</p><p className="mt-1 text-gray-900">{cd.autoRenew ? "예" : "아니오"}</p></div>}
+                {cd.seatCount != null && <div><p className="text-sm text-gray-600">{t.cloud.seatCount}</p><p className="mt-1 text-gray-900">{cd.seatCount}{t.cloud.units}</p></div>}
+                {cd.adminEmail && <div><p className="text-sm text-gray-600">{t.cloud.admin}</p><p className="mt-1 text-gray-900">{cd.adminEmail}</p></div>}
+                {cd.autoRenew != null && <div><p className="text-sm text-gray-600">{t.cloud.autoRenew}</p><p className="mt-1 text-gray-900">{cd.autoRenew ? t.common.yes : t.common.no}</p></div>}
                 {cd.notifyChannels && cd.notifyChannels !== "NONE" && (
                   <div>
-                    <p className="text-sm text-gray-600">알림 채널</p>
+                    <p className="text-sm text-gray-600">{t.cloud.notifyChannel}</p>
                     <p className="mt-1">
-                      {(cd.notifyChannels === "EMAIL" || cd.notifyChannels === "BOTH") && <span className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 mr-1">이메일</span>}
+                      {(cd.notifyChannels === "EMAIL" || cd.notifyChannels === "BOTH") && <span className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 mr-1">{t.notification.emailChannel}</span>}
                       {(cd.notifyChannels === "SLACK" || cd.notifyChannels === "BOTH") && <span className="inline-flex rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700">Slack</span>}
                     </p>
                   </div>
                 )}
                 {cd.notifyChannels === "NONE" && (
-                  <div><p className="text-sm text-gray-600">알림 채널</p><p className="mt-1 text-xs text-gray-400">알림 꺼짐</p></div>
+                  <div><p className="text-sm text-gray-600">{t.cloud.notifyChannel}</p><p className="mt-1 text-xs text-gray-400">{t.cloud.notifyOff}</p></div>
                 )}
               </div>
 
               {/* 서비스 분류 */}
               {(cd.serviceCategory || cd.resourceType || cd.resourceId) && (
                 <>
-                  <h3 className="mt-6 mb-3 text-sm font-semibold text-gray-700 border-t pt-4">서비스 분류</h3>
+                  <h3 className="mt-6 mb-3 text-sm font-semibold text-gray-700 border-t pt-4">{t.cloud.serviceClassification}</h3>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {cd.serviceCategory && <div><p className="text-sm text-gray-600">카테고리</p><p className="mt-1"><span className="inline-flex rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700">{cd.serviceCategory}</span></p></div>}
-                    {cd.resourceType && <div><p className="text-sm text-gray-600">리소스 타입</p><p className="mt-1"><span className="inline-flex rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">{cd.resourceType}</span></p></div>}
-                    {cd.resourceId && <div><p className="text-sm text-gray-600">리소스 ID</p><p className="mt-1 font-mono text-sm text-gray-900 break-all">{cd.resourceId}</p></div>}
+                    {cd.serviceCategory && <div><p className="text-sm text-gray-600">{t.cloud.category}</p><p className="mt-1"><span className="inline-flex rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700">{cd.serviceCategory}</span></p></div>}
+                    {cd.resourceType && <div><p className="text-sm text-gray-600">{t.cloud.resourceType}</p><p className="mt-1"><span className="inline-flex rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">{cd.resourceType}</span></p></div>}
+                    {cd.resourceId && <div><p className="text-sm text-gray-600">{t.cloud.resourceId}</p><p className="mt-1 font-mono text-sm text-gray-900 break-all">{cd.resourceId}</p></div>}
                   </div>
                 </>
               )}
@@ -180,24 +182,24 @@ export default function CloudDetailPage() {
               {/* 인프라 상세 */}
               {(cd.instanceSpec || cd.storageSize || cd.endpoint || cd.vpcId || cd.availabilityZone) && (
                 <>
-                  <h3 className="mt-6 mb-3 text-sm font-semibold text-gray-700 border-t pt-4">인프라 상세</h3>
+                  <h3 className="mt-6 mb-3 text-sm font-semibold text-gray-700 border-t pt-4">{t.cloud.infraDetail}</h3>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {cd.instanceSpec && <div><p className="text-sm text-gray-600">인스턴스 사양</p><p className="mt-1 font-mono text-gray-900">{cd.instanceSpec}</p></div>}
-                    {cd.storageSize && <div><p className="text-sm text-gray-600">저장 용량</p><p className="mt-1 text-gray-900">{cd.storageSize}</p></div>}
-                    {cd.vpcId && <div><p className="text-sm text-gray-600">VPC ID</p><p className="mt-1 font-mono text-gray-900">{cd.vpcId}</p></div>}
-                    {cd.availabilityZone && <div><p className="text-sm text-gray-600">가용 영역</p><p className="mt-1 text-gray-900">{cd.availabilityZone}</p></div>}
+                    {cd.instanceSpec && <div><p className="text-sm text-gray-600">{t.cloud.instanceSpec}</p><p className="mt-1 font-mono text-gray-900">{cd.instanceSpec}</p></div>}
+                    {cd.storageSize && <div><p className="text-sm text-gray-600">{t.cloud.storageSize}</p><p className="mt-1 text-gray-900">{cd.storageSize}</p></div>}
+                    {cd.vpcId && <div><p className="text-sm text-gray-600">{t.cloud.vpcId}</p><p className="mt-1 font-mono text-gray-900">{cd.vpcId}</p></div>}
+                    {cd.availabilityZone && <div><p className="text-sm text-gray-600">{t.cloud.availabilityZone}</p><p className="mt-1 text-gray-900">{cd.availabilityZone}</p></div>}
                   </div>
-                  {cd.endpoint && <div className="mt-3"><p className="text-sm text-gray-600">엔드포인트</p><p className="mt-1 font-mono text-sm text-gray-900 break-all">{cd.endpoint}</p></div>}
+                  {cd.endpoint && <div className="mt-3"><p className="text-sm text-gray-600">{t.cloud.endpoint}</p><p className="mt-1 font-mono text-sm text-gray-900 break-all">{cd.endpoint}</p></div>}
                 </>
               )}
 
               {/* 계약/구독 관리 */}
               {(cd.contractStartDate || cd.contractTermMonths || cd.renewalDate || cd.cancellationNoticeDate || cd.paymentMethod || cd.contractNumber) && (
                 <>
-                  <h3 className="mt-6 mb-3 text-sm font-semibold text-gray-700 border-t pt-4">계약 / 구독 관리</h3>
+                  <h3 className="mt-6 mb-3 text-sm font-semibold text-gray-700 border-t pt-4">{t.cloud.contractManagement}</h3>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {cd.contractStartDate && <div><p className="text-sm text-gray-600">계약 시작일</p><p className="mt-1 text-gray-900">{new Date(cd.contractStartDate).toLocaleDateString("ko-KR")}</p></div>}
-                    {cd.contractTermMonths != null && <div><p className="text-sm text-gray-600">계약 기간</p><p className="mt-1 text-gray-900">{cd.contractTermMonths}개월</p></div>}
+                    {cd.contractStartDate && <div><p className="text-sm text-gray-600">{t.cloud.contractStartDate}</p><p className="mt-1 text-gray-900">{new Date(cd.contractStartDate).toLocaleDateString()}</p></div>}
+                    {cd.contractTermMonths != null && <div><p className="text-sm text-gray-600">{t.cloud.contractPeriod}</p><p className="mt-1 text-gray-900">{cd.contractTermMonths}{t.cloud.monthsUnit}</p></div>}
                     {cd.renewalDate && (() => {
                       const renewal = new Date(cd.renewalDate);
                       const daysLeft = Math.ceil((renewal.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
@@ -205,10 +207,10 @@ export default function CloudDetailPage() {
                       const isPast = daysLeft <= 0;
                       return (
                         <div>
-                          <p className="text-sm text-gray-600">갱신 예정일</p>
+                          <p className="text-sm text-gray-600">{t.cloud.renewalDate}</p>
                           <p className={`mt-1 font-semibold ${isPast ? "text-red-600" : isUrgent ? "text-orange-600" : "text-gray-900"}`}>
-                            {renewal.toLocaleDateString("ko-KR")}
-                            {isPast && " (경과)"}
+                            {renewal.toLocaleDateString()}
+                            {isPast && ` (${t.cloud.daysAgo})`}
                             {isUrgent && ` (D-${daysLeft})`}
                           </p>
                         </div>
@@ -221,18 +223,18 @@ export default function CloudDetailPage() {
                       const isPast = daysLeft <= 0;
                       return (
                         <div>
-                          <p className="text-sm text-gray-600">해지 통보 기한</p>
+                          <p className="text-sm text-gray-600">{t.cloud.cancellationDeadline}</p>
                           <p className={`mt-1 font-semibold ${isPast ? "text-red-600" : isUrgent ? "text-orange-600" : "text-gray-900"}`}>
-                            {notice.toLocaleDateString("ko-KR")}
-                            {isPast && " (경과)"}
+                            {notice.toLocaleDateString()}
+                            {isPast && ` (${t.cloud.daysAgo})`}
                             {isUrgent && ` (D-${daysLeft})`}
                           </p>
                         </div>
                       );
                     })()}
-                    {cd.cancellationNoticeDays != null && <div><p className="text-sm text-gray-600">해지 통보 사전 일수</p><p className="mt-1 text-gray-900">{cd.cancellationNoticeDays}일 전</p></div>}
-                    {cd.paymentMethod && <div><p className="text-sm text-gray-600">결제 수단</p><p className="mt-1 text-gray-900">{{ CARD: "카드", TRANSFER: "계좌이체", INVOICE: "청구서", OTHER: "기타" }[cd.paymentMethod] ?? cd.paymentMethod}</p></div>}
-                    {cd.contractNumber && <div><p className="text-sm text-gray-600">계약/구독 번호</p><p className="mt-1 font-mono text-gray-900">{cd.contractNumber}</p></div>}
+                    {cd.cancellationNoticeDays != null && <div><p className="text-sm text-gray-600">{t.cloud.cancellationNoticeDays}</p><p className="mt-1 text-gray-900">{cd.cancellationNoticeDays} {t.cloud.daysBefore}</p></div>}
+                    {cd.paymentMethod && <div><p className="text-sm text-gray-600">{t.cloud.paymentMethod}</p><p className="mt-1 text-gray-900">{{ CARD: t.cloud.paymentCard, TRANSFER: t.cloud.paymentTransfer, INVOICE: t.cloud.paymentInvoice, OTHER: t.cloud.paymentOther }[cd.paymentMethod] ?? cd.paymentMethod}</p></div>}
+                    {cd.contractNumber && <div><p className="text-sm text-gray-600">{t.cloud.contractSubscriptionNumber}</p><p className="mt-1 font-mono text-gray-900">{cd.contractNumber}</p></div>}
                   </div>
                 </>
               )}
@@ -240,7 +242,7 @@ export default function CloudDetailPage() {
               {/* 비고 */}
               {cd.notes && (
                 <>
-                  <h3 className="mt-6 mb-3 text-sm font-semibold text-gray-700 border-t pt-4">비고</h3>
+                  <h3 className="mt-6 mb-3 text-sm font-semibold text-gray-700 border-t pt-4">{t.cloud.notes}</h3>
                   <p className="whitespace-pre-wrap text-gray-900">{cd.notes}</p>
                 </>
               )}
@@ -265,8 +267,8 @@ export default function CloudDetailPage() {
             <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
               <h2 className="mb-4 text-lg font-bold">{t.common.status}</h2>
               <div className="mb-6 space-y-2">
-                {(Object.keys(STATUS_LABELS) as AssetStatus[]).map((s) => (
-                  <label key={s} className="flex items-center gap-2"><input type="radio" name="status" value={s} checked={newStatus === s} onChange={(e) => setNewStatus(e.target.value as AssetStatus)} className="h-4 w-4" /><span className="text-sm text-gray-700">{STATUS_LABELS[s]}</span></label>
+                {(Object.keys(STATUS_KEYS) as AssetStatus[]).map((s) => (
+                  <label key={s} className="flex items-center gap-2"><input type="radio" name="status" value={s} checked={newStatus === s} onChange={(e) => setNewStatus(e.target.value as AssetStatus)} className="h-4 w-4" /><span className="text-sm text-gray-700">{getStatusLabel(s)}</span></label>
                 ))}
               </div>
               <div className="flex gap-3">
@@ -281,7 +283,7 @@ export default function CloudDetailPage() {
           <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
             <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
               <div className="mb-4 flex items-center gap-2"><AlertCircle className="h-5 w-5 text-red-600" /><h2 className="text-lg font-bold">{t.toast.confirmDelete}</h2></div>
-              <p className="mb-6 text-sm text-gray-600">&quot;{asset.name}&quot;을(를) 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.</p>
+              <p className="mb-6 text-sm text-gray-600">&quot;{asset.name}&quot;</p>
               <div className="flex gap-3">
                 <button onClick={handleDelete} disabled={isDeleting} className="flex-1 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50">{isDeleting ? t.common.loading : t.common.delete}</button>
                 <button onClick={() => setShowDeleteModal(false)} className="flex-1 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">{t.common.cancel}</button>

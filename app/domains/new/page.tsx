@@ -11,7 +11,13 @@ import CiaScoreInput from "@/app/_components/cia-score-input";
 import type { CiaLevel } from "@/lib/cia";
 
 const CURRENCIES = ["USD", "KRW", "EUR", "JPY", "GBP", "CNY"];
-const BILLING_CYCLES = [{ value: "ANNUAL", label: "연간" }, { value: "MONTHLY", label: "월간" }, { value: "ONE_TIME", label: "일회성" }, { value: "USAGE_BASED", label: "사용량 기반" }];
+const BILLING_CYCLE_VALUES = ["ANNUAL", "MONTHLY", "ONE_TIME", "USAGE_BASED"] as const;
+const BILLING_CYCLE_KEY_MAP: Record<string, string> = {
+  MONTHLY: "monthly",
+  ANNUAL: "yearly",
+  ONE_TIME: "oneTime",
+  USAGE_BASED: "usageBased",
+};
 
 export default function DomainNewPage() {
   const router = useRouter();
@@ -29,7 +35,7 @@ export default function DomainNewPage() {
   const validate = () => {
     const e: Record<string, string> = {};
     if (!form.name.trim()) e.name = `${t.asset.assetName} ${t.common.required}`;
-    if (form.cost && (isNaN(Number(form.cost)) || Number(form.cost) < 0)) e.cost = `${t.asset.cost} ${t.common.error}`;
+    if (form.cost && (isNaN(Number(form.cost)) || Number(form.cost) < 0)) e.cost = t.common.invalidCost;
     setErrors(e); return Object.keys(e).length === 0;
   };
 
@@ -38,11 +44,11 @@ export default function DomainNewPage() {
     if (errors[name]) setErrors((p) => { const n = { ...p }; delete n[name]; return n; });
   };
 
-  if (loading || !user) return <div className="min-h-screen bg-gray-50 p-6"><div className="mx-auto max-w-2xl"><p className="text-center text-gray-500">{loading ? t.common.loading : `${t.common.login} ${t.common.required}`}</p></div></div>;
+  if (loading || !user) return <div className="min-h-screen bg-gray-50 p-6"><div className="mx-auto max-w-2xl"><p className="text-center text-gray-500">{loading ? t.common.loading : t.common.login}</p></div></div>;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) { toast.error(t.common.error); return; }
+    if (!validate()) { toast.error(t.common.validationCheck); return; }
     setIsLoading(true);
     try {
       const payload = {
@@ -62,7 +68,7 @@ export default function DomainNewPage() {
       };
       const res = await fetch("/api/assets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "등록 실패");
+      if (!res.ok) throw new Error(json.error || t.common.registerFail);
       toast.success(t.toast.createSuccess);
       router.push(`/domains/${json.id}`);
     } catch (err) { toast.error(err instanceof Error ? err.message : t.toast.createFail); }
@@ -89,7 +95,7 @@ export default function DomainNewPage() {
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-3">
               <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.asset.cost}</label><input type="number" name="cost" value={form.cost} onChange={onChange} placeholder="0" min="0" step="0.01" className={errors.cost ? ec : ic} />{errors.cost && <p className="mt-1 text-sm text-red-500">{errors.cost}</p>}</div>
               <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.license.currency}</label><select name="currency" value={form.currency} onChange={onChange} className={ic}>{CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}</select></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.license.paymentCycle}</label><select name="billingCycle" value={form.billingCycle} onChange={onChange} className={ic}>{BILLING_CYCLES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}</select></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.license.paymentCycle}</label><select name="billingCycle" value={form.billingCycle} onChange={onChange} className={ic}>{BILLING_CYCLE_VALUES.map((v) => <option key={v} value={v}>{(t.license as Record<string, string>)[BILLING_CYCLE_KEY_MAP[v]] ?? v}</option>)}</select></div>
             </div>
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
               <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.asset.purchaseDate}</label><input type="date" name="purchaseDate" value={form.purchaseDate} onChange={onChange} className={ic} /></div>
@@ -111,10 +117,10 @@ export default function DomainNewPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t.license.paymentCycle}</label>
                 <select name="billingCycleMonths" value={domain.billingCycleMonths} onChange={onDomainChange} className={ic}>
-                  <option value="1">1개월</option><option value="6">6개월</option><option value="12">1년</option><option value="24">2년</option><option value="36">3년</option><option value="60">5년</option><option value="120">10년</option>
+                  <option value="1">{t.domain.months1}</option><option value="6">{t.domain.months6}</option><option value="12">{t.domain.years1}</option><option value="24">{t.domain.years2}</option><option value="36">{t.domain.years3}</option><option value="60">{t.domain.years5}</option><option value="120">{t.domain.years10}</option>
                 </select>
                 {form.cost && domain.billingCycleMonths && (
-                  <p className="mt-1 text-xs text-blue-600">월 환산 비용: {(Number(form.cost) / Number(domain.billingCycleMonths)).toLocaleString("ko-KR", { maximumFractionDigits: 0 })} {form.currency}/월</p>
+                  <p className="mt-1 text-xs text-blue-600">{t.domain.monthlyCost}: {(Number(form.cost) / Number(domain.billingCycleMonths)).toLocaleString(undefined, { maximumFractionDigits: 0 })} {form.currency}/{t.domain.perMonth}</p>
                 )}
               </div>
               <div className="flex items-center gap-2 pt-7">

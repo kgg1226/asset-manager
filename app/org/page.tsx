@@ -147,7 +147,7 @@ export default function OrgPage() {
                   type="text"
                   value={newCompanyName}
                   onChange={(e) => setNewCompanyName(e.target.value)}
-                  placeholder="예: (주)트리플콤마"
+                  placeholder={t.org.companyName}
                   className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") handleCreateCompany();

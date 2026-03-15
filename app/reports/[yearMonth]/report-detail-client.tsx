@@ -99,7 +99,7 @@ export default function ReportDetailClient({
           <div className="rounded-lg bg-blue-50 p-4 ring-1 ring-blue-200">
             <p className="text-xs font-medium uppercase text-gray-500">{t.dashboard.monthlyExpenses}</p>
             <p className="mt-1 text-2xl font-bold text-blue-700">
-              {data.summary.totalMonthlyCost.toLocaleString()}
+              ₩{data.summary.totalMonthlyCost.toLocaleString()}
             </p>
           </div>
           <div className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-200">
@@ -122,7 +122,7 @@ export default function ReportDetailClient({
             rows={data.byType.map((r) => [
               TYPE_LABELS[r.type] ?? r.type,
               `${r.count}${t.dashboard.items}`,
-              `${r.cost.toLocaleString()}`,
+              `₩${r.cost.toLocaleString()}`,
             ])}
             noDataText={t.common.noData}
           />
@@ -132,7 +132,7 @@ export default function ReportDetailClient({
             rows={data.byStatus.map((r) => [
               STATUS_LABELS[r.status] ?? r.status,
               `${r.count}${t.dashboard.items}`,
-              `${r.cost.toLocaleString()}`,
+              `₩${r.cost.toLocaleString()}`,
             ])}
             noDataText={t.common.noData}
           />
@@ -146,7 +146,7 @@ export default function ReportDetailClient({
             rows={data.byDepartment.map((r) => [
               r.department,
               `${r.count}${t.dashboard.items}`,
-              `${r.cost.toLocaleString()}`,
+              `₩${r.cost.toLocaleString()}`,
             ])}
             noDataText={t.common.noData}
           />
@@ -191,7 +191,7 @@ export default function ReportDetailClient({
                         <StatusBadge status={asset.status} statusLabels={STATUS_LABELS} />
                       </td>
                       <td className="px-4 py-3 text-right text-sm text-gray-900">
-                        {asset.monthlyCost != null ? `${asset.monthlyCost.toLocaleString()}` : "\u2014"}
+                        {asset.monthlyCost != null ? `₩${asset.monthlyCost.toLocaleString()}` : "\u2014"}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">
                         {asset.assignee?.name ?? asset.department ?? t.license.unassigned}

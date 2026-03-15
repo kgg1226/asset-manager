@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronRight, ChevronDown, Building2, Users, Edit2, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n";
 
 type OrgUnit = { id: number; name: string; parentId: number | null };
 type Company = { id: number; name: string; orgs: OrgUnit[] };
@@ -29,6 +30,7 @@ function OrgUnitNode({
   onRefresh: () => Promise<void>;
   isAuthenticated: boolean;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
@@ -43,7 +45,7 @@ function OrgUnitNode({
 
   const handleEdit = async () => {
     if (!editName.trim()) {
-      toast.error("부서명은 필수입니다.");
+      toast.error(t.org.departmentNameRequired);
       return;
     }
     setIsLoading(true);
@@ -56,16 +58,16 @@ function OrgUnitNode({
 
       if (!res.ok) {
         const err = await res.json();
-        toast.error(err.error || "부서 수정에 실패했습니다.");
+        toast.error(err.error || t.org.departmentEditFailed);
         return;
       }
 
-      toast.success("부서가 수정되었습니다.");
+      toast.success(t.org.departmentEdited);
       setEditingId(null);
       await onRefresh();
     } catch (error) {
       console.error("Failed to edit org unit:", error);
-      toast.error("부서 수정에 실패했습니다.");
+      toast.error(t.org.departmentEditFailed);
     } finally {
       setIsLoading(false);
     }
@@ -76,7 +78,7 @@ function OrgUnitNode({
     try {
       const res = await fetch(`/api/org/units/${unit.id}/delete-preview`);
       if (!res.ok) {
-        toast.error("삭제 정보 조회에 실패했습니다.");
+        toast.error(t.org.deletePreviewFailed);
         return;
       }
       const preview = await res.json();
@@ -84,15 +86,15 @@ function OrgUnitNode({
       setShowDeleteConfirm(true);
     } catch (error) {
       console.error("Failed to fetch delete preview:", error);
-      toast.error("삭제 정보 조회에 실패했습니다.");
+      toast.error(t.org.deletePreviewFailed);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleDelete = async () => {
-    if (deleteConfirmText !== "삭제하겠습니다") {
-      toast.error('정확히 "삭제하겠습니다"를 입력해주세요.');
+    if (deleteConfirmText !== t.org.deleteConfirmText) {
+      toast.error(t.org.deleteConfirmPrompt);
       return;
     }
 
@@ -101,22 +103,22 @@ function OrgUnitNode({
       const res = await fetch(`/api/org/units/${unit.id}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ confirm: "삭제하겠습니다" }),
+        body: JSON.stringify({ confirm: t.org.deleteConfirmText }),
       });
 
       if (!res.ok) {
         const err = await res.json();
-        toast.error(err.error || "부서 삭제에 실패했습니다.");
+        toast.error(err.error || t.org.departmentDeleteFailed);
         return;
       }
 
-      toast.success("부서가 삭제되었습니다.");
+      toast.success(t.org.departmentDeleted);
       setShowDeleteConfirm(false);
       setDeleteConfirmText("");
       await onRefresh();
     } catch (error) {
       console.error("Failed to delete org unit:", error);
-      toast.error("부서 삭제에 실패했습니다.");
+      toast.error(t.org.departmentDeleteFailed);
     } finally {
       setIsLoading(false);
     }
@@ -124,7 +126,7 @@ function OrgUnitNode({
 
   const handleAddChild = async () => {
     if (!newChildName.trim()) {
-      toast.error("부서명은 필수입니다.");
+      toast.error(t.org.departmentNameRequired);
       return;
     }
 
@@ -142,17 +144,17 @@ function OrgUnitNode({
 
       if (!res.ok) {
         const err = await res.json();
-        toast.error(err.error || "부서 생성에 실패했습니다.");
+        toast.error(err.error || t.org.departmentCreateFailed);
         return;
       }
 
-      toast.success("부서가 생성되었습니다.");
+      toast.success(t.org.departmentCreated);
       setShowAddChild(false);
       setNewChildName("");
       await onRefresh();
     } catch (error) {
       console.error("Failed to create org unit:", error);
-      toast.error("부서 생성에 실패했습니다.");
+      toast.error(t.org.departmentCreateFailed);
     } finally {
       setIsLoading(false);
     }
@@ -202,13 +204,13 @@ function OrgUnitNode({
               disabled={isLoading}
               className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
             >
-              저장
+              {t.common.save}
             </button>
             <button
               onClick={() => setEditingId(null)}
               className="text-xs px-2 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
             >
-              취소
+              {t.common.cancel}
             </button>
           </div>
         ) : (
@@ -219,7 +221,7 @@ function OrgUnitNode({
                 <button
                   onClick={startEdit}
                   className="text-gray-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50"
-                  title="수정"
+                  title={t.common.edit}
                 >
                   <Edit2 className="h-3.5 w-3.5" />
                 </button>
@@ -227,14 +229,14 @@ function OrgUnitNode({
                   onClick={handleDeleteClick}
                   disabled={isLoading}
                   className="text-gray-400 hover:text-red-600 p-1 rounded hover:bg-red-50 disabled:opacity-50"
-                  title="삭제"
+                  title={t.common.delete}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
                 <button
                   onClick={() => setShowAddChild(true)}
                   className="text-gray-400 hover:text-green-600 p-1 rounded hover:bg-green-50"
-                  title="하위 부서 추가"
+                  title={t.org.addSubDepartment}
                 >
                   <Plus className="h-3.5 w-3.5" />
                 </button>
@@ -252,7 +254,7 @@ function OrgUnitNode({
             type="text"
             value={newChildName}
             onChange={(e) => setNewChildName(e.target.value)}
-            placeholder="부서명"
+            placeholder={t.org.departmentName}
             className="flex-1 border border-green-300 rounded px-2 py-1 text-sm"
             onKeyDown={(e) => {
               if (e.key === "Enter") handleAddChild();
@@ -267,7 +269,7 @@ function OrgUnitNode({
             disabled={isLoading}
             className="text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
           >
-            생성
+            {t.common.create}
           </button>
           <button
             onClick={() => {
@@ -276,7 +278,7 @@ function OrgUnitNode({
             }}
             className="text-xs px-2 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
           >
-            취소
+            {t.common.cancel}
           </button>
         </div>
       )}
@@ -302,15 +304,15 @@ function OrgUnitNode({
       {showDeleteConfirm && deletePreview && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-lg max-w-md w-full mx-4 p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">부서 삭제 확인</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-4">{t.org.departmentDeleteConfirm}</h3>
 
             <div className="bg-red-50 border border-red-200 rounded p-3 mb-4 text-sm text-red-700">
               <p className="font-medium mb-2">
-                "{deletePreview.target.name}" 부서를 삭제하면 다음이 영향을 받습니다:
+                &ldquo;{deletePreview.target.name}&rdquo; {t.org.departmentDeleteImpact}
               </p>
               <ul className="list-disc pl-5 space-y-1">
                 <li>
-                  하위 부서 {deletePreview.descendantCount}개
+                  {t.org.subDepartmentCount.replace("{count}", String(deletePreview.descendantCount))}
                   {deletePreview.descendants.length > 0 && (
                     <ul className="list-disc pl-5 mt-1 text-red-600">
                       {deletePreview.descendants.slice(0, 5).map((d) => (
@@ -319,26 +321,26 @@ function OrgUnitNode({
                         </li>
                       ))}
                       {deletePreview.descendants.length > 5 && (
-                        <li>... 외 {deletePreview.descendants.length - 5}개</li>
+                        <li>{t.org.andMore.replace("{count}", String(deletePreview.descendants.length - 5))}</li>
                       )}
                     </ul>
                   )}
                 </li>
                 <li>
-                  영향을 받는 구성원 {deletePreview.affectedMemberCount}명
+                  {t.org.affectedMemberCount.replace("{count}", String(deletePreview.affectedMemberCount))}
                 </li>
               </ul>
             </div>
 
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                다음 문구를 정확히 입력하세요: <span className="font-mono">삭제하겠습니다</span>
+                {t.org.enterConfirmText} <span className="font-mono">{t.org.deleteConfirmText}</span>
               </label>
               <input
                 type="text"
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value)}
-                placeholder="삭제하겠습니다"
+                placeholder={t.org.deleteConfirmText}
                 className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
               />
             </div>
@@ -351,16 +353,16 @@ function OrgUnitNode({
                 }}
                 className="px-4 py-2 text-gray-700 border border-gray-300 rounded hover:bg-gray-50"
               >
-                취소
+                {t.common.cancel}
               </button>
               <button
                 onClick={handleDelete}
                 disabled={
-                  isLoading || deleteConfirmText !== "삭제하겠습니다"
+                  isLoading || deleteConfirmText !== t.org.deleteConfirmText
                 }
                 className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
               >
-                {isLoading ? "삭제 중..." : "삭제"}
+                {isLoading ? t.common.deleting : t.common.delete}
               </button>
             </div>
           </div>
@@ -379,6 +381,7 @@ function CompanyNode({
   onRefresh: () => Promise<void>;
   isAuthenticated: boolean;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(true);
   const [showAddRoot, setShowAddRoot] = useState(false);
   const [newRootName, setNewRootName] = useState("");
@@ -392,7 +395,7 @@ function CompanyNode({
 
   const handleEditCompany = async () => {
     if (!editCompanyName.trim()) {
-      toast.error("회사명은 필수입니다.");
+      toast.error(t.org.companyNameRequired);
       return;
     }
     setIsLoading(true);
@@ -404,22 +407,22 @@ function CompanyNode({
       });
       if (!res.ok) {
         const err = await res.json();
-        toast.error(err.error || "회사 수정에 실패했습니다.");
+        toast.error(err.error || t.org.companyEditFailed);
         return;
       }
-      toast.success("회사명이 수정되었습니다.");
+      toast.success(t.org.companyEdited);
       setEditingCompany(false);
       await onRefresh();
     } catch {
-      toast.error("회사 수정에 실패했습니다.");
+      toast.error(t.org.companyEditFailed);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleDeleteCompany = async () => {
-    if (deleteConfirmText !== "삭제하겠습니다") {
-      toast.error('정확히 "삭제하겠습니다"를 입력해주세요.');
+    if (deleteConfirmText !== t.org.deleteConfirmText) {
+      toast.error(t.org.deleteConfirmPrompt);
       return;
     }
     setIsLoading(true);
@@ -427,16 +430,16 @@ function CompanyNode({
       const res = await fetch(`/api/org/companies/${company.id}`, { method: "DELETE" });
       if (!res.ok) {
         const err = await res.json();
-        toast.error(err.error || "회사 삭제에 실패했습니다.");
+        toast.error(err.error || t.org.companyDeleteFailed);
         setShowDeleteCompany(false);
         setDeleteConfirmText("");
         return;
       }
-      toast.success("회사가 삭제되었습니다.");
+      toast.success(t.org.companyDeleted);
       setShowDeleteCompany(false);
       await onRefresh();
     } catch {
-      toast.error("회사 삭제에 실패했습니다.");
+      toast.error(t.org.companyDeleteFailed);
     } finally {
       setIsLoading(false);
     }
@@ -444,7 +447,7 @@ function CompanyNode({
 
   const handleAddRootOrg = async () => {
     if (!newRootName.trim()) {
-      toast.error("부서명은 필수입니다.");
+      toast.error(t.org.departmentNameRequired);
       return;
     }
 
@@ -461,17 +464,17 @@ function CompanyNode({
 
       if (!res.ok) {
         const err = await res.json();
-        toast.error(err.error || "부서 생성에 실패했습니다.");
+        toast.error(err.error || t.org.departmentCreateFailed);
         return;
       }
 
-      toast.success("부서가 생성되었습니다.");
+      toast.success(t.org.departmentCreated);
       setShowAddRoot(false);
       setNewRootName("");
       await onRefresh();
     } catch (error) {
       console.error("Failed to create org unit:", error);
-      toast.error("부서 생성에 실패했습니다.");
+      toast.error(t.org.departmentCreateFailed);
     } finally {
       setIsLoading(false);
     }
@@ -508,11 +511,11 @@ function CompanyNode({
               onClick={handleEditCompany}
               disabled={isLoading}
               className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-            >저장</button>
+            >{t.common.save}</button>
             <button
               onClick={() => setEditingCompany(false)}
               className="text-xs px-2 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
-            >취소</button>
+            >{t.common.cancel}</button>
           </div>
         ) : (
           <>
@@ -520,18 +523,18 @@ function CompanyNode({
               className="font-medium text-gray-900 flex-1 cursor-pointer"
               onClick={() => setOpen(!open)}
             >{company.name}</span>
-            <span className="text-xs text-gray-400">{company.orgs.length}개 조직</span>
+            <span className="text-xs text-gray-400">{company.orgs.length} {t.org.orgs}</span>
             <button
               onClick={() => { setEditCompanyName(company.name); setEditingCompany(true); }}
               className="text-gray-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50"
-              title="회사 수정"
+              title={t.org.editCompany}
             >
               <Edit2 className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={() => setShowDeleteCompany(true)}
               className="text-gray-400 hover:text-red-600 p-1 rounded hover:bg-red-50"
-              title="회사 삭제"
+              title={t.org.deleteCompany}
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>
@@ -543,25 +546,25 @@ function CompanyNode({
       {showDeleteCompany && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-lg max-w-md w-full mx-4 p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">회사 삭제 확인</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-4">{t.org.companyDeleteConfirm}</h3>
             <div className="bg-red-50 border border-red-200 rounded p-3 mb-4 text-sm text-red-700">
-              <p className="font-medium mb-1">"{company.name}" 회사를 삭제합니다.</p>
+              <p className="font-medium mb-1">&ldquo;{company.name}&rdquo; {t.org.companyDeleteMessage}</p>
               <ul className="list-disc pl-5 space-y-1">
-                <li>소속 부서: {company.orgs.length}개</li>
+                <li>{t.org.departmentCount.replace("{count}", String(company.orgs.length))}</li>
               </ul>
               {company.orgs.length > 0 && (
-                <p className="mt-2 font-medium">⚠️ 소속 부서가 있으면 삭제할 수 없습니다. 먼저 부서를 삭제하세요.</p>
+                <p className="mt-2 font-medium">{t.org.cannotDeleteWithDepartments}</p>
               )}
             </div>
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                다음 문구를 정확히 입력하세요: <span className="font-mono">삭제하겠습니다</span>
+                {t.org.enterConfirmText} <span className="font-mono">{t.org.deleteConfirmText}</span>
               </label>
               <input
                 type="text"
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value)}
-                placeholder="삭제하겠습니다"
+                placeholder={t.org.deleteConfirmText}
                 className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
               />
             </div>
@@ -569,12 +572,12 @@ function CompanyNode({
               <button
                 onClick={() => { setShowDeleteCompany(false); setDeleteConfirmText(""); }}
                 className="px-4 py-2 text-gray-700 border border-gray-300 rounded hover:bg-gray-50"
-              >취소</button>
+              >{t.common.cancel}</button>
               <button
                 onClick={handleDeleteCompany}
-                disabled={isLoading || deleteConfirmText !== "삭제하겠습니다"}
+                disabled={isLoading || deleteConfirmText !== t.org.deleteConfirmText}
                 className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
-              >{isLoading ? "삭제 중..." : "삭제"}</button>
+              >{isLoading ? t.common.deleting : t.common.delete}</button>
             </div>
           </div>
         </div>
@@ -609,7 +612,7 @@ function CompanyNode({
                 type="text"
                 value={newRootName}
                 onChange={(e) => setNewRootName(e.target.value)}
-                placeholder="부서명"
+                placeholder={t.org.departmentName}
                 className="flex-1 border border-green-300 rounded px-2 py-1 text-sm"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleAddRootOrg();
@@ -624,7 +627,7 @@ function CompanyNode({
                 disabled={isLoading}
                 className="text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
               >
-                생성
+                {t.common.create}
               </button>
               <button
                 onClick={() => {
@@ -633,7 +636,7 @@ function CompanyNode({
                 }}
                 className="text-xs px-2 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
               >
-                취소
+                {t.common.cancel}
               </button>
             </div>
           ) : isAuthenticated ? (
@@ -642,12 +645,12 @@ function CompanyNode({
               className="text-xs px-3 py-1.5 bg-green-50 text-green-700 rounded border border-green-200 hover:bg-green-100"
             >
               <Plus className="h-3.5 w-3.5 inline mr-1" />
-              부서 추가
+              {t.org.addDepartment}
             </button>
           ) : null}
 
           {topOrgs.length === 0 && !showAddRoot && (
-            <p className="text-xs text-gray-400">등록된 조직이 없습니다.</p>
+            <p className="text-xs text-gray-400">{t.org.noOrganizations}</p>
           )}
         </div>
       )}

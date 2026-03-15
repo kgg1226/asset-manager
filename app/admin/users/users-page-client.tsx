@@ -35,9 +35,7 @@ export default function UsersPageClient({
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{t.header.userManagement}</h1>
             <p className="mt-1 text-sm text-gray-500">
-              {t.header.administrator === "관리자"
-                ? "관리자만 이 페이지에 접근할 수 있습니다."
-                : "Only administrators can access this page."}
+              {t.admin.adminOnly}
             </p>
           </div>
           <div className="flex items-center gap-2">
