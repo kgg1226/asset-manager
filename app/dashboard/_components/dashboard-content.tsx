@@ -9,7 +9,7 @@ import ExpiringWidget from "./expiring-widget";
 import type { DashboardData, AssetCategory } from "@/lib/dashboard-aggregator";
 import { CATEGORY_LABELS } from "@/lib/dashboard-aggregator";
 import { TourGuide } from "@/app/_components/tour-guide";
-import { DASHBOARD_TOUR_KEY, dashboardSteps } from "@/app/_components/tours/dashboard-tour";
+import { DASHBOARD_TOUR_KEY, getDashboardSteps } from "@/app/_components/tours/dashboard-tour";
 
 export default function DashboardContent({
   initialData,
@@ -67,7 +67,7 @@ export default function DashboardContent({
     <div className={loading ? "opacity-60 transition-opacity" : ""}>
       <div className="mb-2 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-        <TourGuide tourKey={DASHBOARD_TOUR_KEY} steps={dashboardSteps} />
+        <TourGuide tourKey={DASHBOARD_TOUR_KEY} steps={getDashboardSteps(t)} />
       </div>
       <p className="mb-6 text-sm text-gray-500">{subtitle}</p>
 

@@ -9,7 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
 import CiaBadge from "@/app/_components/cia-badge";
 import { TourGuide } from "@/app/_components/tour-guide";
-import { CLOUD_TOUR_KEY, cloudSteps } from "@/app/_components/tours/cloud-tour";
+import { CLOUD_TOUR_KEY, getCloudSteps } from "@/app/_components/tours/cloud-tour";
 
 type AssetStatus = "IN_STOCK" | "IN_USE" | "INACTIVE" | "UNUSABLE" | "PENDING_DISPOSAL" | "DISPOSED";
 
@@ -112,7 +112,7 @@ export default function CloudListPage() {
         <div className="mb-8 flex items-center justify-between">
           <h1 className="text-3xl font-bold text-gray-900">{t.cloud.title}</h1>
           <div className="flex gap-2">
-            <TourGuide tourKey={CLOUD_TOUR_KEY} steps={cloudSteps} />
+            <TourGuide tourKey={CLOUD_TOUR_KEY} steps={getCloudSteps(t)} />
             <button onClick={loadAssets} disabled={isLoading} className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
               <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             </button>

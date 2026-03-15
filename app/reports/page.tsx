@@ -4,6 +4,8 @@ import { useState } from "react";
 import { BarChart3, Download, FileSpreadsheet, FileText, Send } from "lucide-react";
 import Link from "next/link";
 import { useTranslation } from "@/lib/i18n";
+import { TourGuide } from "@/app/_components/tour-guide";
+import { REPORTS_TOUR_KEY, getReportsSteps } from "@/app/_components/tours/reports-tour";
 
 const TYPE_LABELS: Record<string, string> = {
   SOFTWARE: "소프트웨어",
@@ -85,11 +87,12 @@ export default function ReportsPage() {
           <div className="flex items-center gap-3">
             <BarChart3 className="h-6 w-6 text-blue-600" />
             <h1 className="text-2xl font-bold text-gray-900">{t.report.monthlyReport}</h1>
+            <TourGuide tourKey={REPORTS_TOUR_KEY} steps={getReportsSteps(t)} />
           </div>
         </div>
 
         {/* 월 선택 */}
-        <div className="mb-6 flex items-end gap-4 rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-200">
+        <div className="mb-6 flex items-end gap-4 rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-200" data-tour="report-period">
           <div>
             <label className="block text-xs font-medium uppercase text-gray-500 mb-1">{t.report.period}</label>
             <input
@@ -108,7 +111,7 @@ export default function ReportsPage() {
           </button>
 
           {data && (
-            <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-2" data-tour="report-export">
               <a
                 href={`/api/reports/monthly/${yearMonth}/excel`}
                 className="inline-flex items-center gap-1.5 rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700"
@@ -219,7 +222,7 @@ export default function ReportsPage() {
             </div>
 
             {/* 이메일 발송 */}
-            <div className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
+            <div className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200" data-tour="report-email">
               <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-gray-900">
                 <Send className="h-4 w-4 text-blue-500" />
                 {t.report.sendEmail}

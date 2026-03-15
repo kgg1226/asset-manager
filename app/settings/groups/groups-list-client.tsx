@@ -4,6 +4,8 @@ import Link from "next/link";
 import DeleteGroupButton from "./delete-button";
 import ToggleDefaultButton from "./toggle-default-button";
 import { useTranslation } from "@/lib/i18n";
+import { TourGuide } from "@/app/_components/tour-guide";
+import { GROUPS_TOUR_KEY, getGroupsSteps } from "@/app/_components/tours/groups-tour";
 
 type GroupData = {
   id: number;
@@ -26,10 +28,14 @@ export default function GroupsListClient({
     <div className="min-h-screen bg-gray-50 py-10">
       <div className="mx-auto max-w-4xl px-4">
         <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">{t.license.groupSettings}</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-gray-900">{t.license.groupSettings}</h1>
+            <TourGuide tourKey={GROUPS_TOUR_KEY} steps={getGroupsSteps(t)} />
+          </div>
           {hasUser && (
             <Link
               href="/settings/groups/new"
+              data-tour="group-new-btn"
               className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
             >
               + {t.license.createGroup}
@@ -50,7 +56,7 @@ export default function GroupsListClient({
             )}
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
+          <div className="overflow-x-auto rounded-lg bg-white shadow-sm ring-1 ring-gray-200" data-tour="group-table">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>

@@ -1,8 +1,10 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n";
 import { TourGuide } from "@/app/_components/tour-guide";
-import { EMPLOYEES_TOUR_KEY, employeesSteps } from "@/app/_components/tours/employees-tour";
+import { EMPLOYEES_TOUR_KEY, getEmployeesSteps } from "@/app/_components/tours/employees-tour";
 
 export default function EmployeeTourWrapper() {
-  return <TourGuide tourKey={EMPLOYEES_TOUR_KEY} steps={employeesSteps} />;
+  const { t } = useTranslation();
+  return <TourGuide tourKey={EMPLOYEES_TOUR_KEY} steps={getEmployeesSteps(t)} />;
 }

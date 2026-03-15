@@ -391,4 +391,159 @@ export type TranslationDict = {
     logoutSuccess: string;
     confirmDelete: string;
   };
+
+  // Tour guide
+  tour: {
+    // UI controls
+    nextBtn: string;
+    prevBtn: string;
+    doneBtn: string;
+    guideBtn: string;
+    guideBtnTooltip: string;
+    // Dashboard tour
+    dashboardWelcomeTitle: string;
+    dashboardWelcomeDesc: string;
+    sidebarTitle: string;
+    sidebarDesc: string;
+    globalSearchTitle: string;
+    globalSearchDesc: string;
+    userMenuTitle: string;
+    userMenuDesc: string;
+    dashboardSummaryTitle: string;
+    dashboardSummaryDesc: string;
+    dashboardCategoriesTitle: string;
+    dashboardCategoriesDesc: string;
+    // Licenses tour
+    licensesTitle: string;
+    licensesDesc: string;
+    licenseTableTitle: string;
+    licenseTableDesc: string;
+    licenseNewTitle: string;
+    licenseNewDesc: string;
+    licenseAssignTitle: string;
+    licenseAssignDesc: string;
+    // Cloud tour
+    cloudTitle: string;
+    cloudDesc: string;
+    cloudNewTitle: string;
+    cloudNewDesc: string;
+    cloudTableTitle: string;
+    cloudTableDesc: string;
+    // Hardware tour
+    hwTitle: string;
+    hwDesc: string;
+    hwSearchTitle: string;
+    hwSearchDesc: string;
+    hwStatusFilterTitle: string;
+    hwStatusFilterDesc: string;
+    hwNewTitle: string;
+    hwNewDesc: string;
+    hwTableTitle: string;
+    hwTableDesc: string;
+    hwActionsTitle: string;
+    hwActionsDesc: string;
+    // Domains tour
+    domainsTitle: string;
+    domainsDesc: string;
+    domainNewTitle: string;
+    domainNewDesc: string;
+    domainTableTitle: string;
+    domainTableDesc: string;
+    // Employees tour
+    empTitle: string;
+    empDesc: string;
+    empSearchTitle: string;
+    empSearchDesc: string;
+    empFilterTitle: string;
+    empFilterDesc: string;
+    empNewTitle: string;
+    empNewDesc: string;
+    empTableTitle: string;
+    empTableDesc: string;
+    // History tour
+    historyTitle: string;
+    historyDesc: string;
+    historyFilterTitle: string;
+    historyFilterDesc: string;
+    historyTableTitle: string;
+    historyTableDesc: string;
+    // Contracts tour
+    contractsTitle: string;
+    contractsDesc: string;
+    contractSearchTitle: string;
+    contractSearchDesc: string;
+    contractFilterTitle: string;
+    contractFilterDesc: string;
+    contractNewTitle: string;
+    contractNewDesc: string;
+    contractTableTitle: string;
+    contractTableDesc: string;
+    // Org chart tour
+    orgTitle: string;
+    orgDesc: string;
+    orgTabsTitle: string;
+    orgTabsDesc: string;
+    orgNewCompanyTitle: string;
+    orgNewCompanyDesc: string;
+    orgTreeTitle: string;
+    orgTreeDesc: string;
+    // Reports tour
+    reportsTitle: string;
+    reportsDesc: string;
+    reportPeriodTitle: string;
+    reportPeriodDesc: string;
+    reportExportTitle: string;
+    reportExportDesc: string;
+    reportEmailTitle: string;
+    reportEmailDesc: string;
+    // Settings - Groups tour
+    groupsTitle: string;
+    groupsDesc: string;
+    groupNewTitle: string;
+    groupNewDesc: string;
+    groupTableTitle: string;
+    groupTableDesc: string;
+    // Settings - Import tour
+    importTitle: string;
+    importDesc: string;
+    importFormTitle: string;
+    importFormDesc: string;
+    // Settings - Notifications tour
+    notifTitle: string;
+    notifDesc: string;
+    notifTestTitle: string;
+    notifTestDesc: string;
+    notifLogTitle: string;
+    notifLogDesc: string;
+    // Settings - Profile tour
+    profileTitle: string;
+    profileDesc: string;
+    profileInfoTitle: string;
+    profileInfoDesc: string;
+    profilePasswordTitle: string;
+    profilePasswordDesc: string;
+    // Admin - Users tour
+    adminUsersTitle: string;
+    adminUsersDesc: string;
+    adminUsersSearchTitle: string;
+    adminUsersSearchDesc: string;
+    adminUsersTableTitle: string;
+    adminUsersTableDesc: string;
+    // Admin - Exchange Rates tour
+    exchangeRatesTitle: string;
+    exchangeRatesDesc: string;
+    exchangeRatesSyncTitle: string;
+    exchangeRatesSyncDesc: string;
+    exchangeRatesTableTitle: string;
+    exchangeRatesTableDesc: string;
+    // Guide page tour
+    guideTourTitle: string;
+    guideTourDesc: string;
+    guideProgressTitle: string;
+    guideProgressDesc: string;
+    guideSectionsTitle: string;
+    guideSectionsDesc: string;
+    guideQuickLinksTitle: string;
+    guideQuickLinksDesc: string;
+  };
 };

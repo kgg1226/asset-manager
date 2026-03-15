@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/i18n";
+import { TourGuide } from "@/app/_components/tour-guide";
+import { NOTIFICATIONS_TOUR_KEY, getNotificationsSteps } from "@/app/_components/tours/notifications-tour";
 
 // ── Types ──
 
@@ -142,10 +144,13 @@ export default function NotificationSettingsPage() {
             </h1>
             <p className="mt-1 text-sm text-gray-500">이메일·Slack 연동 테스트 및 발송 이력 확인</p>
           </div>
+          <div className="ml-auto">
+            <TourGuide tourKey={NOTIFICATIONS_TOUR_KEY} steps={getNotificationsSteps(t)} />
+          </div>
         </div>
 
         {/* ── Test Section ── */}
-        <div className="mb-8 rounded-lg bg-white p-6 shadow-sm">
+        <div className="mb-8 rounded-lg bg-white p-6 shadow-sm" data-tour="notif-test">
           <h2 className="mb-4 text-lg font-bold text-gray-900">연동 테스트</h2>
           <p className="mb-4 text-sm text-gray-600">
             알림 채널이 올바르게 설정되었는지 테스트 메시지를 발송합니다.
@@ -270,7 +275,7 @@ export default function NotificationSettingsPage() {
         </div>
 
         {/* ── Notification Log Section ── */}
-        <div className="rounded-lg bg-white p-6 shadow-sm">
+        <div className="rounded-lg bg-white p-6 shadow-sm" data-tour="notif-log">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-bold text-gray-900">{t.notification.sendHistory}</h2>
             <button

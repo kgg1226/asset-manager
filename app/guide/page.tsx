@@ -18,6 +18,8 @@ import {
   BookOpen,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
+import { TourGuide } from "@/app/_components/tour-guide";
+import { GUIDE_TOUR_KEY, getGuideSteps } from "@/app/_components/tours/guide-tour";
 
 interface Step {
   id: string;
@@ -305,12 +307,13 @@ export default function GuidePage() {
           <div className="flex items-center gap-3 mb-2">
             <BookOpen className="h-7 w-7 text-blue-600" />
             <h1 className="text-3xl font-bold text-gray-900">{t.guide.title}</h1>
+            <TourGuide tourKey={GUIDE_TOUR_KEY} steps={getGuideSteps(t)} />
           </div>
           <p className="text-gray-600">{t.guide.subtitle}</p>
         </div>
 
         {/* Progress Bar */}
-        <div className="mb-8 rounded-lg bg-white p-5 shadow-sm">
+        <div className="mb-8 rounded-lg bg-white p-5 shadow-sm" data-tour="guide-progress">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-gray-700">{t.guide.progress}</span>
             <span className="text-sm font-bold text-blue-600">{doneSteps}/{totalSteps} {t.guide.completed} ({progress}%)</span>
@@ -324,7 +327,7 @@ export default function GuidePage() {
         </div>
 
         {/* Sections */}
-        <div className="space-y-4">
+        <div className="space-y-4" data-tour="guide-sections">
           {GUIDE_SECTIONS.map((section) => {
             const isExpanded = expandedSections[section.id];
             const sectionDone = section.steps.filter((s) => completedSteps[s.id]).length;
@@ -393,7 +396,7 @@ export default function GuidePage() {
         </div>
 
         {/* Quick Links */}
-        <div className="mt-8 rounded-lg bg-blue-50 p-5">
+        <div className="mt-8 rounded-lg bg-blue-50 p-5" data-tour="guide-quick-links">
           <h3 className="text-sm font-semibold text-blue-900 mb-3">{t.guide.quickLinks}</h3>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {[

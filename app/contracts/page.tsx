@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
 import CiaBadge from "@/app/_components/cia-badge";
+import { TourGuide } from "@/app/_components/tour-guide";
+import { CONTRACTS_TOUR_KEY, getContractsSteps } from "@/app/_components/tours/contracts-tour";
 
 type AssetStatus = "IN_STOCK" | "IN_USE" | "INACTIVE" | "UNUSABLE" | "PENDING_DISPOSAL" | "DISPOSED";
 
@@ -135,11 +137,12 @@ export default function ContractListPage() {
         <div className="mb-8 flex items-center justify-between">
           <h1 className="text-3xl font-bold text-gray-900">{t.contract.title}</h1>
           <div className="flex gap-2">
+            <TourGuide tourKey={CONTRACTS_TOUR_KEY} steps={getContractsSteps(t)} />
             <button onClick={loadAssets} disabled={isLoading} className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
               <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             </button>
             {isAdmin && (
-              <Link href="/contracts/new" className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+              <Link href="/contracts/new" data-tour="contract-new-btn" className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
                 <Plus className="h-4 w-4" />{t.contract.newContract}
               </Link>
             )}
@@ -147,10 +150,10 @@ export default function ContractListPage() {
         </div>
 
         <div className="mb-6 rounded-lg bg-white p-4 shadow-sm">
-          <div className="mb-4">
+          <div className="mb-4" data-tour="contract-search">
             <input type="text" placeholder={`${t.asset.assetName} ${t.common.search}...`} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" data-tour="contract-filter">
             <button onClick={() => setSelectedStatus("")} className={`rounded-full px-3 py-1 text-sm ${selectedStatus === "" ? "bg-blue-600 text-white" : "bg-gray-100"}`}>{t.common.all} {t.common.status}</button>
             {(Object.keys(STATUS_LABELS) as AssetStatus[]).map((s) => (
               <button key={s} onClick={() => setSelectedStatus(s)} className={`rounded-full px-3 py-1 text-sm ${selectedStatus === s ? "bg-blue-600 text-white" : "bg-gray-100"}`}>{STATUS_LABELS[s]}</button>
@@ -158,7 +161,7 @@ export default function ContractListPage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-lg bg-white shadow-sm">
+        <div className="overflow-x-auto rounded-lg bg-white shadow-sm" data-tour="contract-table">
           <table className="w-full min-w-[800px]">
             <thead className="border-b bg-gray-50">
               <tr>
