@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import HistoryTourWrapper from "./history-tour-wrapper";
 
 export const dynamic = "force-dynamic";
 
@@ -138,10 +139,13 @@ export default async function HistoryPage({
   return (
     <div className="min-h-screen bg-gray-50 py-10">
       <div className="mx-auto max-w-7xl px-4">
-        <h1 className="mb-6 text-2xl font-bold text-gray-900">변경 이력</h1>
+        <div className="mb-6 flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-gray-900">변경 이력</h1>
+          <HistoryTourWrapper />
+        </div>
 
         {/* Filters */}
-        <form className="mb-6 flex flex-wrap items-end gap-3 rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-200">
+        <form className="mb-6 flex flex-wrap items-end gap-3 rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-200" data-tour="history-filter">
           <div>
             <label className="mb-1 block text-xs font-medium text-gray-500">유형</label>
             <select name="entityType" defaultValue={entityType} className="input text-sm">
@@ -195,7 +199,7 @@ export default async function HistoryPage({
             <p className="text-gray-500">이력이 없습니다.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
+          <div className="overflow-x-auto rounded-lg bg-white shadow-sm ring-1 ring-gray-200" data-tour="history-table">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>

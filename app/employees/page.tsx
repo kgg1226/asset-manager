@@ -4,6 +4,7 @@ import DeleteEmployeeButton from "./delete-button";
 import EmployeeSearch from "./employee-search";
 import { getEmployeeDisplayNames } from "@/lib/employee-display";
 import { getCurrentUser } from "@/lib/auth";
+import EmployeeTourWrapper from "./employee-tour-wrapper";
 
 export const dynamic = "force-dynamic";
 
@@ -55,18 +56,24 @@ export default async function EmployeesPage({
       <div className="mx-auto max-w-5xl px-4">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900">조직원 목록</h1>
-          {user && (
-            <Link
-              href="/employees/new"
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-            >
-              + 새 조직원
-            </Link>
-          )}
+          <div className="flex gap-2">
+            <EmployeeTourWrapper />
+            {user && (
+              <Link
+                href="/employees/new"
+                data-tour="emp-new-btn"
+                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                + 새 조직원
+              </Link>
+            )}
+          </div>
         </div>
 
         {/* 검색·필터 */}
-        <EmployeeSearch currentQuery={query} currentStatus={status} currentUnassigned={unassigned} />
+        <div data-tour="emp-search">
+          <EmployeeSearch currentQuery={query} currentStatus={status} currentUnassigned={unassigned} />
+        </div>
 
         {/* 결과 */}
         {filtered.length === 0 ? (
@@ -84,7 +91,7 @@ export default async function EmployeesPage({
             )}
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
+          <div className="overflow-x-auto rounded-lg bg-white shadow-sm ring-1 ring-gray-200" data-tour="emp-table">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>

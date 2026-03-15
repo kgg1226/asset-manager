@@ -5,6 +5,7 @@ import DeleteButton from "./delete-button";
 import AssignButton from "./assign-button";
 import UnassignButton from "./unassign-button";
 import LicenseRow from "./license-row";
+import LicenseTourWrapper from "./license-tour-wrapper";
 
 export const dynamic = "force-dynamic";
 
@@ -199,14 +200,18 @@ export default async function LicensesPage({
       <div className="mx-auto max-w-7xl px-4">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900">라이선스 목록</h1>
-          {user && (
-            <Link
-              href="/licenses/new"
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-            >
-              + 새 라이선스
-            </Link>
-          )}
+          <div className="flex gap-2">
+            <LicenseTourWrapper />
+            {user && (
+              <Link
+                href="/licenses/new"
+                data-tour="license-new-btn"
+                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                + 새 라이선스
+              </Link>
+            )}
+          </div>
         </div>
 
         {hierarchySorted.length === 0 ? (
@@ -221,7 +226,7 @@ export default async function LicensesPage({
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
+            <div className="overflow-x-auto rounded-lg bg-white shadow-sm ring-1 ring-gray-200" data-tour="license-table">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>

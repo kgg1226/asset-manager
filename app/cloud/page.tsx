@@ -6,6 +6,8 @@ import Link from "next/link";
 import { Plus, Eye, Edit, Trash2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { TourGuide } from "@/app/_components/tour-guide";
+import { CLOUD_TOUR_KEY, cloudSteps } from "@/app/_components/tours/cloud-tour";
 
 type AssetStatus = "IN_STOCK" | "IN_USE" | "INACTIVE" | "UNUSABLE" | "PENDING_DISPOSAL" | "DISPOSED";
 
@@ -106,11 +108,12 @@ export default function CloudListPage() {
         <div className="mb-8 flex items-center justify-between">
           <h1 className="text-3xl font-bold text-gray-900">클라우드 관리</h1>
           <div className="flex gap-2">
+            <TourGuide tourKey={CLOUD_TOUR_KEY} steps={cloudSteps} />
             <button onClick={loadAssets} disabled={isLoading} className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
               <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             </button>
             {user && (
-              <Link href="/cloud/new" className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+              <Link href="/cloud/new" data-tour="cloud-new-btn" className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
                 <Plus className="h-4 w-4" />
                 새 클라우드 등록
               </Link>
