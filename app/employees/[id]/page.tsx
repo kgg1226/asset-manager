@@ -1,12 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { Package, History } from "lucide-react";
-import ManageLicenses from "./manage-licenses";
-import OrgEditForm from "./org-edit-form";
 import { getEmployeeDisplayName } from "@/lib/employee-display";
-import OffboardButton from "./offboard-button";
 import { getCurrentUser } from "@/lib/auth";
+import EmployeeDetailContent from "./employee-detail-content";
 
 export const dynamic = "force-dynamic";
 
@@ -37,14 +33,13 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
       orderBy: { name: "asc" },
     }),
     prisma.employee.findMany({
-      where: {}, // 중복 이름 검사용으로 모든 구성원 조회 (간단함)
+      where: {},
       select: { id: true, name: true, email: true },
     }),
   ]);
 
   if (!employee) notFound();
 
-  // 중복 이름 구분을 위한 표시명 계산
   const displayName = getEmployeeDisplayName(
     { id: employee.id, name: employee.name, email: employee.email },
     sameName
@@ -64,7 +59,6 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
     },
   });
 
-  // All licenses for the assign modal
   const allLicenses = await prisma.license.findMany({
     select: {
       id: true,
@@ -81,7 +75,6 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
   const activeAssignments = employee.assignments.filter((a) => !a.returnedDate);
   const pastAssignments = employee.assignments.filter((a) => a.returnedDate);
 
-  // Prepare license data for manage panel
   const assignedLicenseIds = new Set(activeAssignments.map((a) => a.licenseId));
   const availableLicenses = allLicenses
     .filter((l) => !assignedLicenseIds.has(l.id))
@@ -102,12 +95,12 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
     reason: a.reason,
   }));
 
-  // Merge history
+  // Build history entries (serialize dates to strings for client)
   type HistoryEntry = {
     id: string;
     action: string;
     description: string;
-    createdAt: Date;
+    createdAt: string;
   };
 
   const history: HistoryEntry[] = assignmentHistory.map((h) => {
@@ -117,178 +110,49 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
       id: `ah-${h.id}`,
       action: h.action,
       description: `${licenseName} — ${actionLabel}${h.reason ? ` (${h.reason})` : ""}`,
-      createdAt: h.createdAt,
+      createdAt: h.createdAt.toLocaleDateString("ko-KR"),
     };
   });
 
-  history.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  history.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   const displayHistory = history.slice(0, 30);
 
   const totalHistoryCount = assignmentHistory.length;
 
-  const actionBadge: Record<string, string> = {
-    ASSIGNED: "text-green-700 bg-green-50",
-    RETURNED: "text-yellow-700 bg-yellow-50",
-    REVOKED: "text-red-700 bg-red-50",
-    UNASSIGNED: "text-red-700 bg-red-50",
-    CREATED: "text-purple-700 bg-purple-50",
-    UPDATED: "text-blue-700 bg-blue-50",
-    IMPORTED: "text-indigo-700 bg-indigo-50",
-  };
+  // Serialize past assignments
+  const pastAssignmentsData = pastAssignments.map((a) => ({
+    id: a.id,
+    licenseId: a.licenseId,
+    licenseName: a.license.name,
+    assignedDate: a.assignedDate.toLocaleDateString("ko-KR"),
+    returnedDate: a.returnedDate?.toLocaleDateString("ko-KR") ?? null,
+  }));
 
-  const actionLabelMap: Record<string, string> = {
-    ASSIGNED: "할당",
-    RETURNED: "반납",
-    REVOKED: "해제",
-    UNASSIGNED: "해제",
-    CREATED: "생성",
-    UPDATED: "수정",
-    IMPORTED: "가져오기",
+  // Serialize employee data
+  const employeeData = {
+    id: employee.id,
+    name: employee.name,
+    email: employee.email,
+    title: employee.title ?? null,
+    department: employee.department,
+    orgUnitName: employee.orgUnit?.name ?? null,
+    companyId: employee.companyId ?? null,
+    orgUnitId: employee.orgUnitId ?? null,
+    status: (employee as { status?: string }).status ?? "ACTIVE",
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10">
-      <div className="mx-auto max-w-5xl px-4">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">{displayName}</h1>
-          <div className="flex items-center gap-3">
-            {user && (
-              <OffboardButton
-                employeeId={employee.id}
-                employeeName={employee.name}
-                currentStatus={(employee as { status?: string }).status ?? "ACTIVE"}
-              />
-            )}
-            <Link href="/employees" className="text-sm text-gray-500 hover:text-gray-700">
-              &larr; 목록으로
-            </Link>
-          </div>
-        </div>
-
-        {/* Asset Overview Cards */}
-        <div className="mb-6 grid grid-cols-2 gap-4">
-          <div className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-200">
-            <div className="flex items-center gap-2">
-              <Package className="h-5 w-5 text-blue-600" />
-              <span className="text-xs font-medium uppercase text-gray-500">활성 라이선스</span>
-            </div>
-            <p className="mt-2 text-2xl font-bold text-gray-900">{activeAssignments.length}</p>
-          </div>
-          <div className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-200">
-            <div className="flex items-center gap-2">
-              <History className="h-5 w-5 text-gray-500" />
-              <span className="text-xs font-medium uppercase text-gray-500">총 이력</span>
-            </div>
-            <p className="mt-2 text-2xl font-bold text-gray-900">{totalHistoryCount}</p>
-          </div>
-        </div>
-
-        {/* Employee Info */}
-        <div className="mb-6 rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
-          <dl className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div>
-              <dt className="text-xs font-medium uppercase text-gray-500">이름</dt>
-              <dd className="mt-1 text-sm text-gray-900">{employee.name}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium uppercase text-gray-500">소속</dt>
-              <dd className="mt-1 text-sm text-gray-900">{employee.orgUnit?.name ?? (employee.department && employee.department !== "-" ? employee.department : "—")}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium uppercase text-gray-500">이메일</dt>
-              <dd className="mt-1 text-sm text-gray-900">{employee.email ?? "—"}</dd>
-            </div>
-          </dl>
-          <div className="border-t border-gray-100 pt-4">
-            <OrgEditForm
-              employeeId={employee.id}
-              initialTitle={employee.title ?? null}
-              initialCompanyId={employee.companyId ?? null}
-              initialOrgUnitId={employee.orgUnitId ?? null}
-              companies={companies}
-              readOnly={!user}
-            />
-          </div>
-        </div>
-
-        {/* Manage Licenses - bulk assign/unassign (auth required) */}
-        {user && (
-          <ManageLicenses
-            employeeId={employee.id}
-            assigned={assignedForManage}
-            availableLicenses={availableLicenses}
-          />
-        )}
-
-        {/* Past Assignments */}
-        {pastAssignments.length > 0 && (
-          <>
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">
-              반납 이력 ({pastAssignments.length})
-            </h2>
-            <div className="mb-6 overflow-x-auto rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">라이선스</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">할당일</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">반납일</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {pastAssignments.map((a) => (
-                    <tr key={a.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm text-gray-900">
-                        <Link href={`/licenses/${a.licenseId}`} className="text-blue-600 hover:underline">
-                          {a.license.name}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        {a.assignedDate.toLocaleDateString("ko-KR")}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        {a.returnedDate?.toLocaleDateString("ko-KR")}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
-
-        {/* History Timeline */}
-        {displayHistory.length > 0 && (
-          <>
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">최근 이력</h2>
-              <Link
-                href={`/history?entityType=EMPLOYEE&entityId=${employeeId}`}
-                className="text-sm text-blue-600 hover:underline"
-              >
-                전체 보기 &rarr;
-              </Link>
-            </div>
-            <div className="rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
-              <div className="divide-y divide-gray-100">
-                {displayHistory.map((h) => (
-                  <div key={h.id} className="flex items-center gap-3 px-4 py-3">
-                    <span className={`inline-flex shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${actionBadge[h.action] ?? "text-gray-700 bg-gray-50"}`}>
-                      {actionLabelMap[h.action] ?? h.action}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm text-gray-900">{h.description}</p>
-                    </div>
-                    <time className="shrink-0 text-xs text-gray-400">
-                      {h.createdAt.toLocaleDateString("ko-KR")}
-                    </time>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+    <EmployeeDetailContent
+      employee={employeeData}
+      displayName={displayName}
+      companies={companies}
+      activeAssignmentCount={activeAssignments.length}
+      totalHistoryCount={totalHistoryCount}
+      assignedForManage={assignedForManage}
+      availableLicenses={availableLicenses}
+      pastAssignments={pastAssignmentsData}
+      displayHistory={displayHistory}
+      isLoggedIn={!!user}
+    />
   );
 }

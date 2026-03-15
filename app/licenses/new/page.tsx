@@ -12,25 +12,14 @@ import {
   type Currency,
   type PaymentCycle,
 } from "@/lib/cost-calculator";
+import { useTranslation } from "@/lib/i18n";
 
 const initialState: FormState = {};
 
-const NOTICE_OPTIONS = [
-  { value: "", label: "설정 안 함" },
-  { value: "30", label: "1개월 전 (30일)" },
-  { value: "90", label: "3개월 전 (90일)" },
-  { value: "custom", label: "직접 입력" },
-] as const;
-
 type LicenseType = "NO_KEY" | "KEY_BASED" | "VOLUME";
 
-const LICENSE_TYPE_OPTIONS: { value: LicenseType; label: string; description: string }[] = [
-  { value: "KEY_BASED", label: "개별 키", description: "인원별 고유 키 관리 (시트 기반)" },
-  { value: "VOLUME", label: "볼륨 키", description: "하나의 키를 여러 명에게 공유" },
-  { value: "NO_KEY", label: "키 없음", description: "계정 기반 · 서비스 구독 등 키 불필요" },
-];
-
 export default function NewLicensePage() {
+  const { t } = useTranslation();
   const [state, formAction, isPending] = useActionState(createLicense, initialState);
   const [licenseType, setLicenseType] = useState<LicenseType>("KEY_BASED");
   const [noticePeriodType, setNoticePeriodType] = useState("");
@@ -48,16 +37,29 @@ export default function NewLicensePage() {
   // Auto-compute renewal date whenever purchase date or payment cycle changes
   const renewalDateStr = calcRenewalDate(purchaseDateStr, paymentCycle);
 
+  const NOTICE_OPTIONS = [
+    { value: "", label: t.license.noNotice },
+    { value: "30", label: t.license.days30 },
+    { value: "90", label: t.license.days90 },
+    { value: "custom", label: t.license.custom },
+  ] as const;
+
+  const LICENSE_TYPE_OPTIONS: { value: LicenseType; label: string; description: string }[] = [
+    { value: "KEY_BASED", label: t.license.keyBased, description: t.license.seatAssignment },
+    { value: "VOLUME", label: t.license.volume, description: t.license.key },
+    { value: "NO_KEY", label: t.license.noKey, description: t.license.noKey },
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50 py-10">
       <div className="mx-auto max-w-2xl px-4">
         <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">라이선스 등록</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t.license.newLicense}</h1>
           <Link
             href="/licenses"
             className="text-sm text-gray-500 hover:text-gray-700"
           >
-            &larr; 목록으로
+            &larr; {t.common.list}
           </Link>
         </div>
 
@@ -71,10 +73,10 @@ export default function NewLicensePage() {
           {/* 기본 정보 */}
           <fieldset className="space-y-4">
             <legend className="text-base font-semibold text-gray-900 border-b border-gray-200 pb-2 w-full">
-              기본 정보
+              {t.common.detail}
             </legend>
 
-            <Field label="라이선스명" required error={state.errors?.name}>
+            <Field label={t.license.licenseName} required error={state.errors?.name}>
               <input
                 type="text"
                 name="name"
@@ -84,7 +86,7 @@ export default function NewLicensePage() {
               />
             </Field>
 
-            <Field label="라이선스 유형" required error={state.errors?.licenseType}>
+            <Field label={t.license.licenseType} required error={state.errors?.licenseType}>
               <div className="flex flex-wrap gap-2">
                 {LICENSE_TYPE_OPTIONS.map((opt) => (
                   <label
@@ -113,7 +115,7 @@ export default function NewLicensePage() {
             </Field>
 
             {licenseType === "VOLUME" && (
-              <Field label="볼륨 라이선스 키">
+              <Field label={t.license.key}>
                 <input
                   type="text"
                   name="key"
@@ -125,12 +127,12 @@ export default function NewLicensePage() {
 
             {licenseType === "KEY_BASED" && (
               <p className="text-xs text-gray-500">
-                개별 라이선스의 키는 등록 후 수정 화면의 시트 목록에서 관리합니다.
+                {t.license.seatAssignment}
               </p>
             )}
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <Field label="수량" required error={state.errors?.totalQuantity}>
+              <Field label={t.license.quantity} required error={state.errors?.totalQuantity}>
                 <input
                   type="number"
                   name="totalQuantity"
@@ -143,7 +145,7 @@ export default function NewLicensePage() {
                 />
               </Field>
 
-              <Field label={`단가 (${CURRENCY_SYMBOLS[currency]})`} error={state.errors?.unitPrice}>
+              <Field label={`${t.license.unitPrice} (${CURRENCY_SYMBOLS[currency]})`} error={state.errors?.unitPrice}>
                 <input
                   type="number"
                   name="unitPrice"
@@ -156,7 +158,7 @@ export default function NewLicensePage() {
                 />
               </Field>
 
-              <Field label="통화">
+              <Field label={t.license.currency}>
                 <select
                   name="currency"
                   value={currency}
@@ -172,11 +174,10 @@ export default function NewLicensePage() {
               </Field>
             </div>
 
-            <Field label="담당자명">
+            <Field label={t.license.adminName}>
               <input
                 type="text"
                 name="adminName"
-                placeholder="예: 홍길동"
                 className="input"
               />
             </Field>
@@ -195,11 +196,11 @@ export default function NewLicensePage() {
           {/* 날짜 정보 */}
           <fieldset className="space-y-4">
             <legend className="text-base font-semibold text-gray-900 border-b border-gray-200 pb-2 w-full">
-              날짜 정보
+              {t.common.date}
             </legend>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="구매일 (시작일)" required error={state.errors?.purchaseDate}>
+              <Field label={t.license.purchaseDate} required error={state.errors?.purchaseDate}>
                 <input
                   type="date"
                   name="purchaseDate"
@@ -212,17 +213,13 @@ export default function NewLicensePage() {
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
-                  갱신일{" "}
-                  <span className="text-xs font-normal text-gray-400">(자동 계산)</span>
+                  {t.license.expiryDate}
                 </label>
                 <div className="input flex cursor-not-allowed items-center bg-gray-50 text-gray-500">
                   {renewalDateStr || "—"}
                 </div>
                 {/* Submit the computed renewal date as expiryDate */}
                 <input type="hidden" name="expiryDate" value={renewalDateStr} />
-                <p className="mt-1 text-xs text-gray-400">
-                  구매일과 납부 주기에 따라 자동 계산됩니다.
-                </p>
               </div>
             </div>
           </fieldset>
@@ -230,12 +227,8 @@ export default function NewLicensePage() {
           {/* 해지 통보 기한 */}
           <fieldset className="space-y-4">
             <legend className="text-base font-semibold text-gray-900 border-b border-gray-200 pb-2 w-full">
-              해지 통보 기한
+              {t.license.noticePeriod}
             </legend>
-
-            <p className="text-xs text-gray-500">
-              갱신일로부터 며칠 전에 해지 통보가 필요한지 설정합니다.
-            </p>
 
             <div className="flex flex-wrap gap-3">
               {NOTICE_OPTIONS.map((opt) => (
@@ -261,16 +254,15 @@ export default function NewLicensePage() {
             </div>
 
             {noticePeriodType === "custom" && (
-              <Field label="통보 기한 (일)" error={state.errors?.noticePeriodCustom}>
+              <Field label={`${t.license.noticePeriod} (${t.license.customDays})`} error={state.errors?.noticePeriodCustom}>
                 <div className="flex items-center gap-2">
                   <input
                     type="number"
                     name="noticePeriodCustom"
                     min={1}
-                    placeholder="예: 60"
                     className="input max-w-32"
                   />
-                  <span className="text-sm text-gray-500">일 전</span>
+                  <span className="text-sm text-gray-500">{t.license.customDays}</span>
                 </div>
               </Field>
             )}
@@ -279,14 +271,13 @@ export default function NewLicensePage() {
           {/* 비고 */}
           <fieldset className="space-y-4">
             <legend className="text-base font-semibold text-gray-900 border-b border-gray-200 pb-2 w-full">
-              비고
+              {t.common.description}
             </legend>
 
-            <Field label="설명">
+            <Field label={t.common.description}>
               <textarea
                 name="description"
                 rows={3}
-                placeholder="라이선스에 대한 추가 메모를 입력하세요."
                 className="input resize-y"
               />
             </Field>
@@ -298,14 +289,14 @@ export default function NewLicensePage() {
               href="/licenses"
               className="rounded-md px-4 py-2 text-sm font-medium text-gray-700 ring-1 ring-gray-300 hover:bg-gray-50"
             >
-              취소
+              {t.common.cancel}
             </Link>
             <button
               type="submit"
               disabled={isPending}
               className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
             >
-              {isPending ? "등록 중..." : "등록"}
+              {isPending ? `${t.common.loading}` : t.common.new}
             </button>
           </div>
         </form>

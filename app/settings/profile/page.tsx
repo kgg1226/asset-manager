@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { User, Lock, Save } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 
 interface UserProfile {
   id: number;
@@ -15,6 +16,7 @@ interface UserProfile {
 }
 
 export default function ProfilePage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { user, loading } = useAuth();
 
@@ -113,7 +115,7 @@ export default function ProfilePage() {
   };
 
   if (loading || profileLoading || !user) {
-    return <div className="min-h-screen bg-gray-50 p-6"><div className="mx-auto max-w-2xl"><p className="text-center text-gray-500">로딩 중...</p></div></div>;
+    return <div className="min-h-screen bg-gray-50 p-6"><div className="mx-auto max-w-2xl"><p className="text-center text-gray-500">{t.common.loading}</p></div></div>;
   }
 
   const isAdmin = user.role === "ADMIN";
@@ -122,20 +124,20 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-gray-50 py-10">
       <div className="mx-auto max-w-2xl px-4 space-y-6">
-        <h2 className="text-xl font-bold text-gray-900">내 프로필</h2>
+        <h2 className="text-xl font-bold text-gray-900">{t.nav.profile}</h2>
 
         {/* 기본 정보 */}
         <div className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
           <div className="mb-4 flex items-center gap-2">
             <User className="h-5 w-5 text-gray-600" />
-            <h2 className="text-lg font-semibold text-gray-900">기본 정보</h2>
+            <h2 className="text-lg font-semibold text-gray-900">{t.nav.profile}</h2>
           </div>
 
           <div className="space-y-4">
             {/* 사용자명 */}
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">
-                사용자명
+                {t.auth.username}
               </label>
               {usernameEditing && isAdmin ? (
                 <div className="flex gap-2">
@@ -160,7 +162,7 @@ export default function ProfilePage() {
                     }}
                     className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
                   >
-                    취소
+                    {t.common.cancel}
                   </button>
                 </div>
               ) : (
@@ -171,7 +173,7 @@ export default function ProfilePage() {
                       onClick={() => setUsernameEditing(true)}
                       className="rounded px-2 py-1 text-xs text-blue-600 hover:bg-blue-50"
                     >
-                      변경
+                      {t.common.edit}
                     </button>
                   )}
                 </div>
@@ -180,7 +182,7 @@ export default function ProfilePage() {
 
             {/* 역할 */}
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">역할</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">{t.common.type}</label>
               <span
                 className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${
                   profile?.role === "ADMIN"
@@ -188,7 +190,7 @@ export default function ProfilePage() {
                     : "bg-blue-100 text-blue-700"
                 }`}
               >
-                {profile?.role === "ADMIN" ? "관리자" : "사용자"}
+                {profile?.role === "ADMIN" ? t.header.administrator : t.header.user}
               </span>
             </div>
 
@@ -215,14 +217,14 @@ export default function ProfilePage() {
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Lock className="h-5 w-5 text-gray-600" />
-              <h2 className="text-lg font-semibold text-gray-900">비밀번호 변경</h2>
+              <h2 className="text-lg font-semibold text-gray-900">{t.auth.changePassword}</h2>
             </div>
             {!showPasswordForm && (
               <button
                 onClick={() => setShowPasswordForm(true)}
                 className="rounded-md bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-200"
               >
-                비밀번호 변경
+                {t.auth.changePassword}
               </button>
             )}
           </div>
@@ -231,7 +233,7 @@ export default function ProfilePage() {
             <form onSubmit={handlePasswordChange} className="space-y-4">
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
-                  현재 비밀번호
+                  {t.auth.currentPassword}
                 </label>
                 <input
                   type="password"
@@ -246,7 +248,7 @@ export default function ProfilePage() {
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
-                  새 비밀번호
+                  {t.auth.newPassword}
                 </label>
                 <input
                   type="password"
@@ -263,7 +265,7 @@ export default function ProfilePage() {
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
-                  새 비밀번호 확인
+                  {t.auth.confirmPassword}
                 </label>
                 <input
                   type="password"
@@ -283,7 +285,7 @@ export default function ProfilePage() {
                   disabled={passwordSaving}
                   className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {passwordSaving ? "변경 중..." : "비밀번호 변경"}
+                  {passwordSaving ? t.common.loading : t.auth.changePassword}
                 </button>
                 <button
                   type="button"
@@ -293,7 +295,7 @@ export default function ProfilePage() {
                   }}
                   className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
                 >
-                  취소
+                  {t.common.cancel}
                 </button>
               </div>
             </form>

@@ -6,6 +6,8 @@ import Link from "next/link";
 import { ArrowLeft, Edit, Trash2, AlertCircle, UserPlus, UserMinus } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useTranslation } from "@/lib/i18n";
+import CiaScoreDisplay from "@/app/_components/cia-score-display";
 
 type AssetStatus = "IN_STOCK" | "IN_USE" | "INACTIVE" | "UNUSABLE" | "PENDING_DISPOSAL" | "DISPOSED";
 
@@ -34,6 +36,7 @@ interface Asset {
   purchaseDate?: string | null; assignee?: { id: number; name: string } | null;
   orgUnit?: { id: number; name: string } | null; company?: { id: number; name: string } | null;
   hardwareDetail?: HardwareDetail | null; createdAt: string; updatedAt: string;
+  ciaC?: number | null; ciaI?: number | null; ciaA?: number | null;
 }
 
 interface AssignmentHistoryEntry {
@@ -63,6 +66,7 @@ export default function HardwareDetailPage() {
   const params = useParams();
   const assetId = params.id as string;
   const { user } = useAuth();
+  const { t } = useTranslation();
   const isAdmin = user?.role === "ADMIN";
 
   const [asset, setAsset] = useState<Asset | null>(null);
@@ -92,10 +96,10 @@ export default function HardwareDetailPage() {
   const loadAsset = useCallback(async () => {
     try {
       const res = await fetch(`/api/assets/${assetId}`);
-      if (!res.ok) { toast.error("자산을 찾을 수 없습니다"); router.push("/hardware"); return; }
+      if (!res.ok) { toast.error(t.common.noData); router.push("/hardware"); return; }
       const data = await res.json();
       setAsset(data);
-    } catch { toast.error("로드 실패"); router.push("/hardware"); }
+    } catch { toast.error(t.toast.saveFail); router.push("/hardware"); }
     finally { setIsLoading(false); }
   }, [assetId, router]);
 
@@ -125,15 +129,15 @@ export default function HardwareDetailPage() {
     setIsDeleting(true);
     try {
       const res = await fetch(`/api/assets/${assetId}`, { method: "DELETE" });
-      if (!res.ok) { const e = await res.json(); toast.error(e.error || "삭제 실패"); return; }
-      toast.success("삭제되었습니다"); router.push("/hardware");
-    } catch { toast.error("삭제 실패"); }
+      if (!res.ok) { const e = await res.json(); toast.error(e.error || t.toast.deleteFail); return; }
+      toast.success(t.toast.deleteSuccess); router.push("/hardware");
+    } catch { toast.error(t.toast.deleteFail); }
     finally { setIsDeleting(false); setShowDeleteModal(false); }
   };
 
   // 불용 처리 → UNUSABLE → auto PENDING_DISPOSAL
   const handleUnusable = async () => {
-    if (!statusReason.trim()) { toast.error("사유를 입력해주세요"); return; }
+    if (!statusReason.trim()) { toast.error(t.common.required); return; }
     setIsUpdatingStatus(true);
     try {
       const res = await fetch(`/api/assets/${assetId}/status`, {
@@ -141,19 +145,19 @@ export default function HardwareDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "UNUSABLE", reason: statusReason }),
       });
-      if (!res.ok) { const e = await res.json(); toast.error(e.error || "상태 변경 실패"); return; }
+      if (!res.ok) { const e = await res.json(); toast.error(e.error || t.toast.updateFail); return; }
       const result = await res.json();
       setAsset((p) => (p ? { ...p, status: result.asset?.status ?? "PENDING_DISPOSAL", assignee: null } : null));
-      toast.success("불용 처리되었습니다 (폐기 대상으로 전환)");
+      toast.success(t.toast.updateSuccess);
       setShowUnusableModal(false); setStatusReason("");
       loadHistory();
-    } catch { toast.error("상태 변경 실패"); }
+    } catch { toast.error(t.toast.updateFail); }
     finally { setIsUpdatingStatus(false); }
   };
 
   // 폐기 완료
   const handleDisposed = async () => {
-    if (!statusReason.trim()) { toast.error("사유를 입력해주세요"); return; }
+    if (!statusReason.trim()) { toast.error(t.common.required); return; }
     setIsUpdatingStatus(true);
     try {
       const res = await fetch(`/api/assets/${assetId}/status`, {
@@ -161,17 +165,17 @@ export default function HardwareDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "DISPOSED", reason: statusReason }),
       });
-      if (!res.ok) { const e = await res.json(); toast.error(e.error || "상태 변경 실패"); return; }
+      if (!res.ok) { const e = await res.json(); toast.error(e.error || t.toast.updateFail); return; }
       setAsset((p) => (p ? { ...p, status: "DISPOSED" } : null));
-      toast.success("폐기 완료 처리되었습니다");
+      toast.success(t.toast.updateSuccess);
       setShowDisposedModal(false); setStatusReason("");
-    } catch { toast.error("상태 변경 실패"); }
+    } catch { toast.error(t.toast.updateFail); }
     finally { setIsUpdatingStatus(false); }
   };
 
   // 할당
   const handleAssign = async () => {
-    if (!selectedEmployeeId) { toast.error("조직원을 선택해주세요"); return; }
+    if (!selectedEmployeeId) { toast.error(t.common.required); return; }
     setIsAssigning(true);
     try {
       const res = await fetch(`/api/assets/${assetId}/assign`, {
@@ -179,11 +183,11 @@ export default function HardwareDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ employeeId: selectedEmployeeId, reason: assignReason || undefined }),
       });
-      if (!res.ok) { const e = await res.json(); toast.error(e.error || "할당 실패"); return; }
-      toast.success("할당되었습니다");
+      if (!res.ok) { const e = await res.json(); toast.error(e.error || t.toast.saveFail); return; }
+      toast.success(t.toast.saveSuccess);
       setShowAssignModal(false); setAssignReason(""); setSelectedEmployeeId("");
       loadAsset(); loadHistory();
-    } catch { toast.error("할당 실패"); }
+    } catch { toast.error(t.toast.saveFail); }
     finally { setIsAssigning(false); }
   };
 
@@ -196,16 +200,16 @@ export default function HardwareDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reason: unassignReason || undefined }),
       });
-      if (!res.ok) { const e = await res.json(); toast.error(e.error || "회수 실패"); return; }
-      toast.success("회수되었습니다");
+      if (!res.ok) { const e = await res.json(); toast.error(e.error || t.toast.saveFail); return; }
+      toast.success(t.toast.saveSuccess);
       setShowUnassignModal(false); setUnassignReason("");
       loadAsset(); loadHistory();
-    } catch { toast.error("회수 실패"); }
+    } catch { toast.error(t.toast.saveFail); }
     finally { setIsAssigning(false); }
   };
 
-  if (isLoading) return <div className="min-h-screen bg-gray-50 p-6"><div className="mx-auto max-w-4xl"><p className="text-center text-gray-600">로딩 중...</p></div></div>;
-  if (!asset) return <div className="min-h-screen bg-gray-50 p-6"><div className="mx-auto max-w-4xl"><p className="text-center text-red-600">자산을 찾을 수 없습니다</p><div className="mt-4 text-center"><Link href="/hardware" className="text-blue-600 hover:underline">목록으로</Link></div></div></div>;
+  if (isLoading) return <div className="min-h-screen bg-gray-50 p-6"><div className="mx-auto max-w-4xl"><p className="text-center text-gray-600">{t.common.loading}</p></div></div>;
+  if (!asset) return <div className="min-h-screen bg-gray-50 p-6"><div className="mx-auto max-w-4xl"><p className="text-center text-red-600">{t.common.noData}</p><div className="mt-4 text-center"><Link href="/hardware" className="text-blue-600 hover:underline">{t.common.list}</Link></div></div></div>;
 
   const fmtCost = (v: number | null | undefined) => v != null ? (asset.currency === "KRW" ? `${v.toLocaleString("ko-KR")}원` : `${asset.currency} ${v.toLocaleString()}`) : "—";
   const hd = asset.hardwareDetail;
@@ -230,17 +234,17 @@ export default function HardwareDetailPage() {
 
         {/* Summary Cards */}
         <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div className="rounded-lg bg-white p-6 shadow-sm"><p className="text-sm text-gray-600">비용</p><p className="mt-2 text-2xl font-bold">{fmtCost(asset.cost)}</p></div>
-          <div className="rounded-lg bg-white p-6 shadow-sm"><p className="text-sm text-gray-600">장비 유형</p><p className="mt-2 text-2xl font-bold text-gray-900">{deviceType || "—"}</p></div>
-          <div className="rounded-lg bg-white p-6 shadow-sm"><p className="text-sm text-gray-600">제조사 / 모델</p><p className="mt-2 text-lg font-bold text-gray-900">{[hd?.manufacturer, hd?.model].filter(Boolean).join(" ") || "—"}</p></div>
+          <div className="rounded-lg bg-white p-6 shadow-sm"><p className="text-sm text-gray-600">{t.asset.cost}</p><p className="mt-2 text-2xl font-bold">{fmtCost(asset.cost)}</p></div>
+          <div className="rounded-lg bg-white p-6 shadow-sm"><p className="text-sm text-gray-600">{t.hw.deviceType}</p><p className="mt-2 text-2xl font-bold text-gray-900">{deviceType || "—"}</p></div>
+          <div className="rounded-lg bg-white p-6 shadow-sm"><p className="text-sm text-gray-600">{t.hw.manufacturer} / {t.hw.model}</p><p className="mt-2 text-lg font-bold text-gray-900">{[hd?.manufacturer, hd?.model].filter(Boolean).join(" ") || "—"}</p></div>
         </div>
 
         {/* 상태 관리 (Admin only) */}
         {isAdmin && (canMarkUnusable || canMarkDisposed) && (
           <div className="mb-8 rounded-lg bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-lg font-bold text-gray-900">상태 관리</h2>
+            <h2 className="mb-4 text-lg font-bold text-gray-900">{t.common.status}</h2>
             <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">현재 상태:</span>
+              <span className="text-sm text-gray-600">{t.common.status}:</span>
               <span className={`inline-block rounded-full px-3 py-1 text-sm font-medium ${STATUS_COLORS[asset.status]}`}>{STATUS_LABELS[asset.status]}</span>
             </div>
             <div className="mt-4 flex gap-3">
@@ -269,11 +273,11 @@ export default function HardwareDetailPage() {
 
         {/* 할당 정보 */}
         <div className="mb-8 rounded-lg bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-bold text-gray-900">할당 정보</h2>
+          <h2 className="mb-4 text-lg font-bold text-gray-900">{t.asset.assignee}</h2>
           {asset.assignee ? (
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">현재 할당자</p>
+                <p className="text-sm text-gray-600">{t.asset.assignee}</p>
                 <p className="mt-1 text-gray-900">
                   <Link href={`/employees/${asset.assignee.id}`} className="text-blue-600 hover:underline">{asset.assignee.name}</Link>
                 </p>
@@ -289,7 +293,7 @@ export default function HardwareDetailPage() {
             </div>
           ) : (
             <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-500">할당된 조직원이 없습니다</p>
+              <p className="text-sm text-gray-500">{t.license.unassigned}</p>
               {isAdmin && !["UNUSABLE", "PENDING_DISPOSAL", "DISPOSED"].includes(asset.status) && (
                 <button
                   onClick={() => { setShowAssignModal(true); loadEmployees(""); }}
@@ -325,16 +329,16 @@ export default function HardwareDetailPage() {
 
         {/* 상세 정보 */}
         <div className="mb-8 rounded-lg bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-bold text-gray-900">상세 정보</h2>
+          <h2 className="mb-4 text-lg font-bold text-gray-900">{t.common.detail}</h2>
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div><p className="text-sm text-gray-600">자산명</p><p className="mt-1 text-gray-900">{asset.name}</p></div>
-              <div><p className="text-sm text-gray-600">공급업체</p><p className="mt-1 text-gray-900">{asset.vendor || "—"}</p></div>
+              <div><p className="text-sm text-gray-600">{t.asset.assetName}</p><p className="mt-1 text-gray-900">{asset.name}</p></div>
+              <div><p className="text-sm text-gray-600">{t.asset.vendor}</p><p className="mt-1 text-gray-900">{asset.vendor || "—"}</p></div>
             </div>
-            {asset.description && <div><p className="text-sm text-gray-600">설명</p><p className="mt-1 text-gray-900">{asset.description}</p></div>}
+            {asset.description && <div><p className="text-sm text-gray-600">{t.common.description}</p><p className="mt-1 text-gray-900">{asset.description}</p></div>}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div><p className="text-sm text-gray-600">비용</p><p className="mt-1 text-gray-900">{fmtCost(asset.cost)}</p></div>
-              <div><p className="text-sm text-gray-600">구매일</p><p className="mt-1 text-gray-900">{asset.purchaseDate ? new Date(asset.purchaseDate).toLocaleDateString("ko-KR") : "—"}</p></div>
+              <div><p className="text-sm text-gray-600">{t.asset.cost}</p><p className="mt-1 text-gray-900">{fmtCost(asset.cost)}</p></div>
+              <div><p className="text-sm text-gray-600">{t.asset.purchaseDate}</p><p className="mt-1 text-gray-900">{asset.purchaseDate ? new Date(asset.purchaseDate).toLocaleDateString("ko-KR") : "—"}</p></div>
             </div>
             <div className="border-t border-gray-200 pt-4"><p className="text-xs text-gray-500">생성: {new Date(asset.createdAt).toLocaleString("ko-KR")} &bull; 수정: {new Date(asset.updatedAt).toLocaleString("ko-KR")}</p></div>
           </div>
@@ -343,13 +347,13 @@ export default function HardwareDetailPage() {
         {/* 장비 정보 */}
         {hd && (
           <div className="mb-8 rounded-lg bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-lg font-bold text-gray-900">장비 정보</h2>
+            <h2 className="mb-4 text-lg font-bold text-gray-900">{t.hw.title}</h2>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {hd.assetTag && <div><p className="text-sm text-gray-600">내부 자산 ID</p><p className="mt-1 font-mono text-gray-900">{hd.assetTag}</p></div>}
-              {hd.deviceType && <div><p className="text-sm text-gray-600">장비 유형</p><p className="mt-1 text-gray-900">{hd.deviceType}</p></div>}
-              {hd.manufacturer && <div><p className="text-sm text-gray-600">제조사</p><p className="mt-1 text-gray-900">{hd.manufacturer}</p></div>}
-              {hd.model && <div><p className="text-sm text-gray-600">모델명</p><p className="mt-1 text-gray-900">{hd.model}</p></div>}
-              {hd.serialNumber && <div><p className="text-sm text-gray-600">시리얼 넘버</p><p className="mt-1 font-mono text-gray-900">{hd.serialNumber}</p></div>}
+              {hd.assetTag && <div><p className="text-sm text-gray-600">{t.hw.assetTag}</p><p className="mt-1 font-mono text-gray-900">{hd.assetTag}</p></div>}
+              {hd.deviceType && <div><p className="text-sm text-gray-600">{t.hw.deviceType}</p><p className="mt-1 text-gray-900">{hd.deviceType}</p></div>}
+              {hd.manufacturer && <div><p className="text-sm text-gray-600">{t.hw.manufacturer}</p><p className="mt-1 text-gray-900">{hd.manufacturer}</p></div>}
+              {hd.model && <div><p className="text-sm text-gray-600">{t.hw.model}</p><p className="mt-1 text-gray-900">{hd.model}</p></div>}
+              {hd.serialNumber && <div><p className="text-sm text-gray-600">{t.hw.serialNumber}</p><p className="mt-1 font-mono text-gray-900">{hd.serialNumber}</p></div>}
 
               {/* PC Spec fields */}
               {SHOW_SPEC_FIELDS.has(deviceType) && hd.cpu && <div><p className="text-sm text-gray-600">CPU</p><p className="mt-1 text-gray-900">{hd.cpu}</p></div>}
@@ -358,13 +362,13 @@ export default function HardwareDetailPage() {
               {SHOW_GPU.has(deviceType) && hd.gpu && <div><p className="text-sm text-gray-600">GPU</p><p className="mt-1 text-gray-900">{hd.gpu}</p></div>}
               {SHOW_DISPLAY.has(deviceType) && hd.displaySize && <div><p className="text-sm text-gray-600">화면 크기</p><p className="mt-1 text-gray-900">{hd.displaySize}</p></div>}
 
-              {hd.hostname && <div><p className="text-sm text-gray-600">Hostname</p><p className="mt-1 font-mono text-gray-900">{hd.hostname}</p></div>}
+              {hd.hostname && <div><p className="text-sm text-gray-600">{t.hw.hostname}</p><p className="mt-1 font-mono text-gray-900">{hd.hostname}</p></div>}
 
               {/* IP/MAC - Server, Network only */}
-              {SHOW_NETWORK_FIELDS.has(deviceType) && hd.ipAddress && <div><p className="text-sm text-gray-600">IP Address</p><p className="mt-1 font-mono text-gray-900">{hd.ipAddress}</p></div>}
-              {SHOW_NETWORK_FIELDS.has(deviceType) && hd.macAddress && <div><p className="text-sm text-gray-600">MAC Address</p><p className="mt-1 font-mono text-gray-900">{hd.macAddress}</p></div>}
+              {SHOW_NETWORK_FIELDS.has(deviceType) && hd.ipAddress && <div><p className="text-sm text-gray-600">{t.hw.ipAddress}</p><p className="mt-1 font-mono text-gray-900">{hd.ipAddress}</p></div>}
+              {SHOW_NETWORK_FIELDS.has(deviceType) && hd.macAddress && <div><p className="text-sm text-gray-600">{t.hw.macAddress}</p><p className="mt-1 font-mono text-gray-900">{hd.macAddress}</p></div>}
 
-              {hd.os && <div><p className="text-sm text-gray-600">OS</p><p className="mt-1 text-gray-900">{hd.os}{hd.osVersion && ` ${hd.osVersion}`}</p></div>}
+              {hd.os && <div><p className="text-sm text-gray-600">{t.hw.os}</p><p className="mt-1 text-gray-900">{hd.os}{hd.osVersion && ` ${hd.osVersion}`}</p></div>}
               {hd.cpu && <div><p className="text-sm text-gray-600">CPU</p><p className="mt-1 text-gray-900">{hd.cpu}</p></div>}
               {hd.ram != null && <div><p className="text-sm text-gray-600">RAM</p><p className="mt-1 text-gray-900">{hd.ram} GB</p></div>}
               {hd.storage != null && <div><p className="text-sm text-gray-600">저장장치</p><p className="mt-1 text-gray-900">{hd.storage} GB{hd.storageType && ` (${hd.storageType})`}</p></div>}
@@ -373,7 +377,7 @@ export default function HardwareDetailPage() {
               {hd.portCount != null && <div><p className="text-sm text-gray-600">포트 수</p><p className="mt-1 text-gray-900">{hd.portCount}</p></div>}
               {hd.connectionType && <div><p className="text-sm text-gray-600">연결 방식</p><p className="mt-1 text-gray-900">{hd.connectionType}</p></div>}
               {hd.resolution && <div><p className="text-sm text-gray-600">해상도</p><p className="mt-1 text-gray-900">{hd.resolution}</p></div>}
-              {hd.location && <div><p className="text-sm text-gray-600">보관 위치</p><p className="mt-1 text-gray-900">{hd.location}</p></div>}
+              {hd.location && <div><p className="text-sm text-gray-600">{t.hw.location}</p><p className="mt-1 text-gray-900">{hd.location}</p></div>}
               {hd.condition && <div><p className="text-sm text-gray-600">상태 등급</p><p className="mt-1"><span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold ${hd.condition === "A" ? "bg-green-100 text-green-700" : hd.condition === "B" ? "bg-blue-100 text-blue-700" : hd.condition === "C" ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"}`}>{hd.condition}</span></p></div>}
             </div>
 
@@ -409,6 +413,9 @@ export default function HardwareDetailPage() {
           </div>
         )}
 
+        {/* 보안 등급 (CIA) */}
+        <CiaScoreDisplay ciaC={asset.ciaC as 1 | 2 | 3 | null ?? null} ciaI={asset.ciaI as 1 | 2 | 3 | null ?? null} ciaA={asset.ciaA as 1 | 2 | 3 | null ?? null} />
+
         {/* 감가상각 */}
         {asset.cost != null && asset.cost > 0 && asset.purchaseDate && (() => {
           const purchaseCost = Number(asset.cost);
@@ -423,10 +430,10 @@ export default function HardwareDetailPage() {
           const elapsedMonths = elapsedYears * 12;
           return (
             <div className="mb-8 rounded-lg bg-white p-6 shadow-sm">
-              <h2 className="mb-4 text-lg font-bold text-gray-900">감가상각 (정액법)</h2>
+              <h2 className="mb-4 text-lg font-bold text-gray-900">{t.hw.depreciation}</h2>
               <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                 <div><p className="text-sm text-gray-600">취득가액</p><p className="mt-1 text-lg font-semibold text-gray-900">{purchaseCost.toLocaleString("ko-KR")}원</p></div>
-                <div><p className="text-sm text-gray-600">내용연수</p><p className="mt-1 text-lg font-semibold text-gray-900">{usefulLife}년</p></div>
+                <div><p className="text-sm text-gray-600">{t.hw.usefulLife}</p><p className="mt-1 text-lg font-semibold text-gray-900">{usefulLife}년</p></div>
                 <div><p className="text-sm text-gray-600">연 감가액</p><p className="mt-1 text-lg font-semibold text-gray-900">{annualDep.toLocaleString("ko-KR")}원</p></div>
                 <div><p className="text-sm text-gray-600">월 감가액</p><p className="mt-1 text-lg font-semibold text-gray-900">{monthlyDep.toLocaleString("ko-KR")}원</p></div>
               </div>
@@ -450,8 +457,8 @@ export default function HardwareDetailPage() {
         {/* Action Buttons (Admin) */}
         {isAdmin && asset.status !== "DISPOSED" && (
           <div className="flex gap-3">
-            <Link href={`/hardware/${asset.id}/edit`} className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"><Edit className="h-4 w-4" />수정</Link>
-            <button onClick={() => setShowDeleteModal(true)} className="flex items-center gap-2 rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" />삭제</button>
+            <Link href={`/hardware/${asset.id}/edit`} className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"><Edit className="h-4 w-4" />{t.common.edit}</Link>
+            <button onClick={() => setShowDeleteModal(true)} className="flex items-center gap-2 rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" />{t.common.delete}</button>
           </div>
         )}
 
@@ -477,7 +484,7 @@ export default function HardwareDetailPage() {
               </div>
               <div className="flex gap-3">
                 <button onClick={handleUnusable} disabled={isUpdatingStatus || !statusReason.trim()} className="flex-1 rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-50">{isUpdatingStatus ? "처리 중..." : "불용 처리"}</button>
-                <button onClick={() => { setShowUnusableModal(false); setStatusReason(""); }} className="flex-1 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">취소</button>
+                <button onClick={() => { setShowUnusableModal(false); setStatusReason(""); }} className="flex-1 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">{t.common.cancel}</button>
               </div>
             </div>
           </div>
@@ -505,7 +512,7 @@ export default function HardwareDetailPage() {
               </div>
               <div className="flex gap-3">
                 <button onClick={handleDisposed} disabled={isUpdatingStatus || !statusReason.trim()} className="flex-1 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50">{isUpdatingStatus ? "처리 중..." : "폐기 완료"}</button>
-                <button onClick={() => { setShowDisposedModal(false); setStatusReason(""); }} className="flex-1 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">취소</button>
+                <button onClick={() => { setShowDisposedModal(false); setStatusReason(""); }} className="flex-1 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">{t.common.cancel}</button>
               </div>
             </div>
           </div>
@@ -553,7 +560,7 @@ export default function HardwareDetailPage() {
               </div>
               <div className="flex gap-3">
                 <button onClick={handleAssign} disabled={isAssigning || !selectedEmployeeId} className="flex-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">{isAssigning ? "할당 중..." : "할당"}</button>
-                <button onClick={() => { setShowAssignModal(false); setSelectedEmployeeId(""); setEmployeeSearch(""); setAssignReason(""); }} className="flex-1 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">취소</button>
+                <button onClick={() => { setShowAssignModal(false); setSelectedEmployeeId(""); setEmployeeSearch(""); setAssignReason(""); }} className="flex-1 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">{t.common.cancel}</button>
               </div>
             </div>
           </div>
@@ -577,7 +584,7 @@ export default function HardwareDetailPage() {
               </div>
               <div className="flex gap-3">
                 <button onClick={handleUnassign} disabled={isAssigning} className="flex-1 rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-50">{isAssigning ? "회수 중..." : "회수"}</button>
-                <button onClick={() => { setShowUnassignModal(false); setUnassignReason(""); }} className="flex-1 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">취소</button>
+                <button onClick={() => { setShowUnassignModal(false); setUnassignReason(""); }} className="flex-1 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">{t.common.cancel}</button>
               </div>
             </div>
           </div>
@@ -591,7 +598,7 @@ export default function HardwareDetailPage() {
               <p className="mb-6 text-sm text-gray-600">&quot;{asset.name}&quot;을(를) 삭제하시겠습니까?</p>
               <div className="flex gap-3">
                 <button onClick={handleDelete} disabled={isDeleting} className="flex-1 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50">{isDeleting ? "삭제 중..." : "삭제"}</button>
-                <button onClick={() => setShowDeleteModal(false)} className="flex-1 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">취소</button>
+                <button onClick={() => setShowDeleteModal(false)} className="flex-1 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">{t.common.cancel}</button>
               </div>
             </div>
           </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
+import { useTranslation } from "@/lib/i18n";
 import {
   createUser,
   deleteUser,
@@ -30,30 +31,31 @@ export default function UserTable({
   const [showAdd, setShowAdd]         = useState(false);
   const [editTarget, setEditTarget]   = useState<User | null>(null);
   const [pwTarget, setPwTarget]       = useState<User | null>(null);
+  const { t } = useTranslation();
 
   return (
     <div className="space-y-4">
-      {/* 상단 액션 바 */}
+      {/* action bar */}
       <div className="flex items-center justify-between">
-        <span className="text-sm text-gray-500">총 {users.length}명</span>
+        <span className="text-sm text-gray-500">{t.common.total} {users.length}</span>
         <button
           onClick={() => setShowAdd(true)}
           className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
         >
-          + 새 사용자
+          + {t.header.user}
         </button>
       </div>
 
-      {/* 테이블 */}
+      {/* table */}
       <div className="overflow-x-auto rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
         <table className="min-w-full divide-y divide-gray-100">
           <thead className="bg-gray-50">
             <tr>
-              <Th>사용자명</Th>
-              <Th>역할</Th>
-              <Th>상태</Th>
-              <Th>가입일</Th>
-              <Th center>관리</Th>
+              <Th>{t.auth.username}</Th>
+              <Th>{t.common.type}</Th>
+              <Th>{t.common.status}</Th>
+              <Th>{t.common.date}</Th>
+              <Th center>{t.common.actions}</Th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -63,7 +65,7 @@ export default function UserTable({
                   colSpan={5}
                   className="px-6 py-10 text-center text-sm text-gray-400"
                 >
-                  검색 결과가 없습니다.
+                  {t.common.noData}
                 </td>
               </tr>
             ) : (
@@ -103,6 +105,7 @@ function UserRow({
 }) {
   const [toggling, setToggling] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const { t } = useTranslation();
 
   async function handleToggle() {
     setToggling(true);
@@ -112,7 +115,7 @@ function UserRow({
   }
 
   async function handleDelete() {
-    if (!window.confirm(`"${user.username}" 계정을 삭제하시겠습니까?`)) return;
+    if (!window.confirm(t.toast.confirmDelete)) return;
     setDeleting(true);
     const res = await deleteUser(user.id);
     if (res?.error) {
@@ -123,17 +126,15 @@ function UserRow({
 
   return (
     <tr className={`hover:bg-gray-50 ${!user.isActive ? "opacity-60" : ""}`}>
-      {/* 사용자명 */}
       <td className="px-4 py-3 text-sm font-medium text-gray-900">
         {user.username}
         {isSelf && (
           <span className="ml-2 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">
-            나
+            ME
           </span>
         )}
       </td>
 
-      {/* 역할 */}
       <td className="px-4 py-3">
         <span
           className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${
@@ -142,39 +143,35 @@ function UserRow({
               : "bg-gray-100 text-gray-600"
           }`}
         >
-          {user.role === "ADMIN" ? "관리자" : "일반"}
+          {user.role === "ADMIN" ? t.header.administrator : t.header.user}
         </span>
       </td>
 
-      {/* 상태 */}
       <td className="px-4 py-3">
         <button
           onClick={handleToggle}
           disabled={isSelf || toggling}
-          title={isSelf ? "자신의 계정은 변경 불가" : user.isActive ? "클릭하여 비활성화" : "클릭하여 활성화"}
           className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
             user.isActive
               ? "bg-green-100 text-green-700 hover:bg-green-200"
               : "bg-red-100 text-red-600 hover:bg-red-200"
           }`}
         >
-          {toggling ? "..." : user.isActive ? "활성" : "비활성"}
+          {toggling ? "..." : user.isActive ? t.dashboard.active : t.employee.inactive}
         </button>
       </td>
 
-      {/* 가입일 */}
       <td className="px-4 py-3 text-sm text-gray-400">
-        {new Date(user.createdAt).toLocaleDateString("ko-KR")}
+        {new Date(user.createdAt).toLocaleDateString()}
       </td>
 
-      {/* 관리 */}
       <td className="px-4 py-3">
         <div className="flex items-center justify-center gap-1">
-          <IconBtn onClick={onEdit} label="수정" />
-          <IconBtn onClick={onChangePassword} label="비밀번호" />
+          <IconBtn onClick={onEdit} label={t.common.edit} />
+          <IconBtn onClick={onChangePassword} label={t.auth.password} />
           <IconBtn
             onClick={handleDelete}
-            label={deleting ? "..." : "삭제"}
+            label={deleting ? "..." : t.common.delete}
             danger
             disabled={isSelf || deleting}
           />
@@ -187,24 +184,25 @@ function UserRow({
 // ── 사용자 추가 모달 ─────────────────────────────────────────────────────────
 function AddUserModal({ onClose }: { onClose: () => void }) {
   const [state, action, isPending] = useActionState(createUser, empty);
+  const { t } = useTranslation();
 
   return (
-    <Modal title="새 사용자 추가" onClose={onClose}>
+    <Modal title={`${t.common.add} ${t.header.user}`} onClose={onClose}>
       <form action={action} className="space-y-4">
         <Alert state={state} onSuccess={onClose} />
-        <Field label="사용자명 *">
+        <Field label={`${t.auth.username} *`}>
           <input type="text" name="username" required autoFocus className="input" />
         </Field>
-        <Field label="비밀번호 * (8자 이상)">
+        <Field label={`${t.auth.password} * (8+)`}>
           <input type="password" name="password" required minLength={8} className="input" />
         </Field>
-        <Field label="역할">
+        <Field label={t.common.type}>
           <select name="role" className="input">
-            <option value="USER">일반</option>
-            <option value="ADMIN">관리자</option>
+            <option value="USER">{t.header.user}</option>
+            <option value="ADMIN">{t.header.administrator}</option>
           </select>
         </Field>
-        <ModalFooter onClose={onClose} isPending={isPending} submitLabel="생성" />
+        <ModalFooter onClose={onClose} isPending={isPending} submitLabel={t.common.create} />
       </form>
     </Modal>
   );
@@ -224,29 +222,25 @@ function EditUserModal({
   const [state, action, isPending] = useActionState(bound, empty);
   const isSelf = user.id === currentUserId;
 
+  const { t } = useTranslation();
+
   return (
-    <Modal title={`수정 — ${user.username}`} onClose={onClose}>
+    <Modal title={`${t.common.edit} — ${user.username}`} onClose={onClose}>
       <form action={action} className="space-y-4">
         <Alert state={state} onSuccess={onClose} />
-        <Field label="역할">
+        <Field label={t.common.type}>
           <select
             name="role"
             defaultValue={user.role}
             disabled={isSelf}
             className="input disabled:opacity-50"
           >
-            <option value="USER">일반</option>
-            <option value="ADMIN">관리자</option>
+            <option value="USER">{t.header.user}</option>
+            <option value="ADMIN">{t.header.administrator}</option>
           </select>
-          {isSelf && (
-            <p className="mt-1 text-xs text-gray-400">
-              자신의 역할은 변경할 수 없습니다.
-            </p>
-          )}
-          {/* hidden fallback for disabled select */}
           {isSelf && <input type="hidden" name="role" value={user.role} />}
         </Field>
-        <ModalFooter onClose={onClose} isPending={isPending} submitLabel="저장" />
+        <ModalFooter onClose={onClose} isPending={isPending} submitLabel={t.common.save} />
       </form>
     </Modal>
   );
@@ -264,6 +258,7 @@ function PasswordModal({
   const [tempPassword, setTempPassword] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
+  const { t } = useTranslation();
 
   function handleReset() {
     startTransition(async () => {
@@ -272,7 +267,7 @@ function PasswordModal({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error ?? "비밀번호 리셋 실패");
+        setError(data.error ?? t.common.error);
         return;
       }
       setTempPassword(data.tempPassword);
@@ -280,21 +275,15 @@ function PasswordModal({
   }
 
   return (
-    <Modal title={`비밀번호 리셋 — ${user.username}`} onClose={onClose}>
+    <Modal title={`${t.auth.changePassword} — ${user.username}`} onClose={onClose}>
       {tempPassword ? (
         <div className="space-y-4">
           <div className="rounded-md bg-amber-50 p-4">
             <p className="text-sm font-medium text-amber-800">
-              임시 비밀번호가 발급되었습니다.
+              {t.common.success}
             </p>
             <p className="mt-2 rounded border border-amber-200 bg-white px-3 py-2 font-mono text-base font-bold tracking-wider text-gray-900">
               {tempPassword}
-            </p>
-            <p className="mt-2 text-xs text-amber-700">
-              이 창을 닫으면 다시 확인할 수 없습니다. 사용자에게 즉시
-              전달하세요.
-              <br />
-              다음 로그인 시 비밀번호 변경이 강제됩니다.
             </p>
           </div>
           <div className="flex justify-end">
@@ -302,16 +291,14 @@ function PasswordModal({
               onClick={onClose}
               className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
             >
-              확인 (닫기)
+              {t.common.confirm} ({t.common.close})
             </button>
           </div>
         </div>
       ) : (
         <div className="space-y-4">
           <p className="text-sm text-gray-600">
-            <strong>{user.username}</strong> 계정의 비밀번호를 임시 비밀번호로
-            리셋합니다. 임시 비밀번호는 자동 생성되며, 다음 로그인 시 변경이
-            강제됩니다.
+            <strong>{user.username}</strong>
           </p>
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex justify-end gap-2">
@@ -320,14 +307,14 @@ function PasswordModal({
               onClick={onClose}
               className="rounded-md px-4 py-2 text-sm font-medium text-gray-700 ring-1 ring-gray-300 hover:bg-gray-50"
             >
-              취소
+              {t.common.cancel}
             </button>
             <button
               onClick={handleReset}
               disabled={isPending}
               className="rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
             >
-              {isPending ? "발급 중..." : "임시 비밀번호 발급"}
+              {isPending ? t.common.loading : t.common.confirm}
             </button>
           </div>
         </div>
@@ -411,6 +398,7 @@ function ModalFooter({
   isPending: boolean;
   submitLabel: string;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex justify-end gap-2 pt-2">
       <button
@@ -418,14 +406,14 @@ function ModalFooter({
         onClick={onClose}
         className="rounded-md px-4 py-2 text-sm font-medium text-gray-700 ring-1 ring-gray-300 hover:bg-gray-50"
       >
-        취소
+        {t.common.cancel}
       </button>
       <button
         type="submit"
         disabled={isPending}
         className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
       >
-        {isPending ? "처리 중..." : submitLabel}
+        {isPending ? t.common.loading : submitLabel}
       </button>
     </div>
   );

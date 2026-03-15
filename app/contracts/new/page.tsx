@@ -6,6 +6,9 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useTranslation } from "@/lib/i18n";
+import CiaScoreInput from "@/app/_components/cia-score-input";
+import type { CiaLevel } from "@/lib/cia";
 
 const CURRENCIES = ["USD", "KRW", "EUR", "JPY", "GBP", "CNY"];
 const BILLING_CYCLES = [
@@ -18,6 +21,7 @@ const CONTRACT_TYPES = ["유지보수", "라이선스", "구독", "용역", "임
 export default function ContractNewPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!loading && !user) router.push("/login");
@@ -28,14 +32,15 @@ export default function ContractNewPage() {
     billingCycle: "ANNUAL", purchaseDate: "", expiryDate: "",
   });
   const [contract, setContract] = useState({ contractNumber: "", counterparty: "", contractType: "", autoRenew: false });
+  const [cia, setCia] = useState<{ ciaC: CiaLevel | null; ciaI: CiaLevel | null; ciaA: CiaLevel | null }>({ ciaC: null, ciaI: null, ciaA: null });
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!form.name.trim()) e.name = "계약명은 필수입니다";
-    if (!form.cost) e.cost = "비용은 필수입니다";
-    else if (isNaN(Number(form.cost)) || Number(form.cost) < 0) e.cost = "유효한 비용을 입력해주세요";
+    if (!form.name.trim()) e.name = `${t.asset.assetName} ${t.common.required}`;
+    if (!form.cost) e.cost = `${t.asset.cost} ${t.common.required}`;
+    else if (isNaN(Number(form.cost)) || Number(form.cost) < 0) e.cost = `${t.asset.cost} ${t.common.error}`;
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -52,12 +57,12 @@ export default function ContractNewPage() {
   };
 
   if (loading || !user) {
-    return <div className="min-h-screen bg-gray-50 p-6"><div className="mx-auto max-w-2xl"><p className="text-center text-gray-500">{loading ? "로딩 중..." : "로그인이 필요합니다."}</p></div></div>;
+    return <div className="min-h-screen bg-gray-50 p-6"><div className="mx-auto max-w-2xl"><p className="text-center text-gray-500">{loading ? t.common.loading : `${t.common.login} ${t.common.required}`}</p></div></div>;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) { toast.error("입력 값을 확인해주세요"); return; }
+    if (!validate()) { toast.error(t.common.error); return; }
     setIsLoading(true);
     try {
       const payload = {
@@ -71,14 +76,15 @@ export default function ContractNewPage() {
           contractType: contract.contractType || null,
           autoRenew: contract.autoRenew,
         },
+        ciaC: cia.ciaC, ciaI: cia.ciaI, ciaA: cia.ciaA,
       };
       const res = await fetch("/api/assets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "등록 실패");
-      toast.success("계약이 등록되었습니다");
+      toast.success(t.toast.createSuccess);
       router.push(`/contracts/${json.id}`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "등록 실패");
+      toast.error(err instanceof Error ? err.message : t.toast.createFail);
     } finally { setIsLoading(false); }
   };
 
@@ -90,39 +96,39 @@ export default function ContractNewPage() {
       <div className="mx-auto max-w-2xl">
         <div className="mb-8 flex items-center gap-4">
           <Link href="/contracts" className="rounded-md p-2 hover:bg-gray-200"><ArrowLeft className="h-5 w-5" /></Link>
-          <h1 className="text-3xl font-bold text-gray-900">새 계약 등록</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{t.contract.newContract}</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="rounded-lg bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-base font-semibold text-gray-900">기본 정보</h2>
+            <h2 className="mb-4 text-base font-semibold text-gray-900">{t.common.detail}</h2>
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">계약명 <span className="text-red-500">*</span></label>
-              <input type="text" name="name" value={form.name} onChange={onChange} placeholder="계약 이름" className={errors.name ? errCls : inputCls} />
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t.asset.assetName} <span className="text-red-500">*</span></label>
+              <input type="text" name="name" value={form.name} onChange={onChange} placeholder={t.asset.assetName} className={errors.name ? errCls : inputCls} />
               {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
             </div>
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">공급업체</label>
-              <input type="text" name="vendor" value={form.vendor} onChange={onChange} placeholder="공급업체 (선택)" className={inputCls} />
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t.asset.vendor}</label>
+              <input type="text" name="vendor" value={form.vendor} onChange={onChange} placeholder={`${t.asset.vendor} (${t.common.optional})`} className={inputCls} />
             </div>
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">설명</label>
-              <textarea name="description" value={form.description} onChange={onChange} rows={3} placeholder="설명 (선택)" className={inputCls} />
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t.common.description}</label>
+              <textarea name="description" value={form.description} onChange={onChange} rows={3} placeholder={`${t.common.description} (${t.common.optional})`} className={inputCls} />
             </div>
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">비용 <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.asset.cost} <span className="text-red-500">*</span></label>
                 <input type="number" name="cost" value={form.cost} onChange={onChange} placeholder="0" min="0" step="0.01" className={errors.cost ? errCls : inputCls} />
                 {errors.cost && <p className="mt-1 text-sm text-red-500">{errors.cost}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">통화</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.license.currency}</label>
                 <select name="currency" value={form.currency} onChange={onChange} className={inputCls}>
                   {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">비용 주기</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.license.paymentCycle}</label>
                 <select name="billingCycle" value={form.billingCycle} onChange={onChange} className={inputCls}>
                   {BILLING_CYCLES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
                 </select>
@@ -130,50 +136,52 @@ export default function ContractNewPage() {
             </div>
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">계약 시작일</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.asset.purchaseDate}</label>
                 <input type="date" name="purchaseDate" value={form.purchaseDate} onChange={onChange} className={inputCls} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">만료일</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.asset.expiryDate}</label>
                 <input type="date" name="expiryDate" value={form.expiryDate} onChange={onChange} className={inputCls} />
               </div>
             </div>
           </div>
 
           <div className="rounded-lg bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-base font-semibold text-gray-900">계약 상세 정보</h2>
+            <h2 className="mb-4 text-base font-semibold text-gray-900">{t.contract.title} {t.common.detail}</h2>
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">계약 번호</label>
-                <input type="text" name="contractNumber" value={contract.contractNumber} onChange={onContractChange} placeholder="계약 번호" className={inputCls} />
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.contract.title} #</label>
+                <input type="text" name="contractNumber" value={contract.contractNumber} onChange={onContractChange} placeholder={`${t.contract.title} #`} className={inputCls} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">거래처</label>
-                <input type="text" name="counterparty" value={contract.counterparty} onChange={onContractChange} placeholder="거래처명" className={inputCls} />
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.contract.counterparty}</label>
+                <input type="text" name="counterparty" value={contract.counterparty} onChange={onContractChange} placeholder={t.contract.counterparty} className={inputCls} />
               </div>
             </div>
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">계약 유형</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.contract.contractType}</label>
                 <select name="contractType" value={contract.contractType} onChange={onContractChange} className={inputCls}>
-                  <option value="">선택해주세요</option>
+                  <option value="">{t.common.none}</option>
                   {CONTRACT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
               <div className="flex items-end">
                 <label className="flex items-center gap-2">
                   <input type="checkbox" name="autoRenew" checked={contract.autoRenew} onChange={onContractChange} className="h-4 w-4 rounded border-gray-300" />
-                  <span className="text-sm font-medium text-gray-700">자동 갱신</span>
+                  <span className="text-sm font-medium text-gray-700">{t.contract.autoRenewal}</span>
                 </label>
               </div>
             </div>
           </div>
 
+          <CiaScoreInput initialValues={cia} onChange={setCia} />
+
           <div className="flex gap-3">
             <button type="submit" disabled={isLoading} className="flex-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
-              {isLoading ? "등록 중..." : "계약 등록"}
+              {isLoading ? t.common.loading : t.contract.newContract}
             </button>
-            <Link href="/contracts" className="flex-1 rounded-md border border-gray-300 px-4 py-2 text-center text-sm font-medium text-gray-700 hover:bg-gray-50">취소</Link>
+            <Link href="/contracts" className="flex-1 rounded-md border border-gray-300 px-4 py-2 text-center text-sm font-medium text-gray-700 hover:bg-gray-50">{t.common.cancel}</Link>
           </div>
         </form>
       </div>

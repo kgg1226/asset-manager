@@ -1,38 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
-import {
-  KeyRound,
-  Users,
-  CheckCircle,
-  AlertTriangle,
-  Calendar,
-  CreditCard,
-  UserCircle,
-  FileText,
-  Clock,
-  Calculator,
-} from "lucide-react";
-import LicenseAssignments from "./license-assignments";
-import { computeCost, CURRENCY_SYMBOLS, PAYMENT_CYCLE_LABELS } from "@/lib/cost-calculator";
-import {
-  RenewalStatusPanel,
-  RenewalHistoryPanel,
-  LicenseOwnersPanel,
-} from "./license-renewal";
+import { computeCost } from "@/lib/cost-calculator";
+import LicenseDetailContent from "./license-detail-content";
 
 export const dynamic = "force-dynamic";
-
-function formatDate(date: Date | null): string {
-  if (!date) return "—";
-  return date.toLocaleDateString("ko-KR");
-}
-
-function formatPrice(price: number | null): string {
-  if (price === null) return "—";
-  return price.toLocaleString("ko-KR") + "원";
-}
 
 export default async function LicenseDetailPage({
   params,
@@ -47,7 +19,20 @@ export default async function LicenseDetailPage({
     where: { id: licenseId },
     include: {
       parent: { select: { id: true, name: true } },
-      children: { select: { id: true, name: true, licenseType: true, totalQuantity: true, expiryDate: true }, orderBy: { name: "asc" } },
+      children: {
+        select: {
+          id: true,
+          name: true,
+          licenseType: true,
+          totalQuantity: true,
+          expiryDate: true,
+          assignments: {
+            where: { returnedDate: null },
+            select: { id: true },
+          },
+        },
+        orderBy: { name: "asc" },
+      },
       seats: {
         include: {
           assignments: {
@@ -68,23 +53,6 @@ export default async function LicenseDetailPage({
           seat: { select: { key: true } },
         },
         orderBy: { assignedDate: "desc" },
-      },
-      parent: {
-        select: { id: true, name: true },
-      },
-      children: {
-        select: {
-          id: true,
-          name: true,
-          licenseType: true,
-          totalQuantity: true,
-          expiryDate: true,
-          assignments: {
-            where: { returnedDate: null },
-            select: { id: true },
-          },
-        },
-        orderBy: { name: "asc" },
       },
     },
   });
@@ -153,7 +121,7 @@ export default async function LicenseDetailPage({
     id: string;
     action: string;
     description: string;
-    createdAt: Date;
+    createdAt: string;
     source: "assignment" | "audit";
   };
 
@@ -162,16 +130,16 @@ export default async function LicenseDetailPage({
       id: `ah-${h.id}`,
       action: h.action,
       description: (() => {
-        const empName = h.assignment?.employee?.name ?? `직원 #${h.employeeId}`;
+        const empName = h.assignment?.employee?.name ?? `#${h.employeeId}`;
         const actionLabel =
           h.action === "ASSIGNED"
-            ? "배정"
+            ? "ASSIGNED"
             : h.action === "RETURNED"
-              ? "반납"
-              : "해제";
-        return `${empName} — ${actionLabel}${h.reason ? ` (${h.reason})` : ""}`;
+              ? "RETURNED"
+              : "REVOKED";
+        return `${empName} \u2014 ${actionLabel}${h.reason ? ` (${h.reason})` : ""}`;
       })(),
-      createdAt: h.createdAt,
+      createdAt: h.createdAt.toISOString(),
       source: "assignment" as const,
     })),
     ...auditLogs.map((a) => ({
@@ -184,66 +152,29 @@ export default async function LicenseDetailPage({
             if (d.summary) return d.summary as string;
           } catch {}
         }
-        const label =
-          a.action === "CREATED"
-            ? "생성"
-            : a.action === "UPDATED"
-              ? "수정"
-              : a.action === "DELETED"
-                ? "삭제"
-                : a.action === "IMPORTED"
-                  ? "가져오기"
-                  : a.action;
-        return `${label}${a.actor ? ` — ${a.actor}` : ""}`;
+        return `${a.action}${a.actor ? ` \u2014 ${a.actor}` : ""}`;
       })(),
-      createdAt: a.createdAt,
+      createdAt: a.createdAt.toISOString(),
       source: "audit" as const,
     })),
   ];
 
-  history.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  history.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   const displayHistory = history.slice(0, 30);
-
-  const actionBadge: Record<string, string> = {
-    ASSIGNED: "text-green-700 bg-green-50",
-    RETURNED: "text-yellow-700 bg-yellow-50",
-    REVOKED: "text-red-700 bg-red-50",
-    UNASSIGNED: "text-red-700 bg-red-50",
-    CREATED: "text-purple-700 bg-purple-50",
-    UPDATED: "text-blue-700 bg-blue-50",
-    DELETED: "text-red-700 bg-red-50",
-    IMPORTED: "text-indigo-700 bg-indigo-50",
-  };
-
-  const actionLabel: Record<string, string> = {
-    ASSIGNED: "배정",
-    RETURNED: "반납",
-    REVOKED: "해제",
-    UNASSIGNED: "해제",
-    CREATED: "생성",
-    UPDATED: "수정",
-    DELETED: "삭제",
-    IMPORTED: "가져오기",
-  };
 
   // Prepare assignment data for client component
   const assignmentData = activeAssignments.map((a) => ({
     assignmentId: a.id,
     employeeId: a.employee.id,
     employeeName: a.employee.name,
-    department: a.employee.department,
+    department: a.employee.department ?? "",
     assignedDate: a.assignedDate.toLocaleDateString("ko-KR"),
     seatKey: a.seat?.key ?? null,
     licenseType: license.licenseType as "NO_KEY" | "KEY_BASED" | "VOLUME",
     volumeKey: license.licenseType === "VOLUME" ? license.key : null,
   }));
 
-  const typeLabel =
-    license.licenseType === "VOLUME"
-      ? "Volume"
-      : null;
-
-  // Compute cost breakdown for display
+  // Compute cost breakdown
   const hasCostData =
     license.quantity != null &&
     license.unitPrice != null &&
@@ -260,478 +191,71 @@ export default async function LicenseDetailPage({
       })
     : null;
 
-  const currencySymbol = CURRENCY_SYMBOLS[license.currency];
+  // Serialize data for client
+  const serializedLicense = {
+    name: license.name,
+    licenseType: license.licenseType,
+    key: license.key,
+    description: license.description,
+    purchaseDate: license.purchaseDate?.toISOString() ?? null,
+    expiryDate: license.expiryDate?.toISOString() ?? null,
+    price: license.price,
+    adminName: license.adminName,
+    noticePeriodDays: license.noticePeriodDays,
+    quantity: license.quantity,
+    unitPrice: license.unitPrice,
+    paymentCycle: license.paymentCycle,
+    currency: license.currency,
+    exchangeRate: license.exchangeRate,
+    isVatIncluded: license.isVatIncluded,
+    renewalStatus: (license as any).renewalStatus ?? null,
+    renewalDate: (license as any).renewalDate ? new Date((license as any).renewalDate).toISOString() : null,
+    renewalDateManual: (license as any).renewalDateManual ? new Date((license as any).renewalDateManual).toISOString() : null,
+    parent: license.parent,
+  };
+
+  const serializedSeats = license.seats.map((seat) => ({
+    id: seat.id,
+    key: seat.key,
+    assignments: seat.assignments.map((a) => ({
+      id: a.id,
+      employee: a.employee,
+      assignedDate: a.assignedDate.toISOString(),
+    })),
+  }));
+
+  const serializedChildren = license.children.map((child) => ({
+    id: child.id,
+    name: child.name,
+    licenseType: child.licenseType,
+    totalQuantity: child.totalQuantity,
+    expiryDate: child.expiryDate?.toISOString() ?? null,
+    assignments: child.assignments,
+  }));
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10">
-      <div className="mx-auto max-w-6xl px-4">
-        {/* Parent breadcrumb */}
-        {license.parent && (
-          <div className="mb-2 text-sm text-gray-500">
-            <Link href={`/licenses/${license.parent.id}`} className="text-blue-600 hover:underline">
-              {license.parent.name}
-            </Link>
-            <span className="mx-1">/</span>
-            <span className="text-gray-700">{license.name}</span>
-          </div>
-        )}
-
-        {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">{license.name}</h1>
-            {typeLabel && (
-              <span className={`rounded px-2 py-0.5 text-xs font-semibold ${
-                license.licenseType === "VOLUME"
-                  ? "bg-purple-100 text-purple-700"
-                  : "bg-gray-100 text-gray-600"
-              }`}>
-                {typeLabel}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            {user && (
-              <Link
-                href={`/licenses/${licenseId}/edit`}
-                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-              >
-                수정
-              </Link>
-            )}
-            <Link
-              href="/licenses"
-              className="text-sm text-gray-500 hover:text-gray-700"
-            >
-              &larr; 목록으로
-            </Link>
-          </div>
-        </div>
-
-        {/* Dashboard Cards */}
-        <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <DashboardCard
-            icon={<KeyRound className="h-5 w-5 text-blue-600" />}
-            label="전체 시트"
-            value={totalSeats}
-          />
-          <DashboardCard
-            icon={<Users className="h-5 w-5 text-green-600" />}
-            label="배정"
-            value={assignedCount}
-          />
-          <DashboardCard
-            icon={<CheckCircle className="h-5 w-5 text-gray-500" />}
-            label="잔여"
-            value={remainingCount}
-          />
-          {isKeyBased && (
-            <DashboardCard
-              icon={<AlertTriangle className="h-5 w-5 text-amber-500" />}
-              label="키 미등록"
-              value={missingKeyCount}
-              warning={missingKeyCount > 0}
-            />
-          )}
-        </div>
-
-        {/* Basic Info */}
-        <div className="mb-6 rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">기본 정보</h2>
-          <dl className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <InfoItem
-              icon={<Calendar className="h-4 w-4" />}
-              label="구매일"
-              value={formatDate(license.purchaseDate)}
-            />
-            <InfoItem
-              icon={<Calendar className="h-4 w-4" />}
-              label="갱신일"
-              value={formatDate(license.expiryDate)}
-            />
-            <InfoItem
-              icon={<CreditCard className="h-4 w-4" />}
-              label="금액"
-              value={formatPrice(license.price)}
-            />
-            <InfoItem
-              icon={<UserCircle className="h-4 w-4" />}
-              label="담당자"
-              value={license.adminName ?? "—"}
-            />
-            <InfoItem
-              icon={<Clock className="h-4 w-4" />}
-              label="해지 통보"
-              value={
-                license.noticePeriodDays
-                  ? `갱신 ${license.noticePeriodDays}일 전`
-                  : "—"
-              }
-            />
-            {license.licenseType === "VOLUME" && license.key && (
-              <div className="sm:col-span-3">
-                <InfoItem
-                  icon={<KeyRound className="h-4 w-4" />}
-                  label="볼륨 키"
-                  value={license.key}
-                  mono
-                />
-              </div>
-            )}
-            {license.description && (
-              <div className="sm:col-span-3">
-                <InfoItem
-                  icon={<FileText className="h-4 w-4" />}
-                  label="설명"
-                  value={license.description}
-                />
-              </div>
-            )}
-          </dl>
-        </div>
-
-        {/* Cost Breakdown */}
-        {costBreakdown && (
-          <div className="mb-6 rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
-            <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900">
-              <Calculator className="h-5 w-5 text-blue-500" />
-              비용 정보
-            </h2>
-            <dl className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <InfoItem
-                icon={<CreditCard className="h-4 w-4" />}
-                label="납부 주기"
-                value={PAYMENT_CYCLE_LABELS[license.paymentCycle!]}
-              />
-              <InfoItem
-                icon={<CreditCard className="h-4 w-4" />}
-                label={`단가 (${currencySymbol})`}
-                value={`${currencySymbol}${license.unitPrice!.toLocaleString("ko-KR")}`}
-              />
-              <InfoItem
-                icon={<CreditCard className="h-4 w-4" />}
-                label="결제 수량"
-                value={`${license.quantity!.toLocaleString("ko-KR")}개`}
-              />
-              <InfoItem
-                icon={<CreditCard className="h-4 w-4" />}
-                label={`합계 (${currencySymbol})`}
-                value={`${currencySymbol}${costBreakdown.totalAmountForeign.toLocaleString("ko-KR")} (VAT 포함)`}
-              />
-              {license.currency !== "KRW" && (
-                <InfoItem
-                  icon={<CreditCard className="h-4 w-4" />}
-                  label="환율"
-                  value={`1 ${license.currency} = ₩${license.exchangeRate.toLocaleString("ko-KR")}`}
-                />
-              )}
-            </dl>
-            <div className="mt-4 grid grid-cols-2 gap-4 rounded-md bg-blue-50 p-4 sm:grid-cols-2">
-              <div>
-                <p className="text-xs font-medium uppercase text-gray-500">월 환산 (₩)</p>
-                <p className="mt-1 text-xl font-bold text-blue-700">
-                  ₩{costBreakdown.monthlyKRW.toLocaleString("ko-KR")}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs font-medium uppercase text-gray-500">연 환산 (₩)</p>
-                <p className="mt-1 text-xl font-bold text-blue-700">
-                  ₩{costBreakdown.annualKRW.toLocaleString("ko-KR")}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Seat Table (KEY_BASED only) */}
-        {isKeyBased && license.seats.length > 0 && (
-          <div className="mb-6">
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">
-              시트 현황 ({license.seats.length}개)
-            </h2>
-            <div className="overflow-x-auto rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                      #
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                      키
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                      상태
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                      배정자
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {license.seats.map((seat, idx) => {
-                    const activeAssignment = seat.assignments[0];
-                    return (
-                      <tr key={seat.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm tabular-nums text-gray-500">
-                          {idx + 1}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          {seat.key ? (
-                            <span className="font-mono text-gray-900">
-                              {seat.key}
-                            </span>
-                          ) : (
-                            <span className="italic text-gray-400">미등록</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          {activeAssignment ? (
-                            <span className="inline-block rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-                              사용 중
-                            </span>
-                          ) : (
-                            <span className="inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                              미배정
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
-                          {activeAssignment ? (
-                            <Link
-                              href={`/employees/${activeAssignment.employee.id}`}
-                              className="text-blue-600 hover:underline"
-                            >
-                              {activeAssignment.employee.name} (
-                              {activeAssignment.employee.department})
-                            </Link>
-                          ) : (
-                            "—"
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* Renewal Management — 로그인 사용자만 */}
-        {user && <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <RenewalStatusPanel
-            licenseId={licenseId}
-            currentStatus={(license as { renewalStatus?: string }).renewalStatus as Parameters<typeof RenewalStatusPanel>[0]["currentStatus"] ?? null}
-            renewalDate={(license as { renewalDate?: string | Date | null }).renewalDate ? new Date((license as { renewalDate: Date }).renewalDate).toISOString() : null}
-            renewalDateManual={(license as { renewalDateManual?: string | Date | null }).renewalDateManual ? new Date((license as { renewalDateManual: Date }).renewalDateManual).toISOString() : null}
-          />
-          <LicenseOwnersPanel
-            licenseId={licenseId}
-            users={users}
-            orgUnits={orgUnits}
-          />
-        </div>}
-        <div className="mb-6">
-          <RenewalHistoryPanel licenseId={licenseId} />
-        </div>
-
-        {/* Children Licenses */}
-        {license.children.length > 0 && (
-          <div className="mb-6">
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">
-              관련 라이선스 (하위) — {license.children.length}개
-            </h2>
-            <div className="overflow-x-auto rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">이름</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">유형</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">배정</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">갱신일</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {license.children.map((child) => {
-                    const childTypeLabel =
-                      child.licenseType === "VOLUME" ? "Volume"
-                        : "Key Based";
-                    return (
-                      <tr key={child.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm">
-                          <Link
-                            href={`/licenses/${child.id}`}
-                            className="font-medium text-blue-600 hover:underline"
-                          >
-                            {child.name}
-                          </Link>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{childTypeLabel}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600 tabular-nums">
-                          {child.assignments.length} / {child.totalQuantity}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
-                          {child.expiryDate ? new Date(child.expiryDate).toLocaleDateString("ko-KR") : "—"}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* Active Assignments */}
-        <LicenseAssignments
-          licenseId={licenseId}
-          assignments={assignmentData}
-        />
-
-        {/* Parent License */}
-        {license.parent && (
-          <div className="mb-6 rounded-lg bg-blue-50 p-4 ring-1 ring-blue-200">
-            <p className="text-sm text-blue-700">
-              상위 라이선스:{" "}
-              <Link href={`/licenses/${license.parent.id}`} className="font-medium underline hover:text-blue-900">
-                {license.parent.name}
-              </Link>
-            </p>
-          </div>
-        )}
-
-        {/* Child Licenses */}
-        {license.children.length > 0 && (
-          <div className="mb-6">
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">
-              관련 라이선스 (하위) — {license.children.length}개
-            </h2>
-            <div className="overflow-x-auto rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">이름</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">유형</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">수량</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">갱신일</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {license.children.map((child) => (
-                    <tr key={child.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm font-medium">
-                        <Link href={`/licenses/${child.id}`} className="text-blue-600 hover:underline">
-                          {child.name}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{child.licenseType}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{child.totalQuantity}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        {child.expiryDate?.toLocaleDateString("ko-KR") ?? "—"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* History Timeline */}
-        {displayHistory.length > 0 && (
-          <div className="mb-6">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">이력</h2>
-              <Link
-                href={`/history?entityType=LICENSE&entityId=${licenseId}`}
-                className="text-sm text-blue-600 hover:underline"
-              >
-                전체 보기 &rarr;
-              </Link>
-            </div>
-            <div className="rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
-              <div className="divide-y divide-gray-100">
-                {displayHistory.map((entry) => (
-                  <div
-                    key={entry.id}
-                    className="flex items-center gap-3 px-4 py-3"
-                  >
-                    <span
-                      className={`inline-flex shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${actionBadge[entry.action] ?? "text-gray-700 bg-gray-50"}`}
-                    >
-                      {actionLabel[entry.action] ?? entry.action}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm text-gray-900">
-                        {entry.description}
-                      </p>
-                    </div>
-                    <time className="shrink-0 text-xs text-gray-400">
-                      {entry.createdAt.toLocaleDateString("ko-KR")}
-                    </time>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function DashboardCard({
-  icon,
-  label,
-  value,
-  warning,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  warning?: boolean;
-}) {
-  return (
-    <div
-      className={`rounded-lg bg-white p-4 shadow-sm ring-1 ${warning ? "ring-amber-300" : "ring-gray-200"}`}
-    >
-      <div className="flex items-center gap-2">
-        {icon}
-        <span className="text-xs font-medium uppercase text-gray-500">
-          {label}
-        </span>
-      </div>
-      <p
-        className={`mt-2 text-2xl font-bold ${warning ? "text-amber-600" : "text-gray-900"}`}
-      >
-        {value}
-      </p>
-    </div>
-  );
-}
-
-function InfoItem({
-  icon,
-  label,
-  value,
-  mono,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  mono?: boolean;
-}) {
-  return (
-    <div>
-      <dt className="flex items-center gap-1.5 text-xs font-medium uppercase text-gray-500">
-        {icon}
-        {label}
-      </dt>
-      <dd
-        className={`mt-1 text-sm text-gray-900 ${mono ? "font-mono" : ""}`}
-      >
-        {value}
-      </dd>
-    </div>
+    <LicenseDetailContent
+      licenseId={licenseId}
+      license={serializedLicense}
+      seats={serializedSeats}
+      children={serializedChildren}
+      childrenSecond={serializedChildren}
+      assignmentData={assignmentData}
+      displayHistory={displayHistory}
+      costBreakdown={costBreakdown ? {
+        totalAmountForeign: costBreakdown.totalAmountForeign,
+        monthlyKRW: costBreakdown.monthlyKRW,
+        annualKRW: costBreakdown.annualKRW,
+      } : null}
+      hasCostData={hasCostData}
+      totalSeats={totalSeats}
+      assignedCount={assignedCount}
+      remainingCount={remainingCount}
+      missingKeyCount={missingKeyCount}
+      isKeyBased={isKeyBased}
+      isLoggedIn={!!user}
+      users={users}
+      orgUnits={orgUnits}
+    />
   );
 }

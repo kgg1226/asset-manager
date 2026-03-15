@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import GlobalSearch from "./global-search";
 import NotificationBell from "./notification-bell";
+import LanguageToggle from "./language-toggle";
+import { useTranslation } from "@/lib/i18n";
 
 interface TopHeaderProps {
   user: { username: string; role: string } | null;
@@ -22,6 +24,7 @@ interface TopHeaderProps {
 
 export default function TopHeader({ user }: TopHeaderProps) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [loggingOut, setLoggingOut] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const adminRef = useRef<HTMLDivElement>(null);
@@ -44,10 +47,10 @@ export default function TopHeader({ user }: TopHeaderProps) {
   };
 
   const adminItems = [
-    { href: "/admin/users", label: "사용자 관리", icon: <Shield className="h-4 w-4" /> },
-    { href: "/admin/archives", label: "증적", icon: <Archive className="h-4 w-4" /> },
-    { href: "/admin/exchange-rates", label: "환율", icon: <DollarSign className="h-4 w-4" /> },
-    { href: "/admin/asset-categories", label: "자산카테고리", icon: <Tags className="h-4 w-4" /> },
+    { href: "/admin/users", label: t.header.userManagement, icon: <Shield className="h-4 w-4" /> },
+    { href: "/admin/archives", label: t.header.archives, icon: <Archive className="h-4 w-4" /> },
+    { href: "/admin/exchange-rates", label: t.header.exchangeRate, icon: <DollarSign className="h-4 w-4" /> },
+    { href: "/admin/asset-categories", label: t.header.assetCategory, icon: <Tags className="h-4 w-4" /> },
   ];
 
   return (
@@ -58,6 +61,9 @@ export default function TopHeader({ user }: TopHeaderProps) {
       <div className="flex items-center gap-3">
         <NotificationBell />
 
+        {/* Language Toggle */}
+        <LanguageToggle />
+
         {/* Admin Dropdown */}
         {user?.role === "ADMIN" && (
           <div ref={adminRef} className="relative">
@@ -66,7 +72,7 @@ export default function TopHeader({ user }: TopHeaderProps) {
               className="flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100"
             >
               <Shield className="h-4 w-4" />
-              관리
+              {t.header.admin}
               <ChevronDown className={`h-3 w-3 transition-transform ${adminOpen ? "rotate-180" : ""}`} />
             </button>
             {adminOpen && (
@@ -100,7 +106,7 @@ export default function TopHeader({ user }: TopHeaderProps) {
                   className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 >
                   <Download className="h-4 w-4" />
-                  전체 Excel 내보내기
+                  {t.header.excelExportAll}
                 </button>
               </div>
             )}
@@ -115,13 +121,13 @@ export default function TopHeader({ user }: TopHeaderProps) {
             </div>
             <span className="text-sm font-medium text-gray-700">{user.username}</span>
             <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${user.role === "ADMIN" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"}`}>
-              {user.role === "ADMIN" ? "관리자" : "사용자"}
+              {user.role === "ADMIN" ? t.header.administrator : t.header.user}
             </span>
             <button
               onClick={handleLogout}
               disabled={loggingOut}
               className="ml-1 rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:opacity-50"
-              title="로그아웃"
+              title={t.common.logout}
             >
               <LogOut className="h-4 w-4" />
             </button>
@@ -132,7 +138,7 @@ export default function TopHeader({ user }: TopHeaderProps) {
             className="flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
           >
             <LogIn className="h-4 w-4" />
-            로그인
+            {t.common.login}
           </Link>
         )}
       </div>

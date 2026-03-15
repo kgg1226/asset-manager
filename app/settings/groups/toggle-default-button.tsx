@@ -2,10 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useTranslation } from "@/lib/i18n";
 
 export default function ToggleDefaultButton({ id, isDefault }: { id: number; isDefault: boolean }) {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
+  const { t } = useTranslation();
 
   async function handleToggle() {
     setIsPending(true);
@@ -33,7 +35,7 @@ export default function ToggleDefaultButton({ id, isDefault }: { id: number; isD
           : "bg-gray-100 text-gray-500 hover:bg-gray-200"
       }`}
     >
-      {isDefault ? "기본" : "—"}
+      {isDefault ? t.license.defaultGroup : "\u2014"}
     </button>
   );
 }

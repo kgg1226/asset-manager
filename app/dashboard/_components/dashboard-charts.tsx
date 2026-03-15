@@ -15,6 +15,7 @@ import {
   AreaChart,
   Area,
 } from "recharts";
+import { useTranslation } from "@/lib/i18n";
 import type {
   TrendPoint,
   TypeDistPoint,
@@ -22,7 +23,7 @@ import type {
   GrowthPoint,
 } from "@/lib/dashboard-aggregator";
 
-// ── 색상 ──
+// ── Colors ──
 
 const TYPE_COLORS: Record<string, string> = {
   SOFTWARE: "#3b82f6",
@@ -41,7 +42,7 @@ const STATUS_COLORS: Record<string, string> = {
   DISPOSED: "#ef4444",
 };
 
-// ── 유틸 ──
+// ── Utils ──
 
 function formatCostAxis(value: number): string {
   if (value === 0) return "0";
@@ -74,16 +75,18 @@ function GrowthTooltip({
   active,
   payload,
   label,
+  unitLabel,
 }: {
   active?: boolean;
   payload?: { value: number }[];
   label?: string;
+  unitLabel?: string;
 }) {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-lg bg-white p-3 shadow-lg ring-1 ring-gray-200 text-sm">
       <p className="mb-1 font-medium text-gray-700">{label}</p>
-      <p className="text-indigo-600 font-semibold">{payload[0].value}개</p>
+      <p className="text-indigo-600 font-semibold">{payload[0].value}{unitLabel}</p>
     </div>
   );
 }
@@ -96,7 +99,7 @@ function EmptyState({ message }: { message: string }) {
   );
 }
 
-// ── 메인 컴포넌트 ──
+// ── Main Component ──
 
 export default function DashboardCharts({
   monthlyTrend,
@@ -109,6 +112,8 @@ export default function DashboardCharts({
   statusDistribution: StatusDistPoint[];
   growthTrend: GrowthPoint[];
 }) {
+  const { t } = useTranslation();
+
   const hasMonthlyData = monthlyTrend.some((d) => d.cost > 0);
   const hasTypeData = typeDistribution.length > 0;
   const hasStatusData = statusDistribution.length > 0;
@@ -116,10 +121,10 @@ export default function DashboardCharts({
 
   return (
     <div className="space-y-6">
-      {/* Row 1: 월별 비용 추이 */}
+      {/* Row 1: Monthly cost trend */}
       <div className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
-        <h2 className="mb-1 text-base font-semibold text-gray-900">월별 비용 추이 (최근 12개월)</h2>
-        <p className="mb-4 text-xs text-gray-500">활성 자산의 월 환산 비용 합계</p>
+        <h2 className="mb-1 text-base font-semibold text-gray-900">{t.dashboard.monthlyExpenses}</h2>
+        <p className="mb-4 text-xs text-gray-500">{t.dashboard.assetsByType}</p>
         {hasMonthlyData ? (
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={monthlyTrend} margin={{ top: 4, right: 8, bottom: 0, left: 8 }}>
@@ -131,16 +136,16 @@ export default function DashboardCharts({
             </BarChart>
           </ResponsiveContainer>
         ) : (
-          <EmptyState message="비용 정보가 입력된 자산이 없습니다." />
+          <EmptyState message={t.common.noData} />
         )}
       </div>
 
-      {/* Row 2: 카테고리 분포 + 상태 분포 */}
+      {/* Row 2: Category distribution + Status distribution */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* 카테고리별 분포 */}
+        {/* Category distribution */}
         <div className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
-          <h2 className="mb-1 text-base font-semibold text-gray-900">자산 유형 분포</h2>
-          <p className="mb-4 text-xs text-gray-500">유형별 수량 및 월 비용</p>
+          <h2 className="mb-1 text-base font-semibold text-gray-900">{t.dashboard.assetsByType}</h2>
+          <p className="mb-4 text-xs text-gray-500">{t.dashboard.totalAssets}</p>
           {hasTypeData ? (
             <ResponsiveContainer width="100%" height={240}>
               <PieChart>
@@ -164,20 +169,20 @@ export default function DashboardCharts({
                 <Tooltip
                   formatter={(value: number, _name: string, props: { payload?: TypeDistPoint }) => {
                     const cost = props.payload?.cost ?? 0;
-                    return [`${value}개 · 월 ₩${cost.toLocaleString("ko-KR")}`, ""];
+                    return [`${value}${t.dashboard.items} · ₩${cost.toLocaleString("ko-KR")}`, ""];
                   }}
                 />
               </PieChart>
             </ResponsiveContainer>
           ) : (
-            <EmptyState message="등록된 자산이 없습니다." />
+            <EmptyState message={t.common.noData} />
           )}
         </div>
 
-        {/* 상태별 분포 */}
+        {/* Status distribution */}
         <div className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
-          <h2 className="mb-1 text-base font-semibold text-gray-900">자산 상태 분포</h2>
-          <p className="mb-4 text-xs text-gray-500">사용 상태별 수량</p>
+          <h2 className="mb-1 text-base font-semibold text-gray-900">{t.common.status}</h2>
+          <p className="mb-4 text-xs text-gray-500">{t.dashboard.totalAssets}</p>
           {hasStatusData ? (
             <ResponsiveContainer width="100%" height={240}>
               <PieChart>
@@ -198,19 +203,19 @@ export default function DashboardCharts({
                   ))}
                 </Pie>
                 <Legend formatter={(value: string) => <span className="text-xs text-gray-600">{value}</span>} />
-                <Tooltip formatter={(value: number) => [`${value}개`, "자산 수"]} />
+                <Tooltip formatter={(value: number) => [`${value}${t.dashboard.items}`, t.dashboard.totalAssets]} />
               </PieChart>
             </ResponsiveContainer>
           ) : (
-            <EmptyState message="등록된 자산이 없습니다." />
+            <EmptyState message={t.common.noData} />
           )}
         </div>
       </div>
 
-      {/* Row 3: 자산 증가 추이 */}
+      {/* Row 3: Asset growth trend */}
       <div className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
-        <h2 className="mb-1 text-base font-semibold text-gray-900">자산 증가 추이</h2>
-        <p className="mb-4 text-xs text-gray-500">등록일 기준 누적 자산 수 (최근 12개월)</p>
+        <h2 className="mb-1 text-base font-semibold text-gray-900">{t.dashboard.totalAssets}</h2>
+        <p className="mb-4 text-xs text-gray-500">{t.dashboard.recentActivities}</p>
         {hasGrowthData ? (
           <ResponsiveContainer width="100%" height={240}>
             <AreaChart data={growthTrend} margin={{ top: 4, right: 8, bottom: 0, left: 8 }}>
@@ -223,7 +228,7 @@ export default function DashboardCharts({
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#6b7280" }} tickLine={false} axisLine={false} />
               <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#6b7280" }} tickLine={false} axisLine={false} width={32} />
-              <Tooltip content={<GrowthTooltip />} />
+              <Tooltip content={<GrowthTooltip unitLabel={t.dashboard.items} />} />
               <Area
                 type="monotone"
                 dataKey="count"
@@ -236,7 +241,7 @@ export default function DashboardCharts({
             </AreaChart>
           </ResponsiveContainer>
         ) : (
-          <EmptyState message="등록된 자산이 없습니다." />
+          <EmptyState message={t.common.noData} />
         )}
       </div>
     </div>

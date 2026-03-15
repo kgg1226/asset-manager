@@ -2,8 +2,10 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "@/lib/i18n";
 
 export default function LoginPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [error, setError] = useState("");
   const [isPending, setIsPending] = useState(false);
@@ -27,7 +29,7 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "로그인에 실패했습니다.");
+        setError(data.error || t.toast.loginFail);
         return;
       }
 
@@ -59,7 +61,7 @@ export default function LoginPage() {
 
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
-              사용자명
+              {t.auth.username}
             </label>
             <input
               type="text"
@@ -72,7 +74,7 @@ export default function LoginPage() {
 
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
-              비밀번호
+              {t.auth.password}
             </label>
             <input
               type="password"
@@ -87,7 +89,7 @@ export default function LoginPage() {
             disabled={isPending}
             className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
           >
-            {isPending ? "로그인 중..." : "로그인"}
+            {isPending ? t.common.loading : t.auth.loginButton}
           </button>
         </form>
       </div>

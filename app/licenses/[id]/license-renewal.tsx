@@ -11,6 +11,7 @@ import {
   X,
   Plus,
 } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 
 // ── 타입 ─────────────────────────────────────────────────────────────────────
 type RenewalStatus = "BEFORE_RENEWAL" | "IN_PROGRESS" | "NOT_RENEWING" | "RENEWED";
@@ -61,6 +62,7 @@ function RenewalStatusPanel({
   renewalDate: string | null;
   renewalDateManual: string | null;
 }) {
+  const { t } = useTranslation();
   const [showStatusForm, setShowStatusForm] = useState(false);
   const [showDateForm, setShowDateForm] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<RenewalStatus>(
@@ -119,13 +121,13 @@ function RenewalStatusPanel({
     <div className="rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
       <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-3">
         <RefreshCw className="h-4 w-4 text-blue-600" />
-        <h3 className="text-sm font-semibold text-gray-900">갱신 관리</h3>
+        <h3 className="text-sm font-semibold text-gray-900">{t.license.expiryDate}</h3>
       </div>
 
       <div className="space-y-3 p-4">
         {/* 현재 상태 */}
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-500">갱신 상태</span>
+          <span className="text-xs text-gray-500">{t.common.status}</span>
           <div className="flex items-center gap-2">
             <span
               className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_COLORS[displayStatus]}`}
@@ -136,7 +138,7 @@ function RenewalStatusPanel({
               onClick={() => { setShowStatusForm(!showStatusForm); setError(""); }}
               className="flex items-center gap-1 text-xs text-blue-600 hover:underline"
             >
-              변경
+              {t.common.edit}
               <ChevronDown className="h-3 w-3" />
             </button>
           </div>
@@ -150,7 +152,7 @@ function RenewalStatusPanel({
           >
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-600">
-                새 상태
+                {t.common.status}
               </label>
               <select
                 value={selectedStatus}
@@ -166,13 +168,13 @@ function RenewalStatusPanel({
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-600">
-                메모 (선택)
+                {t.common.description} ({t.common.optional})
               </label>
               <input
                 type="text"
                 value={memo}
                 onChange={(e) => setMemo(e.target.value)}
-                placeholder="변경 사유..."
+                placeholder={t.common.description}
                 className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -183,14 +185,14 @@ function RenewalStatusPanel({
                 onClick={() => setShowStatusForm(false)}
                 className="rounded px-3 py-1 text-xs text-gray-600 hover:bg-gray-200"
               >
-                취소
+                {t.common.cancel}
               </button>
               <button
                 type="submit"
                 disabled={isPending}
                 className="rounded bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
               >
-                {isPending ? "..." : "저장"}
+                {isPending ? "..." : t.common.save}
               </button>
             </div>
           </form>
@@ -198,7 +200,7 @@ function RenewalStatusPanel({
 
         {/* 갱신일 */}
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-500">갱신일</span>
+          <span className="text-xs text-gray-500">{t.license.expiryDate}</span>
           <div className="flex items-center gap-2">
             <span className="flex items-center gap-1 text-xs text-gray-700">
               <Calendar className="h-3.5 w-3.5 text-gray-400" />
@@ -207,7 +209,7 @@ function RenewalStatusPanel({
                 : "—"}
               {renewalDateManual && (
                 <span className="ml-1 rounded bg-amber-100 px-1 text-[10px] text-amber-700">
-                  수동
+                  {t.license.custom}
                 </span>
               )}
             </span>
@@ -215,7 +217,7 @@ function RenewalStatusPanel({
               onClick={() => { setShowDateForm(!showDateForm); setError(""); }}
               className="flex items-center gap-1 text-xs text-blue-600 hover:underline"
             >
-              설정
+              {t.common.edit}
               <ChevronDown className="h-3 w-3" />
             </button>
           </div>
@@ -229,7 +231,7 @@ function RenewalStatusPanel({
           >
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-600">
-                수동 갱신일 (비워두면 자동 계산으로 복원)
+                {t.license.expiryDate} ({t.license.custom})
               </label>
               <input
                 type="date"
@@ -245,14 +247,14 @@ function RenewalStatusPanel({
                 onClick={() => setShowDateForm(false)}
                 className="rounded px-3 py-1 text-xs text-gray-600 hover:bg-gray-200"
               >
-                취소
+                {t.common.cancel}
               </button>
               <button
                 type="submit"
                 disabled={isPending}
                 className="rounded bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
               >
-                {isPending ? "..." : "저장"}
+                {isPending ? "..." : t.common.save}
               </button>
             </div>
           </form>
@@ -264,6 +266,7 @@ function RenewalStatusPanel({
 
 // ── 갱신 이력 타임라인 ────────────────────────────────────────────────────────
 function RenewalHistoryPanel({ licenseId }: { licenseId: number }) {
+  const { t } = useTranslation();
   const [history, setHistory] = useState<RenewalHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -286,7 +289,7 @@ function RenewalHistoryPanel({ licenseId }: { licenseId: number }) {
     <div className="rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
       <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-3">
         <Clock className="h-4 w-4 text-gray-500" />
-        <h3 className="text-sm font-semibold text-gray-900">갱신 이력</h3>
+        <h3 className="text-sm font-semibold text-gray-900">{t.history.title}</h3>
         <span className="ml-auto text-xs text-gray-400">{history.length}건</span>
       </div>
       <div className="divide-y divide-gray-50 px-4 py-2">
@@ -323,7 +326,7 @@ function RenewalHistoryPanel({ licenseId }: { licenseId: number }) {
             onClick={() => setExpanded(!expanded)}
             className="text-xs text-blue-600 hover:underline"
           >
-            {expanded ? "접기" : `전체 보기 (${history.length}건)`}
+            {expanded ? t.common.close : `${t.common.all} (${history.length})`}
           </button>
         </div>
       )}
@@ -341,6 +344,7 @@ function LicenseOwnersPanel({
   users: User[];
   orgUnits: OrgUnit[];
 }) {
+  const { t } = useTranslation();
   const [owners, setOwners] = useState<LicenseOwner[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -401,13 +405,13 @@ function LicenseOwnersPanel({
     <div className="rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
       <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-3">
         <Users className="h-4 w-4 text-gray-500" />
-        <h3 className="text-sm font-semibold text-gray-900">라이선스 담당자</h3>
+        <h3 className="text-sm font-semibold text-gray-900">{t.license.adminName}</h3>
         <button
           onClick={() => { setShowAdd(!showAdd); setError(""); }}
           className="ml-auto flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
         >
           <Plus className="h-3.5 w-3.5" />
-          추가
+          {t.common.add}
         </button>
       </div>
 
@@ -419,14 +423,14 @@ function LicenseOwnersPanel({
               onClick={() => setAddType("user")}
               className={`rounded-full px-3 py-1 text-xs font-medium ${addType === "user" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"}`}
             >
-              개인
+              {t.header.user}
             </button>
             <button
               type="button"
               onClick={() => setAddType("orgUnit")}
               className={`rounded-full px-3 py-1 text-xs font-medium ${addType === "orgUnit" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"}`}
             >
-              부서
+              {t.employee.department}
             </button>
           </div>
 
@@ -437,7 +441,7 @@ function LicenseOwnersPanel({
               required
               className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="">사용자 선택</option>
+              <option value="">{t.header.user}</option>
               {users.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.username}
@@ -451,7 +455,7 @@ function LicenseOwnersPanel({
               required
               className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="">부서 선택</option>
+              <option value="">{t.employee.department}</option>
               {orgUnits.map((o) => (
                 <option key={o.id} value={o.id}>
                   {o.name}
@@ -468,14 +472,14 @@ function LicenseOwnersPanel({
               onClick={() => setShowAdd(false)}
               className="rounded px-3 py-1 text-xs text-gray-600 hover:bg-gray-200"
             >
-              취소
+              {t.common.cancel}
             </button>
             <button
               type="submit"
               disabled={isPending}
               className="rounded bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
             >
-              {isPending ? "..." : "추가"}
+              {isPending ? "..." : t.common.add}
             </button>
           </div>
         </form>
@@ -483,23 +487,23 @@ function LicenseOwnersPanel({
 
       <div className="divide-y divide-gray-50 px-4 py-1">
         {loading ? (
-          <p className="py-3 text-xs text-gray-400">로딩 중...</p>
+          <p className="py-3 text-xs text-gray-400">{t.common.loading}</p>
         ) : owners.length === 0 ? (
-          <p className="py-3 text-xs text-gray-400">담당자가 없습니다.</p>
+          <p className="py-3 text-xs text-gray-400">{t.common.noData}</p>
         ) : (
           owners.map((owner) => (
             <div key={owner.id} className="flex items-center justify-between py-2">
               <div className="flex items-center gap-2">
                 {owner.userId ? (
                   <>
-                    <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600">개인</span>
+                    <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600">{t.header.user}</span>
                     <span className="text-xs text-gray-700">
                       {owner.user?.username ?? `user #${owner.userId}`}
                     </span>
                   </>
                 ) : (
                   <>
-                    <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] text-blue-700">부서</span>
+                    <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] text-blue-700">{t.employee.department}</span>
                     <span className="text-xs text-gray-700">
                       {owner.orgUnit?.name ?? `unit #${owner.orgUnitId}`}
                     </span>
