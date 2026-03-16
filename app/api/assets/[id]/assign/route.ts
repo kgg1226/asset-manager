@@ -32,7 +32,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       // 1. Asset 존재 확인
       const asset = await tx.asset.findUnique({
         where: { id: assetId },
-        select: { id: true, name: true, status: true, assigneeId: true },
+        select: { id: true, name: true, type: true, status: true, assigneeId: true },
       });
 
       if (!asset) {
@@ -47,19 +47,31 @@ export async function POST(request: NextRequest, { params }: Params) {
       // 3. Employee 존재 확인
       const employee = await tx.employee.findUnique({
         where: { id: employeeId },
-        select: { id: true, name: true },
+        select: { id: true, name: true, title: true },
       });
 
       if (!employee) {
         return { error: "조직원을 찾을 수 없습니다.", status: 404 };
       }
 
-      // 4. Asset 업데이트: assigneeId, status = IN_USE
+      // 4. 하드웨어 자산인 경우 직책 기반 CIA 자동 설정
+      let ciaData: { ciaC: number | null; ciaI: number | null; ciaA: number | null } | null = null;
+      if (asset.type === "HARDWARE" && employee.title) {
+        const ciaMapping = await tx.titleCiaMapping.findUnique({
+          where: { title: employee.title },
+        });
+        if (ciaMapping) {
+          ciaData = { ciaC: ciaMapping.ciaC, ciaI: ciaMapping.ciaI, ciaA: ciaMapping.ciaA };
+        }
+      }
+
+      // 5. Asset 업데이트: assigneeId, status = IN_USE, CIA (하드웨어만)
       const updatedAsset = await tx.asset.update({
         where: { id: assetId },
         data: {
           assigneeId: employeeId,
           status: "IN_USE",
+          ...(ciaData && { ciaC: ciaData.ciaC, ciaI: ciaData.ciaI, ciaA: ciaData.ciaA }),
         },
         select: { id: true, name: true, assigneeId: true, status: true },
       });

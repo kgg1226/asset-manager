@@ -20,15 +20,28 @@ export const NOTIFICATION_KEYS = [
 
 export type NotificationConfigKey = (typeof NOTIFICATION_KEYS)[number];
 
+/** Google Drive 설정 키 */
+export const GDRIVE_KEYS = [
+  "GOOGLE_CLIENT_EMAIL",
+  "GOOGLE_PRIVATE_KEY",
+  "GOOGLE_DRIVE_ROOT",
+] as const;
+
+export type GDriveConfigKey = (typeof GDRIVE_KEYS)[number];
+
+/** 모든 시스템 설정 키 */
+export type SystemConfigKey = NotificationConfigKey | GDriveConfigKey;
+
 /** 민감한 키 (마스킹 대상) */
 const SENSITIVE_KEYS: ReadonlySet<string> = new Set([
   "SLACK_WEBHOOK_URL",
   "SMTP_PASS",
+  "GOOGLE_PRIVATE_KEY",
 ]);
 
 /** 단일 설정값 조회 (DB 우선, env 폴백) */
 export async function getConfigValue(
-  key: NotificationConfigKey
+  key: SystemConfigKey
 ): Promise<string | undefined> {
   try {
     const row = await prisma.systemConfig.findUnique({ where: { key } });
@@ -77,7 +90,7 @@ export async function getNotificationConfig(): Promise<
 
 /** 설정값 저장 (암호화 + upsert) */
 export async function setConfigValue(
-  key: NotificationConfigKey,
+  key: SystemConfigKey,
   plaintext: string,
   userId?: number
 ): Promise<void> {
@@ -91,7 +104,7 @@ export async function setConfigValue(
 
 /** 설정값 삭제 (환경변수 폴백으로 복원) */
 export async function deleteConfigValue(
-  key: NotificationConfigKey
+  key: SystemConfigKey
 ): Promise<void> {
   await prisma.systemConfig.deleteMany({ where: { key } });
 }
@@ -219,5 +232,82 @@ export async function setNotificationPreferences(
     where: { key: PREFS_KEY },
     create: { key: PREFS_KEY, value: ciphertext, iv, tag, updatedBy: userId ?? null },
     update: { value: ciphertext, iv, tag, updatedBy: userId ?? null },
+  });
+}
+
+// ── Google Drive 설정 ──
+
+/** Google Drive 설정 일괄 조회 */
+export async function getGDriveConfig(): Promise<
+  Record<GDriveConfigKey, string | undefined>
+> {
+  const result = {} as Record<GDriveConfigKey, string | undefined>;
+
+  let dbRows: Array<{ key: string; value: string; iv: string; tag: string }> = [];
+  try {
+    dbRows = await prisma.systemConfig.findMany({
+      where: { key: { in: [...GDRIVE_KEYS] } },
+    });
+  } catch {
+    // DB 실패 시 env 폴백
+  }
+
+  const dbMap = new Map(dbRows.map((r) => [r.key, r]));
+
+  for (const key of GDRIVE_KEYS) {
+    const row = dbMap.get(key);
+    if (row) {
+      try {
+        result[key] = decrypt(row.value, row.iv, row.tag);
+      } catch {
+        result[key] = process.env[key] || undefined;
+      }
+    } else {
+      result[key] = process.env[key] || undefined;
+    }
+  }
+
+  return result;
+}
+
+/** Google Drive 설정 상태 조회 (UI 표시용) */
+export async function getGDriveConfigStatus(): Promise<
+  Array<{
+    key: GDriveConfigKey;
+    source: "db" | "env" | "none";
+    maskedValue: string | null;
+    updatedAt: Date | null;
+  }>
+> {
+  const dbRows = await prisma.systemConfig.findMany({
+    where: { key: { in: [...GDRIVE_KEYS] } },
+    select: { key: true, value: true, iv: true, tag: true, updatedAt: true },
+  });
+  const dbMap = new Map(dbRows.map((r) => [r.key, r]));
+
+  return GDRIVE_KEYS.map((key) => {
+    const row = dbMap.get(key);
+    if (row) {
+      let maskedValue: string | null = null;
+      try {
+        const plain = decrypt(row.value, row.iv, row.tag);
+        maskedValue = maskValue(key, plain);
+      } catch {
+        maskedValue = "****";
+      }
+      return { key, source: "db" as const, maskedValue, updatedAt: row.updatedAt };
+    }
+
+    const envVal = process.env[key];
+    if (envVal) {
+      return {
+        key,
+        source: "env" as const,
+        maskedValue: maskValue(key, envVal),
+        updatedAt: null,
+      };
+    }
+
+    return { key, source: "none" as const, maskedValue: null, updatedAt: null };
   });
 }

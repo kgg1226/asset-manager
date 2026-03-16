@@ -637,6 +637,17 @@ enum ArchiveStatus {
 
 // ── 정보보호 조직도 ──
 
+// 직책별 CIA 등급 매핑 (관리자 설정)
+model TitleCiaMapping {
+  id        Int      @id @default(autoincrement())
+  title     String   @unique              // 직책명 (예: "대표이사", "팀장", "사원")
+  ciaC      Int      @default(2)          // 기밀성 (1=하, 2=중, 3=상)
+  ciaI      Int      @default(2)          // 무결성
+  ciaA      Int      @default(2)          // 가용성
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model SystemConfig {
   key       String   @id          // e.g. "SLACK_WEBHOOK_URL", "SMTP_HOST"
   value     String                // encrypted ciphertext (AES-256-GCM)

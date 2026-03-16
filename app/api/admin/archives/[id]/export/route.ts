@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { isGoogleDriveConfigured, uploadToGoogleDrive } from "@/lib/google-drive";
+import { isGoogleDriveConfiguredAsync, uploadToGoogleDrive } from "@/lib/google-drive";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     // Excel 파일 생성 (exceljs 사용)
     let fileUrl: string | null = null;
 
-    if (isGoogleDriveConfigured()) {
+    if (await isGoogleDriveConfiguredAsync()) {
       const ExcelJS = await import("exceljs");
       const workbook = new ExcelJS.Workbook();
       workbook.creator = "Asset Manager";
@@ -110,8 +110,8 @@ export async function POST(request: NextRequest, { params }: Params) {
     return NextResponse.json({
       ok: true,
       fileUrl,
-      driveConfigured: isGoogleDriveConfigured(),
-      message: isGoogleDriveConfigured() ? "Google Drive 업로드 완료" : "Google Drive 미설정 — 업로드 건너뜀",
+      driveConfigured: await isGoogleDriveConfiguredAsync(),
+      message: await isGoogleDriveConfiguredAsync() ? "Google Drive 업로드 완료" : "Google Drive 미설정 — 업로드 건너뜀",
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
