@@ -17,6 +17,9 @@ import {
   Filter,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n";
+import { TourGuide } from "@/app/_components/tour-guide";
+import { NOTIFICATIONS_TOUR_KEY, getNotificationsSteps } from "@/app/_components/tours/notifications-tour";
 
 // ── Types ──
 
@@ -54,6 +57,7 @@ interface LogStats {
 // ── Component ──
 
 export default function NotificationSettingsPage() {
+  const { t, locale } = useTranslation();
   // Test state
   const [testChannel, setTestChannel] = useState<"EMAIL" | "SLACK" | "BOTH">("BOTH");
   const [testEmail, setTestEmail] = useState("");
@@ -80,7 +84,7 @@ export default function NotificationSettingsPage() {
       setLogs(data.logs ?? []);
       setStats(data.stats ?? null);
     } catch {
-      toast.error("알림 이력을 불러올 수 없습니다");
+      toast.error(t.notification.loadFail);
     } finally {
       setIsLoadingLogs(false);
     }
@@ -106,14 +110,14 @@ export default function NotificationSettingsPage() {
       const data: TestResult = await res.json();
       setTestResult(data);
       if (data.ok) {
-        toast.success("테스트 발송 성공");
+        toast.success(t.notification.testSuccess);
       } else {
-        toast.error("일부 채널에서 실패했습니다. 아래 진단 결과를 확인하세요.");
+        toast.error(t.notification.testPartialFail);
       }
       // Refresh logs after test
       setTimeout(() => loadLogs(), 1000);
     } catch {
-      toast.error("테스트 요청 실패");
+      toast.error(t.notification.testRequestFail);
     } finally {
       setIsTesting(false);
     }
@@ -136,24 +140,26 @@ export default function NotificationSettingsPage() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
               <Bell className="h-7 w-7 text-blue-600" />
-              알림 설정
+              {t.notification.title}
             </h1>
-            <p className="mt-1 text-sm text-gray-500">이메일·Slack 연동 테스트 및 발송 이력 확인</p>
+            <p className="mt-1 text-sm text-gray-500">{t.notification.subtitle}</p>
+          </div>
+          <div className="ml-auto">
+            <TourGuide tourKey={NOTIFICATIONS_TOUR_KEY} steps={getNotificationsSteps(t)} />
           </div>
         </div>
 
         {/* ── Test Section ── */}
-        <div className="mb-8 rounded-lg bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-bold text-gray-900">연동 테스트</h2>
+        <div className="mb-8 rounded-lg bg-white p-6 shadow-sm" data-tour="notif-test">
+          <h2 className="mb-4 text-lg font-bold text-gray-900">{t.notification.testSection}</h2>
           <p className="mb-4 text-sm text-gray-600">
-            알림 채널이 올바르게 설정되었는지 테스트 메시지를 발송합니다.
-            환경변수가 누락된 경우 상세 진단 결과를 확인할 수 있습니다.
+            {t.notification.testDescription}
           </p>
 
           <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
             {/* Channel selection */}
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">테스트 채널</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">{t.notification.testChannel}</label>
               <div className="flex gap-2">
                 {(["EMAIL", "SLACK", "BOTH"] as const).map((ch) => (
                   <button
@@ -168,7 +174,7 @@ export default function NotificationSettingsPage() {
                     {ch === "EMAIL" && <Mail className="h-3.5 w-3.5" />}
                     {ch === "SLACK" && <MessageSquare className="h-3.5 w-3.5" />}
                     {ch === "BOTH" && <Bell className="h-3.5 w-3.5" />}
-                    {{ EMAIL: "이메일", SLACK: "Slack", BOTH: "둘 다" }[ch]}
+                    {{ EMAIL: t.notification.emailChannel, SLACK: t.notification.slackChannel, BOTH: `${t.notification.emailChannel} + ${t.notification.slackChannel}` }[ch]}
                   </button>
                 ))}
               </div>
@@ -177,10 +183,10 @@ export default function NotificationSettingsPage() {
             {/* Email target (optional) */}
             {(testChannel === "EMAIL" || testChannel === "BOTH") && (
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">수신 이메일 (선택)</label>
+                <label className="mb-1 block text-sm font-medium text-gray-700">{t.notification.recipientEmail}</label>
                 <input
                   type="email"
-                  placeholder="비워두면 SMTP_FROM으로 발송"
+                  placeholder={t.notification.recipientEmailPlaceholder}
                   value={testEmail}
                   onChange={(e) => setTestEmail(e.target.value)}
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
@@ -199,7 +205,7 @@ export default function NotificationSettingsPage() {
             ) : (
               <Send className="h-4 w-4" />
             )}
-            {isTesting ? "테스트 중..." : "테스트 발송"}
+            {isTesting ? t.common.loading : t.notification.testSend}
           </button>
 
           {/* Test Results */}
@@ -212,7 +218,7 @@ export default function NotificationSettingsPage() {
                   <AlertTriangle className="h-5 w-5 text-red-600" />
                 )}
                 <span className={`font-semibold ${testResult.ok ? "text-green-800" : "text-red-800"}`}>
-                  {testResult.ok ? "모든 채널 연동 성공" : "일부 채널에서 실패"}
+                  {testResult.ok ? t.notification.allChannelSuccess : t.notification.someChannelFail}
                 </span>
               </div>
               <div className="space-y-2">
@@ -233,32 +239,32 @@ export default function NotificationSettingsPage() {
               {/* Troubleshooting hints */}
               {!testResult.ok && (
                 <div className="mt-3 rounded bg-white/80 p-3">
-                  <p className="text-xs font-semibold text-gray-700 mb-1">문제 해결 가이드:</p>
+                  <p className="text-xs font-semibold text-gray-700 mb-1">{t.notification.troubleshootGuide}</p>
                   <ul className="space-y-1 text-xs text-gray-600">
                     {testResult.diagnostics.some((d) => d.message.includes("SMTP")) && (
                       <>
-                        <li>• SMTP 환경변수가 올바른지 확인하세요 (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM)</li>
-                        <li>• 폐쇄망 환경에서는 내부 메일 서버를 사용해야 합니다</li>
-                        <li>• SMTP_SECURE=true 로 TLS를 활성화해야 할 수 있습니다</li>
+                        <li>• {t.notification.smtpEnvCheck}</li>
+                        <li>• {t.notification.smtpClosedNetwork}</li>
+                        <li>• {t.notification.smtpSecure}</li>
                       </>
                     )}
                     {testResult.diagnostics.some((d) => d.message.includes("SLACK_WEBHOOK_URL")) && (
                       <>
-                        <li>• Slack 앱 설정에서 Incoming Webhook을 활성화하세요</li>
-                        <li>• Webhook URL을 SLACK_WEBHOOK_URL 환경변수에 설정하세요</li>
+                        <li>• {t.notification.slackWebhookEnable}</li>
+                        <li>• {t.notification.slackWebhookEnv}</li>
                       </>
                     )}
                     {testResult.diagnostics.some((d) => d.message.includes("Slack API error")) && (
                       <>
-                        <li>• Webhook URL이 유효한지 확인하세요 (만료되었을 수 있음)</li>
-                        <li>• Slack 앱이 해당 채널에 접근 권한이 있는지 확인하세요</li>
+                        <li>• {t.notification.slackWebhookExpired}</li>
+                        <li>• {t.notification.slackChannelAccess}</li>
                       </>
                     )}
                     {testResult.diagnostics.some((d) => d.message.includes("ECONNREFUSED") || d.message.includes("ETIMEDOUT")) && (
-                      <li>• 네트워크 연결을 확인하세요. 방화벽이 SMTP 포트를 차단하고 있을 수 있습니다.</li>
+                      <li>• {t.notification.networkCheck}</li>
                     )}
                     {testResult.diagnostics.some((d) => d.message.includes("auth")) && (
-                      <li>• SMTP 인증 정보 (SMTP_USER, SMTP_PASS)가 올바른지 확인하세요</li>
+                      <li>• {t.notification.smtpAuthCheck}</li>
                     )}
                   </ul>
                 </div>
@@ -268,16 +274,16 @@ export default function NotificationSettingsPage() {
         </div>
 
         {/* ── Notification Log Section ── */}
-        <div className="rounded-lg bg-white p-6 shadow-sm">
+        <div className="rounded-lg bg-white p-6 shadow-sm" data-tour="notif-log">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-bold text-gray-900">발송 이력</h2>
+            <h2 className="text-lg font-bold text-gray-900">{t.notification.sendHistory}</h2>
             <button
               onClick={loadLogs}
               disabled={isLoadingLogs}
               className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${isLoadingLogs ? "animate-spin" : ""}`} />
-              새로고침
+              {t.notification.refresh}
             </button>
           </div>
 
@@ -285,19 +291,19 @@ export default function NotificationSettingsPage() {
           {stats && (
             <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div className="rounded-md bg-gray-50 p-3 text-center">
-                <p className="text-xs text-gray-500">전체</p>
+                <p className="text-xs text-gray-500">{t.common.all}</p>
                 <p className="text-lg font-bold text-gray-900">{stats.total}</p>
               </div>
               <div className="rounded-md bg-green-50 p-3 text-center">
-                <p className="text-xs text-green-600">성공</p>
+                <p className="text-xs text-green-600">{t.common.success}</p>
                 <p className="text-lg font-bold text-green-700">{stats.ok}</p>
               </div>
               <div className="rounded-md bg-red-50 p-3 text-center">
-                <p className="text-xs text-red-600">실패</p>
+                <p className="text-xs text-red-600">{t.common.failure}</p>
                 <p className="text-lg font-bold text-red-700">{stats.fail}</p>
               </div>
               <div className="rounded-md bg-blue-50 p-3 text-center">
-                <p className="text-xs text-blue-600">이메일 / Slack</p>
+                <p className="text-xs text-blue-600">{t.notification.emailChannel} / {t.notification.slackChannel}</p>
                 <p className="text-lg font-bold text-blue-700">{stats.byChannel.EMAIL} / {stats.byChannel.SLACK}</p>
               </div>
             </div>
@@ -311,18 +317,18 @@ export default function NotificationSettingsPage() {
               onChange={(e) => setLogFilter((p) => ({ ...p, status: e.target.value }))}
               className="rounded-md border border-gray-300 px-2 py-1 text-sm"
             >
-              <option value="">모든 상태</option>
-              <option value="OK">성공</option>
-              <option value="FAIL">실패</option>
+              <option value="">{t.common.all} {t.common.status}</option>
+              <option value="OK">{t.common.success}</option>
+              <option value="FAIL">{t.common.failure}</option>
             </select>
             <select
               value={logFilter.channel}
               onChange={(e) => setLogFilter((p) => ({ ...p, channel: e.target.value }))}
               className="rounded-md border border-gray-300 px-2 py-1 text-sm"
             >
-              <option value="">모든 채널</option>
-              <option value="EMAIL">이메일</option>
-              <option value="SLACK">Slack</option>
+              <option value="">{t.common.all}</option>
+              <option value="EMAIL">{t.notification.emailChannel}</option>
+              <option value="SLACK">{t.notification.slackChannel}</option>
             </select>
           </div>
 
@@ -331,32 +337,32 @@ export default function NotificationSettingsPage() {
             <table className="w-full min-w-[700px] text-sm">
               <thead className="border-b bg-gray-50">
                 <tr>
-                  <th className="px-3 py-2 text-left text-xs font-semibold">시각</th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold">채널</th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold">수신자</th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold">대상</th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold">상태</th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold">오류</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold">{t.notification.time}</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold">{t.notification.channel}</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold">{t.notification.recipient}</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold">{t.notification.target}</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold">{t.common.status}</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold">{t.notification.errorCol}</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoadingLogs ? (
-                  <tr><td colSpan={6} className="px-3 py-6 text-center text-gray-400">로딩 중...</td></tr>
+                  <tr><td colSpan={6} className="px-3 py-6 text-center text-gray-400">{t.common.loading}</td></tr>
                 ) : logs.length === 0 ? (
-                  <tr><td colSpan={6} className="px-3 py-6 text-center text-gray-500">발송 이력이 없습니다</td></tr>
+                  <tr><td colSpan={6} className="px-3 py-6 text-center text-gray-500">{t.common.noData}</td></tr>
                 ) : (
                   logs.map((log) => (
                     <tr key={log.id} className="border-b hover:bg-gray-50">
                       <td className="px-3 py-2 text-xs text-gray-600 whitespace-nowrap">
                         <Clock className="mr-1 inline h-3 w-3" />
-                        {new Date(log.sentAt).toLocaleString("ko-KR")}
+                        {new Date(log.sentAt).toLocaleString(locale === "ko" ? "ko-KR" : locale === "ja" ? "ja-JP" : locale === "zh" ? "zh-CN" : locale === "zh-TW" ? "zh-TW" : locale === "vi" ? "vi-VN" : "en-US")}
                       </td>
                       <td className="px-3 py-2">
                         <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
                           log.channel === "EMAIL" ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"
                         }`}>
                           {log.channel === "EMAIL" ? <Mail className="h-3 w-3" /> : <MessageSquare className="h-3 w-3" />}
-                          {log.channel === "EMAIL" ? "이메일" : "Slack"}
+                          {log.channel === "EMAIL" ? t.notification.emailChannel : t.notification.slackChannel}
                         </span>
                       </td>
                       <td className="px-3 py-2 text-xs text-gray-700 max-w-[150px] truncate" title={log.recipient}>{log.recipient}</td>
@@ -371,9 +377,9 @@ export default function NotificationSettingsPage() {
                       </td>
                       <td className="px-3 py-2">
                         {log.status === "OK" ? (
-                          <span className="inline-flex items-center gap-1 text-xs text-green-600"><CheckCircle2 className="h-3.5 w-3.5" />성공</span>
+                          <span className="inline-flex items-center gap-1 text-xs text-green-600"><CheckCircle2 className="h-3.5 w-3.5" />{t.common.success}</span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-xs text-red-600"><XCircle className="h-3.5 w-3.5" />실패</span>
+                          <span className="inline-flex items-center gap-1 text-xs text-red-600"><XCircle className="h-3.5 w-3.5" />{t.common.failure}</span>
                         )}
                       </td>
                       <td className="px-3 py-2 text-xs text-red-600 max-w-[200px] truncate" title={log.errorMsg ?? ""}>

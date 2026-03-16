@@ -21,17 +21,21 @@ function parsePeriod(yearMonth: string) {
 }
 
 const TYPE_LABELS: Record<string, string> = {
-  SOFTWARE: "소프트웨어",
-  CLOUD: "클라우드",
-  HARDWARE: "하드웨어",
-  DOMAIN_SSL: "도메인·SSL",
-  OTHER: "기타",
+  SOFTWARE: "Software",
+  CLOUD: "Cloud",
+  HARDWARE: "Hardware",
+  DOMAIN_SSL: "Domain/SSL",
+  OTHER: "Other",
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  ACTIVE: "사용 중",
-  INACTIVE: "미사용",
-  DISPOSED: "폐기",
+  IN_STOCK: "In Stock",
+  IN_USE: "In Use",
+  ACTIVE: "Active",
+  INACTIVE: "Inactive",
+  UNUSABLE: "Unusable",
+  PENDING_DISPOSAL: "Pending Disposal",
+  DISPOSED: "Disposed",
 };
 
 function formatCurrency(val: number | null): string {
@@ -88,7 +92,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
       statusMap.set(asset.status, se);
 
       // Department
-      const dept = asset.orgUnit?.name ?? asset.assignee?.department ?? "미배정";
+      const dept = asset.orgUnit?.name ?? asset.assignee?.department ?? "Unassigned";
       const de = deptMap.get(dept) ?? { count: 0, cost: 0 };
       de.count++; de.cost += mc;
       deptMap.set(dept, de);
@@ -118,69 +122,69 @@ export async function GET(_request: NextRequest, { params }: Params) {
       row.height = 28;
     }
 
-    // ── Sheet 1: 요약 ──
-    const wsSummary = wb.addWorksheet("요약");
+    // ── Sheet 1: Summary ──
+    const wsSummary = wb.addWorksheet("Summary");
     wsSummary.columns = [
-      { header: "항목", key: "label", width: 25 },
-      { header: "값", key: "value", width: 30 },
+      { header: "Item", key: "label", width: 25 },
+      { header: "Value", key: "value", width: 30 },
     ];
     styleHeader(wsSummary, 2);
-    wsSummary.addRow({ label: "보고서 기간", value: period });
-    wsSummary.addRow({ label: "시작일", value: formatDate(startDate) });
-    wsSummary.addRow({ label: "종료일", value: formatDate(endDate) });
-    wsSummary.addRow({ label: "총 자산 수", value: assets.length });
-    wsSummary.addRow({ label: "월 비용 합계 (KRW)", value: formatCurrency(Math.round(totalMonthlyCost)) });
-    wsSummary.addRow({ label: "보고서 생성일", value: formatDate(new Date()) });
+    wsSummary.addRow({ label: "Report Period", value: period });
+    wsSummary.addRow({ label: "Start Date", value: formatDate(startDate) });
+    wsSummary.addRow({ label: "End Date", value: formatDate(endDate) });
+    wsSummary.addRow({ label: "Total Assets", value: assets.length });
+    wsSummary.addRow({ label: "Monthly Cost Total (KRW)", value: formatCurrency(Math.round(totalMonthlyCost)) });
+    wsSummary.addRow({ label: "Report Generated", value: formatDate(new Date()) });
 
-    // ── Sheet 2: 유형별 ──
-    const wsType = wb.addWorksheet("유형별");
+    // ── Sheet 2: By Type ──
+    const wsType = wb.addWorksheet("By Type");
     wsType.columns = [
-      { header: "유형", key: "type", width: 20 },
-      { header: "자산 수", key: "count", width: 12 },
-      { header: "월 비용 (KRW)", key: "cost", width: 20 },
+      { header: "Type", key: "type", width: 20 },
+      { header: "Asset Count", key: "count", width: 12 },
+      { header: "Monthly Cost (KRW)", key: "cost", width: 20 },
     ];
     styleHeader(wsType, 3);
     for (const [type, data] of typeMap) {
       wsType.addRow({ type: TYPE_LABELS[type] ?? type, count: data.count, cost: formatCurrency(Math.round(data.cost)) });
     }
 
-    // ── Sheet 3: 상태별 ──
-    const wsStatus = wb.addWorksheet("상태별");
+    // ── Sheet 3: By Status ──
+    const wsStatus = wb.addWorksheet("By Status");
     wsStatus.columns = [
-      { header: "상태", key: "status", width: 15 },
-      { header: "자산 수", key: "count", width: 12 },
-      { header: "월 비용 (KRW)", key: "cost", width: 20 },
+      { header: "Status", key: "status", width: 15 },
+      { header: "Asset Count", key: "count", width: 12 },
+      { header: "Monthly Cost (KRW)", key: "cost", width: 20 },
     ];
     styleHeader(wsStatus, 3);
     for (const [status, data] of statusMap) {
       wsStatus.addRow({ status: STATUS_LABELS[status] ?? status, count: data.count, cost: formatCurrency(Math.round(data.cost)) });
     }
 
-    // ── Sheet 4: 부서별 ──
-    const wsDept = wb.addWorksheet("부서별");
+    // ── Sheet 4: By Department ──
+    const wsDept = wb.addWorksheet("By Department");
     wsDept.columns = [
-      { header: "부서", key: "department", width: 25 },
-      { header: "자산 수", key: "count", width: 12 },
-      { header: "월 비용 (KRW)", key: "cost", width: 20 },
+      { header: "Department", key: "department", width: 25 },
+      { header: "Asset Count", key: "count", width: 12 },
+      { header: "Monthly Cost (KRW)", key: "cost", width: 20 },
     ];
     styleHeader(wsDept, 3);
     for (const [dept, data] of deptMap) {
       wsDept.addRow({ department: dept, count: data.count, cost: formatCurrency(Math.round(data.cost)) });
     }
 
-    // ── Sheet 5: 상세 목록 ──
-    const wsDetail = wb.addWorksheet("상세 목록");
+    // ── Sheet 5: Detail ──
+    const wsDetail = wb.addWorksheet("Detail");
     wsDetail.columns = [
-      { header: "자산명", key: "name", width: 30 },
-      { header: "유형", key: "type", width: 15 },
-      { header: "상태", key: "status", width: 12 },
-      { header: "공급업체", key: "vendor", width: 20 },
-      { header: "월 비용", key: "monthlyCost", width: 15 },
-      { header: "통화", key: "currency", width: 8 },
-      { header: "담당자", key: "assignee", width: 15 },
-      { header: "부서", key: "department", width: 15 },
-      { header: "만료일", key: "expiryDate", width: 14 },
-      { header: "구매일", key: "purchaseDate", width: 14 },
+      { header: "Asset Name", key: "name", width: 30 },
+      { header: "Type", key: "type", width: 15 },
+      { header: "Status", key: "status", width: 12 },
+      { header: "Vendor", key: "vendor", width: 20 },
+      { header: "Monthly Cost", key: "monthlyCost", width: 15 },
+      { header: "Currency", key: "currency", width: 8 },
+      { header: "Assignee", key: "assignee", width: 15 },
+      { header: "Department", key: "department", width: 15 },
+      { header: "Expiry Date", key: "expiryDate", width: 14 },
+      { header: "Purchase Date", key: "purchaseDate", width: 14 },
     ];
     styleHeader(wsDetail, 10);
     for (const a of assets) {

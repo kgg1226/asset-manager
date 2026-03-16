@@ -21,53 +21,57 @@ import {
   ChevronDown,
   ChevronRight,
   Package,
+  UserCircle,
   BookOpen,
   Bell,
 } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 
 interface NavItem {
   href: string;
-  label: string;
+  labelKey: string;
   icon: React.ReactNode;
   authRequired?: boolean;
 }
 
 interface NavGroup {
-  title: string;
+  titleKey: string;
   items: NavItem[];
   collapsible?: boolean;
 }
 
 const NAV_GROUPS: NavGroup[] = [
   {
-    title: "",
+    titleKey: "",
     items: [
-      { href: "/dashboard", label: "\uB300\uC2DC\uBCF4\uB4DC", icon: <LayoutDashboard className="h-4 w-4" /> },
-      { href: "/hardware", label: "\uD558\uB4DC\uC6E8\uC5B4", icon: <HardDrive className="h-4 w-4" /> },
-      { href: "/licenses", label: "\uB77C\uC774\uC120\uC2A4", icon: <FileText className="h-4 w-4" /> },
-      { href: "/cloud", label: "\uD074\uB77C\uC6B0\uB4DC", icon: <Cloud className="h-4 w-4" /> },
-      { href: "/domains", label: "\uB3C4\uBA54\uC778\u00b7SSL", icon: <Globe className="h-4 w-4" /> },
-      { href: "/contracts", label: "\uC5C5\uCCB4 \uACC4\uC57D", icon: <FileSignature className="h-4 w-4" /> },
-      { href: "/employees", label: "\uC870\uC9C1\uC6D0", icon: <Users className="h-4 w-4" /> },
-      { href: "/org", label: "\uC870\uC9C1\uB3C4", icon: <Network className="h-4 w-4" /> },
-      { href: "/reports", label: "\uBCF4\uACE0\uC11C", icon: <BarChart3 className="h-4 w-4" /> },
-      { href: "/history", label: "\uC774\uB825", icon: <History className="h-4 w-4" /> },
+      { href: "/dashboard", labelKey: "dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
+      { href: "/hardware", labelKey: "hardware", icon: <HardDrive className="h-4 w-4" /> },
+      { href: "/licenses", labelKey: "licenses", icon: <FileText className="h-4 w-4" /> },
+      { href: "/cloud", labelKey: "cloud", icon: <Cloud className="h-4 w-4" /> },
+      { href: "/domains", labelKey: "domainSsl", icon: <Globe className="h-4 w-4" /> },
+      { href: "/contracts", labelKey: "contracts", icon: <FileSignature className="h-4 w-4" /> },
+      { href: "/employees", labelKey: "employees", icon: <Users className="h-4 w-4" /> },
+      { href: "/org", labelKey: "orgChart", icon: <Network className="h-4 w-4" /> },
+      { href: "/reports", labelKey: "reports", icon: <BarChart3 className="h-4 w-4" /> },
+      { href: "/history", labelKey: "changeHistory", icon: <History className="h-4 w-4" /> },
     ],
   },
   {
-    title: "\uC124\uC815",
+    titleKey: "settings",
     collapsible: true,
     items: [
-      { href: "/settings/groups", label: "\uADF8\uB8F9 \uC124\uC815", icon: <Settings className="h-4 w-4" /> },
-      { href: "/settings/notifications", label: "\uC54C\uB9BC \uC124\uC815", icon: <Bell className="h-4 w-4" /> },
-      { href: "/settings/import", label: "\uB370\uC774\uD130 \uAC00\uC838\uC624\uAE30", icon: <Upload className="h-4 w-4" />, authRequired: true },
-      { href: "/guide", label: "\uAD00\uB9AC\uC790 \uAC00\uC774\uB4DC", icon: <BookOpen className="h-4 w-4" /> },
+      { href: "/settings/profile", labelKey: "profile", icon: <UserCircle className="h-4 w-4" />, authRequired: true },
+      { href: "/settings/groups", labelKey: "groupSettings", icon: <Settings className="h-4 w-4" /> },
+      { href: "/settings/notifications", labelKey: "notificationSettings", icon: <Bell className="h-4 w-4" /> },
+      { href: "/settings/import", labelKey: "dataImport", icon: <Upload className="h-4 w-4" />, authRequired: true },
+      { href: "/guide", labelKey: "adminGuide", icon: <BookOpen className="h-4 w-4" /> },
     ],
   },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { t } = useTranslation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
 
@@ -80,8 +84,12 @@ export default function Sidebar() {
     setCollapsedGroups((prev) => ({ ...prev, [title]: !prev[title] }));
   };
 
+  const getLabel = (key: string) => {
+    return (t.nav as Record<string, string>)[key] ?? key;
+  };
+
   const sidebarContent = (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col" data-tour="sidebar">
       {/* Brand */}
       <div className="flex h-14 items-center gap-2 border-b border-gray-200 px-4">
         <Package className="h-5 w-5 text-blue-600" />
@@ -93,13 +101,14 @@ export default function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 py-4">
         {NAV_GROUPS.map((group) => {
-          const isCollapsed = group.collapsible && collapsedGroups[group.title];
+          const groupTitle = group.titleKey ? getLabel(group.titleKey) : "";
+          const isCollapsed = group.collapsible && collapsedGroups[group.titleKey];
 
           return (
-            <div key={group.title || "main"} className={group.title ? "mt-6" : ""}>
-              {group.title && (
+            <div key={group.titleKey || "main"} className={groupTitle ? "mt-6" : ""}>
+              {groupTitle && (
                 <button
-                  onClick={() => group.collapsible && toggleGroup(group.title)}
+                  onClick={() => group.collapsible && toggleGroup(group.titleKey)}
                   className="mb-1 flex w-full items-center gap-1 px-3 text-xs font-semibold uppercase tracking-wider text-gray-400"
                 >
                   {group.collapsible && (
@@ -107,7 +116,7 @@ export default function Sidebar() {
                       ? <ChevronRight className="h-3 w-3" />
                       : <ChevronDown className="h-3 w-3" />
                   )}
-                  {group.title}
+                  {groupTitle}
                 </button>
               )}
               {!isCollapsed && (
@@ -124,7 +133,7 @@ export default function Sidebar() {
                         }`}
                       >
                         {item.icon}
-                        {item.label}
+                        {getLabel(item.labelKey)}
                       </Link>
                     </li>
                   ))}
@@ -148,7 +157,7 @@ export default function Sidebar() {
       <button
         onClick={() => setMobileOpen(true)}
         className="fixed left-3 top-3 z-40 rounded-md bg-white p-2 shadow-md md:hidden"
-        aria-label="메뉴 열기"
+        aria-label="Menu"
       >
         <Menu className="h-5 w-5 text-gray-700" />
       </button>
@@ -164,7 +173,7 @@ export default function Sidebar() {
             <button
               onClick={() => setMobileOpen(false)}
               className="absolute right-2 top-3 rounded p-1 hover:bg-gray-100"
-              aria-label="메뉴 닫기"
+              aria-label="Close"
             >
               <X className="h-5 w-5 text-gray-500" />
             </button>

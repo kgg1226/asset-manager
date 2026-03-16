@@ -18,7 +18,7 @@ fi
 # User 테이블이 비어있으면 관리자 계정 자동 생성
 # 데이터가 이미 있으면 아무것도 하지 않음
 echo "[entrypoint] 초기 데이터 확인 중..."
-node init-db.mjs || echo "[entrypoint] init-db 스킵 (앱 시작에 영향 없음)"
+node scripts/init-db.mjs || echo "[entrypoint] init-db 스킵 (앱 시작에 영향 없음)"
 
 # ── [3/3] 앱 시작 ──────────────────────────────────────────────────
 echo "[entrypoint] 앱 시작..."

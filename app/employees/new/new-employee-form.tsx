@@ -2,9 +2,10 @@
 
 "use client";
 
-import { useActionState, useState, useEffect } from "react";
+import { useActionState, useState } from "react";
 import { createEmployee, type FormState } from "./actions";
 import Link from "next/link";
+import { useTranslation } from "@/lib/i18n";
 
 type OrgUnit = { id: number; name: string; parentId: number | null };
 type Company = { id: number; name: string; orgs: OrgUnit[] };
@@ -13,6 +14,7 @@ const initialState: FormState = {};
 
 export default function NewEmployeeForm({ companies }: { companies: Company[] }) {
   const [state, formAction, isPending] = useActionState(createEmployee, initialState);
+  const { t } = useTranslation();
 
   const [selectedCompanyId, setSelectedCompanyId] = useState<number | "">("");
   const [selectedOrgId, setSelectedOrgId] = useState<number | "">("");
@@ -41,9 +43,9 @@ export default function NewEmployeeForm({ companies }: { companies: Company[] })
     <div className="min-h-screen bg-gray-50 py-10">
       <div className="mx-auto max-w-2xl px-4">
         <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">조직원 등록</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t.employee.newEmployee}</h1>
           <Link href="/employees" className="text-sm text-gray-500 hover:text-gray-700">
-            &larr; 목록으로
+            &larr; {t.common.list}
           </Link>
         </div>
 
@@ -54,42 +56,53 @@ export default function NewEmployeeForm({ companies }: { companies: Company[] })
         <form action={formAction} className="space-y-6 rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
           <fieldset className="space-y-4">
             <legend className="text-base font-semibold text-gray-900 border-b border-gray-200 pb-2 w-full">
-              기본 정보
+              {t.common.name}
             </legend>
 
-            <Field label="이름" required error={state.errors?.name}>
-              <input type="text" name="name" required className="input" placeholder="예: 홍길동" />
+            <Field label={t.employee.employeeName} required error={state.errors?.name}>
+              <input type="text" name="name" required className="input" />
             </Field>
 
-            <Field label="이메일" error={state.errors?.email}>
-              <input type="email" name="email" className="input" placeholder="예: hong@company.com" />
+            <Field label={t.employee.email} error={state.errors?.email}>
+              <input type="email" name="email" className="input" />
             </Field>
 
-            <Field label="직함" error={state.errors?.title}>
-              <input type="text" name="title" className="input" placeholder="예: 선임연구원" />
+            <Field label={t.employee.jobTitle} error={state.errors?.title}>
+              <input type="text" name="title" className="input" />
             </Field>
           </fieldset>
 
           <fieldset className="space-y-4">
             <legend className="text-base font-semibold text-gray-900 border-b border-gray-200 pb-2 w-full">
-              조직 정보 (선택)
+              {t.employee.department}
             </legend>
+            {/* 선택된 조직명을 department로 자동 세팅 */}
+            <input type="hidden" name="department" value={
+              (() => {
+                const orgName = selectedSubOrgId
+                  ? selectedCompany?.orgs.find(o => o.id === selectedSubOrgId)?.name
+                  : selectedOrgId
+                    ? selectedCompany?.orgs.find(o => o.id === selectedOrgId)?.name
+                    : selectedCompany?.name;
+                return orgName ?? "";
+              })()
+            } />
 
-            <Field label="회사">
+            <Field label={t.org.companyName}>
               <select
                 name="companyId"
                 value={selectedCompanyId}
                 onChange={(e) => handleCompanyChange(e.target.value)}
                 className="input"
               >
-                <option value="">선택 안 함</option>
+                <option value="">{t.common.none}</option>
                 {companies.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
             </Field>
 
-            <Field label="조직">
+            <Field label={t.org.title}>
               <select
                 name="orgId"
                 value={selectedOrgId}
@@ -97,14 +110,14 @@ export default function NewEmployeeForm({ companies }: { companies: Company[] })
                 className="input"
                 disabled={!selectedCompanyId || topOrgs.length === 0}
               >
-                <option value="">선택 안 함</option>
+                <option value="">{t.common.none}</option>
                 {topOrgs.map((o) => (
                   <option key={o.id} value={o.id}>{o.name}</option>
                 ))}
               </select>
             </Field>
 
-            <Field label="하위조직">
+            <Field label={t.org.addPosition}>
               <select
                 name="subOrgId"
                 value={selectedSubOrgId}
@@ -112,7 +125,7 @@ export default function NewEmployeeForm({ companies }: { companies: Company[] })
                 className="input"
                 disabled={!selectedOrgId || subOrgs.length === 0}
               >
-                <option value="">선택 안 함</option>
+                <option value="">{t.common.none}</option>
                 {subOrgs.map((o) => (
                   <option key={o.id} value={o.id}>{o.name}</option>
                 ))}
@@ -120,20 +133,16 @@ export default function NewEmployeeForm({ companies }: { companies: Company[] })
             </Field>
           </fieldset>
 
-          <p className="text-xs text-gray-500">
-            기본 그룹에 포함된 라이선스가 자동으로 할당됩니다.
-          </p>
-
           <div className="flex items-center justify-end gap-3 border-t border-gray-200 pt-4">
             <Link href="/employees" className="rounded-md px-4 py-2 text-sm font-medium text-gray-700 ring-1 ring-gray-300 hover:bg-gray-50">
-              취소
+              {t.common.cancel}
             </Link>
             <button
               type="submit"
               disabled={isPending}
               className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
             >
-              {isPending ? "등록 중..." : "등록"}
+              {isPending ? t.common.loading : t.common.create}
             </button>
           </div>
         </form>

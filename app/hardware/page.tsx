@@ -6,17 +6,24 @@ import Link from "next/link";
 import { Plus, Eye, Edit, Trash2, RefreshCw, ChevronUp, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useTranslation } from "@/lib/i18n";
+import CiaBadge from "@/app/_components/cia-badge";
+import { TourGuide } from "@/app/_components/tour-guide";
+import { HARDWARE_TOUR_KEY, getHardwareSteps } from "@/app/_components/tours/hardware-tour";
+import HwAssignButton from "./hw-assign-button";
+import HwUnassignButton from "./hw-unassign-button";
 
 type AssetStatus = "IN_STOCK" | "IN_USE" | "INACTIVE" | "UNUSABLE" | "PENDING_DISPOSAL" | "DISPOSED";
 
 interface Asset {
   id: number; name: string; status: AssetStatus; cost?: number | null; currency: string;
   purchaseDate?: string | null; expiryDate?: string | null;
+  ciaC?: number | null; ciaI?: number | null; ciaA?: number | null;
   assignee?: { id: number; name: string } | null;
-  hardwareDetail?: { deviceType?: string | null; manufacturer?: string | null; model?: string | null } | null;
+  hardwareDetail?: { deviceType?: string | null; manufacturer?: string | null; model?: string | null; condition?: string | null } | null;
 }
 
-const STATUS_LABELS: Record<AssetStatus, string> = { IN_STOCK: "재고", IN_USE: "사용 중", INACTIVE: "미사용", UNUSABLE: "불용", PENDING_DISPOSAL: "폐기 대상", DISPOSED: "폐기 완료" };
+const STATUS_KEYS: Record<AssetStatus, string> = { IN_STOCK: "statusInStock", IN_USE: "statusInUse", INACTIVE: "statusInactive", UNUSABLE: "statusUnusable", PENDING_DISPOSAL: "statusPendingDisposal", DISPOSED: "statusDisposed" };
 const STATUS_COLORS: Record<AssetStatus, string> = { IN_STOCK: "bg-gray-100 text-gray-800", IN_USE: "bg-green-100 text-green-800", INACTIVE: "bg-yellow-100 text-yellow-800", UNUSABLE: "bg-orange-100 text-orange-800", PENDING_DISPOSAL: "bg-red-100 text-red-800", DISPOSED: "bg-gray-800 text-gray-100" };
 
 type SortField = "name" | "deviceType" | "manufacturer" | "status" | "cost" | "assignee" | "purchaseDate";
@@ -24,7 +31,9 @@ type SortOrder = "asc" | "desc";
 
 function formatCost(cost: number | null | undefined, currency: string): string {
   if (cost == null) return "—";
-  return currency === "KRW" ? `${cost.toLocaleString("ko-KR")}원` : `${currency} ${cost.toLocaleString()}`;
+  const symbols: Record<string, string> = { KRW: "₩", USD: "$", EUR: "€", JPY: "¥", GBP: "£", CNY: "¥" };
+  const sym = symbols[currency] ?? currency;
+  return `${sym}${cost.toLocaleString()}`;
 }
 
 const STATUS_ORDER: Record<AssetStatus, number> = { IN_STOCK: 0, IN_USE: 1, INACTIVE: 2, UNUSABLE: 3, PENDING_DISPOSAL: 4, DISPOSED: 5 };
@@ -75,7 +84,10 @@ export default function HardwareListPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const isAdmin = user?.role === "ADMIN";
+
+  const getStatusLabel = (s: AssetStatus) => (t.asset as Record<string, string>)[STATUS_KEYS[s]] ?? s;
 
   const [assets, setAssets] = useState<Asset[]>([]);
   const [total, setTotal] = useState(0);
@@ -94,12 +106,12 @@ export default function HardwareListPage() {
       params.set("type", "HARDWARE");
       if (searchQuery) params.set("search", searchQuery);
       if (selectedStatus) params.set("status", selectedStatus);
-      params.set("limit", "1000");
+      params.set("limit", "100");
       const res = await fetch(`/api/assets?${params}`);
       if (!res.ok) throw new Error("Failed");
       const data = await res.json();
       setAssets(data.assets ?? []); setTotal(data.total ?? 0);
-    } catch { toast.error("하드웨어 목록을 불러올 수 없습니다"); }
+    } catch { toast.error(t.toast.saveFail); }
     finally { setIsLoading(false); }
   }, [searchQuery, selectedStatus]);
 
@@ -134,61 +146,63 @@ export default function HardwareListPage() {
   };
 
   const handleDelete = async (id: number, name: string) => {
-    if (!confirm(`"${name}"을(를) 삭제하시겠습니까?`)) return;
+    if (!confirm(`${t.toast.confirmDelete}`)) return;
     try {
       const res = await fetch(`/api/assets/${id}`, { method: "DELETE" });
-      if (!res.ok) { const e = await res.json(); toast.error(e.error || "삭제 실패"); return; }
-      toast.success("삭제되었습니다"); await loadAssets();
-    } catch { toast.error("삭제 실패"); }
+      if (!res.ok) { const e = await res.json(); toast.error(e.error || t.toast.deleteFail); return; }
+      toast.success(t.toast.deleteSuccess); await loadAssets();
+    } catch { toast.error(t.toast.deleteFail); }
   };
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-gray-900">하드웨어 관리</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{t.hw.title}</h1>
           <div className="flex gap-2">
+            <TourGuide tourKey={HARDWARE_TOUR_KEY} steps={getHardwareSteps(t)} />
             <button onClick={loadAssets} disabled={isLoading} className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
               <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             </button>
             {isAdmin && (
-              <Link href="/hardware/new" className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
-                <Plus className="h-4 w-4" />새 하드웨어 등록
+              <Link href="/hardware/new" data-tour="hw-new-btn" className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                <Plus className="h-4 w-4" />{t.hw.newHardware}
               </Link>
             )}
           </div>
         </div>
 
         <div className="mb-6 rounded-lg bg-white p-4 shadow-sm">
-          <div className="mb-4">
-            <input type="text" placeholder="하드웨어 자산명 검색..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
+          <div className="mb-4" data-tour="hw-search">
+            <input type="text" placeholder={`${t.asset.assetName} ${t.common.search}...`} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
           </div>
-          <div className="flex flex-wrap gap-2">
-            <button onClick={() => setSelectedStatus("")} className={`rounded-full px-3 py-1 text-sm ${selectedStatus === "" ? "bg-blue-600 text-white" : "bg-gray-100"}`}>모든 상태</button>
-            {(Object.keys(STATUS_LABELS) as AssetStatus[]).map((s) => (
-              <button key={s} onClick={() => setSelectedStatus(s)} className={`rounded-full px-3 py-1 text-sm ${selectedStatus === s ? "bg-blue-600 text-white" : "bg-gray-100"}`}>{STATUS_LABELS[s]}</button>
+          <div className="flex flex-wrap gap-2" data-tour="hw-status-filter">
+            <button onClick={() => setSelectedStatus("")} className={`rounded-full px-3 py-1 text-sm ${selectedStatus === "" ? "bg-blue-600 text-white" : "bg-gray-100"}`}>{t.common.all} {t.common.status}</button>
+            {(Object.keys(STATUS_KEYS) as AssetStatus[]).map((s) => (
+              <button key={s} onClick={() => setSelectedStatus(s)} className={`rounded-full px-3 py-1 text-sm ${selectedStatus === s ? "bg-blue-600 text-white" : "bg-gray-100"}`}>{getStatusLabel(s)}</button>
             ))}
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-lg bg-white shadow-sm">
+        <div className="overflow-x-auto rounded-lg bg-white shadow-sm" data-tour="hw-table">
           <table className="w-full min-w-[900px]">
             <thead className="border-b bg-gray-50">
               <tr>
-                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600" onClick={() => handleSort("name")}>자산명<SortIcon field="name" /></th>
-                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600" onClick={() => handleSort("deviceType")}>장비 유형<SortIcon field="deviceType" /></th>
-                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600" onClick={() => handleSort("manufacturer")}>제조사 / 모델<SortIcon field="manufacturer" /></th>
-                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600" onClick={() => handleSort("status")}>상태<SortIcon field="status" /></th>
-                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600" onClick={() => handleSort("cost")}>비용<SortIcon field="cost" /></th>
-                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600" onClick={() => handleSort("assignee")}>할당자<SortIcon field="assignee" /></th>
-                {isAdmin && <th className="px-6 py-3 text-right text-xs font-semibold">작업</th>}
+                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("name")}>{t.asset.assetName}<SortIcon field="name" /></th>
+                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("deviceType")}>{t.hw.deviceType}<SortIcon field="deviceType" /></th>
+                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("manufacturer")}>{t.hw.manufacturer} / {t.hw.model}<SortIcon field="manufacturer" /></th>
+                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("status")}>{t.common.status}<SortIcon field="status" /></th>
+                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("cost")}>{t.asset.cost}<SortIcon field="cost" /></th>
+                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("assignee")}>{t.asset.assignee}<SortIcon field="assignee" /></th>
+                <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.cia.title}</th>
+                {isAdmin && <th className="px-6 py-3 text-right text-xs font-semibold whitespace-nowrap">{t.common.actions}</th>}
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-400">로딩 중...</td></tr>
+                <tr><td colSpan={8} className="px-6 py-8 text-center text-gray-400">{t.common.loading}</td></tr>
               ) : sortedAssets.length === 0 ? (
-                <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-500">하드웨어 자산을 찾을 수 없습니다</td></tr>
+                <tr><td colSpan={8} className="px-6 py-8 text-center text-gray-500">{t.common.noData}</td></tr>
               ) : (
                 sortedAssets.map((a) => (
                   <tr key={a.id} className="border-b hover:bg-gray-50">
@@ -196,17 +210,24 @@ export default function HardwareListPage() {
                     <td className="px-6 py-4 text-sm text-gray-600">{a.hardwareDetail?.deviceType || "—"}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{[a.hardwareDetail?.manufacturer, a.hardwareDetail?.model].filter(Boolean).join(" ") || "—"}</td>
                     <td className="px-6 py-4">
-                      <span className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${STATUS_COLORS[a.status]}`}>{STATUS_LABELS[a.status]}</span>
+                      <span className={`inline-block whitespace-nowrap rounded-full px-2 py-1 text-xs font-medium ${STATUS_COLORS[a.status]}`}>{getStatusLabel(a.status)}</span>
                       {a.hardwareDetail?.condition && <span className={`ml-1 inline-block rounded px-1.5 py-0.5 text-xs font-bold ${a.hardwareDetail.condition === "A" ? "bg-green-100 text-green-700" : a.hardwareDetail.condition === "B" ? "bg-blue-100 text-blue-700" : a.hardwareDetail.condition === "C" ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"}`}>{a.hardwareDetail.condition}</span>}
                     </td>
                     <td className="px-6 py-4 text-sm">{formatCost(a.cost, a.currency)}</td>
-                    <td className="px-6 py-4 text-sm">{a.assignee ? <Link href={`/employees/${a.assignee.id}`} className="text-blue-600 hover:underline">{a.assignee.name}</Link> : <span className="text-gray-400">미할당</span>}</td>
+                    <td className="px-6 py-4 text-sm">{a.assignee ? <Link href={`/employees/${a.assignee.id}`} className="text-blue-600 hover:underline">{a.assignee.name}</Link> : <span className="text-gray-400">{t.license.unassigned}</span>}</td>
+                    <td className="px-6 py-4 text-sm"><CiaBadge ciaC={a.ciaC} ciaI={a.ciaI} ciaA={a.ciaA} /></td>
                     {isAdmin && (
                       <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button onClick={() => router.push(`/hardware/${a.id}`)} className="rounded p-1 hover:bg-gray-200" title="상세"><Eye className="h-4 w-4" /></button>
-                          <button onClick={() => router.push(`/hardware/${a.id}/edit`)} className="rounded p-1 hover:bg-gray-200" title="수정"><Edit className="h-4 w-4" /></button>
-                          <button onClick={() => handleDelete(a.id, a.name)} className="rounded p-1 hover:bg-gray-200" title="삭제"><Trash2 className="h-4 w-4 text-red-600" /></button>
+                        <div className="flex items-center justify-end gap-1">
+                          {!a.assignee && a.status === "IN_STOCK" && (
+                            <HwAssignButton assetId={a.id} assetName={a.name} onDone={loadAssets} />
+                          )}
+                          {a.assignee && (
+                            <HwUnassignButton assetId={a.id} assetName={a.name} assigneeName={a.assignee.name} onDone={loadAssets} />
+                          )}
+                          <button onClick={() => router.push(`/hardware/${a.id}`)} className="rounded p-1 hover:bg-gray-200" title={t.common.detail}><Eye className="h-4 w-4" /></button>
+                          <button onClick={() => router.push(`/hardware/${a.id}/edit`)} className="rounded p-1 hover:bg-gray-200" title={t.common.edit}><Edit className="h-4 w-4" /></button>
+                          <button onClick={() => handleDelete(a.id, a.name)} className="rounded p-1 hover:bg-gray-200" title={t.common.delete}><Trash2 className="h-4 w-4 text-red-600" /></button>
                         </div>
                       </td>
                     )}
@@ -216,7 +237,7 @@ export default function HardwareListPage() {
             </tbody>
           </table>
         </div>
-        <div className="mt-4 text-sm text-gray-600">총 {total}개 하드웨어 자산</div>
+        <div className="mt-4 text-sm text-gray-600">{t.common.total} {total}{t.dashboard.items}</div>
       </div>
     </div>
   );

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Search, FileText, HardDrive, Users, Cloud, Globe, FileSignature, Package } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 
 interface SearchResult {
   licenses: { id: number; name: string; licenseType: string; expiryDate: string | null }[];
@@ -10,23 +11,24 @@ interface SearchResult {
   employees: { id: number; name: string; department: string | null; email: string | null; status: string }[];
 }
 
-const ASSET_TYPE_META: Record<string, { label: string; icon: React.ReactNode; path: string }> = {
-  HARDWARE: { label: "하드웨어", icon: <HardDrive className="h-3.5 w-3.5" />, path: "/hardware" },
-  CLOUD: { label: "클라우드", icon: <Cloud className="h-3.5 w-3.5" />, path: "/cloud" },
-  DOMAIN_SSL: { label: "도메인", icon: <Globe className="h-3.5 w-3.5" />, path: "/domains" },
-  CONTRACT: { label: "계약", icon: <FileSignature className="h-3.5 w-3.5" />, path: "/contracts" },
-  SOFTWARE: { label: "소프트웨어", icon: <Package className="h-3.5 w-3.5" />, path: "/hardware" },
-  OTHER: { label: "기타", icon: <Package className="h-3.5 w-3.5" />, path: "/hardware" },
-};
-
 export default function GlobalSearch() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult | null>(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const ASSET_TYPE_META: Record<string, { label: string; icon: React.ReactNode; path: string }> = {
+    HARDWARE: { label: t.hw.title, icon: <HardDrive className="h-3.5 w-3.5" />, path: "/hardware" },
+    CLOUD: { label: t.cloud.title, icon: <Cloud className="h-3.5 w-3.5" />, path: "/cloud" },
+    DOMAIN_SSL: { label: t.domain.title, icon: <Globe className="h-3.5 w-3.5" />, path: "/domains" },
+    CONTRACT: { label: t.contract.title, icon: <FileSignature className="h-3.5 w-3.5" />, path: "/contracts" },
+    SOFTWARE: { label: t.license.title, icon: <Package className="h-3.5 w-3.5" />, path: "/hardware" },
+    OTHER: { label: t.hw.other, icon: <Package className="h-3.5 w-3.5" />, path: "/hardware" },
+  };
 
   // Close on outside click
   useEffect(() => {
@@ -81,7 +83,7 @@ export default function GlobalSearch() {
           value={query}
           onChange={handleChange}
           onFocus={() => { if (results && query) setOpen(true); }}
-          placeholder="통합 검색..."
+          placeholder={t.header.searchPlaceholder}
           className="w-48 rounded-md border border-gray-300 py-1.5 pl-8 pr-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 lg:w-64"
         />
         {loading && (
@@ -94,13 +96,13 @@ export default function GlobalSearch() {
       {open && results && (
         <div className="absolute right-0 top-full mt-1 w-80 rounded-lg border border-gray-200 bg-white shadow-lg lg:w-96">
           {totalCount === 0 ? (
-            <p className="px-4 py-3 text-center text-sm text-gray-500">검색 결과가 없습니다</p>
+            <p className="px-4 py-3 text-center text-sm text-gray-500">{t.common.noData}</p>
           ) : (
             <div className="max-h-80 overflow-y-auto py-1">
               {/* Licenses */}
               {results.licenses.length > 0 && (
                 <div>
-                  <p className="px-4 py-1.5 text-xs font-semibold uppercase text-gray-400">라이선스</p>
+                  <p className="px-4 py-1.5 text-xs font-semibold uppercase text-gray-400">{t.license.title}</p>
                   {results.licenses.map((l) => (
                     <button
                       key={`l-${l.id}`}
@@ -120,7 +122,7 @@ export default function GlobalSearch() {
               {/* Assets */}
               {results.assets.length > 0 && (
                 <div>
-                  <p className="px-4 py-1.5 text-xs font-semibold uppercase text-gray-400">자산</p>
+                  <p className="px-4 py-1.5 text-xs font-semibold uppercase text-gray-400">{t.dashboard.totalAssets}</p>
                   {results.assets.map((a) => {
                     const meta = ASSET_TYPE_META[a.type] ?? ASSET_TYPE_META.OTHER;
                     return (
@@ -143,7 +145,7 @@ export default function GlobalSearch() {
               {/* Employees */}
               {results.employees.length > 0 && (
                 <div>
-                  <p className="px-4 py-1.5 text-xs font-semibold uppercase text-gray-400">조직원</p>
+                  <p className="px-4 py-1.5 text-xs font-semibold uppercase text-gray-400">{t.employee.title}</p>
                   {results.employees.map((e) => (
                     <button
                       key={`e-${e.id}`}

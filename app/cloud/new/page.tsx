@@ -6,14 +6,12 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useTranslation } from "@/lib/i18n";
+import CiaScoreInput from "@/app/_components/cia-score-input";
+import type { CiaLevel } from "@/lib/cia";
 
 const CURRENCIES = ["USD", "KRW", "EUR", "JPY", "GBP", "CNY"];
-const BILLING_CYCLES = [
-  { value: "MONTHLY", label: "월간" },
-  { value: "ANNUAL", label: "연간" },
-  { value: "ONE_TIME", label: "일회성" },
-  { value: "USAGE_BASED", label: "사용량 기반" },
-];
+const BILLING_CYCLE_VALUES = ["MONTHLY", "ANNUAL", "ONE_TIME", "USAGE_BASED"] as const;
 
 const PLATFORMS = ["AWS", "GCP", "Azure", "Slack", "Notion", "Jira", "GitHub", "GitLab", "Figma", "Vercel", "Datadog", "Other"];
 const SERVICE_CATEGORIES = ["IaaS", "PaaS", "SaaS", "Security", "Database", "Storage", "Network", "Other"];
@@ -24,9 +22,17 @@ const RESOURCE_TYPES: Record<string, string[]> = {
   _default: ["Web/App", "Database", "Storage", "API", "Auth", "Monitoring", "CI/CD", "Other"],
 };
 
+const BILLING_CYCLE_KEY_MAP: Record<string, string> = {
+  MONTHLY: "monthly",
+  ANNUAL: "yearly",
+  ONE_TIME: "oneTime",
+  USAGE_BASED: "usageBased",
+};
+
 export default function CloudNewPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!loading && !user) router.push("/login");
@@ -40,19 +46,19 @@ export default function CloudNewPage() {
     platform: "", accountId: "", region: "", seatCount: "",
     serviceCategory: "", resourceType: "", resourceId: "",
     instanceSpec: "", storageSize: "", endpoint: "", vpcId: "", availabilityZone: "",
-    // 계약/구독
     contractStartDate: "", contractTermMonths: "", renewalDate: "", cancellationNoticeDate: "",
     cancellationNoticeDays: "", paymentMethod: "", contractNumber: "",
     adminEmail: "", adminSlackId: "", notifyChannels: "EMAIL", autoRenew: "", notes: "",
   });
+  const [ciaValues, setCiaValues] = useState<{ ciaC: CiaLevel | null; ciaI: CiaLevel | null; ciaA: CiaLevel | null }>({ ciaC: null, ciaI: null, ciaA: null });
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!form.name.trim()) e.name = "자산명은 필수입니다";
-    if (!form.cost) e.cost = "비용은 필수입니다";
-    else if (isNaN(Number(form.cost)) || Number(form.cost) < 0) e.cost = "유효한 비용을 입력해주세요";
+    if (!form.name.trim()) e.name = `${t.asset.assetName} ${t.common.required}`;
+    if (!form.cost) e.cost = `${t.asset.cost} ${t.common.required}`;
+    else if (isNaN(Number(form.cost)) || Number(form.cost) < 0) e.cost = t.common.invalidCost;
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -69,12 +75,12 @@ export default function CloudNewPage() {
   };
 
   if (loading || !user) {
-    return <div className="min-h-screen bg-gray-50 p-6"><div className="mx-auto max-w-2xl"><p className="text-center text-gray-500">{loading ? "로딩 중..." : "로그인이 필요합니다."}</p></div></div>;
+    return <div className="min-h-screen bg-gray-50 p-6"><div className="mx-auto max-w-2xl"><p className="text-center text-gray-500">{loading ? t.common.loading : t.common.login}</p></div></div>;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) { toast.error("입력 값을 확인해주세요"); return; }
+    if (!validate()) { toast.error(t.common.validationCheck); return; }
     setIsLoading(true);
     try {
       const payload = {
@@ -82,6 +88,7 @@ export default function CloudNewPage() {
         vendor: form.vendor || null, cost: Number(form.cost), currency: form.currency,
         billingCycle: form.billingCycle, purchaseDate: form.purchaseDate || null,
         expiryDate: form.expiryDate || null,
+        ciaC: ciaValues.ciaC, ciaI: ciaValues.ciaI, ciaA: ciaValues.ciaA,
         cloudDetail: {
           platform: cloud.platform || null, accountId: cloud.accountId || null,
           region: cloud.region || null, seatCount: cloud.seatCount ? Number(cloud.seatCount) : null,
@@ -89,7 +96,6 @@ export default function CloudNewPage() {
           resourceId: cloud.resourceId || null, instanceSpec: cloud.instanceSpec || null,
           storageSize: cloud.storageSize || null, endpoint: cloud.endpoint || null,
           vpcId: cloud.vpcId || null, availabilityZone: cloud.availabilityZone || null,
-          // 계약/구독
           contractStartDate: cloud.contractStartDate || null,
           contractTermMonths: cloud.contractTermMonths ? Number(cloud.contractTermMonths) : null,
           renewalDate: cloud.renewalDate || null,
@@ -106,11 +112,11 @@ export default function CloudNewPage() {
       };
       const res = await fetch("/api/assets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "등록 실패");
-      toast.success("클라우드 자산이 등록되었습니다");
+      if (!res.ok) throw new Error(json.error || t.common.registerFail);
+      toast.success(t.toast.createSuccess);
       router.push(`/cloud/${json.id}`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "등록 실패");
+      toast.error(err instanceof Error ? err.message : t.common.registerFail);
     } finally { setIsLoading(false); }
   };
 
@@ -122,205 +128,205 @@ export default function CloudNewPage() {
       <div className="mx-auto max-w-2xl">
         <div className="mb-8 flex items-center gap-4">
           <Link href="/cloud" className="rounded-md p-2 hover:bg-gray-200"><ArrowLeft className="h-5 w-5" /></Link>
-          <h1 className="text-3xl font-bold text-gray-900">새 클라우드 자산 등록</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{t.cloud.newCloud}</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="rounded-lg bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-base font-semibold text-gray-900">기본 정보</h2>
+            <h2 className="mb-4 text-base font-semibold text-gray-900">{t.common.detail}</h2>
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">자산명 <span className="text-red-500">*</span></label>
-              <input type="text" name="name" value={form.name} onChange={onChange} placeholder="자산 이름" className={errors.name ? errCls : inputCls} />
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t.asset.assetName} <span className="text-red-500">*</span></label>
+              <input type="text" name="name" value={form.name} onChange={onChange} placeholder={t.asset.assetName} className={errors.name ? errCls : inputCls} />
               {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
             </div>
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">공급업체</label>
-              <input type="text" name="vendor" value={form.vendor} onChange={onChange} placeholder="공급업체 (선택)" className={inputCls} />
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t.asset.vendor}</label>
+              <input type="text" name="vendor" value={form.vendor} onChange={onChange} placeholder={`${t.asset.vendor} (${t.common.optional})`} className={inputCls} />
             </div>
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">설명</label>
-              <textarea name="description" value={form.description} onChange={onChange} rows={3} placeholder="설명 (선택)" className={inputCls} />
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t.common.description}</label>
+              <textarea name="description" value={form.description} onChange={onChange} rows={3} placeholder={`${t.common.description} (${t.common.optional})`} className={inputCls} />
             </div>
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">비용 <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.asset.cost} <span className="text-red-500">*</span></label>
                 <input type="number" name="cost" value={form.cost} onChange={onChange} placeholder="0" min="0" step="0.01" className={errors.cost ? errCls : inputCls} />
                 {errors.cost && <p className="mt-1 text-sm text-red-500">{errors.cost}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">통화</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.license.currency}</label>
                 <select name="currency" value={form.currency} onChange={onChange} className={inputCls}>
                   {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">비용 주기</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.license.paymentCycle}</label>
                 <select name="billingCycle" value={form.billingCycle} onChange={onChange} className={inputCls}>
-                  {BILLING_CYCLES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                  {BILLING_CYCLE_VALUES.map((v) => <option key={v} value={v}>{(t.license as Record<string, string>)[BILLING_CYCLE_KEY_MAP[v]] ?? v}</option>)}
                 </select>
               </div>
             </div>
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">구매일</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.asset.purchaseDate}</label>
                 <input type="date" name="purchaseDate" value={form.purchaseDate} onChange={onChange} className={inputCls} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">만료일</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.asset.expiryDate}</label>
                 <input type="date" name="expiryDate" value={form.expiryDate} onChange={onChange} className={inputCls} />
               </div>
             </div>
           </div>
 
           <div className="rounded-lg bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-base font-semibold text-gray-900">클라우드 상세 정보</h2>
+            <h2 className="mb-4 text-base font-semibold text-gray-900">{t.cloud.title} {t.common.detail}</h2>
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">플랫폼</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.cloud.platform}</label>
                 <select name="platform" value={cloud.platform} onChange={onCloudChange} className={inputCls}>
-                  <option value="">선택해주세요</option>
+                  <option value="">{t.common.select}</option>
                   {PLATFORMS.map((p) => <option key={p} value={p}>{p}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">계정 ID</label>
-                <input type="text" name="accountId" value={cloud.accountId} onChange={onCloudChange} placeholder="계정 ID 또는 이메일" className={inputCls} />
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.cloud.accountId}</label>
+                <input type="text" name="accountId" value={cloud.accountId} onChange={onCloudChange} placeholder={t.cloud.accountIdPlaceholder} className={inputCls} />
               </div>
             </div>
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">리전</label>
-                <input type="text" name="region" value={cloud.region} onChange={onCloudChange} placeholder="ap-northeast-2 등" className={inputCls} />
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.cloud.region}</label>
+                <input type="text" name="region" value={cloud.region} onChange={onCloudChange} placeholder={t.cloud.regionPlaceholder} className={inputCls} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">시트 수</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.cloud.seatCount}</label>
                 <input type="number" name="seatCount" value={cloud.seatCount} onChange={onCloudChange} placeholder="0" min="0" className={inputCls} />
               </div>
             </div>
           </div>
 
-          {/* 서비스 분류 */}
+          {/* Service Category */}
           <div className="rounded-lg bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-base font-semibold text-gray-900">서비스 분류</h2>
+            <h2 className="mb-4 text-base font-semibold text-gray-900">{t.cloud.serviceCategory}</h2>
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">서비스 카테고리</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.cloud.serviceCategory}</label>
                 <select name="serviceCategory" value={cloud.serviceCategory} onChange={onCloudChange} className={inputCls}>
-                  <option value="">선택</option>
+                  <option value="">{t.common.select}</option>
                   {SERVICE_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">리소스 타입</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.cloud.resourceType}</label>
                 <select name="resourceType" value={cloud.resourceType} onChange={onCloudChange} className={inputCls}>
-                  <option value="">선택</option>
+                  <option value="">{t.common.select}</option>
                   {(RESOURCE_TYPES[cloud.platform] || RESOURCE_TYPES._default).map((r) => <option key={r} value={r}>{r}</option>)}
                 </select>
               </div>
             </div>
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">리소스 ID</label>
-              <input type="text" name="resourceId" value={cloud.resourceId} onChange={onCloudChange} placeholder="i-0abc123, sg-xxx, arn:aws:... 등" className={`${inputCls} font-mono`} />
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t.cloud.resourceId}</label>
+              <input type="text" name="resourceId" value={cloud.resourceId} onChange={onCloudChange} placeholder={t.cloud.resourceIdPlaceholder} className={`${inputCls} font-mono`} />
             </div>
           </div>
 
-          {/* 인프라 상세 — IaaS/Database/Storage/Security/Network 계열에서 표시 */}
+          {/* Infrastructure Details */}
           {(["IaaS", "Database", "Storage", "Security", "Network", ""].includes(cloud.serviceCategory) || ["AWS", "GCP", "Azure"].includes(cloud.platform)) && (
             <div className="rounded-lg bg-white p-6 shadow-sm">
-              <h2 className="mb-4 text-base font-semibold text-gray-900">인프라 상세</h2>
+              <h2 className="mb-4 text-base font-semibold text-gray-900">{t.cloud.infraDetail}</h2>
               <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">인스턴스 사양</label>
-                  <input type="text" name="instanceSpec" value={cloud.instanceSpec} onChange={onCloudChange} placeholder="t4g.small, db.r6g.large 등" className={`${inputCls} font-mono`} />
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t.cloud.instanceSpec}</label>
+                  <input type="text" name="instanceSpec" value={cloud.instanceSpec} onChange={onCloudChange} placeholder="t4g.small, db.r6g.large" className={`${inputCls} font-mono`} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">저장 용량</label>
-                  <input type="text" name="storageSize" value={cloud.storageSize} onChange={onCloudChange} placeholder="100GB, 1TB 등" className={inputCls} />
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t.cloud.storageSize}</label>
+                  <input type="text" name="storageSize" value={cloud.storageSize} onChange={onCloudChange} placeholder="100GB, 1TB" className={inputCls} />
                 </div>
               </div>
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">엔드포인트</label>
-                <input type="text" name="endpoint" value={cloud.endpoint} onChange={onCloudChange} placeholder="접속 URL 또는 엔드포인트" className={`${inputCls} font-mono`} />
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.cloud.endpoint}</label>
+                <input type="text" name="endpoint" value={cloud.endpoint} onChange={onCloudChange} placeholder={t.cloud.endpoint} className={`${inputCls} font-mono`} />
               </div>
               <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">VPC ID</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t.cloud.vpcId}</label>
                   <input type="text" name="vpcId" value={cloud.vpcId} onChange={onCloudChange} placeholder="vpc-xxx" className={`${inputCls} font-mono`} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">가용 영역</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t.cloud.availabilityZone}</label>
                   <input type="text" name="availabilityZone" value={cloud.availabilityZone} onChange={onCloudChange} placeholder="ap-northeast-2a" className={`${inputCls} font-mono`} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">자동 갱신</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t.cloud.autoRenew}</label>
                   <select name="autoRenew" value={cloud.autoRenew} onChange={onCloudChange} className={inputCls}>
-                    <option value="">미지정</option>
-                    <option value="true">예 (RI/Savings Plan 등)</option>
-                    <option value="false">아니오</option>
+                    <option value="">{t.common.unspecified}</option>
+                    <option value="true">{t.cloud.autoRenewYes}</option>
+                    <option value="false">{t.cloud.autoRenewNo}</option>
                   </select>
                 </div>
               </div>
             </div>
           )}
 
-          {/* 계약/구독 관리 */}
+          {/* Contract/Subscription */}
           <div className="rounded-lg bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-base font-semibold text-gray-900">계약 / 구독 관리</h2>
+            <h2 className="mb-4 text-base font-semibold text-gray-900">{t.cloud.contractPeriod}</h2>
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">계약 시작일</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.cloud.contractStartDate}</label>
                 <input type="date" name="contractStartDate" value={cloud.contractStartDate} onChange={onCloudChange} className={inputCls} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">계약 기간 (개월)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.cloud.contractTermMonths}</label>
                 <input type="number" name="contractTermMonths" value={cloud.contractTermMonths} onChange={onCloudChange} min="1" max="120" placeholder="12" className={inputCls} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">갱신 예정일</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.cloud.renewalDate}</label>
                 <input type="date" name="renewalDate" value={cloud.renewalDate} onChange={onCloudChange} className={inputCls} />
               </div>
             </div>
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">해지 통보 기한</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.cloud.cancellationDeadline}</label>
                 <input type="date" name="cancellationNoticeDate" value={cloud.cancellationNoticeDate} onChange={onCloudChange} className={inputCls} />
-                <p className="mt-1 text-xs text-gray-500">이 날짜까지 해지 의사를 통보해야 합니다</p>
+                <p className="mt-1 text-xs text-gray-500">{t.cloud.cancellationNotice}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">해지 통보 사전 일수</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.cloud.cancellationNoticeDays}</label>
                 <input type="number" name="cancellationNoticeDays" value={cloud.cancellationNoticeDays} onChange={onCloudChange} min="1" max="365" placeholder="30" className={inputCls} />
-                <p className="mt-1 text-xs text-gray-500">갱신일 N일 전 통보 필요</p>
+                <p className="mt-1 text-xs text-gray-500">{t.cloud.cancellationNoticeHelper}</p>
               </div>
             </div>
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">결제 수단</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.cloud.paymentMethod}</label>
                 <select name="paymentMethod" value={cloud.paymentMethod} onChange={onCloudChange} className={inputCls}>
-                  <option value="">선택</option>
-                  <option value="CARD">카드</option>
-                  <option value="TRANSFER">계좌이체</option>
-                  <option value="INVOICE">청구서</option>
-                  <option value="OTHER">기타</option>
+                  <option value="">{t.common.select}</option>
+                  <option value="CARD">{t.cloud.paymentCard}</option>
+                  <option value="TRANSFER">{t.cloud.paymentTransfer}</option>
+                  <option value="INVOICE">{t.cloud.paymentInvoice}</option>
+                  <option value="OTHER">{t.cloud.paymentOther}</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">계약/구독 번호</label>
-                <input type="text" name="contractNumber" value={cloud.contractNumber} onChange={onCloudChange} placeholder="계약번호, 구독ID 등" className={`${inputCls} font-mono`} />
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.cloud.contractSubscriptionNumber}</label>
+                <input type="text" name="contractNumber" value={cloud.contractNumber} onChange={onCloudChange} placeholder={t.cloud.contractSubscriptionNumber} className={`${inputCls} font-mono`} />
               </div>
             </div>
           </div>
 
-          {/* 알림 설정 */}
+          {/* Notification Settings */}
           <div className="rounded-lg bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-base font-semibold text-gray-900">알림 설정</h2>
+            <h2 className="mb-4 text-base font-semibold text-gray-900">{t.cloud.notifySettings}</h2>
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">알림 채널</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t.cloud.notifyChannel}</label>
               <div className="flex flex-wrap gap-3">
                 {[
-                  { value: "EMAIL", label: "이메일만" },
-                  { value: "SLACK", label: "Slack만" },
-                  { value: "BOTH", label: "이메일 + Slack" },
-                  { value: "NONE", label: "알림 끄기" },
+                  { value: "EMAIL", label: t.cloud.emailOnly },
+                  { value: "SLACK", label: t.cloud.slackOnly },
+                  { value: "BOTH", label: t.cloud.emailAndSlack },
+                  { value: "NONE", label: t.cloud.notifyOff },
                 ].map((opt) => (
                   <label key={opt.value} className={`flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2.5 text-sm transition ${cloud.notifyChannels === opt.value ? "border-blue-500 bg-blue-50 text-blue-700 font-medium" : "border-gray-200 hover:bg-gray-50"}`}>
                     <input type="radio" name="notifyChannels" value={opt.value} checked={cloud.notifyChannels === opt.value} onChange={onCloudChange} className="sr-only" />
@@ -328,40 +334,43 @@ export default function CloudNewPage() {
                   </label>
                 ))}
               </div>
-              <p className="mt-2 text-xs text-gray-500">갱신일, 해지 통보 기한 등 주요 일정에 대한 알림을 발송합니다 (D-70, D-30, D-15, D-7)</p>
+              <p className="mt-2 text-xs text-gray-500">{t.cloud.notifyHelper}</p>
             </div>
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
               {(cloud.notifyChannels === "EMAIL" || cloud.notifyChannels === "BOTH") && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">관리자 이메일</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t.cloud.adminEmail}</label>
                   <input type="email" name="adminEmail" value={cloud.adminEmail} onChange={onCloudChange} placeholder="admin@example.com" className={inputCls} />
-                  <p className="mt-1 text-xs text-gray-500">알림 수신 이메일 주소</p>
+                  <p className="mt-1 text-xs text-gray-500">{t.cloud.adminEmailHelper}</p>
                 </div>
               )}
               {(cloud.notifyChannels === "SLACK" || cloud.notifyChannels === "BOTH") && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Slack 멤버 ID</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t.cloud.slackMemberId}</label>
                   <input type="text" name="adminSlackId" value={cloud.adminSlackId} onChange={onCloudChange} placeholder="U01AB23CD" className={`${inputCls} font-mono`} />
-                  <p className="mt-1 text-xs text-gray-500">Slack DM으로 알림 발송 (프로필 → 멤버 ID 복사)</p>
+                  <p className="mt-1 text-xs text-gray-500">{t.cloud.slackIdHelper}</p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* 관리 정보 */}
+          {/* Management Info */}
           <div className="rounded-lg bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-base font-semibold text-gray-900">관리 정보</h2>
+            <h2 className="mb-4 text-base font-semibold text-gray-900">{t.cloud.managementInfo}</h2>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">비고</label>
-              <textarea name="notes" value={cloud.notes} onChange={(e) => setCloud((p) => ({ ...p, notes: e.target.value }))} rows={2} placeholder="추가 메모" className={inputCls} />
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t.cloud.notes}</label>
+              <textarea name="notes" value={cloud.notes} onChange={(e) => setCloud((p) => ({ ...p, notes: e.target.value }))} rows={2} placeholder={t.cloud.additionalMemo} className={inputCls} />
             </div>
           </div>
 
+          {/* CIA Score */}
+          <CiaScoreInput initialValues={ciaValues} onChange={setCiaValues} />
+
           <div className="flex gap-3">
             <button type="submit" disabled={isLoading} className="flex-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
-              {isLoading ? "등록 중..." : "클라우드 등록"}
+              {isLoading ? t.common.loading : t.cloud.newCloud}
             </button>
-            <Link href="/cloud" className="flex-1 rounded-md border border-gray-300 px-4 py-2 text-center text-sm font-medium text-gray-700 hover:bg-gray-50">취소</Link>
+            <Link href="/cloud" className="flex-1 rounded-md border border-gray-300 px-4 py-2 text-center text-sm font-medium text-gray-700 hover:bg-gray-50">{t.common.cancel}</Link>
           </div>
         </form>
       </div>

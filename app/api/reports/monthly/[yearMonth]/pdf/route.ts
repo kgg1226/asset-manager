@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ValidationError, handleValidationError } from "@/lib/validation";
 import React from "react";
+import path from "path";
 import {
   Document,
   Page,
@@ -21,22 +22,39 @@ import {
   View,
   StyleSheet,
   renderToBuffer,
+  Font,
 } from "@react-pdf/renderer";
+
+// ── 한글 폰트 등록 (폐쇄망 대응 — 로컬 번들) ───────────────────────────────
+const fontDir = path.join(process.cwd(), "public", "fonts");
+Font.register({
+  family: "NotoSansKR",
+  fonts: [
+    { src: path.join(fontDir, "NotoSansKR-Regular.ttf"), fontWeight: "normal" as const },
+    { src: path.join(fontDir, "NotoSansKR-Bold.ttf"), fontWeight: "bold" as const },
+  ],
+});
+// 하이퍼네이션 비활성화 (한글에서 불필요)
+Font.registerHyphenationCallback((word: string) => [word]);
 
 type Params = { params: Promise<{ yearMonth: string }> };
 
-// ── 한글 라벨 ───────────────────────────────────────────────────────────────
+// ── Type / Status labels (English fallback for server-side) ──────────────────
 const TYPE_LABELS: Record<string, string> = {
-  SOFTWARE: "소프트웨어",
-  CLOUD: "클라우드",
-  HARDWARE: "하드웨어",
-  DOMAIN_SSL: "도메인/SSL",
-  OTHER: "기타",
+  SOFTWARE: "Software",
+  CLOUD: "Cloud",
+  HARDWARE: "Hardware",
+  DOMAIN_SSL: "Domain/SSL",
+  OTHER: "Other",
 };
 const STATUS_LABELS: Record<string, string> = {
-  ACTIVE: "사용 중",
-  INACTIVE: "미사용",
-  DISPOSED: "폐기",
+  IN_STOCK: "In Stock",
+  IN_USE: "In Use",
+  ACTIVE: "Active",
+  INACTIVE: "Inactive",
+  UNUSABLE: "Unusable",
+  PENDING_DISPOSAL: "Pending Disposal",
+  DISPOSED: "Disposed",
 };
 
 // ── 헬퍼 ────────────────────────────────────────────────────────────────────
@@ -68,12 +86,12 @@ const s = StyleSheet.create({
   page: {
     padding: 40,
     fontSize: 10,
-    fontFamily: "Helvetica",
+    fontFamily: "NotoSansKR",
   },
   // Cover
   coverPage: {
     padding: 40,
-    fontFamily: "Helvetica",
+    fontFamily: "NotoSansKR",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -197,7 +215,7 @@ function ReportDocument({ data }: { data: ReportData }) {
       React.createElement(
         Text,
         { style: s.coverSubtitle },
-        `Assets: ${data.assetCount} | Cost: ${fmtCurrency(data.totalMonthlyCost)} KRW`,
+        `Assets: ${data.assetCount} | Monthly Cost: ${fmtCurrency(data.totalMonthlyCost)} KRW`,
       ),
       React.createElement(
         Text,
@@ -219,8 +237,8 @@ function ReportDocument({ data }: { data: ReportData }) {
         summaryItem("Period", data.period),
         summaryItem("Start Date", fmtDate(data.startDate)),
         summaryItem("End Date", fmtDate(data.endDate)),
-        summaryItem("Total Assets", String(data.assetCount)),
-        summaryItem("Monthly Cost (KRW)", fmtCurrency(data.totalMonthlyCost)),
+        summaryItem("Total Assets", `${data.assetCount}`),
+        summaryItem("Monthly Cost Total (KRW)", `${fmtCurrency(data.totalMonthlyCost)} KRW`),
         summaryItem("Report Generated", fmtDate(new Date())),
       ),
 
@@ -231,8 +249,8 @@ function ReportDocument({ data }: { data: ReportData }) {
         [30, 20, 50],
         data.byType.map((t) => [
           TYPE_LABELS[t.type] ?? t.type,
-          String(t.count),
-          fmtCurrency(t.cost),
+          `${t.count}`,
+          `${fmtCurrency(t.cost)} KRW`,
         ]),
       ),
 
@@ -243,8 +261,8 @@ function ReportDocument({ data }: { data: ReportData }) {
         [30, 20, 50],
         data.byStatus.map((st) => [
           STATUS_LABELS[st.status] ?? st.status,
-          String(st.count),
-          fmtCurrency(st.cost),
+          `${st.count}`,
+          `${fmtCurrency(st.cost)} KRW`,
         ]),
       ),
 
@@ -253,7 +271,7 @@ function ReportDocument({ data }: { data: ReportData }) {
       tableView(
         ["Department", "Count", "Monthly Cost (KRW)"],
         [40, 15, 45],
-        data.byDept.map((d) => [d.dept, String(d.count), fmtCurrency(d.cost)]),
+        data.byDept.map((d) => [d.dept, `${d.count}`, `${fmtCurrency(d.cost)} KRW`]),
       ),
 
       // Footer
@@ -272,9 +290,9 @@ function ReportDocument({ data }: { data: ReportData }) {
     React.createElement(
       Page,
       { size: "A4", style: { ...s.page, padding: 30 }, orientation: "landscape" },
-      React.createElement(Text, { style: s.sectionTitle }, "Asset Details"),
+      React.createElement(Text, { style: s.sectionTitle }, "Asset Detail"),
       tableView(
-        ["Name", "Type", "Status", "Vendor", "Cost/mo", "Assignee", "Expiry"],
+        ["Asset Name", "Type", "Status", "Vendor", "Monthly Cost", "Assignee", "Expiry Date"],
         [22, 12, 10, 16, 14, 12, 14],
         data.assets.map((a) => [
           a.name,
@@ -386,7 +404,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
       se.count++; se.cost += mc;
       statusMap.set(asset.status, se);
 
-      const dept = asset.orgUnit?.name ?? asset.assignee?.department ?? "N/A";
+      const dept = asset.orgUnit?.name ?? asset.assignee?.department ?? "Unassigned";
       const de = deptMap.get(dept) ?? { count: 0, cost: 0 };
       de.count++; de.cost += mc;
       deptMap.set(dept, de);

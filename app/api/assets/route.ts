@@ -70,6 +70,7 @@ export async function GET(request: NextRequest) {
           subCategory: { include: { majorCategory: { select: { id: true, name: true, code: true } } } },
           hardwareDetail: true,
           cloudDetail: true,
+          domainDetail: true,
           contractDetail: true,
         },
         orderBy: { [sortBy]: sortOrder },
@@ -102,8 +103,6 @@ export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user)
     return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
-  if (user.role !== "ADMIN")
-    return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
 
   try {
     const body = await request.json();
@@ -126,6 +125,9 @@ export async function POST(request: NextRequest) {
     const companyIdVal = vNum(body.companyId, { min: 1, integer: true });
     const orgUnitIdVal = vNum(body.orgUnitId, { min: 1, integer: true });
     const assigneeIdVal = vNum(body.assigneeId, { min: 1, integer: true });
+    const ciaCVal = vNum(body.ciaC, { min: 1, max: 3, integer: true });
+    const ciaIVal = vNum(body.ciaI, { min: 1, max: 3, integer: true });
+    const ciaAVal = vNum(body.ciaA, { min: 1, max: 3, integer: true });
 
     // PC(Laptop/Desktop) 감가상각 자동 계산
     let finalBillingCycle = billingCycleVal as string | null;
@@ -148,7 +150,7 @@ export async function POST(request: NextRequest) {
           monthlyCostVal = costVal;
           break;
         case "ANNUAL":
-          monthlyCostVal = Math.round((costVal / 12) * 100) / 100;
+          monthlyCostVal = Math.round(costVal / 12);
           break;
         case "ONE_TIME":
           monthlyCostVal = 0;
@@ -191,6 +193,9 @@ export async function POST(request: NextRequest) {
         purchaseDate: purchaseDateVal,
         expiryDate: expiryDateVal,
         renewalDate: renewalDateVal,
+        ciaC: ciaCVal,
+        ciaI: ciaIVal,
+        ciaA: ciaAVal,
         createdBy: user.id,
         ...(subCategoryIdVal && { subCategory: { connect: { id: subCategoryIdVal } } }),
         ...(companyIdVal && { company: { connect: { id: companyIdVal } } }),
@@ -223,6 +228,12 @@ export async function POST(request: NextRequest) {
             gpu: vStr(hd.gpu, 255),
             displaySize: vStr(hd.displaySize, 100),
             usefulLifeYears: vNum(hd.usefulLifeYears, { min: 1, max: 50, integer: true }) ?? 5,
+            // Phase 5 추가 필드
+            storageType: vStr(hd.storageType, 20),
+            imei: vStr(hd.imei, 50),
+            phoneNumber: vStr(hd.phoneNumber, 30),
+            connectionType: vStr(hd.connectionType, 50),
+            resolution: vStr(hd.resolution, 50),
             // 보증/구매 관리
             warrantyEndDate: hd.warrantyEndDate ? new Date(hd.warrantyEndDate) : null,
             warrantyProvider: vStr(hd.warrantyProvider, 255),
@@ -292,6 +303,30 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      if (typeVal === "DOMAIN_SSL" && body.domainDetail) {
+        const dd = body.domainDetail;
+        const billingCycleMonths = vNum(dd.billingCycleMonths, { min: 1, max: 120, integer: true }) ?? 12;
+        await tx.domainDetail.create({
+          data: {
+            assetId: created.id,
+            domainName: vStr(dd.domainName, 255),
+            registrar: vStr(dd.registrar, 255),
+            sslType: vStr(dd.sslType, 50),
+            issuer: vStr(dd.issuer, 255),
+            billingCycleMonths,
+            autoRenew: dd.autoRenew !== false,
+          },
+        });
+        // 도메인/SSL 월 환산 비용 자동 계산
+        if (costVal != null && !monthlyCostVal) {
+          monthlyCostVal = Math.round(costVal / billingCycleMonths);
+          await tx.asset.update({
+            where: { id: created.id },
+            data: { monthlyCost: monthlyCostVal },
+          });
+        }
+      }
+
       // ── AuditLog ──
       await writeAuditLog(tx, {
         entityType: "ASSET",
@@ -312,6 +347,7 @@ export async function POST(request: NextRequest) {
           company: { select: { id: true, name: true } },
           hardwareDetail: true,
           cloudDetail: true,
+          domainDetail: true,
           contractDetail: true,
         },
       });

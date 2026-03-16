@@ -1,98 +1,283 @@
-# Asset Manager
+# IT Asset Manager
 
-사내 **정보자산(소프트웨어 라이선스·클라우드·하드웨어·도메인 등)**을 등록·할당·회수·이력 관리하기 위한 Next.js 기반 웹 애플리케이션입니다.
+**사내 정보자산 통합 관리 시스템** | **Enterprise IT Asset Management System**
 
-## 왜 이 프로젝트 구조를 쓰는가
+소프트웨어 라이선스, 클라우드 구독, 하드웨어, 도메인/SSL, 계약 등 조직의 모든 IT 자산을 하나의 플랫폼에서 관리합니다.
 
-이 저장소는 단순 코드 저장소가 아니라, 운영/배포/보안 품질까지 포함한 **협업 운영 체계**를 함께 관리합니다.
+Manage all your organization's IT assets — software licenses, cloud subscriptions, hardware, domains/SSL, and contracts — in one unified platform.
 
-- 역할 분리된 작업 방식(기획/프론트/백엔드/DevOps/보안)
-- API/DB 변경의 사전 합의 문서화
-- 에러 재발 방지를 위한 포스트모템 축적
-- 폐쇄망·저사양 EC2 환경 제약을 고려한 배포 규칙
+---
 
-핵심 의도는 “기능 구현”과 “운영 안정성”을 동시에 유지하는 것입니다.
+## 주요 기능 | Features
 
-## 기술 스택
+### 자산 관리 | Asset Management
+- **소프트웨어 라이선스** — 시트 배정, 키 관리, 그룹 관리, 사용률 추적
+- **클라우드 서비스** — AWS / GCP / Azure / SaaS 구독, 계약 갱신 관리
+- **하드웨어** — 서버, 네트워크 장비, PC, 모바일, 감가상각 자동 계산
+- **도메인 & SSL** — 만료일 D-day 추적, 등록 대행사 관리
+- **계약** — 유지보수, SLA, 외주 계약 관리
+- **Software Licenses** — Seat assignment, key management, group management, usage tracking
+- **Cloud Services** — AWS / GCP / Azure / SaaS subscriptions, contract & renewal management
+- **Hardware** — Servers, network equipment, PCs, mobile devices, automatic depreciation calculation
+- **Domains & SSL** — Expiry D-day tracking, registrar management
+- **Contracts** — Maintenance, SLA, outsourcing contract management
 
-- Next.js App Router
-- Prisma + SQLite
-- React
-- Tailwind CSS
-- Docker (EC2 배포)
+### 조직 & 인력 | Organization & People
+- **조직도** — 부서/팀 트리 구조, 드래그 앤 드롭 편집
+- **정보보호 조직도** — CISO/CPO/담당자 체계 시각화 및 데이터 입력
+- **구성원 관리** — 자산 배정/회수, 퇴직 처리 시 일괄 회수
+- **Org Chart** — Department/team tree structure with drag & drop editing
+- **Security Org Chart** — CISO/CPO/officer hierarchy visualization & data input
+- **Employee Management** — Asset assignment/retrieval, bulk retrieval on offboarding
 
-## 역할 기반 세션 운영 (중요)
+### 비용 & 보고서 | Cost & Reports
+- **대시보드** — 월별 비용 추이, 자산 유형/상태 분포 차트 (Recharts)
+- **월별 보고서** — 자동 생성, Excel/PDF 내보내기, 이메일 발송
+- **환율 계산기** — 다중 통화(KRW, USD, EUR, JPY, GBP, CNY) 비용 환산
+- **Dashboard** — Monthly cost trends, asset type/status distribution charts (Recharts)
+- **Monthly Reports** — Auto-generation, Excel/PDF export, email delivery
+- **Currency Calculator** — Multi-currency (KRW, USD, EUR, JPY, GBP, CNY) cost conversion
 
-역할별 작업 규칙은 아래 문서로 관리합니다.
+### 보안 & 알림 | Security & Notifications
+- **CIA 보안 등급** — 자산별 기밀성(C) / 무결성(I) / 가용성(A) 평가
+- **만료 알림** — Email / Slack 자동 알림 (D-70, D-30, D-15, D-7)
+- **감사 로그** — 모든 자산 변경 이력 자동 기록
+- **CIA Rating** — Per-asset Confidentiality / Integrity / Availability assessment
+- **Expiry Alerts** — Automatic Email / Slack notifications (D-70, D-30, D-15, D-7)
+- **Audit Log** — Automatic tracking of all asset changes
 
-- `CLAUDE.md`
-- `.claude/commands/backend.md`
-- `.claude/commands/frontend.md`
-- `.claude/commands/devops.md`
-- `.claude/commands/planning.md`
-- `.claude/commands/security.md`
+### 기타 | Others
+- **다국어 지원** — 한국어, English, 日本語, 中文(简体), 中文(繁體), Tiếng Việt
+- **인터랙티브 가이드** — 페이지별 투어 가이드로 온보딩 지원
+- **CSV 가져오기** — 기존 자산 데이터 일괄 등록
+- **역할 기반 접근 제어** — ADMIN / USER 권한 분리
+- **Multilingual** — Korean, English, Japanese, Simplified Chinese, Traditional Chinese, Vietnamese
+- **Interactive Guide** — Per-page tour guides for user onboarding
+- **CSV Import** — Bulk registration of existing asset data
+- **Role-based Access Control** — ADMIN / USER permission separation
 
-### 기본 원칙
+---
 
-1. 역할 진입 전에는 코드 수정 금지
-2. 보안 가이드 변경 시 다른 역할은 작업 전 반드시 재확인
-3. 스펙/명세 변경 없이 구현을 먼저 바꾸지 않기
+## 기술 스택 | Tech Stack
 
-## 문서 체계 (작업 전에 먼저 확인)
+| 영역 / Area | 기술 / Technology |
+|---|---|
+| Frontend | Next.js 15 (App Router), React 19, Tailwind CSS 4 |
+| Backend | Next.js API Routes, Server Actions |
+| Database | PostgreSQL 16, Prisma 7 ORM |
+| Auth | Session Cookie + bcryptjs |
+| Charts | Recharts 3 |
+| Export | ExcelJS, @react-pdf/renderer |
+| Notifications | Nodemailer (SMTP), Slack Webhook |
+| Deployment | Docker Compose, AWS EC2 (ARM64) |
+| Runtime | Node.js 20.x |
 
-### 1) 작업/기획
+---
 
-- `tasks/todo.md` : 현재 작업 상태
-- `tasks/features/` : 기능 명세
-- `tasks/lessons.md` : 누적된 핵심 교훈
+## 빠른 시작 | Quick Start
 
-### 2) 계약/명세
+### 사전 요구사항 | Prerequisites
 
-- `tasks/api-spec.md` : API 계약서
-- `tasks/db-changes.md` : DB 변경 명세
+- Node.js 20.x
+- Docker & Docker Compose (권장) 또는 PostgreSQL 16+
+- Docker & Docker Compose (recommended) or PostgreSQL 16+
 
-### 3) 보안
-
-- `tasks/security/guidelines.md` : 보안 개발 기준
-- `tasks/security/threat-model.md` : 위협 모델 및 우선순위
-
-### 4) 포스트모템
-
-- `tasks/postmortem/README.md` : 작성 규칙
-- `tasks/postmortem/db.md`
-- `tasks/postmortem/docker.md`
-- `tasks/postmortem/frontend.md`
-- `tasks/postmortem/infra.md`
-
-## 시작하기
-
-### 로컬 개발
+### Docker Compose (권장 | Recommended)
 
 ```bash
+# 1. 저장소 클론 | Clone repository
+git clone https://github.com/kgg1226/asset-manager.git
+cd asset-manager
+
+# 2. 환경변수 설정 | Configure environment variables
+cp examples/.env.example .env
+# .env 파일을 열어 필요한 값을 수정하세요
+# Open .env and update the values as needed
+
+# 3. 실행 | Start
+docker-compose up -d --build
+
+# 4. 접속 | Access
+# http://localhost:8080
+# 기본 계정 | Default credentials: admin / changeme123
+```
+
+### 로컬 개발 | Local Development
+
+```bash
+# 1. 의존성 설치 | Install dependencies
 npm install
+
+# 2. PostgreSQL 실행 | Start PostgreSQL (via Docker)
+docker-compose up -d postgres
+
+# 3. 환경변수 설정 | Configure environment variables
+cp examples/.env.example .env
+# DATABASE_URL을 localhost로 변경 | Change DATABASE_URL to localhost:
+# DATABASE_URL=postgresql://license_manager:license_manager_pass@localhost:5432/license_manager
+
+# 4. DB 스키마 적용 & 시드 | Apply DB schema & seed
+npx prisma db push
+npx prisma db seed
+
+# 5. 개발 서버 실행 | Start dev server
 npm run dev
+
+# http://localhost:3000
 ```
 
-브라우저에서 `http://localhost:3000` 접속.
+---
 
-### 프로덕션 빌드
+## 환경변수 | Environment Variables
+
+| 변수 / Variable | 필수 / Required | 설명 / Description |
+|---|---|---|
+| `DATABASE_URL` | O | PostgreSQL 연결 문자열 / PostgreSQL connection string |
+| `SECURE_COOKIE` | O | HTTPS: `true`, HTTP: `false` |
+| `CRON_SECRET` | O | 배치 스케줄러 인증 시크릿 / Cron job auth secret |
+| `SEED_ADMIN_USERNAME` | - | 초기 관리자 ID / Initial admin username (default: `admin`) |
+| `SEED_ADMIN_PASSWORD` | - | 초기 관리자 비밀번호 / Initial admin password (default: `changeme123`) |
+| `SLACK_WEBHOOK_URL` | - | Slack Incoming Webhook URL |
+| `SMTP_HOST` | - | SMTP 서버 / SMTP server host |
+| `SMTP_PORT` | - | SMTP 포트 / SMTP port (default: `587`) |
+| `SMTP_USER` | - | SMTP 사용자 / SMTP username |
+| `SMTP_PASS` | - | SMTP 비밀번호 / SMTP password |
+| `SMTP_FROM` | - | 발신자 이메일 / Sender email address |
+
+---
+
+## 프로젝트 구조 | Project Structure
+
+```
+app/
+  api/                 # API Routes
+    admin/             #   User management API
+    assets/            #   Asset (cloud/hardware/domain) API
+    auth/              #   Authentication API
+    contracts/         #   Contract API
+    cron/              #   Batch scheduler API
+    employees/         #   Employee API
+    licenses/          #   License API
+    org/               #   Organization & security org chart API
+    reports/           #   Report generation API
+    history/           #   Audit log API
+  dashboard/           # Dashboard with charts
+  licenses/            # Software license management
+  cloud/               # Cloud service management
+  hardware/            # Hardware asset management
+  domains/             # Domain & SSL management
+  contracts/           # Contract management
+  employees/           # Employee management
+  org/                 # Organization chart
+  reports/             # Monthly reports
+  settings/            # Groups, CSV import, notifications, profile
+  admin/               # User management (ADMIN only)
+  history/             # Audit log
+  guide/               # User guide with interactive tours
+  _components/         # Shared components (tour guide, CIA badge, etc.)
+lib/
+  i18n/                # Internationalization (6 languages)
+  prisma.ts            # Prisma client singleton
+  auth.ts              # Authentication (session + bcryptjs)
+  audit-log.ts         # Audit logging
+  notification.ts      # Email & Slack notifications
+  cost-calculator.ts   # Currency conversion
+  cia.ts               # CIA security rating
+  assignment-actions.ts # Asset assign/unassign server actions
+prisma/
+  schema.prisma        # Database schema (PostgreSQL)
+  seed.ts              # Database seed
+dockerfile             # Multi-stage Docker build (builder + runner)
+docker-compose.yml     # PostgreSQL + App services
+```
+
+---
+
+## 주요 페이지 | Pages
+
+| 경로 / Path | 설명 / Description |
+|---|---|
+| `/dashboard` | 대시보드 / Dashboard |
+| `/licenses` | 라이선스 관리 / License management |
+| `/cloud` | 클라우드 자산 / Cloud assets |
+| `/hardware` | 하드웨어 자산 / Hardware assets |
+| `/domains` | 도메인 & SSL / Domains & SSL |
+| `/contracts` | 계약 관리 / Contract management |
+| `/employees` | 구성원 관리 / Employee management |
+| `/org` | 조직도 / Organization chart |
+| `/reports` | 월별 보고서 / Monthly reports |
+| `/history` | 감사 로그 / Audit log |
+| `/settings/groups` | 그룹 설정 / Group settings |
+| `/settings/import` | CSV 가져오기 / CSV import |
+| `/settings/notifications` | 알림 설정 / Notification settings |
+| `/settings/profile` | 프로필 설정 / Profile settings |
+| `/admin/users` | 사용자 관리 (ADMIN) / User management (ADMIN) |
+| `/guide` | 사용 가이드 / User guide |
+
+---
+
+## 배포 | Deployment
+
+### Docker Compose
 
 ```bash
-npm run build
-npm run start
+# 빌드 & 실행 | Build & start
+docker-compose up -d --build
+
+# 로그 확인 | View logs
+docker-compose logs -f app
+
+# 중지 | Stop
+docker-compose down
 ```
 
-## 배포/인프라 가이드
+### AWS EC2 (ARM64)
 
-- 인프라 예시 환경변수: `.env.infra.example`
-- 실제 인프라 값은 `.env.infra` 로컬 파일 사용 (Git 추적 금지)
-- 폐쇄망 환경에서는 런타임 외부 호출(외부 API/CDN) 금지
+이 프로젝트는 AWS EC2 t4g.small (ARM64, 2 vCPU, 2GB RAM) 환경에 최적화되어 있습니다.
+단방향 폐쇄망(내부→외부 가능, 외부→내부 불가) 환경을 지원합니다.
 
-## 운영 시 자주 발생하는 실수
+This project is optimized for AWS EC2 t4g.small (ARM64, 2 vCPU, 2GB RAM).
+Supports unidirectional closed network (outbound only, no inbound access).
 
-1. 스펙(`tasks/api-spec.md`) 미반영 상태로 API 선구현
-2. DB 변경 명세 없이 스키마/쿼리 직접 수정
-3. 에러 해결 후 포스트모템 미기록
-4. 보안 가이드 미확인 상태로 기능 추가
+```bash
+# EC2 접속 후 | After connecting to EC2
+cd /opt/license-manager
+docker-compose up -d --build
+```
 
-이 저장소의 규칙은 위 실수를 줄이기 위해 설계되었습니다.
+> **참고**: 저사양 서버(RAM 2GB 이하)에서는 빌드 전 스왑 메모리를 확인하세요 (`free -h`).
+>
+> **Note**: On low-spec servers (RAM ≤ 2GB), verify swap memory before building (`free -h`).
+
+---
+
+## 주요 명령어 | Commands
+
+```bash
+# 개발 서버 | Dev server
+npm run dev
+
+# 프로덕션 빌드 | Production build
+npm run build
+
+# 프로덕션 실행 | Production start
+npm start
+
+# Prisma 클라이언트 생성 | Generate Prisma client
+npm run prisma:generate
+
+# DB 스키마 적용 | Push DB schema
+npx prisma db push
+
+# DB 시드 | Seed database
+npx prisma db seed
+
+# 린트 | Lint
+npm run lint
+```
+
+---
+
+## 라이선스 | License
+
+[MIT License](LICENSE) - Copyright (c) 2026 Silas.K

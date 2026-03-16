@@ -58,6 +58,15 @@ export interface GrowthPoint {
   count: number;
 }
 
+export interface ExpiringItem {
+  source: "LICENSE" | "ASSET";
+  sourceId: number;
+  name: string;
+  category: AssetCategory;
+  expiryDate: string; // ISO string
+  daysLeft: number;
+}
+
 export interface DashboardData {
   metrics: DashboardMetrics;
   charts: {
@@ -66,6 +75,7 @@ export interface DashboardData {
     statusDistribution: StatusDistPoint[];
     growthTrend: GrowthPoint[];
   };
+  expiringItems: ExpiringItem[];
   filter: {
     type: AssetCategory | null;
   };
@@ -297,6 +307,25 @@ export function computeGrowthTrend(items: UnifiedItem[], months = 12): GrowthPoi
   });
 }
 
+export function computeExpiringItems(items: UnifiedItem[], days = 90): ExpiringItem[] {
+  const now = new Date();
+  const cutoff = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+  const msPerDay = 24 * 60 * 60 * 1000;
+
+  return items
+    .filter((item) => item.expiryDate && item.expiryDate >= now && item.expiryDate <= cutoff)
+    .map((item) => ({
+      source: item.source,
+      sourceId: item.sourceId,
+      name: item.name,
+      category: item.category,
+      expiryDate: item.expiryDate!.toISOString(),
+      daysLeft: Math.ceil((item.expiryDate!.getTime() - now.getTime()) / msPerDay),
+    }))
+    .sort((a, b) => a.daysLeft - b.daysLeft)
+    .slice(0, 20); // 최대 20건
+}
+
 // ── 메인 집계 함수 ──
 
 export function aggregateDashboard(
@@ -321,6 +350,7 @@ export function aggregateDashboard(
       statusDistribution: computeStatusDistribution(items),
       growthTrend: computeGrowthTrend(items),
     },
+    expiringItems: computeExpiringItems(items),
     filter: { type: filterType ?? null },
   };
 }

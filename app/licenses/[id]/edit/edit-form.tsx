@@ -12,21 +12,9 @@ import {
   type PaymentCycle,
   type Currency,
 } from "@/lib/cost-calculator";
-
-const NOTICE_OPTIONS = [
-  { value: "", label: "설정 안 함" },
-  { value: "30", label: "1개월 전 (30일)" },
-  { value: "90", label: "3개월 전 (90일)" },
-  { value: "custom", label: "직접 입력" },
-] as const;
+import { useTranslation } from "@/lib/i18n";
 
 type LicenseType = "NO_KEY" | "KEY_BASED" | "VOLUME";
-
-const LICENSE_TYPE_OPTIONS: { value: LicenseType; label: string; description: string }[] = [
-  { value: "KEY_BASED", label: "개별 키", description: "인원별 고유 키 관리 (시트 기반)" },
-  { value: "VOLUME", label: "볼륨 키", description: "하나의 키를 여러 명에게 공유" },
-  { value: "NO_KEY", label: "키 없음", description: "계정 기반 · 서비스 구독 등 키 불필요" },
-];
 
 type License = {
   id: number;
@@ -68,11 +56,14 @@ export default function EditLicenseForm({
   license,
   seats: initialSeats,
   allLicenses = [],
+  activeAssignmentCount = 0,
 }: {
   license: License;
   seats: Seat[];
   allLicenses?: { id: number; name: string }[];
+  activeAssignmentCount?: number;
 }) {
+  const { t } = useTranslation();
   const initialState: FormState = {};
   const boundUpdate = updateLicense.bind(null, license.id);
   const [state, formAction, isPending] = useActionState(boundUpdate, initialState);
@@ -100,8 +91,21 @@ export default function EditLicenseForm({
   // Auto-compute renewal date whenever purchase date or payment cycle changes
   const renewalDateStr = calcRenewalDate(purchaseDateStr, paymentCycle);
 
+  const NOTICE_OPTIONS = [
+    { value: "", label: t.license.noNotice },
+    { value: "30", label: t.license.days30 },
+    { value: "90", label: t.license.days90 },
+    { value: "custom", label: t.license.custom },
+  ] as const;
+
+  const LICENSE_TYPE_OPTIONS: { value: LicenseType; label: string; description: string }[] = [
+    { value: "KEY_BASED", label: t.license.keyBased, description: t.license.seatAssignment },
+    { value: "VOLUME", label: t.license.volume, description: t.license.key },
+    { value: "NO_KEY", label: t.license.noKey, description: t.license.noKey },
+  ];
+
   async function handleDelete() {
-    if (!window.confirm("이 라이선스를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
+    if (!window.confirm(t.toast.confirmDelete)) {
       return;
     }
     setIsDeleting(true);
@@ -117,12 +121,12 @@ export default function EditLicenseForm({
     <div className="min-h-screen bg-gray-50 py-10">
       <div className="mx-auto max-w-2xl px-4">
         <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">라이선스 수정</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t.license.editLicense}</h1>
           <Link
             href={`/licenses/${license.id}`}
             className="text-sm text-gray-500 hover:text-gray-700"
           >
-            &larr; 상세로
+            &larr; {t.common.detail}
           </Link>
         </div>
 
@@ -136,10 +140,10 @@ export default function EditLicenseForm({
           {/* 기본 정보 */}
           <fieldset className="space-y-4">
             <legend className="text-base font-semibold text-gray-900 border-b border-gray-200 pb-2 w-full">
-              기본 정보
+              {t.common.detail}
             </legend>
 
-            <Field label="라이선스명" required error={state.errors?.name}>
+            <Field label={t.license.licenseName} required error={state.errors?.name}>
               <input
                 type="text"
                 name="name"
@@ -149,7 +153,7 @@ export default function EditLicenseForm({
               />
             </Field>
 
-            <Field label="라이선스 유형" required error={state.errors?.licenseType}>
+            <Field label={t.license.licenseType} required error={state.errors?.licenseType}>
               <div className="flex flex-wrap gap-2">
                 {LICENSE_TYPE_OPTIONS.map((opt) => (
                   <label
@@ -175,10 +179,20 @@ export default function EditLicenseForm({
               <p className="mt-1 text-xs text-gray-500">
                 {LICENSE_TYPE_OPTIONS.find((o) => o.value === licenseType)?.description}
               </p>
+              {licenseType !== license.licenseType && activeAssignmentCount > 0 && (
+                <div className="mt-2 rounded-md bg-amber-50 p-3 ring-1 ring-amber-200">
+                  <p className="text-sm font-medium text-amber-800">
+                    {t.common.warning}: {t.dashboard.assigned} {activeAssignmentCount}
+                  </p>
+                  <p className="mt-1 text-xs text-amber-700">
+                    {t.license.seatAssignment}
+                  </p>
+                </div>
+              )}
             </Field>
 
             {licenseType === "VOLUME" && (
-              <Field label="볼륨 라이선스 키">
+              <Field label={t.license.key}>
                 <input
                   type="text"
                   name="key"
@@ -189,7 +203,7 @@ export default function EditLicenseForm({
             )}
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <Field label="수량" required error={state.errors?.totalQuantity}>
+              <Field label={t.license.quantity} required error={state.errors?.totalQuantity}>
                 <input
                   type="number"
                   name="totalQuantity"
@@ -201,7 +215,7 @@ export default function EditLicenseForm({
                 />
               </Field>
 
-              <Field label={`단가 (${CURRENCY_SYMBOLS[currency]})`} error={state.errors?.unitPrice}>
+              <Field label={`${t.license.unitPrice} (${CURRENCY_SYMBOLS[currency]})`} error={state.errors?.unitPrice}>
                 <input
                   type="number"
                   name="unitPrice"
@@ -214,7 +228,7 @@ export default function EditLicenseForm({
                 />
               </Field>
 
-              <Field label="통화">
+              <Field label={t.license.currency}>
                 <select
                   name="currency"
                   value={currency}
@@ -230,7 +244,7 @@ export default function EditLicenseForm({
               </Field>
             </div>
 
-            <Field label="담당자명">
+            <Field label={t.license.adminName}>
               <input
                 type="text"
                 name="adminName"
@@ -240,9 +254,9 @@ export default function EditLicenseForm({
             </Field>
 
             {allLicenses.length > 0 && (
-              <Field label="상위 라이선스">
+              <Field label={t.license.parentLicense}>
                 <select name="parentId" defaultValue={license.parentId ?? ""} className="input">
-                  <option value="">없음 (최상위)</option>
+                  <option value="">{t.common.none}</option>
                   {allLicenses.map((l) => (
                     <option key={l.id} value={l.id}>{l.name}</option>
                   ))}
@@ -269,7 +283,7 @@ export default function EditLicenseForm({
           {licenseType === "KEY_BASED" && seats.length > 0 && (
             <fieldset className="space-y-4">
               <legend className="text-base font-semibold text-gray-900 border-b border-gray-200 pb-2 w-full">
-                시트 ({seats.length}개)
+                {t.license.seat} ({seats.length})
               </legend>
               <SeatTable seats={seats} onSeatsChange={setSeats} />
             </fieldset>
@@ -278,11 +292,11 @@ export default function EditLicenseForm({
           {/* 날짜 정보 */}
           <fieldset className="space-y-4">
             <legend className="text-base font-semibold text-gray-900 border-b border-gray-200 pb-2 w-full">
-              날짜 정보
+              {t.common.date}
             </legend>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="구매일 (시작일)" required error={state.errors?.purchaseDate}>
+              <Field label={t.license.purchaseDate} required error={state.errors?.purchaseDate}>
                 <input
                   type="date"
                   name="purchaseDate"
@@ -295,17 +309,13 @@ export default function EditLicenseForm({
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
-                  갱신일{" "}
-                  <span className="text-xs font-normal text-gray-400">(자동 계산)</span>
+                  {t.license.expiryDate}
                 </label>
                 <div className="input flex cursor-not-allowed items-center bg-gray-50 text-gray-500">
                   {renewalDateStr || "—"}
                 </div>
                 {/* Submit the computed renewal date as expiryDate */}
                 <input type="hidden" name="expiryDate" value={renewalDateStr} />
-                <p className="mt-1 text-xs text-gray-400">
-                  구매일과 납부 주기에 따라 자동 계산됩니다.
-                </p>
               </div>
             </div>
           </fieldset>
@@ -313,12 +323,8 @@ export default function EditLicenseForm({
           {/* 해지 통보 기한 */}
           <fieldset className="space-y-4">
             <legend className="text-base font-semibold text-gray-900 border-b border-gray-200 pb-2 w-full">
-              해지 통보 기한
+              {t.license.noticePeriod}
             </legend>
-
-            <p className="text-xs text-gray-500">
-              갱신일로부터 며칠 전에 해지 통보가 필요한지 설정합니다.
-            </p>
 
             <div className="flex flex-wrap gap-3">
               {NOTICE_OPTIONS.map((opt) => (
@@ -344,7 +350,7 @@ export default function EditLicenseForm({
             </div>
 
             {noticePeriodType === "custom" && (
-              <Field label="통보 기한 (일)" error={state.errors?.noticePeriodCustom}>
+              <Field label={`${t.license.noticePeriod} (${t.license.customDays})`} error={state.errors?.noticePeriodCustom}>
                 <div className="flex items-center gap-2">
                   <input
                     type="number"
@@ -355,10 +361,9 @@ export default function EditLicenseForm({
                         ? license.noticePeriodDays ?? ""
                         : ""
                     }
-                    placeholder="예: 60"
                     className="input max-w-32"
                   />
-                  <span className="text-sm text-gray-500">일 전</span>
+                  <span className="text-sm text-gray-500">{t.license.customDays}</span>
                 </div>
               </Field>
             )}
@@ -367,10 +372,10 @@ export default function EditLicenseForm({
           {/* 비고 */}
           <fieldset className="space-y-4">
             <legend className="text-base font-semibold text-gray-900 border-b border-gray-200 pb-2 w-full">
-              비고
+              {t.common.description}
             </legend>
 
-            <Field label="설명">
+            <Field label={t.common.description}>
               <textarea
                 name="description"
                 rows={3}
@@ -388,7 +393,7 @@ export default function EditLicenseForm({
               disabled={isDeleting}
               className="rounded-md px-4 py-2 text-sm font-medium text-red-600 ring-1 ring-red-300 hover:bg-red-50 disabled:opacity-50"
             >
-              {isDeleting ? "삭제 중..." : "삭제"}
+              {isDeleting ? `${t.common.loading}` : t.common.delete}
             </button>
 
             <div className="flex items-center gap-3">
@@ -396,14 +401,14 @@ export default function EditLicenseForm({
                 href={`/licenses/${license.id}`}
                 className="rounded-md px-4 py-2 text-sm font-medium text-gray-700 ring-1 ring-gray-300 hover:bg-gray-50"
               >
-                취소
+                {t.common.cancel}
               </Link>
               <button
                 type="submit"
                 disabled={isPending}
                 className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
               >
-                {isPending ? "저장 중..." : "저장"}
+                {isPending ? `${t.common.loading}` : t.common.save}
               </button>
             </div>
           </div>
@@ -420,6 +425,7 @@ function SeatTable({
   seats: Seat[];
   onSeatsChange: (seats: Seat[]) => void;
 }) {
+  const { t } = useTranslation();
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
   const [dupError, setDupError] = useState<string | null>(null);
@@ -445,7 +451,7 @@ function SeatTable({
 
       if (!res.ok) {
         const data = await res.json();
-        setDupError(data.error || "저장 실패");
+        setDupError(data.error || t.toast.saveFail);
         setSaving(false);
         return;
       }
@@ -455,7 +461,7 @@ function SeatTable({
       );
       setEditingId(null);
     } catch {
-      setDupError("저장 실패");
+      setDupError(t.toast.saveFail);
     }
     setSaving(false);
   }
@@ -471,7 +477,7 @@ function SeatTable({
     <div>
       {missingCount > 0 && (
         <p className="mb-2 text-xs text-amber-600">
-          키 미등록 {missingCount}건
+          {t.license.key} - {missingCount}
         </p>
       )}
       <div className="overflow-x-auto rounded-md border border-gray-200">
@@ -479,10 +485,10 @@ function SeatTable({
           <thead className="bg-gray-50">
             <tr>
               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">#</th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">키</th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">상태</th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">배정자</th>
-              <th className="px-3 py-2 text-center text-xs font-medium text-gray-500">관리</th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t.license.key}</th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t.common.status}</th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t.license.assignedTo}</th>
+              <th className="px-3 py-2 text-center text-xs font-medium text-gray-500">{t.common.actions}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -497,7 +503,7 @@ function SeatTable({
                         value={editValue}
                         onChange={(e) => setEditValue(e.target.value)}
                         className="input text-sm"
-                        placeholder="라이선스 키 입력"
+                        placeholder={t.license.key}
                         autoFocus
                         onKeyDown={(e) => {
                           if (e.key === "Enter") { e.preventDefault(); handleSave(seat.id); }
@@ -510,18 +516,18 @@ function SeatTable({
                     </div>
                   ) : (
                     <span className={seat.key ? "font-mono text-gray-900" : "text-gray-400 italic"}>
-                      {seat.key ?? "미등록"}
+                      {seat.key ?? t.license.unassigned}
                     </span>
                   )}
                 </td>
                 <td className="px-3 py-2">
                   {seat.assignedTo ? (
                     <span className="inline-block rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-                      사용 중
+                      {t.asset.statusInUse}
                     </span>
                   ) : (
                     <span className="inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                      미배정
+                      {t.license.unassigned}
                     </span>
                   )}
                 </td>
@@ -539,14 +545,14 @@ function SeatTable({
                         disabled={saving}
                         className="rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 disabled:opacity-50"
                       >
-                        {saving ? "..." : "저장"}
+                        {saving ? "..." : t.common.save}
                       </button>
                       <button
                         type="button"
                         onClick={handleCancel}
                         className="rounded px-2 py-1 text-xs font-medium text-gray-500 hover:bg-gray-100"
                       >
-                        취소
+                        {t.common.cancel}
                       </button>
                     </div>
                   ) : (
@@ -555,7 +561,7 @@ function SeatTable({
                       onClick={() => startEdit(seat)}
                       className="rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
                     >
-                      편집
+                      {t.common.edit}
                     </button>
                   )}
                 </td>

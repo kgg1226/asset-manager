@@ -9,6 +9,7 @@ import {
   type PaymentCycle,
   type Currency,
 } from "@/lib/cost-calculator";
+import { useTranslation } from "@/lib/i18n";
 
 export default function CostCalculatorSection({
   paymentCycle,
@@ -30,6 +31,7 @@ export default function CostCalculatorSection({
   };
   errors?: Record<string, string>;
 }) {
+  const { t } = useTranslation();
   const [exchangeRateStr, setExchangeRateStr] = useState(
     (initialValues?.exchangeRate ?? 1).toString()
   );
@@ -63,12 +65,13 @@ export default function CostCalculatorSection({
   }, [paymentCycle, quantity, unitPrice, currency, exchangeRateStr, isVatIncluded]);
 
   const symbol = CURRENCY_SYMBOLS[currency];
+  const krwSymbol = CURRENCY_SYMBOLS["KRW"];
 
   return (
     <fieldset className="space-y-4">
       <legend className="w-full border-b border-gray-200 pb-2 text-base font-semibold text-gray-900">
-        비용 계산{" "}
-        <span className="text-xs font-normal text-gray-400">(선택)</span>
+        {t.license.costInfo}{" "}
+        <span className="text-xs font-normal text-gray-400">({t.common.optional})</span>
       </legend>
 
       {/* Hidden inputs — always submitted with the form */}
@@ -79,7 +82,7 @@ export default function CostCalculatorSection({
       {/* Payment cycle */}
       <div>
         <label className="mb-1 block text-sm font-medium text-gray-700">
-          납부 주기
+          {t.license.paymentCycle}
         </label>
         <div className="flex gap-2">
           {VALID_PAYMENT_CYCLES.map((cycle) => (
@@ -107,7 +110,7 @@ export default function CostCalculatorSection({
       {/* Exchange rate */}
       <div>
         <label className="mb-1 block text-sm font-medium text-gray-700">
-          환율 ({symbol} → ₩)
+          {t.license.exchangeRate} ({symbol} → {krwSymbol})
         </label>
         <input
           type="number"
@@ -121,7 +124,7 @@ export default function CostCalculatorSection({
           className="input disabled:bg-gray-100 disabled:text-gray-400"
         />
         {currency === "KRW" ? (
-          <p className="mt-1 text-xs text-gray-400">KRW는 환율 변환 불필요</p>
+          <p className="mt-1 text-xs text-gray-400">KRW</p>
         ) : (
           errors?.exchangeRate && (
             <p className="mt-1 text-xs text-red-600">{errors.exchangeRate}</p>
@@ -139,67 +142,64 @@ export default function CostCalculatorSection({
             className="h-4 w-4 rounded border-gray-300 text-blue-600"
           />
           <span className="text-sm font-medium text-gray-700">
-            단가에 VAT (10%) 포함됨
+            {t.license.vatIncluded} (10%)
           </span>
         </label>
-        <p className="mt-1 text-xs text-gray-500">
-          체크 해제 시 단가에 10% 부가세가 자동으로 추가됩니다.
-        </p>
       </div>
 
       {/* Read-only results panel */}
       <div className="rounded-md bg-gray-50 p-4 ring-1 ring-gray-200">
-        <h4 className="mb-3 text-sm font-semibold text-gray-900">계산 결과</h4>
+        <h4 className="mb-3 text-sm font-semibold text-gray-900">{t.license.totalAmount}</h4>
         {preview ? (
           <dl className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
-            <dt className="text-gray-600">공급가액 ({symbol})</dt>
+            <dt className="text-gray-600">{t.license.unitPrice} ({symbol})</dt>
             <dd className="text-right font-medium text-gray-900">
-              {preview.subtotal.toLocaleString("ko-KR")}
+              {preview.subtotal.toLocaleString()}
             </dd>
 
             {isVatIncluded ? (
               <>
                 <dt className="text-gray-600">VAT</dt>
-                <dd className="text-right text-gray-500">포함</dd>
+                <dd className="text-right text-gray-500">{t.license.vatIncluded}</dd>
               </>
             ) : (
               <>
                 <dt className="text-gray-600">VAT 10% ({symbol})</dt>
                 <dd className="text-right font-medium text-gray-900">
-                  + {preview.vatAmount.toLocaleString("ko-KR")}
+                  + {preview.vatAmount.toLocaleString()}
                 </dd>
               </>
             )}
 
-            <dt className="font-medium text-gray-700">합계 ({symbol})</dt>
+            <dt className="font-medium text-gray-700">{t.common.total} ({symbol})</dt>
             <dd className="text-right font-semibold text-blue-700">
-              {preview.totalAmountForeign.toLocaleString("ko-KR")}
+              {preview.totalAmountForeign.toLocaleString()}
             </dd>
 
             {currency !== "KRW" && (
               <>
-                <dt className="font-medium text-gray-700">합계 (₩)</dt>
+                <dt className="font-medium text-gray-700">{t.common.total} ({krwSymbol})</dt>
                 <dd className="text-right font-semibold text-blue-700">
-                  ₩{preview.totalAmountKRW.toLocaleString("ko-KR")}
+                  {krwSymbol}{preview.totalAmountKRW.toLocaleString()}
                 </dd>
               </>
             )}
 
             <dt className="col-span-2 mt-1 border-t border-gray-200 pt-2 text-xs font-medium uppercase text-gray-500">
-              환산
+              {t.license.totalAmount}
             </dt>
-            <dt className="text-gray-600">월 환산 (₩)</dt>
+            <dt className="text-gray-600">{t.license.monthly} ({krwSymbol})</dt>
             <dd className="text-right text-gray-700">
-              ₩{preview.monthlyKRW.toLocaleString("ko-KR")}
+              {krwSymbol}{preview.monthlyKRW.toLocaleString()}
             </dd>
-            <dt className="text-gray-600">연 환산 (₩)</dt>
+            <dt className="text-gray-600">{t.license.yearly} ({krwSymbol})</dt>
             <dd className="text-right text-gray-700">
-              ₩{preview.annualKRW.toLocaleString("ko-KR")}
+              {krwSymbol}{preview.annualKRW.toLocaleString()}
             </dd>
           </dl>
         ) : (
           <p className="text-sm text-gray-400">
-            수량과 단가를 입력하면 자동으로 계산됩니다.
+            {t.license.quantity} / {t.license.unitPrice}
           </p>
         )}
       </div>

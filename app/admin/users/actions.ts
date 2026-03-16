@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 
 type FormState = { error?: string; success?: string };
 
-// ── 사용자 생성 ──────────────────────────────────────────────────────────────
+// ── Create user ──────────────────────────────────────────────────────────────
 export async function createUser(
   _prev: FormState,
   formData: FormData
@@ -18,9 +18,9 @@ export async function createUser(
   const role     = formData.get("role") as "ADMIN" | "USER";
 
   if (!username || !password)
-    return { error: "사용자명과 비밀번호는 필수입니다." };
+    return { error: "Username and password are required." };
   if (password.length < 8)
-    return { error: "비밀번호는 8자 이상이어야 합니다." };
+    return { error: "Password must be at least 8 characters." };
 
   try {
     const hash = await hashPassword(password);
@@ -32,14 +32,14 @@ export async function createUser(
       },
     });
   } catch {
-    return { error: "이미 사용 중인 사용자명입니다." };
+    return { error: "Username already exists." };
   }
 
   revalidatePath("/admin/users");
-  return { success: "사용자가 생성되었습니다." };
+  return { success: "User created successfully." };
 }
 
-// ── 사용자 수정 (이름/이메일/역할) ──────────────────────────────────────────
+// ── Update user (role) ──────────────────────────────────────────────────────
 export async function updateUser(
   userId: number,
   _prev: FormState,
@@ -49,9 +49,8 @@ export async function updateUser(
 
   const role = formData.get("role") as "ADMIN" | "USER";
 
-  // 자신의 관리자 권한은 박탈 불가
   if (me.id === userId && role !== "ADMIN")
-    return { error: "자신의 관리자 권한은 제거할 수 없습니다." };
+    return { error: "Cannot remove your own admin privileges." };
 
   await prisma.user.update({
     where: { id: userId },
@@ -59,10 +58,10 @@ export async function updateUser(
   });
 
   revalidatePath("/admin/users");
-  return { success: "수정되었습니다." };
+  return { success: "Updated successfully." };
 }
 
-// ── 비밀번호 재설정 ──────────────────────────────────────────────────────────
+// ── Reset password ──────────────────────────────────────────────────────────
 export async function changePassword(
   userId: number,
   _prev: FormState,
@@ -72,16 +71,16 @@ export async function changePassword(
 
   const password = formData.get("password") as string;
   if (!password || password.length < 8)
-    return { error: "비밀번호는 8자 이상이어야 합니다." };
+    return { error: "Password must be at least 8 characters." };
 
   const hash = await hashPassword(password);
   await prisma.user.update({ where: { id: userId }, data: { password: hash } });
 
   revalidatePath("/admin/users");
-  return { success: "비밀번호가 변경되었습니다." };
+  return { success: "Password changed successfully." };
 }
 
-// ── 활성/비활성 토글 ─────────────────────────────────────────────────────────
+// ── Toggle active/inactive ─────────────────────────────────────────────────
 export async function toggleUserActive(
   userId: number,
   currentIsActive: boolean
@@ -89,14 +88,13 @@ export async function toggleUserActive(
   const me = await requireAdmin();
 
   if (me.id === userId)
-    return { error: "자신의 계정은 비활성화할 수 없습니다." };
+    return { error: "Cannot deactivate your own account." };
 
   await prisma.user.update({
     where: { id: userId },
     data:  { isActive: !currentIsActive },
   });
 
-  // 비활성화 시 기존 세션 전부 파기
   if (currentIsActive) {
     await prisma.session.deleteMany({ where: { userId } });
   }
@@ -105,12 +103,12 @@ export async function toggleUserActive(
   return {};
 }
 
-// ── 사용자 삭제 ──────────────────────────────────────────────────────────────
+// ── Delete user ──────────────────────────────────────────────────────────────
 export async function deleteUser(userId: number): Promise<FormState> {
   const me = await requireAdmin();
 
   if (me.id === userId)
-    return { error: "자기 자신은 삭제할 수 없습니다." };
+    return { error: "Cannot delete your own account." };
 
   await prisma.user.delete({ where: { id: userId } });
 

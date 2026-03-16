@@ -42,6 +42,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
         subCategory: { include: { majorCategory: { select: { id: true, name: true, code: true } } } },
         hardwareDetail: true,
         cloudDetail: true,
+        domainDetail: true,
         contractDetail: true,
         licenseLinks: {
           include: { license: { select: { id: true, name: true, licenseType: true, expiryDate: true } } },
@@ -103,6 +104,9 @@ export async function PUT(request: NextRequest, { params }: Params) {
     if (body.orgUnitId !== undefined) data.orgUnitId = vNum(body.orgUnitId, { min: 1, integer: true });
     if (body.assigneeId !== undefined) data.assigneeId = vNum(body.assigneeId, { min: 1, integer: true });
     if (body.subCategoryId !== undefined) data.subCategoryId = vNum(body.subCategoryId, { min: 1, integer: true });
+    if (body.ciaC !== undefined) data.ciaC = vNum(body.ciaC, { min: 1, max: 3, integer: true });
+    if (body.ciaI !== undefined) data.ciaI = vNum(body.ciaI, { min: 1, max: 3, integer: true });
+    if (body.ciaA !== undefined) data.ciaA = vNum(body.ciaA, { min: 1, max: 3, integer: true });
 
     // PC(Laptop/Desktop) 감가상각 자동 계산 또는 기존 방식
     if (body.monthlyCost === undefined) {
@@ -132,7 +136,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
           if (finalCost != null && finalCycle) {
             switch (finalCycle) {
               case "MONTHLY": data.monthlyCost = finalCost; break;
-              case "ANNUAL": data.monthlyCost = Math.round((finalCost / 12) * 100) / 100; break;
+              case "ANNUAL": data.monthlyCost = Math.round(finalCost / 12); break;
               case "ONE_TIME": data.monthlyCost = 0; break;
               case "USAGE_BASED": data.monthlyCost = finalCost; break;
             }
@@ -170,6 +174,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
           subCategory: { include: { majorCategory: { select: { id: true, name: true, code: true } } } },
           hardwareDetail: true,
           cloudDetail: true,
+          domainDetail: true,
           contractDetail: true,
         },
       });
@@ -196,6 +201,12 @@ export async function PUT(request: NextRequest, { params }: Params) {
             gpu: vStr(hd.gpu, 255),
             displaySize: vStr(hd.displaySize, 100),
             usefulLifeYears: vNum(hd.usefulLifeYears, { min: 1, max: 50, integer: true }) ?? 5,
+            // Phase 5 추가 필드
+            storageType: hd.storageType !== undefined ? vStr(hd.storageType, 20) : undefined,
+            imei: hd.imei !== undefined ? vStr(hd.imei, 50) : undefined,
+            phoneNumber: hd.phoneNumber !== undefined ? vStr(hd.phoneNumber, 30) : undefined,
+            connectionType: hd.connectionType !== undefined ? vStr(hd.connectionType, 50) : undefined,
+            resolution: hd.resolution !== undefined ? vStr(hd.resolution, 50) : undefined,
             // 보증/구매 관리
             warrantyEndDate: hd.warrantyEndDate !== undefined ? (hd.warrantyEndDate ? new Date(hd.warrantyEndDate) : null) : undefined,
             warrantyProvider: hd.warrantyProvider !== undefined ? vStr(hd.warrantyProvider, 255) : undefined,
@@ -259,6 +270,36 @@ export async function PUT(request: NextRequest, { params }: Params) {
           });
         } else {
           await tx.cloudDetail.deleteMany({ where: { assetId } });
+        }
+      }
+
+      if (body.domainDetail !== undefined) {
+        if (body.domainDetail) {
+          const dd = body.domainDetail;
+          const ddFields = {
+            domainName: vStr(dd.domainName, 255),
+            registrar: vStr(dd.registrar, 255),
+            sslType: vStr(dd.sslType, 50),
+            issuer: vStr(dd.issuer, 255),
+            billingCycleMonths: vNum(dd.billingCycleMonths, { min: 1, max: 120, integer: true }) ?? 12,
+            autoRenew: dd.autoRenew !== false,
+          };
+          await tx.domainDetail.upsert({
+            where: { assetId },
+            create: { assetId, ...ddFields },
+            update: ddFields,
+          });
+          // 월 환산 비용 자동 계산
+          const finalCost = data.cost !== undefined ? data.cost : (await tx.asset.findUnique({ where: { id: assetId }, select: { cost: true } }))?.cost;
+          if (finalCost != null && data.monthlyCost === undefined) {
+            const months = ddFields.billingCycleMonths;
+            await tx.asset.update({
+              where: { id: assetId },
+              data: { monthlyCost: Math.round(Number(finalCost) / months) },
+            });
+          }
+        } else {
+          await tx.domainDetail.deleteMany({ where: { assetId } });
         }
       }
 

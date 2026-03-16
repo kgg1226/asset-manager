@@ -85,6 +85,7 @@ model Employee {
   assignments      Assignment[]
   assets           Asset[]
   assetAssignmentHistories AssetAssignmentHistory[]
+  securityOrgCharts SecurityOrgChart[]
   company          OrgCompany?   @relation(fields: [companyId], references: [id])
   orgUnit          OrgUnit?      @relation("OrgMembers", fields: [orgUnitId], references: [id])
 
@@ -364,6 +365,11 @@ model Asset {
   orgUnitId       Int?                                // 배정 부서
   assigneeId      Int?                                // 배정 조직원
 
+  // CIA 보안 등급 (1=낮음, 2=보통, 3=높음)
+  ciaC            Int?                                // 기밀성 Confidentiality
+  ciaI            Int?                                // 무결성 Integrity
+  ciaA            Int?                                // 가용성 Availability
+
   // 메타
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
@@ -376,6 +382,7 @@ model Asset {
   assignee          Employee?         @relation(fields: [assigneeId], references: [id])
   hardwareDetail         HardwareDetail?
   cloudDetail            CloudDetail?
+  domainDetail           DomainDetail?
   contractDetail         ContractDetail?
   assignmentHistories    AssetAssignmentHistory[]
   notificationLogs       NotificationLog[]
@@ -409,6 +416,13 @@ model HardwareDetail {
   displaySize     String?                              // 화면 크기 (14인치, 16.2인치 등, 노트북용)
   usefulLifeYears Int       @default(5)                // 내용연수 (감가상각, 기본 5년)
 
+  // ── Phase 5 확장 필드 ──
+  storageType     String?                              // SSD | HDD
+  imei            String?                              // Mobile 전용 IMEI
+  phoneNumber     String?                              // Mobile 전용 전화번호
+  connectionType  String?                              // Peripheral 연결 방식 (USB/BT/기타)
+  resolution      String?                              // 모니터 해상도
+
   // ── 보증/구매 관리 ──
   warrantyEndDate     DateTime?                        // 보증 만료일
   warrantyProvider    String?                          // 보증 업체 (제조사 AS센터, 리셀러 등)
@@ -427,6 +441,25 @@ model HardwareDetail {
   firmwareVersion     String?                          // 펌웨어 버전
 
   asset           Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+}
+
+model DomainDetail {
+  id                 Int     @id @default(autoincrement())
+  assetId            Int     @unique
+  domainName         String?                              // example.com
+  registrar          String?                              // 등록 기관 (가비아, Route53 등)
+  sslType            String?                              // DV | OV | EV | WILDCARD
+  issuer             String?                              // SSL 발급 기관 (CA)
+  billingCycleMonths Int     @default(12)                 // 비용 주기 (개월 수)
+  autoRenew          Boolean @default(true)               // 자동 갱신 여부
+  asset              Asset   @relation(fields: [assetId], references: [id], onDelete: Cascade)
+}
+
+model HardwareLifecycleSetting {
+  id              Int      @id @default(autoincrement())
+  deviceType      String   @unique                        // Laptop | Desktop | Server | Network | Mobile | Peripheral | Other
+  usefulLifeYears Int      @default(5)
+  updatedAt       DateTime @updatedAt
 }
 
 model CloudDetail {
@@ -591,4 +624,22 @@ enum ArchiveStatus {
   RUNNING     // 실행 중
   COMPLETED   // 완료
   FAILED      // 실패
+}
+
+// ── 정보보호 조직도 ──
+
+model SecurityOrgChart {
+  id         Int       @id @default(autoincrement())
+  title      String                                       // 직책/역할 (예: 정보보호 최고책임자)
+  employeeId Int?                                         // 담당자 (FK → Employee)
+  parentId   Int?                                         // 상위 직책 (self-relation)
+  sortOrder  Int       @default(0)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  employee   Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  parent     SecurityOrgChart?  @relation("SecurityHierarchy", fields: [parentId], references: [id])
+  children   SecurityOrgChart[] @relation("SecurityHierarchy")
+
+  @@index([parentId])
 }

@@ -3,14 +3,9 @@
 import { useState } from "react";
 import { BarChart3, Download, FileSpreadsheet, FileText, Send } from "lucide-react";
 import Link from "next/link";
-
-const TYPE_LABELS: Record<string, string> = {
-  SOFTWARE: "소프트웨어",
-  CLOUD: "클라우드",
-  HARDWARE: "하드웨어",
-  DOMAIN_SSL: "도메인/SSL",
-  OTHER: "기타",
-};
+import { useTranslation } from "@/lib/i18n";
+import { TourGuide } from "@/app/_components/tour-guide";
+import { REPORTS_TOUR_KEY, getReportsSteps } from "@/app/_components/tours/reports-tour";
 
 type ReportData = {
   period: string;
@@ -30,6 +25,14 @@ function getCurrentYearMonth(): string {
 }
 
 export default function ReportsPage() {
+  const { t } = useTranslation();
+  const TYPE_LABELS: Record<string, string> = {
+    SOFTWARE: t.nav.licenses,
+    CLOUD: t.cloud.title,
+    HARDWARE: t.hw.title,
+    DOMAIN_SSL: t.domain.title,
+    OTHER: t.hw.other,
+  };
   const [yearMonth, setYearMonth] = useState(getCurrentYearMonth());
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -46,11 +49,11 @@ export default function ReportsPage() {
       const res = await fetch(`/api/reports/monthly/${yearMonth}/data`);
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
-        throw new Error(json.error ?? "보고서 데이터를 불러오는데 실패했습니다.");
+        throw new Error(json.error ?? t.report.loadFail);
       }
       setData(await res.json());
     } catch (e) {
-      setError(e instanceof Error ? e.message : "오류가 발생했습니다.");
+      setError(e instanceof Error ? e.message : t.common.error);
     } finally {
       setLoading(false);
     }
@@ -67,10 +70,10 @@ export default function ReportsPage() {
         body: JSON.stringify({ recipients: emailInput.split(",").map((e) => e.trim()).filter(Boolean) }),
       });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json.error ?? "이메일 발송에 실패했습니다.");
-      setEmailResult("이메일이 발송되었습니다.");
+      if (!res.ok) throw new Error(json.error ?? t.report.emailSendFail);
+      setEmailResult(t.report.emailSent);
     } catch (e) {
-      setEmailResult(e instanceof Error ? e.message : "오류가 발생했습니다.");
+      setEmailResult(e instanceof Error ? e.message : t.common.error);
     } finally {
       setEmailSending(false);
     }
@@ -82,14 +85,15 @@ export default function ReportsPage() {
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <BarChart3 className="h-6 w-6 text-blue-600" />
-            <h1 className="text-2xl font-bold text-gray-900">월별 자산 보고서</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{t.report.monthlyReport}</h1>
+            <TourGuide tourKey={REPORTS_TOUR_KEY} steps={getReportsSteps(t)} />
           </div>
         </div>
 
         {/* 월 선택 */}
-        <div className="mb-6 flex items-end gap-4 rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-200">
+        <div className="mb-6 flex items-end gap-4 rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-200" data-tour="report-period">
           <div>
-            <label className="block text-xs font-medium uppercase text-gray-500 mb-1">기간 선택</label>
+            <label className="block text-xs font-medium uppercase text-gray-500 mb-1">{t.report.period}</label>
             <input
               type="month"
               value={yearMonth}
@@ -102,11 +106,11 @@ export default function ReportsPage() {
             disabled={loading}
             className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
           >
-            {loading ? "조회 중..." : "보고서 조회"}
+            {loading ? t.common.loading : t.report.generate}
           </button>
 
           {data && (
-            <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-2" data-tour="report-export">
               <a
                 href={`/api/reports/monthly/${yearMonth}/excel`}
                 className="inline-flex items-center gap-1.5 rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700"
@@ -125,7 +129,7 @@ export default function ReportsPage() {
                 href={`/reports/${yearMonth}`}
                 className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
-                상세 보기
+                {t.common.detail}
               </Link>
             </div>
           )}
@@ -141,43 +145,43 @@ export default function ReportsPage() {
           <>
             {/* 요약 카드 */}
             <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <SummaryCard label="기간" value={data.period} />
+              <SummaryCard label={t.report.period} value={data.period} />
               <SummaryCard
-                label="월간 총 비용"
-                value={`₩${data.summary.totalMonthlyCost.toLocaleString("ko-KR")}`}
+                label={t.report.totalMonthlyCost}
+                value={`₩${data.summary.totalMonthlyCost.toLocaleString()}`}
                 highlight
               />
-              <SummaryCard label="자산 수" value={`${data.summary.assetCount}개`} />
+              <SummaryCard label={t.report.assetCount} value={`${data.summary.assetCount}${t.dashboard.items}`} />
             </div>
 
             {data.expiringCount > 0 && (
               <div className="mb-4 rounded-md bg-yellow-50 p-3 text-sm text-yellow-800 ring-1 ring-yellow-200">
-                ⚠️ 30일 이내 만료 예정 자산: <strong>{data.expiringCount}개</strong>
+                {t.report.expiringWarning} <strong>{data.expiringCount}{t.dashboard.items}</strong>
               </div>
             )}
 
             <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
               {/* 유형별 비용 */}
               <div className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
-                <h2 className="mb-4 text-base font-semibold text-gray-900">유형별 비용</h2>
+                <h2 className="mb-4 text-base font-semibold text-gray-900">{t.report.costByType}</h2>
                 <table className="min-w-full">
                   <thead>
                     <tr className="border-b border-gray-200">
-                      <th className="pb-2 text-left text-xs font-medium uppercase text-gray-500">유형</th>
-                      <th className="pb-2 text-right text-xs font-medium uppercase text-gray-500">자산 수</th>
-                      <th className="pb-2 text-right text-xs font-medium uppercase text-gray-500">월간 비용</th>
+                      <th className="pb-2 text-left text-xs font-medium uppercase text-gray-500">{t.common.type}</th>
+                      <th className="pb-2 text-right text-xs font-medium uppercase text-gray-500">{t.report.assetCount}</th>
+                      <th className="pb-2 text-right text-xs font-medium uppercase text-gray-500">{t.report.monthlyCost}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {data.byType.length === 0 ? (
-                      <tr><td colSpan={3} className="py-4 text-center text-sm text-gray-400">데이터 없음</td></tr>
+                      <tr><td colSpan={3} className="py-4 text-center text-sm text-gray-400">{t.common.noData}</td></tr>
                     ) : (
                       data.byType.map((row) => (
                         <tr key={row.type}>
                           <td className="py-2 text-sm text-gray-900">{TYPE_LABELS[row.type] ?? row.type}</td>
-                          <td className="py-2 text-right text-sm text-gray-600">{row.count}개</td>
+                          <td className="py-2 text-right text-sm text-gray-600">{row.count}{t.dashboard.items}</td>
                           <td className="py-2 text-right text-sm font-medium text-gray-900">
-                            ₩{row.cost.toLocaleString("ko-KR")}
+                            ₩{row.cost.toLocaleString()}
                           </td>
                         </tr>
                       ))
@@ -188,25 +192,25 @@ export default function ReportsPage() {
 
               {/* 부서별 비용 */}
               <div className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
-                <h2 className="mb-4 text-base font-semibold text-gray-900">부서별 비용</h2>
+                <h2 className="mb-4 text-base font-semibold text-gray-900">{t.report.costByDept}</h2>
                 <table className="min-w-full">
                   <thead>
                     <tr className="border-b border-gray-200">
-                      <th className="pb-2 text-left text-xs font-medium uppercase text-gray-500">부서</th>
-                      <th className="pb-2 text-right text-xs font-medium uppercase text-gray-500">자산 수</th>
-                      <th className="pb-2 text-right text-xs font-medium uppercase text-gray-500">월간 비용</th>
+                      <th className="pb-2 text-left text-xs font-medium uppercase text-gray-500">{t.employee.department}</th>
+                      <th className="pb-2 text-right text-xs font-medium uppercase text-gray-500">{t.report.assetCount}</th>
+                      <th className="pb-2 text-right text-xs font-medium uppercase text-gray-500">{t.report.monthlyCost}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {data.byDepartment.length === 0 ? (
-                      <tr><td colSpan={3} className="py-4 text-center text-sm text-gray-400">데이터 없음</td></tr>
+                      <tr><td colSpan={3} className="py-4 text-center text-sm text-gray-400">{t.common.noData}</td></tr>
                     ) : (
                       data.byDepartment.map((row) => (
                         <tr key={row.department}>
                           <td className="py-2 text-sm text-gray-900">{row.department}</td>
-                          <td className="py-2 text-right text-sm text-gray-600">{row.count}개</td>
+                          <td className="py-2 text-right text-sm text-gray-600">{row.count}{t.dashboard.items}</td>
                           <td className="py-2 text-right text-sm font-medium text-gray-900">
-                            ₩{row.cost.toLocaleString("ko-KR")}
+                            ₩{row.cost.toLocaleString()}
                           </td>
                         </tr>
                       ))
@@ -217,17 +221,17 @@ export default function ReportsPage() {
             </div>
 
             {/* 이메일 발송 */}
-            <div className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
+            <div className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200" data-tour="report-email">
               <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-gray-900">
                 <Send className="h-4 w-4 text-blue-500" />
-                이메일 발송
+                {t.report.sendEmail}
               </h2>
               <div className="flex items-center gap-3">
                 <input
                   type="text"
                   value={emailInput}
                   onChange={(e) => setEmailInput(e.target.value)}
-                  placeholder="이메일 주소 (쉼표로 구분)"
+                  placeholder={t.report.emailPlaceholder}
                   className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
                 <button
@@ -236,11 +240,11 @@ export default function ReportsPage() {
                   className="inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
                 >
                   <Send className="h-4 w-4" />
-                  {emailSending ? "발송 중..." : "발송"}
+                  {emailSending ? t.common.loading : t.common.submit}
                 </button>
               </div>
               {emailResult && (
-                <p className={`mt-2 text-sm ${emailResult.includes("발송") ? "text-green-600" : "text-red-600"}`}>
+                <p className={`mt-2 text-sm ${emailResult === t.report.emailSent ? "text-green-600" : "text-red-600"}`}>
                   {emailResult}
                 </p>
               )}
@@ -251,7 +255,7 @@ export default function ReportsPage() {
         {!data && !loading && !error && (
           <div className="rounded-lg bg-white p-12 text-center shadow-sm ring-1 ring-gray-200">
             <BarChart3 className="mx-auto h-12 w-12 text-gray-300" />
-            <p className="mt-3 text-gray-500">기간을 선택하고 보고서를 조회하세요.</p>
+            <p className="mt-3 text-gray-500">{t.common.noData}</p>
           </div>
         )}
       </div>

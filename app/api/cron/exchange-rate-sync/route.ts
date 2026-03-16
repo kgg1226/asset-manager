@@ -5,24 +5,32 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
 import { isCronAuthorized } from "@/lib/cron-auth";
 
 const SUPPORTED_CURRENCIES = ["USD", "EUR", "JPY", "GBP", "CNY"];
 
 export async function POST(request: NextRequest) {
-  if (!isCronAuthorized(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // CRON_SECRET 또는 ADMIN 세션으로 인증
+  const isCron = isCronAuthorized(request);
+  if (!isCron) {
+    const user = await getCurrentUser();
+    if (!user || user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
   }
 
   const today = new Date().toISOString().split("T")[0];
 
   try {
-    // 이미 오늘 데이터가 있으면 스킵
-    const existing = await prisma.exchangeRate.findFirst({
-      where: { date: today, currency: "USD" },
-    });
-    if (existing) {
-      return NextResponse.json({ ok: true, message: `${today} 환율 이미 동기화됨`, skipped: true });
+    // ADMIN 수동 동기화 시 기존 데이터 덮어쓰기 허용
+    if (isCron) {
+      const existing = await prisma.exchangeRate.findFirst({
+        where: { date: today, currency: "USD" },
+      });
+      if (existing) {
+        return NextResponse.json({ ok: true, message: `${today} 환율 이미 동기화됨`, skipped: true });
+      }
     }
 
     let rates: Record<string, number> | null = null;
