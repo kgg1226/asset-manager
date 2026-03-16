@@ -18,13 +18,14 @@ interface Asset {
   vendor?: string | null; expiryDate?: string | null;
   ciaC?: number | null; ciaI?: number | null; ciaA?: number | null;
   assignee?: { id: number; name: string } | null;
+  orgUnit?: { id: number; name: string } | null;
   contractDetail?: { contractNumber?: string | null; counterparty?: string | null; contractType?: string | null; autoRenew?: boolean } | null;
 }
 
 const STATUS_KEYS: Record<AssetStatus, string> = { IN_STOCK: "statusInStock", IN_USE: "statusInUse", INACTIVE: "statusInactive", UNUSABLE: "statusUnusable", PENDING_DISPOSAL: "statusPendingDisposal", DISPOSED: "statusDisposed" };
 const STATUS_COLORS: Record<AssetStatus, string> = { IN_STOCK: "bg-gray-100 text-gray-800", IN_USE: "bg-green-100 text-green-800", INACTIVE: "bg-yellow-100 text-yellow-800", UNUSABLE: "bg-orange-100 text-orange-800", PENDING_DISPOSAL: "bg-red-100 text-red-800", DISPOSED: "bg-gray-800 text-gray-100" };
 
-type SortField = "name" | "counterparty" | "contractType" | "status" | "cost" | "expiryDate" | "assignee";
+type SortField = "name" | "counterparty" | "contractType" | "status" | "cost" | "expiryDate" | "assignee" | "orgUnit";
 type SortOrder = "asc" | "desc";
 
 function formatCost(cost: number | null | undefined, currency: string): string {
@@ -63,6 +64,7 @@ function sortAssets(assets: Asset[], field: SortField | null, order: SortOrder):
       case "cost": cmp = (a.cost ?? -Infinity) - (b.cost ?? -Infinity); break;
       case "expiryDate": cmp = (a.expiryDate ?? "").localeCompare(b.expiryDate ?? ""); break;
       case "assignee": cmp = (a.assignee?.name ?? "\uffff").localeCompare(b.assignee?.name ?? "\uffff", "ko"); break;
+      case "orgUnit": cmp = (a.orgUnit?.name ?? "\uffff").localeCompare(b.orgUnit?.name ?? "\uffff", "ko"); break;
     }
     return order === "desc" ? -cmp : cmp;
   });
@@ -176,15 +178,16 @@ export default function ContractListPage() {
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("cost")}>{t.asset.cost}<SortIcon field="cost" /></th>
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("expiryDate")}>{t.asset.expiryDate}<SortIcon field="expiryDate" /></th>
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("assignee")}>{t.asset.assignee}<SortIcon field="assignee" /></th>
+                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("orgUnit")}>{t.license.managingOrg}<SortIcon field="orgUnit" /></th>
                 <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.cia.title}</th>
                 {isAdmin && <th className="px-6 py-3 text-right text-xs font-semibold whitespace-nowrap">{t.common.actions}</th>}
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={9} className="px-6 py-8 text-center text-gray-400">{t.common.loading}</td></tr>
+                <tr><td colSpan={10} className="px-6 py-8 text-center text-gray-400">{t.common.loading}</td></tr>
               ) : sortedAssets.length === 0 ? (
-                <tr><td colSpan={9} className="px-6 py-8 text-center text-gray-500">{t.common.noData}</td></tr>
+                <tr><td colSpan={10} className="px-6 py-8 text-center text-gray-500">{t.common.noData}</td></tr>
               ) : (
                 sortedAssets.map((a) => (
                   <tr key={a.id} className="border-b hover:bg-gray-50">
@@ -195,6 +198,7 @@ export default function ContractListPage() {
                     <td className="px-6 py-4 text-sm">{formatCost(a.cost, a.currency)}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{formatDate(a.expiryDate)}</td>
                     <td className="px-6 py-4 text-sm">{a.assignee ? <Link href={`/employees/${a.assignee.id}`} className="text-blue-600 hover:underline">{a.assignee.name}</Link> : <span className="text-gray-400">{t.license.unassigned}</span>}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{a.orgUnit?.name || "—"}</td>
                     <td className="px-6 py-4 text-sm"><CiaBadge ciaC={a.ciaC} ciaI={a.ciaI} ciaA={a.ciaA} /></td>
                     {isAdmin && (
                       <td className="px-6 py-4 text-right">

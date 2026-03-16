@@ -19,6 +19,7 @@ export default async function LicenseDetailPage({
     where: { id: licenseId },
     include: {
       parent: { select: { id: true, name: true } },
+      orgUnit: { select: { id: true, name: true, company: { select: { name: true } } } },
       children: {
         select: {
           id: true,
@@ -197,6 +198,11 @@ export default async function LicenseDetailPage({
     licenseType: license.licenseType,
     key: license.key,
     description: license.description,
+    vendor: license.vendor,
+    contractFile: license.contractFile,
+    contractFileName: license.contractFileName,
+    quotationFile: license.quotationFile,
+    quotationFileName: license.quotationFileName,
     purchaseDate: license.purchaseDate?.toISOString() ?? null,
     expiryDate: license.expiryDate?.toISOString() ?? null,
     price: license.price,
@@ -212,6 +218,7 @@ export default async function LicenseDetailPage({
     renewalDate: (license as any).renewalDate ? new Date((license as any).renewalDate).toISOString() : null,
     renewalDateManual: (license as any).renewalDateManual ? new Date((license as any).renewalDateManual).toISOString() : null,
     parent: license.parent,
+    orgUnit: license.orgUnit,
   };
 
   const serializedSeats = license.seats.map((seat) => ({

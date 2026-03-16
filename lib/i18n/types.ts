@@ -110,6 +110,8 @@ export type TranslationDict = {
     available: string;
     expired: string;
     active: string;
+    orgUsage: string;
+    orgUsageDesc: string;
   };
 
   // License
@@ -138,6 +140,10 @@ export type TranslationDict = {
     seatAssignment: string;
     usageRate: string;
     parentLicense: string;
+    newSubLicense: string;
+    subLicenseHint: string;
+    managingOrg: string;
+    containerHint: string;
     costInfo: string;
     paymentCycle: string;
     monthly: string;
@@ -162,6 +168,12 @@ export type TranslationDict = {
     renewalInProgress: string;
     renewalNotRenewing: string;
     renewalRenewed: string;
+    vendor: string;
+    contractFile: string;
+    quotationFile: string;
+    uploadFile: string;
+    downloadFile: string;
+    contractInfo: string;
   };
 
   // Employee
@@ -580,6 +592,25 @@ export type TranslationDict = {
     empRegisterDetail1: string;
     empRegisterDetail2: string;
     empRegisterDetail3: string;
+    // Admin features
+    adminFeaturesTitle: string;
+    adminFeaturesDesc: string;
+    titleCiaMappingGuide: string;
+    titleCiaMappingGuideDesc: string;
+    titleCiaMappingDetail1: string;
+    titleCiaMappingDetail2: string;
+    titleCiaMappingDetail3: string;
+    gdriveConfigGuide: string;
+    gdriveConfigGuideDesc: string;
+    gdriveConfigDetail1: string;
+    gdriveConfigDetail2: string;
+    gdriveConfigDetail3: string;
+    archiveExportGuide: string;
+    archiveExportGuideDesc: string;
+    archiveExportDetail1: string;
+    archiveExportDetail2: string;
+    titleCiaLink: string;
+    archiveLink: string;
   };
 
   // Notifications
@@ -617,6 +648,58 @@ export type TranslationDict = {
     slackChannelAccess: string;
     networkCheck: string;
     smtpAuthCheck: string;
+    // Config section
+    configTitle: string;
+    configDescription: string;
+    slackSettings: string;
+    smtpSettings: string;
+    webhookUrl: string;
+    smtpHost: string;
+    smtpPort: string;
+    smtpUser: string;
+    smtpPass: string;
+    smtpFrom: string;
+    sourceDb: string;
+    sourceEnv: string;
+    sourceNone: string;
+    clearToEnv: string;
+    configSaved: string;
+    configSaveFail: string;
+    configLoadFail: string;
+    showValue: string;
+    hideValue: string;
+    dbPriorityNote: string;
+    saving: string;
+    saveConfig: string;
+    channelConfig: string;
+    // Preferences section
+    prefsTitle: string;
+    prefsDescription: string;
+    masterSwitch: string;
+    masterSwitchDesc: string;
+    notifyChannel: string;
+    eventTypes: string;
+    eventAssetCreated: string;
+    eventAssetCreatedDesc: string;
+    eventAssetUpdated: string;
+    eventAssetUpdatedDesc: string;
+    eventAssetDeleted: string;
+    eventAssetDeletedDesc: string;
+    eventDataImport: string;
+    eventDataImportDesc: string;
+    eventRenewal: string;
+    eventRenewalDesc: string;
+    eventCancellation: string;
+    eventCancellationDesc: string;
+    eventAssignment: string;
+    eventAssignmentDesc: string;
+    eventUserMgmt: string;
+    eventUserMgmtDesc: string;
+    daysBefore: string;
+    prefsSaved: string;
+    prefsSaveFail: string;
+    on: string;
+    off: string;
   };
 
   // Auth / Login
@@ -661,6 +744,17 @@ export type TranslationDict = {
     creating: string;
     changing: string;
     adminOnly: string;
+    // Title CIA mapping
+    titleCiaMapping: string;
+    titleCiaMappingDesc: string;
+    titleCiaTitle: string;
+    addMapping: string;
+    editMapping: string;
+    noMappings: string;
+    affectedAssets: string;
+    autoApplied: string;
+    manualOverride: string;
+    ciaMappingHint: string;
   };
 
   // Toast messages

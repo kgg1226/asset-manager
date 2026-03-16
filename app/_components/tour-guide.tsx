@@ -20,7 +20,7 @@ function getTourCompletedKey(tourKey: string) {
 export function TourGuide({
   tourKey,
   steps,
-  autoStart = true,
+  autoStart = false,
   showButton = true,
 }: TourGuideProps) {
   const { t } = useTranslation();

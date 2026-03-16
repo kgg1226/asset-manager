@@ -15,6 +15,7 @@ import {
   Settings,
   ArrowRight,
   BookOpen,
+  ShieldCheck,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { TourGuide } from "@/app/_components/tour-guide";
@@ -77,7 +78,7 @@ export default function GuidePage() {
           details: [
             "SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM",
             "SLACK_WEBHOOK_URL — Slack Incoming Webhook URL",
-            "docker-compose.yml / .env",
+            `${t.notification.configTitle} — ${t.notification.configDescription}`,
           ],
           link: { href: "/settings/notifications", label: t.guide.notifyTest },
         },
@@ -118,6 +119,7 @@ export default function GuidePage() {
             t.hw.assignAsset,
             t.hw.unassignAsset,
             t.history.title,
+            `CIA ${t.cia.confidentiality}/${t.cia.integrity}/${t.cia.availability} — ${t.admin.autoApplied}`,
           ],
         },
       ],
@@ -254,8 +256,9 @@ export default function GuidePage() {
           details: [
             "SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM",
             "SLACK_WEBHOOK_URL (Incoming Webhook)",
-            ".env / docker-compose.yml",
+            `${t.notification.configTitle} — ${t.notification.sourceDb} > ${t.notification.sourceEnv}`,
           ],
+          link: { href: "/settings/notifications", label: t.guide.notifyTestPage },
         },
         {
           id: "n2",
@@ -276,6 +279,46 @@ export default function GuidePage() {
             `${t.common.success} / ${t.common.failure}`,
           ],
           link: { href: "/settings/notifications", label: t.guide.sendHistoryView },
+        },
+      ],
+    },
+    {
+      id: "admin",
+      icon: <ShieldCheck className="h-5 w-5" />,
+      title: t.guide.adminFeaturesTitle,
+      subtitle: t.guide.adminFeaturesDesc,
+      steps: [
+        {
+          id: "a1",
+          title: t.guide.titleCiaMappingGuide,
+          description: t.guide.titleCiaMappingGuideDesc,
+          details: [
+            t.guide.titleCiaMappingDetail1,
+            t.guide.titleCiaMappingDetail2,
+            t.guide.titleCiaMappingDetail3,
+          ],
+          link: { href: "/admin/title-cia", label: t.guide.titleCiaLink },
+        },
+        {
+          id: "a2",
+          title: t.guide.gdriveConfigGuide,
+          description: t.guide.gdriveConfigGuideDesc,
+          details: [
+            t.guide.gdriveConfigDetail1,
+            t.guide.gdriveConfigDetail2,
+            t.guide.gdriveConfigDetail3,
+          ],
+          link: { href: "/admin/archives", label: t.guide.archiveLink },
+        },
+        {
+          id: "a3",
+          title: t.guide.archiveExportGuide,
+          description: t.guide.archiveExportGuideDesc,
+          details: [
+            t.guide.archiveExportDetail1,
+            t.guide.archiveExportDetail2,
+          ],
+          link: { href: "/admin/archives", label: t.guide.archiveLink },
         },
       ],
     },
@@ -401,6 +444,8 @@ export default function GuidePage() {
               { href: "/settings/groups", label: t.license.groupSettings },
               { href: "/settings/notifications", label: t.notification.title },
               { href: "/history", label: t.history.title },
+              { href: "/admin/title-cia", label: t.guide.titleCiaLink },
+              { href: "/admin/archives", label: t.guide.archiveLink },
             ].map((link) => (
               <Link key={link.href} href={link.href} className="rounded-md bg-white px-3 py-2 text-xs font-medium text-blue-700 shadow-sm hover:bg-blue-100 transition-colors text-center">
                 {link.label}

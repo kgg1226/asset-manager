@@ -38,7 +38,13 @@ export async function updateLicense(
   const noticePeriodCustom = formData.get("noticePeriodCustom") as string;
   const adminName = formData.get("adminName") as string;
   const description = formData.get("description") as string;
+  const vendor = formData.get("vendor") as string;
+  const contractFile = formData.get("contractFile") as string;
+  const contractFileName = formData.get("contractFileName") as string;
+  const quotationFile = formData.get("quotationFile") as string;
+  const quotationFileName = formData.get("quotationFileName") as string;
   const parentIdRaw = formData.get("parentId") as string;
+  const orgUnitIdRaw = formData.get("orgUnitId") as string;
 
   // Cost fields
   const paymentCycleRaw = formData.get("paymentCycle") as string;
@@ -58,8 +64,8 @@ export async function updateLicense(
     errors.licenseType = "올바른 라이선스 유형을 선택하세요.";
   }
 
-  if (!totalQuantity || isNaN(Number(totalQuantity)) || Number(totalQuantity) < 1) {
-    errors.totalQuantity = "수량은 1 이상의 숫자를 입력하세요.";
+  if (totalQuantity !== "" && totalQuantity !== null && (isNaN(Number(totalQuantity)) || Number(totalQuantity) < 0)) {
+    errors.totalQuantity = "수량은 0 이상의 숫자를 입력하세요.";
   }
 
   if (price && (isNaN(Number(price)) || Number(price) < 0)) {
@@ -110,7 +116,7 @@ export async function updateLicense(
     return { errors };
   }
 
-  const qty = Number(totalQuantity);
+  const qty = totalQuantity ? Number(totalQuantity) : 0;
   const type = licenseType as LicenseType;
 
   // Compute stored totals if billing inputs are provided
@@ -160,6 +166,7 @@ export async function updateLicense(
       // Allow type conversion even with active assignments (warning handled on frontend)
 
       const parentId = parentIdRaw ? Number(parentIdRaw) : null;
+      const orgUnitId = orgUnitIdRaw && orgUnitIdRaw !== "" ? Number(orgUnitIdRaw) : null;
 
       const newData = {
         name: name.trim(),
@@ -172,6 +179,11 @@ export async function updateLicense(
         noticePeriodDays,
         adminName: adminName?.trim() || null,
         description: description?.trim() || null,
+        vendor: vendor?.trim() || null,
+        contractFile: contractFile || null,
+        contractFileName: contractFileName || null,
+        quotationFile: quotationFile || null,
+        quotationFileName: quotationFileName || null,
         paymentCycle,
         quantity: billingQty !== null && !isNaN(billingQty) ? billingQty : null,
         unitPrice: unitPrice !== null && !isNaN(unitPrice) ? unitPrice : null,
@@ -181,6 +193,7 @@ export async function updateLicense(
         totalAmountForeign,
         totalAmountKRW,
         parentId,
+        orgUnitId,
       };
 
       await tx.license.update({ where: { id }, data: newData });

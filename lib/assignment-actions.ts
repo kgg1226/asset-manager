@@ -118,6 +118,10 @@ export async function assignLicenses(
           });
         } else {
           // VOLUME and NO_KEY: count-based capacity
+          if (license.totalQuantity === 0) {
+            skipped.push(`${license.name}: 컨테이너 라이선스 (수량 0)`);
+            continue;
+          }
           if (license.assignments.length >= license.totalQuantity) {
             skipped.push(`${license.name}: 잔여 수량 없음`);
             continue;
