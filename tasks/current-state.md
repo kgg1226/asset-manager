@@ -121,7 +121,29 @@
 
 ---
 
-## 📊 구현 현황 수치 (2026-03-15 기준)
+## DB 스키마 (master 기준) — 15개 모델
+
+| 테이블 | 주요 특징 |
+|---|---|
+| `License` | `parentId` (계층), 갱신 상태/이력/날짜 |
+| `Asset` | SW/Cloud/HW/Domain/Contract/Other, 만료일 관리 |
+| `HardwareDetail` | 제조사, 모델, 시리얼, 사양 |
+| `CloudDetail` | 플랫폼, 계정, 리전, 시트 수 |
+| `ContractDetail` | 계약 유형, 거래처, 자동갱신 |
+| `Employee` | 조직 이동, 퇴사 유예 |
+| `User` | `mustChangePassword` |
+| `OrgCompany` + `OrgUnit` | 회사-부서 계층 구조 |
+| `LicenseSeat` | 개별 키 추적 |
+| `Assignment` | 라이선스-조직원 매핑 |
+| `LicenseGroup` | 그룹별 자동 할당 |
+| `ExchangeRate` | 일별 환율 (USD/EUR/JPY/GBP/CNY) |
+| `AssetCategory` | Google Drive 폴더 연동 |
+| `Archive` + `ArchiveLog` + `ArchiveData` | 월별 증적 스냅샷 |
+| `AuditLog` | `actorType`, `actorId` |
+
+---
+
+## 📊 구현 현황 수치 (2026-03-16 기준)
 
 | 항목 | 수치 |
 |---|---|

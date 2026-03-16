@@ -659,6 +659,8 @@
 - `tasks/VISION.md` — 최종 목표 및 Phase별 로드맵
 - `tasks/features/asset-management.md` — 자산 관리 상세 스펙
 - `tasks/features/license-hierarchy.md` — 라이선스 계층 구조 스펙
+- `tasks/features/license-cost-aggregation.md` — 라이선스 비용 취합 스펙
+- `tasks/features/hardware-cia-by-title.md` — 하드웨어 CIA 직책 연동 스펙
 - `tasks/current-state.md` — 현재 프로젝트 상태
 
 ---
@@ -998,9 +1000,43 @@
 
 ---
 
+## 🎯 PHASE 5: 라이선스 비용 취합 + 하드웨어 CIA
+
+> **상태**: 🔴 오픈 (2026-03-16)
+> **스펙**: `tasks/features/license-cost-aggregation.md`, `tasks/features/hardware-cia-by-title.md`
+
+### 라이선스 비용 취합 (상위 = 하위 합산)
+
+| 티켓 | 역할 | 설명 | 난이도 | 상태 |
+|---|---|---|---|---|
+| BE-080 | Backend | 상위 라이선스 비용 취합 로직 + API 응답 | 🟡 중간 | 🔴 오픈 |
+| BE-081 | Backend | 대시보드 비용 중복 제거 | 🟢 쉬움 | 🔴 오픈 |
+| BE-082 | Backend | 보고서/Export 취합 비용 반영 | 🟡 중간 | 🔴 오픈 |
+| FE-080 | Frontend | 목록 비용 취합 표시 | 🟢 쉬움 | 🔴 오픈 |
+| FE-081 | Frontend | 등록/수정 비용 입력 제어 | 🟢 쉬움 | 🔴 오픈 |
+| FE-082 | Frontend | 상세 비용 요약 테이블 | 🟡 중간 | 🔴 오픈 |
+
+### 하드웨어 CIA — 직책 기반 자동 산정
+
+| 티켓 | 역할 | 설명 | 난이도 | 상태 |
+|---|---|---|---|---|
+| BE-083 | Backend | TitleCiaMapping 스키마 + CiaLevel enum 추가 | 🟢 쉬움 | 🔴 오픈 |
+| BE-084 | Backend | Asset 모델 CIA 필드 추가 | 🟢 쉬움 | 🔴 오픈 |
+| BE-085 | Backend | 직책 CIA 매핑 CRUD API | 🟡 중간 | 🔴 오픈 |
+| BE-086 | Backend | 자산 할당/반납 시 CIA 자동 설정 | 🟡 중간 | 🔴 오픈 |
+| BE-087 | Backend | 구성원 직책 변경 시 CIA 연쇄 갱신 | 🟡 중간 | 🔴 오픈 |
+| BE-088 | Backend | 매핑 변경 시 기존 자산 일괄 갱신 | 🟡 중간 | 🔴 오픈 |
+| FE-083 | Frontend | 직책 CIA 매핑 관리 페이지 | 🟡 중간 | 🔴 오픈 |
+| FE-084 | Frontend | 하드웨어 목록/상세 CIA 표시 | 🟢 쉬움 | 🔴 오픈 |
+| FE-085 | Frontend | 할당 시 CIA 미리보기 | 🟢 쉬움 | 🔴 오픈 |
+
+---
+
 ## 📚 참고 문서
 
 - `tasks/VISION.md` — 최종 목표 및 Phase별 로드맵
 - `tasks/features/asset-management.md` — 자산 관리 상세 스펙
 - `tasks/features/license-hierarchy.md` — 라이선스 계층 구조 스펙
+- `tasks/features/license-cost-aggregation.md` — 라이선스 비용 취합 스펙
+- `tasks/features/hardware-cia-by-title.md` — 하드웨어 CIA 직책 연동 스펙
 - `tasks/current-state.md` — 현재 프로젝트 상태
