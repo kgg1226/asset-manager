@@ -22,6 +22,9 @@ export interface UnifiedItem {
   monthlyCostKRW: number;
   purchaseDate: Date | null;
   expiryDate: Date | null;
+  orgId: number | null;
+  orgName: string | null;
+  companyName: string | null;
 }
 
 export interface DashboardMetrics {
@@ -67,6 +70,16 @@ export interface ExpiringItem {
   daysLeft: number;
 }
 
+export interface OrgUsagePoint {
+  orgId: number | null;
+  orgName: string;
+  companyName: string;
+  licenseCount: number;
+  assetCount: number;
+  totalCount: number;
+  monthlyCostKRW: number;
+}
+
 export interface DashboardData {
   metrics: DashboardMetrics;
   charts: {
@@ -75,6 +88,7 @@ export interface DashboardData {
     statusDistribution: StatusDistPoint[];
     growthTrend: GrowthPoint[];
   };
+  orgUsage: OrgUsagePoint[];
   expiringItems: ExpiringItem[];
   filter: {
     type: AssetCategory | null;
@@ -111,6 +125,7 @@ export interface LicenseRow {
   paymentCycle: string | null;
   purchaseDate: Date;
   expiryDate: Date | null;
+  orgUnit?: { id: number; name: string; company: { name: string } } | null;
 }
 
 export interface AssetRow {
@@ -122,6 +137,7 @@ export interface AssetRow {
   purchaseDate: Date | null;
   expiryDate: Date | null;
   createdAt: Date;
+  orgUnit?: { id: number; name: string; company: { name: string } } | null;
 }
 
 // ── 정규화 함수 ──
@@ -152,6 +168,9 @@ export function normalizeLicenses(licenses: LicenseRow[]): UnifiedItem[] {
       monthlyCostKRW,
       purchaseDate: l.purchaseDate,
       expiryDate: l.expiryDate,
+      orgId: l.orgUnit?.id ?? null,
+      orgName: l.orgUnit?.name ?? null,
+      companyName: l.orgUnit?.company?.name ?? null,
     };
   });
 }
@@ -175,6 +194,9 @@ export function normalizeAssets(assets: AssetRow[]): UnifiedItem[] {
       monthlyCostKRW,
       purchaseDate: a.purchaseDate ?? a.createdAt,
       expiryDate: a.expiryDate,
+      orgId: a.orgUnit?.id ?? null,
+      orgName: a.orgUnit?.name ?? null,
+      companyName: a.orgUnit?.company?.name ?? null,
     };
   });
 }
@@ -326,6 +348,42 @@ export function computeExpiringItems(items: UnifiedItem[], days = 90): ExpiringI
     .slice(0, 20); // 최대 20건
 }
 
+// ── 조직별 사용 현황 ──
+
+export function computeOrgUsage(items: UnifiedItem[]): OrgUsagePoint[] {
+  const orgMap = new Map<string, OrgUsagePoint>();
+
+  for (const item of items) {
+    // 활성 상태만 포함 (DISPOSED 등 제외)
+    if (item.status === "DISPOSED" || item.status === "UNUSABLE" || item.status === "PENDING_DISPOSAL") continue;
+
+    const key = item.orgId !== null ? String(item.orgId) : "__unassigned__";
+    const existing = orgMap.get(key) ?? {
+      orgId: item.orgId,
+      orgName: item.orgName ?? "미배정",
+      companyName: item.companyName ?? "",
+      licenseCount: 0,
+      assetCount: 0,
+      totalCount: 0,
+      monthlyCostKRW: 0,
+    };
+
+    if (item.source === "LICENSE") {
+      existing.licenseCount++;
+    } else {
+      existing.assetCount++;
+    }
+    existing.totalCount++;
+    existing.monthlyCostKRW += item.monthlyCostKRW;
+
+    orgMap.set(key, existing);
+  }
+
+  // 총 건수 기준 내림차순
+  return Array.from(orgMap.values())
+    .sort((a, b) => b.totalCount - a.totalCount);
+}
+
 // ── 메인 집계 함수 ──
 
 export function aggregateDashboard(
@@ -350,6 +408,7 @@ export function aggregateDashboard(
       statusDistribution: computeStatusDistribution(items),
       growthTrend: computeGrowthTrend(items),
     },
+    orgUsage: computeOrgUsage(items),
     expiringItems: computeExpiringItems(items),
     filter: { type: filterType ?? null },
   };

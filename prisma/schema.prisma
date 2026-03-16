@@ -36,13 +36,18 @@ model License {
   name               String                 @unique
   key                String?
   licenseType        LicenseType            @default(KEY_BASED)
-  totalQuantity      Int
+  totalQuantity      Int                    @default(0)
   price              Float?
   purchaseDate       DateTime
   expiryDate         DateTime?
   noticePeriodDays   Int?
   adminName          String?
   description        String?
+  vendor             String?
+  contractFile       String?
+  contractFileName   String?
+  quotationFile      String?
+  quotationFileName  String?
   paymentCycle       PaymentCycle?
   quantity           Int?
   unitPrice          Float?
@@ -55,10 +60,12 @@ model License {
   renewalDateManual  DateTime?
   renewalStatus      RenewalStatus          @default(BEFORE_RENEWAL)
   parentId           Int?
+  orgUnitId          Int?
   createdAt          DateTime               @default(now())
   updatedAt          DateTime               @updatedAt
   parent             License?               @relation("LicenseHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   children           License[]              @relation("LicenseHierarchy")
+  orgUnit            OrgUnit?               @relation(fields: [orgUnitId], references: [id], onDelete: SetNull)
   assignments        Assignment[]
   groupMembers       LicenseGroupMember[]
   seats              LicenseSeat[]
@@ -68,6 +75,7 @@ model License {
   assetLinks         AssetLicenseLink[]
 
   @@index([parentId])
+  @@index([orgUnitId])
 }
 
 model Employee {
@@ -117,6 +125,7 @@ model OrgUnit {
   children  OrgUnit[]  @relation("OrgHierarchy")
   members   Employee[] @relation("OrgMembers")
   assets    Asset[]
+  licenses  License[]
 
   @@unique([name, companyId])
 }
@@ -627,6 +636,15 @@ enum ArchiveStatus {
 }
 
 // ── 정보보호 조직도 ──
+
+model SystemConfig {
+  key       String   @id          // e.g. "SLACK_WEBHOOK_URL", "SMTP_HOST"
+  value     String                // encrypted ciphertext (AES-256-GCM)
+  iv        String                // initialization vector (hex)
+  tag       String                // auth tag (hex)
+  updatedAt DateTime @updatedAt
+  updatedBy Int?                  // userId who last updated
+}
 
 model SecurityOrgChart {
   id         Int       @id @default(autoincrement())

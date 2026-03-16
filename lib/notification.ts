@@ -1,24 +1,20 @@
 /**
  * 알림 헬퍼 (Slack Webhook + SMTP Email)
  *
- * 환경변수:
- *   SLACK_WEBHOOK_URL  — Incoming Webhook URL (없으면 Slack 발송 건너뜀)
- *   SMTP_HOST          — SMTP 서버 호스트
- *   SMTP_PORT          — SMTP 포트 (기본: 587)
- *   SMTP_USER          — SMTP 인증 사용자
- *   SMTP_PASS          — SMTP 인증 비밀번호
- *   SMTP_FROM          — 발신 이메일 주소
- *   SMTP_SECURE        — "true" 이면 TLS 사용 (기본: false)
+ * 설정 우선순위: DB(SystemConfig) > 환경변수
+ * DB에 저장된 값이 없으면 process.env 폴백
  */
 
 import nodemailer from "nodemailer";
+import { getNotificationConfig } from "@/lib/system-config";
 
 export type NotifyResult = { ok: true } | { ok: false; error: string };
 
 // ── Slack ────────────────────────────────────────────────────────────────────
 
 export async function sendSlackMessage(text: string): Promise<NotifyResult> {
-  const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+  const config = await getNotificationConfig();
+  const webhookUrl = config.SLACK_WEBHOOK_URL;
   if (!webhookUrl) {
     return { ok: false, error: "SLACK_WEBHOOK_URL not configured" };
   }
@@ -48,14 +44,15 @@ export async function sendEmail(options: {
   text: string;
   html?: string;
 }): Promise<NotifyResult> {
-  const { SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_FROM } = process.env;
+  const config = await getNotificationConfig();
+  const { SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_FROM } = config;
 
   if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS || !SMTP_FROM) {
     return { ok: false, error: "SMTP not configured (SMTP_HOST/SMTP_USER/SMTP_PASS/SMTP_FROM 필요)" };
   }
 
-  const port = Number(process.env.SMTP_PORT ?? 587);
-  const secure = process.env.SMTP_SECURE === "true";
+  const port = Number(config.SMTP_PORT ?? 587);
+  const secure = config.SMTP_SECURE === "true";
 
   try {
     const transporter = nodemailer.createTransport({

@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { createLicense, type FormState } from "./actions";
 import Link from "next/link";
 import CostCalculatorSection from "@/app/licenses/_components/cost-calculator-section";
@@ -17,17 +18,58 @@ import { useTranslation } from "@/lib/i18n";
 const initialState: FormState = {};
 
 type LicenseType = "NO_KEY" | "KEY_BASED" | "VOLUME";
+type OrgOption = { id: number; name: string; companyName: string };
 
 export default function NewLicensePage() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
+  const searchParams = useSearchParams();
+  const parentId = searchParams.get("parentId");
+  const parentName = searchParams.get("parentName");
   const [state, formAction, isPending] = useActionState(createLicense, initialState);
   const [licenseType, setLicenseType] = useState<LicenseType>("KEY_BASED");
+  const [orgUnits, setOrgUnits] = useState<OrgOption[]>([]);
+
+  // 조직 목록 조회
+  useEffect(() => {
+    fetch("/api/org/companies")
+      .then((res) => res.ok ? res.json() : { companies: [] })
+      .then((data) => {
+        const opts: OrgOption[] = [];
+        for (const company of data.companies ?? []) {
+          const flattenOrg = (unit: { id: number; name: string; children?: unknown[] }, depth = 0) => {
+            opts.push({
+              id: unit.id,
+              name: `${"  ".repeat(depth)}${unit.name}`,
+              companyName: company.name,
+            });
+            if (Array.isArray((unit as Record<string, unknown>).children)) {
+              for (const child of (unit as { children: { id: number; name: string; children?: unknown[] }[] }).children) {
+                flattenOrg(child, depth + 1);
+              }
+            }
+          };
+          for (const org of company.orgs ?? []) {
+            flattenOrg(org);
+          }
+        }
+        setOrgUnits(opts);
+      })
+      .catch(() => {});
+  }, []);
   const [noticePeriodType, setNoticePeriodType] = useState("");
   const [quantityStr, setQuantityStr] = useState("");
   const [unitPriceStr, setUnitPriceStr] = useState("");
   const [currency, setCurrency] = useState<Currency>("KRW");
   const [paymentCycle, setPaymentCycle] = useState<PaymentCycle>("YEARLY");
   const [purchaseDateStr, setPurchaseDateStr] = useState("");
+
+  // Contract info state
+  const [contractFilePath, setContractFilePath] = useState("");
+  const [contractFileOrigName, setContractFileOrigName] = useState("");
+  const [quotationFilePath, setQuotationFilePath] = useState("");
+  const [quotationFileOrigName, setQuotationFileOrigName] = useState("");
+  const [uploadingContract, setUploadingContract] = useState(false);
+  const [uploadingQuotation, setUploadingQuotation] = useState(false);
 
   const qty = parseFloat(quantityStr);
   const quantity = isFinite(qty) && qty > 0 ? qty : null;
@@ -54,14 +96,28 @@ export default function NewLicensePage() {
     <div className="min-h-screen bg-gray-50 py-10">
       <div className="mx-auto max-w-2xl px-4">
         <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">{t.license.newLicense}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {parentId ? t.license.newSubLicense : t.license.newLicense}
+          </h1>
           <Link
-            href="/licenses"
+            href={parentId ? `/licenses/${parentId}` : "/licenses"}
             className="text-sm text-gray-500 hover:text-gray-700"
           >
-            &larr; {t.common.list}
+            &larr; {parentId ? t.license.parentLicense : t.common.list}
           </Link>
         </div>
+
+        {parentId && parentName && (
+          <div className="mb-4 rounded-md bg-blue-50 p-3 text-sm text-blue-700 ring-1 ring-blue-200">
+            <span className="font-medium">{t.license.parentLicense}:</span>{" "}
+            <Link href={`/licenses/${parentId}`} className="font-semibold underline hover:text-blue-900">
+              {parentName}
+            </Link>
+            <span className="ml-2 text-blue-500">
+              — {t.license.subLicenseHint}
+            </span>
+          </div>
+        )}
 
         {state.message && (
           <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700">
@@ -70,6 +126,9 @@ export default function NewLicensePage() {
         )}
 
         <form action={formAction} className="space-y-6 rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
+          {/* parentId hidden input for sub-license creation */}
+          {parentId && <input type="hidden" name="parentId" value={parentId} />}
+
           {/* 기본 정보 */}
           <fieldset className="space-y-4">
             <legend className="text-base font-semibold text-gray-900 border-b border-gray-200 pb-2 w-full">
@@ -132,17 +191,21 @@ export default function NewLicensePage() {
             )}
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <Field label={t.license.quantity} required error={state.errors?.totalQuantity}>
+              <Field label={t.license.quantity} error={state.errors?.totalQuantity}>
                 <input
                   type="number"
                   name="totalQuantity"
-                  min={1}
-                  required
+                  min={0}
                   value={quantityStr}
                   onChange={(e) => setQuantityStr(e.target.value)}
-                  placeholder="1"
+                  placeholder="0"
                   className="input"
                 />
+                {!parentId && (
+                  <p className="mt-1 text-xs text-gray-400">
+                    {locale === "en" ? "Set to 0 for group/container licenses" : "그룹(컨테이너) 라이선스는 0으로 설정"}
+                  </p>
+                )}
               </Field>
 
               <Field label={`${t.license.unitPrice} (${CURRENCY_SYMBOLS[currency]})`} error={state.errors?.unitPrice}>
@@ -180,6 +243,103 @@ export default function NewLicensePage() {
                 name="adminName"
                 className="input"
               />
+            </Field>
+
+            <Field label={t.license.managingOrg} error={state.errors?.orgUnitId}>
+              <select name="orgUnitId" className="input" defaultValue="">
+                <option value="">— 선택 안 함 —</option>
+                {orgUnits.map((org) => (
+                  <option key={org.id} value={org.id}>
+                    [{org.companyName}] {org.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </fieldset>
+
+          {/* 계약 정보 */}
+          <fieldset className="space-y-4">
+            <legend className="text-base font-semibold text-gray-900 border-b border-gray-200 pb-2 w-full">
+              {t.license.contractInfo}
+            </legend>
+
+            <Field label={t.license.vendor}>
+              <input
+                type="text"
+                name="vendor"
+                placeholder={t.license.vendor}
+                className="input"
+              />
+            </Field>
+
+            <Field label={t.license.contractFile}>
+              <div className="flex items-center gap-2">
+                <label className="cursor-pointer rounded-md bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 ring-1 ring-gray-300 hover:bg-gray-200">
+                  {uploadingContract ? `${t.common.loading}` : t.license.uploadFile}
+                  <input
+                    type="file"
+                    className="sr-only"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip"
+                    disabled={uploadingContract}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setUploadingContract(true);
+                      try {
+                        const fd = new FormData();
+                        fd.append("file", file);
+                        const res = await fetch("/api/uploads", { method: "POST", body: fd });
+                        if (res.ok) {
+                          const data = await res.json();
+                          setContractFilePath(data.path);
+                          setContractFileOrigName(data.originalName);
+                        }
+                      } catch {}
+                      setUploadingContract(false);
+                    }}
+                  />
+                </label>
+                {contractFileOrigName && (
+                  <span className="text-sm text-gray-600">{contractFileOrigName}</span>
+                )}
+              </div>
+              <input type="hidden" name="contractFile" value={contractFilePath} />
+              <input type="hidden" name="contractFileName" value={contractFileOrigName} />
+            </Field>
+
+            <Field label={t.license.quotationFile}>
+              <div className="flex items-center gap-2">
+                <label className="cursor-pointer rounded-md bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 ring-1 ring-gray-300 hover:bg-gray-200">
+                  {uploadingQuotation ? `${t.common.loading}` : t.license.uploadFile}
+                  <input
+                    type="file"
+                    className="sr-only"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip"
+                    disabled={uploadingQuotation}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setUploadingQuotation(true);
+                      try {
+                        const fd = new FormData();
+                        fd.append("file", file);
+                        const res = await fetch("/api/uploads", { method: "POST", body: fd });
+                        if (res.ok) {
+                          const data = await res.json();
+                          setQuotationFilePath(data.path);
+                          setQuotationFileOrigName(data.originalName);
+                        }
+                      } catch {}
+                      setUploadingQuotation(false);
+                    }}
+                  />
+                </label>
+                {quotationFileOrigName && (
+                  <span className="text-sm text-gray-600">{quotationFileOrigName}</span>
+                )}
+              </div>
+              <input type="hidden" name="quotationFile" value={quotationFilePath} />
+              <input type="hidden" name="quotationFileName" value={quotationFileOrigName} />
             </Field>
           </fieldset>
 

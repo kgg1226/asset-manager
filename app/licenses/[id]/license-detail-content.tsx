@@ -13,6 +13,8 @@ import {
   FileText,
   Clock,
   Calculator,
+  Building2,
+  Download,
 } from "lucide-react";
 import LicenseAssignments from "./license-assignments";
 import type { Currency, PaymentCycle } from "@/lib/cost-calculator";
@@ -89,10 +91,16 @@ interface LicenseDetailContentProps {
     currency: string;
     exchangeRate: number;
     isVatIncluded: boolean;
+    vendor?: string | null;
+    contractFile?: string | null;
+    contractFileName?: string | null;
+    quotationFile?: string | null;
+    quotationFileName?: string | null;
     renewalStatus?: string | null;
     renewalDate?: string | null;
     renewalDateManual?: string | null;
     parent: { id: number; name: string } | null;
+    orgUnit?: { id: number; name: string; company: { name: string } } | null;
   };
   seats: SeatData[];
   children: ChildLicense[];
@@ -170,6 +178,7 @@ export default function LicenseDetailContent({
 
   const currencySymbol = CURRENCY_SYMBOLS[license.currency as Currency];
   const krwSymbol = CURRENCY_SYMBOLS["KRW"];
+  const isContainer = totalSeats === 0 && children.length > 0;
 
   return (
     <div className="min-h-screen bg-gray-50 py-10">
@@ -189,6 +198,11 @@ export default function LicenseDetailContent({
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-gray-900">{license.name}</h1>
+            {isContainer && (
+              <span className="rounded px-2 py-0.5 text-xs font-semibold bg-indigo-100 text-indigo-700">
+                {locale === "en" ? "Group" : "그룹"}
+              </span>
+            )}
             {typeLabel && (
               <span className={`rounded px-2 py-0.5 text-xs font-semibold ${
                 license.licenseType === "VOLUME"
@@ -218,31 +232,51 @@ export default function LicenseDetailContent({
         </div>
 
         {/* Dashboard Cards */}
-        <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <DashboardCard
-            icon={<KeyRound className="h-5 w-5 text-blue-600" />}
-            label={`${t.common.total} ${t.license.seat}`}
-            value={totalSeats}
-          />
-          <DashboardCard
-            icon={<Users className="h-5 w-5 text-green-600" />}
-            label={t.dashboard.assigned}
-            value={assignedCount}
-          />
-          <DashboardCard
-            icon={<CheckCircle className="h-5 w-5 text-gray-500" />}
-            label={t.dashboard.available}
-            value={remainingCount}
-          />
-          {isKeyBased && (
+        {isContainer ? (
+          <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
             <DashboardCard
-              icon={<AlertTriangle className="h-5 w-5 text-amber-500" />}
-              label={`${t.license.key} ${t.license.unassigned}`}
-              value={missingKeyCount}
-              warning={missingKeyCount > 0}
+              icon={<KeyRound className="h-5 w-5 text-blue-600" />}
+              label={locale === "en" ? "Sub-Licenses" : "하위 라이선스"}
+              value={children.length}
             />
-          )}
-        </div>
+            <DashboardCard
+              icon={<Users className="h-5 w-5 text-green-600" />}
+              label={locale === "en" ? "Total Seats (children)" : "총 시트 (하위 합계)"}
+              value={children.reduce((sum, c) => sum + c.totalQuantity, 0)}
+            />
+            <DashboardCard
+              icon={<CheckCircle className="h-5 w-5 text-gray-500" />}
+              label={locale === "en" ? "Total Assigned" : "총 배정"}
+              value={children.reduce((sum, c) => sum + c.assignments.length, 0)}
+            />
+          </div>
+        ) : (
+          <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <DashboardCard
+              icon={<KeyRound className="h-5 w-5 text-blue-600" />}
+              label={`${t.common.total} ${t.license.seat}`}
+              value={totalSeats}
+            />
+            <DashboardCard
+              icon={<Users className="h-5 w-5 text-green-600" />}
+              label={t.dashboard.assigned}
+              value={assignedCount}
+            />
+            <DashboardCard
+              icon={<CheckCircle className="h-5 w-5 text-gray-500" />}
+              label={t.dashboard.available}
+              value={remainingCount}
+            />
+            {isKeyBased && (
+              <DashboardCard
+                icon={<AlertTriangle className="h-5 w-5 text-amber-500" />}
+                label={`${t.license.key} ${t.license.unassigned}`}
+                value={missingKeyCount}
+                warning={missingKeyCount > 0}
+              />
+            )}
+          </div>
+        )}
 
         {/* Basic Info */}
         <div className="mb-6 rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
@@ -271,6 +305,22 @@ export default function LicenseDetailContent({
               value={license.adminName ?? "\u2014"}
             />
             <InfoItem
+              icon={<Building2 className="h-4 w-4" />}
+              label={t.license.managingOrg}
+              value={
+                license.orgUnit
+                  ? `[${license.orgUnit.company.name}] ${license.orgUnit.name}`
+                  : "\u2014"
+              }
+            />
+            {license.vendor && (
+              <InfoItem
+                icon={<Building2 className="h-4 w-4" />}
+                label={t.license.vendor}
+                value={license.vendor}
+              />
+            )}
+            <InfoItem
               icon={<Clock className="h-4 w-4" />}
               label={t.license.noticePeriod}
               value={
@@ -298,6 +348,44 @@ export default function LicenseDetailContent({
                   label={t.common.description}
                   value={license.description}
                 />
+              </div>
+            )}
+            {license.contractFile && license.contractFileName && (
+              <div>
+                <dt className="flex items-center gap-1.5 text-xs font-medium uppercase text-gray-500">
+                  <FileText className="h-4 w-4" />
+                  {t.license.contractFile}
+                </dt>
+                <dd className="mt-1">
+                  <a
+                    href={`/api/uploads/${license.contractFile}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    {license.contractFileName}
+                  </a>
+                </dd>
+              </div>
+            )}
+            {license.quotationFile && license.quotationFileName && (
+              <div>
+                <dt className="flex items-center gap-1.5 text-xs font-medium uppercase text-gray-500">
+                  <FileText className="h-4 w-4" />
+                  {t.license.quotationFile}
+                </dt>
+                <dd className="mt-1">
+                  <a
+                    href={`/api/uploads/${license.quotationFile}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    {license.quotationFileName}
+                  </a>
+                </dd>
               </div>
             )}
           </dl>
@@ -454,14 +542,24 @@ export default function LicenseDetailContent({
           <RenewalHistoryPanel licenseId={licenseId} />
         </div>
 
-        {/* Children Licenses (first block) */}
-        {children.length > 0 && (
-          <div className="mb-6">
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">
+        {/* Children Licenses */}
+        <div className="mb-6">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900">
               {locale === "en"
-                ? `Sub-Licenses \u2014 ${children.length}`
-                : `\uAD00\uB828 \uB77C\uC774\uC120\uC2A4 (\uD558\uC704) \u2014 ${children.length}\uAC1C`}
+                ? `Sub-Licenses${children.length > 0 ? ` \u2014 ${children.length}` : ""}`
+                : `\uD558\uC704 \uB77C\uC774\uC120\uC2A4${children.length > 0 ? ` \u2014 ${children.length}\uAC1C` : ""}`}
             </h2>
+            {isLoggedIn && (
+              <Link
+                href={`/licenses/new?parentId=${licenseId}&parentName=${encodeURIComponent(license.name)}`}
+                className="flex items-center gap-1 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
+              >
+                + {locale === "en" ? "Add Sub-License" : "\uD558\uC704 \uB77C\uC774\uC120\uC2A4 \uCD94\uAC00"}
+              </Link>
+            )}
+          </div>
+          {children.length > 0 ? (
             <div className="overflow-x-auto rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -488,7 +586,9 @@ export default function LicenseDetailContent({
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">{childTypeLabel}</td>
                         <td className="px-4 py-3 text-sm text-gray-600 tabular-nums">
-                          {child.assignments.length} / {child.totalQuantity}
+                          {child.totalQuantity === 0
+                            ? <span className="text-gray-400">{"\u2014"}</span>
+                            : `${child.assignments.length} / ${child.totalQuantity}`}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">
                           {child.expiryDate ? formatDate(child.expiryDate) : "\u2014"}
@@ -499,14 +599,20 @@ export default function LicenseDetailContent({
                 </tbody>
               </table>
             </div>
-          </div>
-        )}
+          ) : (
+            <p className="rounded-lg bg-white p-4 text-center text-sm text-gray-400 ring-1 ring-gray-200">
+              {locale === "en" ? "No sub-licenses." : "\uD558\uC704 \uB77C\uC774\uC120\uC2A4\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4."}
+            </p>
+          )}
+        </div>
 
-        {/* Active Assignments */}
-        <LicenseAssignments
-          licenseId={licenseId}
-          assignments={assignmentData}
-        />
+        {/* Active Assignments (hidden for container licenses) */}
+        {!isContainer && (
+          <LicenseAssignments
+            licenseId={licenseId}
+            assignments={assignmentData}
+          />
+        )}
 
         {/* Parent License */}
         {license.parent && (

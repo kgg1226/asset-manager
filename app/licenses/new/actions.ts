@@ -37,6 +37,13 @@ export async function createLicense(
   const noticePeriodCustom = formData.get("noticePeriodCustom") as string;
   const adminName = formData.get("adminName") as string;
   const description = formData.get("description") as string;
+  const vendor = formData.get("vendor") as string;
+  const contractFile = formData.get("contractFile") as string;
+  const contractFileName = formData.get("contractFileName") as string;
+  const quotationFile = formData.get("quotationFile") as string;
+  const quotationFileName = formData.get("quotationFileName") as string;
+  const parentIdRaw = formData.get("parentId") as string | null;
+  const orgUnitIdRaw = formData.get("orgUnitId") as string | null;
 
   // Cost fields
   const paymentCycleRaw = formData.get("paymentCycle") as string;
@@ -57,8 +64,8 @@ export async function createLicense(
     errors.licenseType = "올바른 라이선스 유형을 선택하세요.";
   }
 
-  if (!totalQuantity || isNaN(Number(totalQuantity)) || Number(totalQuantity) < 1) {
-    errors.totalQuantity = "수량은 1 이상의 숫자를 입력하세요.";
+  if (totalQuantity !== "" && totalQuantity !== null && (isNaN(Number(totalQuantity)) || Number(totalQuantity) < 0)) {
+    errors.totalQuantity = "수량은 0 이상의 숫자를 입력하세요.";
   }
 
   if (price && (isNaN(Number(price)) || Number(price) < 0)) {
@@ -91,6 +98,20 @@ export async function createLicense(
     errors.purchaseDate = "구매일은 필수입니다.";
   }
 
+  // parentId validation
+  const parentId = parentIdRaw ? Number(parentIdRaw) : null;
+  if (parentId !== null) {
+    if (isNaN(parentId) || parentId < 1) {
+      errors.parentId = "유효하지 않은 상위 라이선스 ID입니다.";
+    }
+  }
+
+  // orgUnitId validation
+  const orgUnitId = orgUnitIdRaw && orgUnitIdRaw !== "" ? Number(orgUnitIdRaw) : null;
+  if (orgUnitId !== null && (isNaN(orgUnitId) || orgUnitId < 1)) {
+    errors.orgUnitId = "유효하지 않은 조직 ID입니다.";
+  }
+
   // Resolve notice period days
   let noticePeriodDays: number | null = null;
   if (noticePeriodType === "30") {
@@ -110,7 +131,7 @@ export async function createLicense(
     return { errors };
   }
 
-  const qty = Number(totalQuantity);
+  const qty = totalQuantity ? Number(totalQuantity) : 0;
   const type = licenseType as LicenseType;
 
   // Compute stored totals if billing inputs are provided
@@ -137,6 +158,20 @@ export async function createLicense(
 
   try {
     await prisma.$transaction(async (tx) => {
+      // Validate parent exists and check hierarchy depth (max 2 levels)
+      if (parentId !== null) {
+        const parentLicense = await tx.license.findUnique({
+          where: { id: parentId },
+          select: { id: true, parentId: true },
+        });
+        if (!parentLicense) {
+          throw new Error("상위 라이선스를 찾을 수 없습니다.");
+        }
+        if (parentLicense.parentId !== null) {
+          throw new Error("하위 라이선스는 최대 2단계까지만 가능합니다.");
+        }
+      }
+
       const license = await tx.license.create({
         data: {
           name: name.trim(),
@@ -149,6 +184,11 @@ export async function createLicense(
           noticePeriodDays,
           adminName: adminName?.trim() || null,
           description: description?.trim() || null,
+          vendor: vendor?.trim() || null,
+          contractFile: contractFile || null,
+          contractFileName: contractFileName || null,
+          quotationFile: quotationFile || null,
+          quotationFileName: quotationFileName || null,
           paymentCycle,
           quantity: billingQty !== null && !isNaN(billingQty) ? billingQty : null,
           unitPrice: unitPrice !== null && !isNaN(unitPrice) ? unitPrice : null,
@@ -157,6 +197,8 @@ export async function createLicense(
           isVatIncluded,
           totalAmountForeign,
           totalAmountKRW,
+          parentId,
+          orgUnitId,
         },
       });
 
@@ -172,6 +214,7 @@ export async function createLicense(
         actor: currentUser.username,
         details: {
           summary: `${name.trim()} 등록 (수량: ${qty}, ${typeLabel})`,
+          ...(parentId && { parentId }),
         },
       });
     });
@@ -183,5 +226,5 @@ export async function createLicense(
     return { message: msg };
   }
 
-  redirect("/licenses");
+  redirect(parentId ? `/licenses/${parentId}` : "/licenses");
 }

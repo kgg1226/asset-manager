@@ -219,20 +219,28 @@ export default function LicensesContent({
                           </span>
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600 tabular-nums">
-                          {license.maxCapacity}
+                          {license.maxCapacity === 0 ? (
+                            <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-500">
+                              {locale === "en" ? "Group" : "그룹"}
+                            </span>
+                          ) : license.maxCapacity}
                         </td>
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <div className="h-2 w-20 rounded-full bg-gray-200">
-                              <div
-                                className={`h-2 rounded-full ${barColor}`}
-                                style={{ width: `${Math.min(pct, 100)}%` }}
-                              />
+                          {license.maxCapacity === 0 ? (
+                            <span className="text-sm text-gray-400">{"\u2014"}</span>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <div className="h-2 w-20 rounded-full bg-gray-200">
+                                <div
+                                  className={`h-2 rounded-full ${barColor}`}
+                                  style={{ width: `${Math.min(pct, 100)}%` }}
+                                />
+                              </div>
+                              <span className="text-sm tabular-nums text-gray-600">
+                                {license.assignedCount} / {license.maxCapacity}
+                              </span>
                             </div>
-                            <span className="text-sm tabular-nums text-gray-600">
-                              {license.assignedCount} / {license.maxCapacity}
-                            </span>
-                          </div>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">
                           {formatDate(license.expiryDate ? new Date(license.expiryDate).toISOString() : null)}
@@ -255,18 +263,22 @@ export default function LicensesContent({
                         {isLoggedIn && (
                           <td className="px-4 py-3 text-center">
                             <div className="flex items-center justify-center gap-1">
-                              <AssignButton
-                                licenseId={license.id}
-                                licenseName={license.name}
-                                remaining={license.remainingCount}
-                                employees={employees}
-                                assignedEmployeeIds={license.assignedEmployeeIds}
-                                licenseType={license.licenseType}
-                              />
-                              <UnassignButton
-                                licenseName={license.name}
-                                assignedEmployees={license.assignedEmployees}
-                              />
+                              {license.maxCapacity > 0 && (
+                                <>
+                                  <AssignButton
+                                    licenseId={license.id}
+                                    licenseName={license.name}
+                                    remaining={license.remainingCount}
+                                    employees={employees}
+                                    assignedEmployeeIds={license.assignedEmployeeIds}
+                                    licenseType={license.licenseType}
+                                  />
+                                  <UnassignButton
+                                    licenseName={license.name}
+                                    assignedEmployees={license.assignedEmployees}
+                                  />
+                                </>
+                              )}
                               <DeleteButton id={license.id} name={license.name} />
                             </div>
                           </td>
