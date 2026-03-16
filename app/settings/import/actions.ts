@@ -23,7 +23,8 @@ export async function importCsv(formData: FormData): Promise<ImportResult> {
   const type = formData.get("type") as ImportType | null;
   const file = formData.get("file") as File | null;
 
-  if (!type || !["licenses", "employees", "groups", "assignments", "seats"].includes(type)) {
+  const validTypes: ImportType[] = ["licenses", "employees", "groups", "assignments", "seats", "cloud", "domains", "hardware"];
+  if (!type || !validTypes.includes(type)) {
     return { success: false, created: 0, updated: 0, errors: [], message: "가져오기 유형을 선택하세요." };
   }
   if (!file || file.size === 0) {
@@ -74,6 +75,12 @@ export async function importCsv(formData: FormData): Promise<ImportResult> {
         return await importAssignments(parsed.data, actor);
       case "seats":
         return await importSeats(parsed.data, actor);
+      case "cloud":
+        return await importCloudAssets(parsed.data, actor);
+      case "domains":
+        return await importDomainAssets(parsed.data, actor);
+      case "hardware":
+        return await importHardwareAssets(parsed.data, actor);
     }
   } catch (error) {
     return {
@@ -98,7 +105,102 @@ function getRequiredHeaders(type: ImportType): string[] {
       return ["licenseName", "employeeEmail"];
     case "seats":
       return ["licenseName", "key"];
+    case "cloud":
+      return ["name"];
+    case "domains":
+      return ["name"];
+    case "hardware":
+      return ["name"];
   }
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────
+
+/** Resolve company ID by name (null if not found or empty) */
+async function resolveCompanyId(
+  tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  companyName: string | null
+): Promise<number | null> {
+  if (!companyName) return null;
+  const company = await tx.orgCompany.findUnique({ where: { name: companyName } });
+  return company?.id ?? null;
+}
+
+/** Resolve orgUnit ID by name (null if not found or empty) */
+async function resolveOrgUnitId(
+  tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  orgUnitName: string | null,
+  companyId: number | null
+): Promise<number | null> {
+  if (!orgUnitName) return null;
+  const orgUnit = await tx.orgUnit.findFirst({
+    where: { name: orgUnitName, ...(companyId ? { companyId } : {}) },
+  });
+  return orgUnit?.id ?? null;
+}
+
+/** Resolve employee by name (first match) */
+async function resolveEmployeeByName(
+  tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  name: string | null
+): Promise<number | null> {
+  if (!name) return null;
+  const employee = await tx.employee.findFirst({ where: { name } });
+  return employee?.id ?? null;
+}
+
+/** Parse and validate CIA score (1-3) */
+function parseCiaScore(
+  value: string | undefined,
+  row: number,
+  column: string,
+  errors: RowError[]
+): number | null {
+  if (!value?.trim()) return null;
+  const n = Number(value.trim());
+  if (isNaN(n) || !Number.isInteger(n) || n < 1 || n > 3) {
+    errors.push({ row, column, message: `CIA 점수는 1~3 정수여야 합니다: "${value}"` });
+    return null;
+  }
+  return n;
+}
+
+/** Validate company/orgUnit names exist in DB. Adds errors if not found. */
+async function validateCompanyOrgNames(
+  validated: Array<{ companyName: string | null; orgUnitName: string | null; rowNum: number }>,
+  errors: RowError[]
+): Promise<boolean> {
+  const uniqueCompanyNames = [...new Set(validated.map((r) => r.companyName).filter(Boolean))] as string[];
+  if (uniqueCompanyNames.length > 0) {
+    const existingCompanies = await prisma.orgCompany.findMany({
+      where: { name: { in: uniqueCompanyNames } },
+      select: { name: true },
+    });
+    const existingCompanySet = new Set(existingCompanies.map((c) => c.name));
+    for (const row of validated) {
+      if (row.companyName && !existingCompanySet.has(row.companyName)) {
+        errors.push({ row: row.rowNum, column: "companyName", message: `존재하지 않는 회사입니다: "${row.companyName}"` });
+      }
+    }
+    if (errors.length > 0) return false;
+  }
+
+  const uniqueOrgUnitNames = [...new Set(validated.map((r) => r.orgUnitName).filter(Boolean))] as string[];
+  if (uniqueOrgUnitNames.length > 0) {
+    const existingOrgUnits = await prisma.orgUnit.findMany({
+      where: { name: { in: uniqueOrgUnitNames } },
+      select: { name: true },
+    });
+    const existingOrgUnitSet = new Set(existingOrgUnits.map((o) => o.name));
+    for (const row of validated) {
+      if (row.orgUnitName && !existingOrgUnitSet.has(row.orgUnitName)) {
+        errors.push({ row: row.rowNum, column: "orgUnitName", message: `존재하지 않는 조직입니다: "${row.orgUnitName}"` });
+      }
+    }
+    if (errors.length > 0) return false;
+  }
+
+  return true;
 }
 
 // ─── License Import ────────────────────────────────────────────────────
@@ -122,9 +224,19 @@ async function importLicenses(rows: Record<string, string>[], actor: string): Pr
     const description = row.description?.trim() || null;
     const parentLicenseName = row.parentLicenseName?.trim() || null;
 
+    // 추가 비용 필드
+    const vendor = row.vendor?.trim() || null;
+    const rawPaymentCycle = row.paymentCycle?.trim().toUpperCase();
+    const paymentCycle = (["MONTHLY", "YEARLY"].includes(rawPaymentCycle) ? rawPaymentCycle : null) as "MONTHLY" | "YEARLY" | null;
+    const unitPrice = parseNumber(row.unitPrice, rowNum, "unitPrice", errors);
+    const rawCurrency = row.currency?.trim().toUpperCase();
+    const currency = (["KRW", "USD", "EUR", "JPY", "GBP", "CNY"].includes(rawCurrency) ? rawCurrency : "KRW") as string;
+    const exchangeRate = parseNumber(row.exchangeRate, rowNum, "exchangeRate", errors);
+
     return {
       rowNum, name, totalQuantity, purchaseDate, key, licenseType,
       price, expiryDate, noticePeriodDays, adminName, description, parentLicenseName,
+      vendor, paymentCycle, unitPrice, currency, exchangeRate,
     };
   });
 
@@ -215,8 +327,6 @@ async function importLicenses(rows: Record<string, string>[], actor: string): Pr
   }
 
   // Phase 1.5: 기존 라이선스의 수량 축소 사전 검증
-  //   - 활성 배정 수 이상으로만 수량 변경 가능
-  //   - 개별 라이선스: 배정 중인 시트 수 이상으로만 수량 변경 가능
   const uniqueNames = [...new Set(validated.map((r) => r.name).filter(Boolean))] as string[];
   if (uniqueNames.length > 0) {
     const existingLicenses = await prisma.license.findMany({
@@ -247,7 +357,6 @@ async function importLicenses(rows: Record<string, string>[], actor: string): Pr
       const activeAssignments = existing._count.assignments;
 
       if (effectiveType !== "KEY_BASED") {
-        // 볼륨: 활성 배정 수 이상이어야
         if (row.totalQuantity < activeAssignments) {
           errors.push({
             row: row.rowNum,
@@ -256,7 +365,6 @@ async function importLicenses(rows: Record<string, string>[], actor: string): Pr
           });
         }
       } else {
-        // 개별: 배정 중인 시트 수 이상이어야
         const assignedSeatCount = existing.seats.filter(
           (s) => s.assignments.length > 0
         ).length;
@@ -322,6 +430,11 @@ async function importLicenses(rows: Record<string, string>[], actor: string): Pr
         adminName: row.adminName,
         description: row.description,
         parentId,
+        vendor: row.vendor,
+        paymentCycle: row.paymentCycle,
+        unitPrice: row.unitPrice,
+        currency: row.currency as "KRW" | "USD" | "EUR" | "JPY" | "GBP" | "CNY",
+        exchangeRate: row.exchangeRate ?? 1.0,
       };
 
       const existing = await tx.license.findFirst({ where: { name: row.name! } });
@@ -345,7 +458,6 @@ async function importLicenses(rows: Record<string, string>[], actor: string): Pr
 
   revalidatePath("/licenses");
 
-  // Audit log for import (outside transaction — best-effort)
   if (created + updated > 0) {
     await prisma.auditLog.create({
       data: {
@@ -380,36 +492,9 @@ async function importEmployees(rows: Record<string, string>[], actor: string): P
 
   if (errors.length > 0) return { success: false, created: 0, updated: 0, errors };
 
-  // Phase 1.5: Validate company/org names exist in DB (존재하지 않는 경우 에러 — 자동 생성 안 함)
-  const uniqueCompanyNames = [...new Set(validated.map((r) => r.companyName).filter(Boolean))] as string[];
-  if (uniqueCompanyNames.length > 0) {
-    const existingCompanies = await prisma.orgCompany.findMany({
-      where: { name: { in: uniqueCompanyNames } },
-      select: { name: true },
-    });
-    const existingCompanySet = new Set(existingCompanies.map((c) => c.name));
-    for (const row of validated) {
-      if (row.companyName && !existingCompanySet.has(row.companyName)) {
-        errors.push({ row: row.rowNum, column: "companyName", message: `존재하지 않는 회사입니다: "${row.companyName}"` });
-      }
-    }
-    if (errors.length > 0) return { success: false, created: 0, updated: 0, errors };
-  }
-
-  const uniqueOrgUnitNames = [...new Set(validated.map((r) => r.orgUnitName).filter(Boolean))] as string[];
-  if (uniqueOrgUnitNames.length > 0) {
-    const existingOrgUnits = await prisma.orgUnit.findMany({
-      where: { name: { in: uniqueOrgUnitNames } },
-      select: { name: true },
-    });
-    const existingOrgUnitSet = new Set(existingOrgUnits.map((o) => o.name));
-    for (const row of validated) {
-      if (row.orgUnitName && !existingOrgUnitSet.has(row.orgUnitName)) {
-        errors.push({ row: row.rowNum, column: "orgUnitName", message: `존재하지 않는 조직입니다: "${row.orgUnitName}"` });
-      }
-    }
-    if (errors.length > 0) return { success: false, created: 0, updated: 0, errors };
-  }
+  // Validate company/org names
+  const valid = await validateCompanyOrgNames(validated, errors);
+  if (!valid) return { success: false, created: 0, updated: 0, errors };
 
   // Phase 1.5: Validate group names exist in DB before writing
   const uniqueGroupNames = [...new Set(validated.map((r) => r.groupName).filter(Boolean))] as string[];
@@ -432,23 +517,8 @@ async function importEmployees(rows: Record<string, string>[], actor: string): P
 
   await prisma.$transaction(async (tx) => {
     for (const row of validated) {
-      // 조직 ID 조회 (이름 기준)
-      let companyId: number | null = null;
-      let orgUnitId: number | null = null;
-
-      if (row.companyName) {
-        const company = await tx.orgCompany.findUnique({ where: { name: row.companyName } });
-        companyId = company?.id ?? null;
-      }
-      if (row.orgUnitName) {
-        const orgUnit = await tx.orgUnit.findFirst({
-          where: {
-            name: row.orgUnitName,
-            ...(companyId ? { companyId } : {}),
-          },
-        });
-        orgUnitId = orgUnit?.id ?? null;
-      }
+      const companyId = await resolveCompanyId(tx, row.companyName);
+      const orgUnitId = await resolveOrgUnitId(tx, row.orgUnitName, companyId);
 
       const employeeData = {
         name: row.name!,
@@ -460,10 +530,15 @@ async function importEmployees(rows: Record<string, string>[], actor: string): P
       };
 
       let employee;
+      let isUpdate = false;
+      let prevTitle: string | null = null;
+
       if (row.email) {
         const existing = await tx.employee.findUnique({ where: { email: row.email } });
         if (existing) {
+          prevTitle = existing.title;
           employee = await tx.employee.update({ where: { id: existing.id }, data: employeeData });
+          isUpdate = true;
           updated++;
         } else {
           employee = await tx.employee.create({ data: employeeData });
@@ -472,6 +547,23 @@ async function importEmployees(rows: Record<string, string>[], actor: string): P
       } else {
         employee = await tx.employee.create({ data: employeeData });
         created++;
+      }
+
+      // CIA 캐스케이드: 직책 변경 시 배정된 하드웨어 자산의 CIA 자동 업데이트
+      if (row.title && (isUpdate ? prevTitle !== row.title : true)) {
+        const hwAssets = await tx.asset.findMany({
+          where: { assigneeId: employee.id, type: "HARDWARE" },
+          select: { id: true },
+        });
+        if (hwAssets.length > 0) {
+          const mapping = await tx.titleCiaMapping.findUnique({ where: { title: row.title } });
+          if (mapping) {
+            await tx.asset.updateMany({
+              where: { id: { in: hwAssets.map((a) => a.id) } },
+              data: { ciaC: mapping.ciaC, ciaI: mapping.ciaI, ciaA: mapping.ciaA },
+            });
+          }
+        }
       }
 
       // Auto-assign group licenses if groupName is provided
@@ -492,13 +584,11 @@ async function importEmployees(rows: Record<string, string>[], actor: string): P
             select: { employeeId: true },
           });
 
-          // Skip if already assigned to this employee
           if (activeAssignments.some((a) => a.employeeId === employee.id)) continue;
 
           let seatId: number | null = null;
 
           if (license.licenseType === "KEY_BASED") {
-            // 개별 라이선스: 빈 시트 찾기 (키 있는 시트 우선)
             const availableSeats = await tx.licenseSeat.findMany({
               where: {
                 licenseId: license.id,
@@ -510,10 +600,9 @@ async function importEmployees(rows: Record<string, string>[], actor: string): P
               ...availableSeats.filter((s) => s.key !== null),
               ...availableSeats.filter((s) => s.key === null),
             ];
-            if (sorted.length === 0) continue; // 빈 시트 없으면 건너뜀
+            if (sorted.length === 0) continue;
             seatId = sorted[0].id;
           } else {
-            // VOLUME/NO_KEY: 수량 체크
             if (activeAssignments.length >= license.totalQuantity) continue;
           }
 
@@ -596,9 +685,7 @@ async function importGroups(rows: Record<string, string>[]): Promise<ImportResul
         created++;
       }
 
-      // Sync license members if licenseNames provided
       if (row.licenseNames.length > 0) {
-        // Resolve license IDs
         const licenseIds: number[] = [];
         for (const licenseName of row.licenseNames) {
           const license = await tx.license.findFirst({ where: { name: licenseName } });
@@ -608,7 +695,6 @@ async function importGroups(rows: Record<string, string>[]): Promise<ImportResul
           licenseIds.push(license.id);
         }
 
-        // Delete existing members and recreate
         await tx.licenseGroupMember.deleteMany({ where: { licenseGroupId: groupId } });
         await tx.licenseGroupMember.createMany({
           data: licenseIds.map((licenseId) => ({ licenseGroupId: groupId, licenseId })),
@@ -644,19 +730,16 @@ async function importAssignments(rows: Record<string, string>[], actor: string):
       const row = validated[i];
       const rowNum = i + 2;
 
-      // Resolve license
       const license = await tx.license.findFirst({ where: { name: row.licenseName! } });
       if (!license) {
         throw new Error(`행 ${rowNum}: 라이선스 "${row.licenseName}"을(를) 찾을 수 없습니다.`);
       }
 
-      // Resolve employee
       const employee = await tx.employee.findUnique({ where: { email: row.employeeEmail! } });
       if (!employee) {
         throw new Error(`행 ${rowNum}: 이메일 "${row.employeeEmail}"의 조직원을 찾을 수 없습니다.`);
       }
 
-      // Check for duplicate active assignment
       const existing = await tx.assignment.findFirst({
         where: { licenseId: license.id, employeeId: employee.id, returnedDate: null },
       });
@@ -666,12 +749,10 @@ async function importAssignments(rows: Record<string, string>[], actor: string):
         );
       }
 
-      // Check capacity & find seat
       let seatId: number | null = null;
       const reason = row.reason || "CSV Import";
 
       if (license.licenseType === "KEY_BASED") {
-        // 개별 라이선스: 빈 시트 찾기 (키 있는 시트 우선)
         const availableSeats = await tx.licenseSeat.findMany({
           where: {
             licenseId: license.id,
@@ -691,7 +772,6 @@ async function importAssignments(rows: Record<string, string>[], actor: string):
         }
         seatId = sorted[0].id;
       } else {
-        // VOLUME/NO_KEY: 수량 체크
         const activeCount = await tx.assignment.count({
           where: { licenseId: license.id, returnedDate: null },
         });
@@ -745,16 +825,10 @@ async function importAssignments(rows: Record<string, string>[], actor: string):
 }
 
 // ─── Seats (Key) Import ─────────────────────────────────────────────
-//
-// 설계 원칙:
-//   1. 모든 검증을 트랜잭션 전에 수행 → 에러 시 행 번호 포함 errors[] 반환
-//   2. 트랜잭션은 검증 통과 후 쓰기만 담당 → DB Lock 최소화
-//   3. 행 번호 기반 에러 메시지로 사용자가 CSV 원본에서 문제 위치를 즉시 파악
 
 async function importSeats(rows: Record<string, string>[], actor: string): Promise<ImportResult> {
   const errors: RowError[] = [];
 
-  // ── Phase 1: 필드 파싱 ─────────────────────────────────────────────
   const validated = rows.map((row, i) => {
     const rowNum = i + 2;
     const licenseName = requireField(row.licenseName, rowNum, "licenseName", errors);
@@ -764,8 +838,8 @@ async function importSeats(rows: Record<string, string>[], actor: string): Promi
 
   if (errors.length > 0) return { success: false, created: 0, updated: 0, errors };
 
-  // ── Phase 2: 키 중복 검사 (CSV 내부) ───────────────────────────────
-  const keysInCsv = new Map<string, number>(); // key → first rowNum
+  // 키 중복 검사 (CSV 내부)
+  const keysInCsv = new Map<string, number>();
   for (const row of validated) {
     if (row.key) {
       const prev = keysInCsv.get(row.key);
@@ -781,7 +855,7 @@ async function importSeats(rows: Record<string, string>[], actor: string): Promi
     }
   }
 
-  // ── Phase 3: 키 중복 검사 (DB 기존 LicenseSeat) ────────────────────
+  // 키 중복 검사 (DB)
   const csvKeys = [...keysInCsv.keys()];
   if (csvKeys.length > 0) {
     const dbSeats = await prisma.licenseSeat.findMany({
@@ -804,7 +878,7 @@ async function importSeats(rows: Record<string, string>[], actor: string): Promi
 
   if (errors.length > 0) return { success: false, created: 0, updated: 0, errors };
 
-  // ── Phase 4: 라이선스별 그룹화 ─────────────────────────────────────
+  // 라이선스별 그룹화
   const byLicense = new Map<string, { key: string; rowNum: number }[]>();
   for (const row of validated) {
     if (!row.licenseName || !row.key) continue;
@@ -813,12 +887,7 @@ async function importSeats(rows: Record<string, string>[], actor: string): Promi
     byLicense.set(row.licenseName, list);
   }
 
-  // ── Phase 5: 라이선스 존재·유형·빈시트 사전 검증 ───────────────────
-  //
-  // 트랜잭션 전에 수행하여:
-  //   - 라이선스 미존재 → 해당 행 번호 에러
-  //   - 볼륨 라이선스 → 해당 행 전체에 에러
-  //   - 빈 시트 부족 → 초과 시작 행 번호 + 수량 정보 에러
+  // 라이선스 존재·유형·빈시트 사전 검증
   for (const [licenseName, keys] of byLicense) {
     const license = await prisma.license.findFirst({
       where: { name: licenseName },
@@ -852,7 +921,6 @@ async function importSeats(rows: Record<string, string>[], actor: string): Promi
     });
 
     if (emptySeatsCount < keys.length) {
-      // 초과하는 첫 번째 행부터 끝까지 에러 표시
       for (let i = emptySeatsCount; i < keys.length; i++) {
         errors.push({
           row: keys[i].rowNum,
@@ -865,13 +933,13 @@ async function importSeats(rows: Record<string, string>[], actor: string): Promi
 
   if (errors.length > 0) return { success: false, created: 0, updated: 0, errors };
 
-  // ── Phase 6: 트랜잭션 실행 (쓰기만) ────────────────────────────────
+  // 트랜잭션 실행
   let updated = 0;
 
   await prisma.$transaction(async (tx) => {
     for (const [licenseName, keys] of byLicense) {
       const license = await tx.license.findFirst({ where: { name: licenseName } });
-      if (!license) continue; // Phase 5에서 이미 검증 완료
+      if (!license) continue;
 
       const emptySeats = await tx.licenseSeat.findMany({
         where: { licenseId: license.id, key: null },
@@ -903,4 +971,339 @@ async function importSeats(rows: Record<string, string>[], actor: string): Promi
   }
 
   return { success: true, created: 0, updated, errors: [] };
+}
+
+// ─── Cloud Asset Import ────────────────────────────────────────────────
+
+async function importCloudAssets(rows: Record<string, string>[], actor: string): Promise<ImportResult> {
+  const errors: RowError[] = [];
+
+  const validated = rows.map((row, i) => {
+    const rowNum = i + 2;
+    const name = requireField(row.name, rowNum, "name", errors);
+    const vendor = row.vendor?.trim() || null;
+    const platform = row.platform?.trim() || null;
+    const accountId = row.accountId?.trim() || null;
+    const region = row.region?.trim() || null;
+    const serviceCategory = row.serviceCategory?.trim() || null;
+    const resourceType = row.resourceType?.trim() || null;
+    const resourceId = row.resourceId?.trim() || null;
+    const instanceSpec = row.instanceSpec?.trim() || null;
+    const monthlyCost = parseNumber(row.monthlyCost, rowNum, "monthlyCost", errors);
+    const currency = row.currency?.trim().toUpperCase() || "KRW";
+    const billingCycle = row.billingCycle?.trim().toUpperCase() || null;
+    const purchaseDate = parseDate(row.purchaseDate, rowNum, "purchaseDate", errors);
+    const expiryDate = parseDate(row.expiryDate, rowNum, "expiryDate", errors);
+    const description = row.description?.trim() || null;
+    const assigneeName = row.assigneeName?.trim() || null;
+    const companyName = row.companyName?.trim() || null;
+    const orgUnitName = row.orgUnitName?.trim() || null;
+    return {
+      rowNum, name, vendor, platform, accountId, region,
+      serviceCategory, resourceType, resourceId, instanceSpec,
+      monthlyCost, currency, billingCycle, purchaseDate, expiryDate,
+      description, assigneeName, companyName, orgUnitName,
+    };
+  });
+
+  if (errors.length > 0) return { success: false, created: 0, updated: 0, errors };
+
+  const valid = await validateCompanyOrgNames(validated, errors);
+  if (!valid) return { success: false, created: 0, updated: 0, errors };
+
+  let created = 0;
+
+  await prisma.$transaction(async (tx) => {
+    for (const row of validated) {
+      const companyId = await resolveCompanyId(tx, row.companyName);
+      const orgUnitId = await resolveOrgUnitId(tx, row.orgUnitName, companyId);
+      const assigneeId = await resolveEmployeeByName(tx, row.assigneeName);
+
+      const asset = await tx.asset.create({
+        data: {
+          type: "CLOUD",
+          name: row.name!,
+          vendor: row.vendor,
+          description: row.description,
+          monthlyCost: row.monthlyCost != null ? row.monthlyCost : undefined,
+          cost: row.monthlyCost != null ? row.monthlyCost : undefined,
+          currency: row.currency,
+          billingCycle: row.billingCycle,
+          purchaseDate: row.purchaseDate,
+          expiryDate: row.expiryDate,
+          companyId,
+          orgUnitId,
+          assigneeId,
+          status: assigneeId ? "IN_USE" : "IN_STOCK",
+          cloudDetail: {
+            create: {
+              platform: row.platform,
+              accountId: row.accountId,
+              region: row.region,
+              serviceCategory: row.serviceCategory,
+              resourceType: row.resourceType,
+              resourceId: row.resourceId,
+              instanceSpec: row.instanceSpec,
+            },
+          },
+        },
+      });
+
+      if (assigneeId) {
+        await tx.assetAssignmentHistory.create({
+          data: {
+            assetId: asset.id,
+            employeeId: assigneeId,
+            action: "ASSIGNED",
+            reason: "CSV Import",
+          },
+        });
+      }
+
+      created++;
+    }
+  });
+
+  revalidatePath("/cloud");
+
+  if (created > 0) {
+    await prisma.auditLog.create({
+      data: {
+        entityType: "ASSET",
+        entityId: 0,
+        action: "IMPORTED",
+        actor,
+        details: JSON.stringify({ summary: `클라우드 자산 CSV 가져오기: ${created}건 생성` }),
+      },
+    });
+  }
+
+  return { success: true, created, updated: 0, errors: [] };
+}
+
+// ─── Domain/SSL Asset Import ───────────────────────────────────────────
+
+async function importDomainAssets(rows: Record<string, string>[], actor: string): Promise<ImportResult> {
+  const errors: RowError[] = [];
+
+  const validated = rows.map((row, i) => {
+    const rowNum = i + 2;
+    const name = requireField(row.name, rowNum, "name", errors);
+    const domainName = row.domainName?.trim() || null;
+    const registrar = row.registrar?.trim() || null;
+    const sslType = row.sslType?.trim().toUpperCase() || null;
+    const issuer = row.issuer?.trim() || null;
+    const cost = parseNumber(row.cost, rowNum, "cost", errors);
+    const currency = row.currency?.trim().toUpperCase() || "KRW";
+    const purchaseDate = parseDate(row.purchaseDate, rowNum, "purchaseDate", errors);
+    const expiryDate = parseDate(row.expiryDate, rowNum, "expiryDate", errors);
+    const autoRenew = parseBoolean(row.autoRenew, rowNum, "autoRenew", errors);
+    const description = row.description?.trim() || null;
+    const companyName = row.companyName?.trim() || null;
+    const orgUnitName = row.orgUnitName?.trim() || null;
+    return {
+      rowNum, name, domainName, registrar, sslType, issuer,
+      cost, currency, purchaseDate, expiryDate, autoRenew,
+      description, companyName, orgUnitName,
+    };
+  });
+
+  if (errors.length > 0) return { success: false, created: 0, updated: 0, errors };
+
+  const valid = await validateCompanyOrgNames(validated, errors);
+  if (!valid) return { success: false, created: 0, updated: 0, errors };
+
+  let created = 0;
+
+  await prisma.$transaction(async (tx) => {
+    for (const row of validated) {
+      const companyId = await resolveCompanyId(tx, row.companyName);
+      const orgUnitId = await resolveOrgUnitId(tx, row.orgUnitName, companyId);
+
+      await tx.asset.create({
+        data: {
+          type: "DOMAIN_SSL",
+          name: row.name!,
+          vendor: row.registrar,
+          description: row.description,
+          cost: row.cost != null ? row.cost : undefined,
+          currency: row.currency,
+          purchaseDate: row.purchaseDate,
+          expiryDate: row.expiryDate,
+          companyId,
+          orgUnitId,
+          domainDetail: {
+            create: {
+              domainName: row.domainName,
+              registrar: row.registrar,
+              sslType: row.sslType,
+              issuer: row.issuer,
+              autoRenew: row.autoRenew ?? true,
+            },
+          },
+        },
+      });
+
+      created++;
+    }
+  });
+
+  revalidatePath("/domains");
+
+  if (created > 0) {
+    await prisma.auditLog.create({
+      data: {
+        entityType: "ASSET",
+        entityId: 0,
+        action: "IMPORTED",
+        actor,
+        details: JSON.stringify({ summary: `도메인·SSL CSV 가져오기: ${created}건 생성` }),
+      },
+    });
+  }
+
+  return { success: true, created, updated: 0, errors: [] };
+}
+
+// ─── Hardware Asset Import ─────────────────────────────────────────────
+
+async function importHardwareAssets(rows: Record<string, string>[], actor: string): Promise<ImportResult> {
+  const errors: RowError[] = [];
+
+  const validated = rows.map((row, i) => {
+    const rowNum = i + 2;
+    const name = requireField(row.name, rowNum, "name", errors);
+    const deviceType = row.deviceType?.trim() || null;
+    const manufacturer = row.manufacturer?.trim() || null;
+    const model = row.model?.trim() || null;
+    const serialNumber = row.serialNumber?.trim() || null;
+    const assetTag = row.assetTag?.trim() || null;
+    const hostname = row.hostname?.trim() || null;
+    const os = row.os?.trim() || null;
+    const osVersion = row.osVersion?.trim() || null;
+    const cpu = row.cpu?.trim() || null;
+    const ram = row.ram?.trim() || null;
+    const storage = row.storage?.trim() || null;
+    const location = row.location?.trim() || null;
+    const cost = parseNumber(row.cost, rowNum, "cost", errors);
+    const currency = row.currency?.trim().toUpperCase() || "KRW";
+    const purchaseDate = parseDate(row.purchaseDate, rowNum, "purchaseDate", errors);
+    const warrantyEndDate = parseDate(row.warrantyEndDate, rowNum, "warrantyEndDate", errors);
+    const condition = row.condition?.trim() || null;
+    const description = row.description?.trim() || null;
+    const assigneeName = row.assigneeName?.trim() || null;
+    const companyName = row.companyName?.trim() || null;
+    const orgUnitName = row.orgUnitName?.trim() || null;
+    const ciaC = parseCiaScore(row.ciaC, rowNum, "ciaC", errors);
+    const ciaI = parseCiaScore(row.ciaI, rowNum, "ciaI", errors);
+    const ciaA = parseCiaScore(row.ciaA, rowNum, "ciaA", errors);
+    return {
+      rowNum, name, deviceType, manufacturer, model, serialNumber,
+      assetTag, hostname, os, osVersion, cpu, ram, storage, location,
+      cost, currency, purchaseDate, warrantyEndDate, condition,
+      description, assigneeName, companyName, orgUnitName,
+      ciaC, ciaI, ciaA,
+    };
+  });
+
+  if (errors.length > 0) return { success: false, created: 0, updated: 0, errors };
+
+  const valid = await validateCompanyOrgNames(validated, errors);
+  if (!valid) return { success: false, created: 0, updated: 0, errors };
+
+  let created = 0;
+
+  await prisma.$transaction(async (tx) => {
+    for (const row of validated) {
+      const companyId = await resolveCompanyId(tx, row.companyName);
+      const orgUnitId = await resolveOrgUnitId(tx, row.orgUnitName, companyId);
+      const assigneeId = await resolveEmployeeByName(tx, row.assigneeName);
+
+      // CIA: CSV에 직접 입력된 값 우선, 없으면 배정자 직책 매핑 적용
+      let finalCiaC = row.ciaC;
+      let finalCiaI = row.ciaI;
+      let finalCiaA = row.ciaA;
+
+      if (assigneeId && finalCiaC == null && finalCiaI == null && finalCiaA == null) {
+        const employee = await tx.employee.findUnique({
+          where: { id: assigneeId },
+          select: { title: true },
+        });
+        if (employee?.title) {
+          const mapping = await tx.titleCiaMapping.findUnique({ where: { title: employee.title } });
+          if (mapping) {
+            finalCiaC = mapping.ciaC;
+            finalCiaI = mapping.ciaI;
+            finalCiaA = mapping.ciaA;
+          }
+        }
+      }
+
+      const asset = await tx.asset.create({
+        data: {
+          type: "HARDWARE",
+          name: row.name!,
+          vendor: row.manufacturer,
+          description: row.description,
+          cost: row.cost != null ? row.cost : undefined,
+          currency: row.currency,
+          purchaseDate: row.purchaseDate,
+          companyId,
+          orgUnitId,
+          assigneeId,
+          status: assigneeId ? "IN_USE" : "IN_STOCK",
+          ciaC: finalCiaC,
+          ciaI: finalCiaI,
+          ciaA: finalCiaA,
+          hardwareDetail: {
+            create: {
+              deviceType: row.deviceType,
+              manufacturer: row.manufacturer,
+              model: row.model,
+              serialNumber: row.serialNumber,
+              assetTag: row.assetTag,
+              hostname: row.hostname,
+              os: row.os,
+              osVersion: row.osVersion,
+              cpu: row.cpu,
+              ram: row.ram,
+              storage: row.storage,
+              location: row.location,
+              warrantyEndDate: row.warrantyEndDate,
+              condition: row.condition,
+            },
+          },
+        },
+      });
+
+      if (assigneeId) {
+        await tx.assetAssignmentHistory.create({
+          data: {
+            assetId: asset.id,
+            employeeId: assigneeId,
+            action: "ASSIGNED",
+            reason: "CSV Import",
+          },
+        });
+      }
+
+      created++;
+    }
+  });
+
+  revalidatePath("/hardware");
+
+  if (created > 0) {
+    await prisma.auditLog.create({
+      data: {
+        entityType: "ASSET",
+        entityId: 0,
+        action: "IMPORTED",
+        actor,
+        details: JSON.stringify({ summary: `하드웨어 자산 CSV 가져오기: ${created}건 생성` }),
+      },
+    });
+  }
+
+  return { success: true, created, updated: 0, errors: [] };
 }
