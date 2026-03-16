@@ -30,7 +30,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       // 1. Asset 존재 확인
       const asset = await tx.asset.findUnique({
         where: { id: assetId },
-        select: { id: true, name: true, status: true, assigneeId: true },
+        select: { id: true, name: true, type: true, status: true, assigneeId: true },
       });
 
       if (!asset) {
@@ -51,12 +51,13 @@ export async function POST(request: NextRequest, { params }: Params) {
         select: { name: true },
       });
 
-      // 4. Asset 업데이트: assigneeId = null, status = IN_STOCK
+      // 4. Asset 업데이트: assigneeId = null, status = IN_STOCK, 하드웨어 CIA 초기화
       const updatedAsset = await tx.asset.update({
         where: { id: assetId },
         data: {
           assigneeId: null,
           status: "IN_STOCK",
+          ...(asset.type === "HARDWARE" && { ciaC: null, ciaI: null, ciaA: null }),
         },
         select: { id: true, name: true, assigneeId: true, status: true },
       });

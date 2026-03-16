@@ -53,9 +53,15 @@ export async function PUT(request: NextRequest, { params }: Params) {
     const emailVal = body.email !== undefined ? vEmail(body.email) : undefined;
     const titleVal = body.title !== undefined ? vStr(body.title, 100) : undefined;
 
+    const employeeIdNum = Number(id);
     const employee = await prisma.$transaction(async (tx) => {
+      // 직책 변경 감지를 위해 기존 데이터 조회
+      const before = titleVal !== undefined
+        ? await tx.employee.findUnique({ where: { id: employeeIdNum }, select: { title: true } })
+        : null;
+
       const updated = await tx.employee.update({
-        where: { id: Number(id) },
+        where: { id: employeeIdNum },
         data: {
           ...(nameVal !== undefined && { name: nameVal }),
           ...(departmentVal !== undefined && { department: departmentVal }),
@@ -74,6 +80,27 @@ export async function PUT(request: NextRequest, { params }: Params) {
         actorId: user.id,
         details: { name: updated.name },
       });
+
+      // 직책 변경 시 할당된 하드웨어 자산 CIA 자동 갱신
+      if (titleVal !== undefined && before?.title !== updated.title) {
+        const hwAssets = await tx.asset.findMany({
+          where: { assigneeId: employeeIdNum, type: "HARDWARE" },
+          select: { id: true },
+        });
+        if (hwAssets.length > 0) {
+          let newCia: { ciaC: number | null; ciaI: number | null; ciaA: number | null } = { ciaC: null, ciaI: null, ciaA: null };
+          if (updated.title) {
+            const mapping = await tx.titleCiaMapping.findUnique({ where: { title: updated.title } });
+            if (mapping) {
+              newCia = { ciaC: mapping.ciaC, ciaI: mapping.ciaI, ciaA: mapping.ciaA };
+            }
+          }
+          await tx.asset.updateMany({
+            where: { id: { in: hwAssets.map((a) => a.id) } },
+            data: newCia,
+          });
+        }
+      }
 
       return updated;
     });
@@ -124,7 +151,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
       const before = await tx.employee.findUnique({
         where: { id: employeeId },
-        select: { orgUnitId: true },
+        select: { orgUnitId: true, title: true },
       });
 
       const updated = await tx.employee.update({
@@ -149,6 +176,27 @@ export async function PATCH(request: NextRequest, { params }: Params) {
             toOrgUnitId: updated.orgUnitId,
           },
         });
+      }
+
+      // 직책 변경 시 할당된 하드웨어 자산 CIA 자동 갱신
+      if (titleVal !== undefined && before?.title !== updated.title) {
+        const hwAssets = await tx.asset.findMany({
+          where: { assigneeId: employeeId, type: "HARDWARE" },
+          select: { id: true },
+        });
+        if (hwAssets.length > 0) {
+          let newCia: { ciaC: number | null; ciaI: number | null; ciaA: number | null } = { ciaC: null, ciaI: null, ciaA: null };
+          if (updated.title) {
+            const mapping = await tx.titleCiaMapping.findUnique({ where: { title: updated.title } });
+            if (mapping) {
+              newCia = { ciaC: mapping.ciaC, ciaI: mapping.ciaI, ciaA: mapping.ciaA };
+            }
+          }
+          await tx.asset.updateMany({
+            where: { id: { in: hwAssets.map((a) => a.id) } },
+            data: newCia,
+          });
+        }
       }
 
       return updated;

@@ -1,16 +1,40 @@
 /**
  * Google Drive 업로드 라이브러리 (Phase 4)
  *
- * 필요한 환경변수:
+ * DB SystemConfig에 저장된 값 우선 사용, 없으면 환경변수 폴백:
  *   GOOGLE_CLIENT_EMAIL  — Service Account 이메일
  *   GOOGLE_PRIVATE_KEY   — Service Account 개인 키 (PEM 형식)
  *   GOOGLE_DRIVE_ROOT    — 루트 폴더 ID (선택)
  *
- * 환경변수가 없으면 Google Drive 업로드를 건너뜁니다.
+ * 설정이 없으면 Google Drive 업로드를 건너뜁니다.
  */
 
+import { getGDriveConfig } from "@/lib/system-config";
+
+/** 캐시된 설정 (요청당 1회만 조회) */
+let _cachedConfig: Awaited<ReturnType<typeof getGDriveConfig>> | null = null;
+
+async function resolveConfig() {
+  if (!_cachedConfig) {
+    _cachedConfig = await getGDriveConfig();
+  }
+  return _cachedConfig;
+}
+
+/** 설정 캐시 초기화 (테스트용 등) */
+export function resetConfigCache() {
+  _cachedConfig = null;
+}
+
 export function isGoogleDriveConfigured(): boolean {
+  // 동기 검사: env만 확인 (UI 표시용)
   return !!(process.env.GOOGLE_CLIENT_EMAIL && process.env.GOOGLE_PRIVATE_KEY);
+}
+
+/** 비동기 검사: DB + env */
+export async function isGoogleDriveConfiguredAsync(): Promise<boolean> {
+  const cfg = await resolveConfig();
+  return !!(cfg.GOOGLE_CLIENT_EMAIL && cfg.GOOGLE_PRIVATE_KEY);
 }
 
 /** JWT 서명 (RSA-SHA256) — Node.js crypto 사용 */
@@ -28,8 +52,9 @@ async function signJWT(payload: object, privateKey: string): Promise<string> {
 
 /** Service Account Access Token 발급 */
 async function getAccessToken(): Promise<string> {
-  const clientEmail = process.env.GOOGLE_CLIENT_EMAIL!;
-  const privateKey = process.env.GOOGLE_PRIVATE_KEY!;
+  const cfg = await resolveConfig();
+  const clientEmail = cfg.GOOGLE_CLIENT_EMAIL!;
+  const privateKey = cfg.GOOGLE_PRIVATE_KEY!;
   const now = Math.floor(Date.now() / 1000);
 
   const jwt = await signJWT(
@@ -94,13 +119,16 @@ export async function uploadToGoogleDrive(
   mimeType: string,
   yearMonth: string // YYYY-MM
 ): Promise<string> {
-  if (!isGoogleDriveConfigured()) {
-    throw new Error("Google Drive 환경변수가 설정되지 않았습니다.");
+  const configured = await isGoogleDriveConfiguredAsync();
+  if (!configured) {
+    throw new Error("Google Drive 설정이 되어있지 않습니다.");
   }
 
+  resetConfigCache(); // 최신 설정 사용
   const accessToken = await getAccessToken();
   const [year] = yearMonth.split("-");
-  const rootFolderId = process.env.GOOGLE_DRIVE_ROOT;
+  const cfg = await resolveConfig();
+  const rootFolderId = cfg.GOOGLE_DRIVE_ROOT;
 
   // 폴더 생성: root / YYYY / YYYY-MM
   const yearFolderId = await getOrCreateFolder(accessToken, year, rootFolderId);

@@ -36,22 +36,6 @@ echo '=== [1/7] 사전 점검 ==='
 if ! sudo docker info > /dev/null 2>&1; then echo 'ABORT: Docker 데몬이 실행 중이 아닙니다'; exit 1; fi
 echo 'Docker 데몬 OK'
 
-# ── 기존 license-manager 잔재 정리 (1회성, asset-manager 전환) ──
-OLD_APP="license-manager"
-if [ -d $DIR/$OLD_APP ] || [ -f $DIR/${OLD_APP}.zip ]; then
-    echo '=== [!] 기존 license-manager 정리 ==='
-    if [ -d $DIR/$OLD_APP ]; then
-        cd $DIR/$OLD_APP
-        sudo docker-compose down -v 2>/dev/null || true
-        sudo docker images --filter reference='*license-manager*' -q | xargs -r sudo docker rmi -f 2>/dev/null || true
-        cd $DIR
-        sudo rm -rf $OLD_APP ${OLD_APP}-backup ${OLD_APP}-new
-        echo 'license-manager 컨테이너·볼륨·소스 삭제 완료'
-    fi
-    sudo rm -f $DIR/${OLD_APP}.zip 2>/dev/null || true
-    echo 'PASS: 구 license-manager 정리 완료'
-fi
-
 echo '=== [2/7] 디스크 공간 점검 ==='
 AVAIL_KB=$(df / --output=avail | tail -1 | tr -d ' ')
 AVAIL_MB=$(( AVAIL_KB / 1024 ))
