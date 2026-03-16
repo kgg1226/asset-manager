@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { sendEmail, sendSlackMessage } from "@/lib/notification";
+import { getNotificationConfig } from "@/lib/system-config";
 
 interface DiagStep {
   step: string;
@@ -29,13 +30,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "channel 필수 (EMAIL | SLACK | BOTH)" }, { status: 400 });
   }
 
+  const config = await getNotificationConfig();
   const diagnostics: DiagStep[] = [];
   let overallOk = true;
 
   // ── Email Test ──
   if (channel === "EMAIL" || channel === "BOTH") {
-    // Step 1: Check env vars
-    const { SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_FROM } = process.env;
+    const { SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_FROM } = config;
     const missingVars: string[] = [];
     if (!SMTP_HOST) missingVars.push("SMTP_HOST");
     if (!SMTP_USER) missingVars.push("SMTP_USER");
@@ -44,19 +45,18 @@ export async function POST(req: NextRequest) {
 
     if (missingVars.length > 0) {
       diagnostics.push({
-        step: "이메일 환경변수 확인",
+        step: "이메일 설정 확인",
         status: "fail",
-        message: `누락된 환경변수: ${missingVars.join(", ")}. .env 파일 또는 docker-compose.yml에서 설정하세요.`,
+        message: `누락된 설정: ${missingVars.join(", ")}. 알림 설정 페이지 또는 .env 파일에서 설정하세요.`,
       });
       overallOk = false;
     } else {
       diagnostics.push({
-        step: "이메일 환경변수 확인",
+        step: "이메일 설정 확인",
         status: "ok",
-        message: `SMTP_HOST=${SMTP_HOST}, SMTP_PORT=${process.env.SMTP_PORT ?? "587"}, SMTP_FROM=${SMTP_FROM}`,
+        message: `SMTP_HOST=${SMTP_HOST}, SMTP_PORT=${config.SMTP_PORT ?? "587"}, SMTP_FROM=${SMTP_FROM}`,
       });
 
-      // Step 2: Actually send
       const targetEmail = email || SMTP_FROM;
       const start = Date.now();
       const result = await sendEmail({
@@ -89,12 +89,12 @@ export async function POST(req: NextRequest) {
 
   // ── Slack Test ──
   if (channel === "SLACK" || channel === "BOTH") {
-    const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+    const webhookUrl = config.SLACK_WEBHOOK_URL;
     if (!webhookUrl) {
       diagnostics.push({
         step: "Slack Webhook URL 확인",
         status: "fail",
-        message: "SLACK_WEBHOOK_URL 환경변수가 설정되지 않았습니다. .env 파일에 추가하세요.",
+        message: "SLACK_WEBHOOK_URL이 설정되지 않았습니다. 알림 설정 페이지에서 추가하세요.",
       });
       overallOk = false;
     } else {

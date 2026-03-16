@@ -77,7 +77,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
 
   const assignedLicenseIds = new Set(activeAssignments.map((a) => a.licenseId));
   const availableLicenses = allLicenses
-    .filter((l) => !assignedLicenseIds.has(l.id))
+    .filter((l) => !assignedLicenseIds.has(l.id) && l.totalQuantity > 0)
     .map((l) => ({
       id: l.id,
       name: l.name,

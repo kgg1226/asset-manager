@@ -66,7 +66,7 @@ export async function createEmployee(
 
           // KEY_BASED: max 1 auto-assignment; VOLUME/NO_KEY: check total quantity
           if (license.licenseType === "KEY_BASED" && activeCount >= 1) continue;
-          if (license.licenseType !== "KEY_BASED" && activeCount >= license.totalQuantity) continue;
+          if (license.licenseType !== "KEY_BASED" && (license.totalQuantity === 0 || activeCount >= license.totalQuantity)) continue;
 
           const keyType = license.licenseType === "VOLUME" ? "Volume Key" : license.licenseType === "KEY_BASED" ? "Individual Key" : "No Key";
           const reason = `Auto-assigned via Group: ${group.name} (${keyType})`;

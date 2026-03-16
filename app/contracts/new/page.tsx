@@ -19,6 +19,8 @@ const BILLING_CYCLE_KEY_MAP: Record<string, string> = {
 };
 const CONTRACT_TYPE_KEYS = ["typeMaintenance", "typeLicense", "typeSubscription", "typeService", "typeLease", "typeOther"] as const;
 
+type OrgOption = { id: number; name: string; companyName: string };
+
 export default function ContractNewPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
@@ -36,6 +38,36 @@ export default function ContractNewPage() {
   const [cia, setCia] = useState<{ ciaC: CiaLevel | null; ciaI: CiaLevel | null; ciaA: CiaLevel | null }>({ ciaC: null, ciaI: null, ciaA: null });
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [orgUnits, setOrgUnits] = useState<OrgOption[]>([]);
+  const [selectedOrgUnitId, setSelectedOrgUnitId] = useState("");
+
+  // 조직 목록 조회
+  useEffect(() => {
+    fetch("/api/org/companies")
+      .then((res) => res.ok ? res.json() : { companies: [] })
+      .then((data) => {
+        const opts: OrgOption[] = [];
+        for (const company of data.companies ?? []) {
+          const flattenOrg = (unit: { id: number; name: string; children?: unknown[] }, depth = 0) => {
+            opts.push({
+              id: unit.id,
+              name: `${"  ".repeat(depth)}${unit.name}`,
+              companyName: company.name,
+            });
+            if (Array.isArray((unit as Record<string, unknown>).children)) {
+              for (const child of (unit as { children: { id: number; name: string; children?: unknown[] }[] }).children) {
+                flattenOrg(child, depth + 1);
+              }
+            }
+          };
+          for (const org of company.orgs ?? []) {
+            flattenOrg(org);
+          }
+        }
+        setOrgUnits(opts);
+      })
+      .catch(() => {});
+  }, []);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -71,6 +103,7 @@ export default function ContractNewPage() {
         vendor: form.vendor || null, cost: Number(form.cost), currency: form.currency,
         billingCycle: form.billingCycle, purchaseDate: form.purchaseDate || null,
         expiryDate: form.expiryDate || null,
+        orgUnitId: selectedOrgUnitId ? Number(selectedOrgUnitId) : null,
         contractDetail: {
           contractNumber: contract.contractNumber || null,
           counterparty: contract.counterparty || null,
@@ -144,6 +177,15 @@ export default function ContractNewPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t.asset.expiryDate}</label>
                 <input type="date" name="expiryDate" value={form.expiryDate} onChange={onChange} className={inputCls} />
               </div>
+            </div>
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t.license.managingOrg}</label>
+              <select value={selectedOrgUnitId} onChange={(e) => setSelectedOrgUnitId(e.target.value)} className={inputCls}>
+                <option value="">{t.common.none}</option>
+                {orgUnits.map((org) => (
+                  <option key={org.id} value={org.id}>[{org.companyName}] {org.name}</option>
+                ))}
+              </select>
             </div>
           </div>
 

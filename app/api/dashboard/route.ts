@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // License + Asset 병렬 조회
+    // License + Asset 병렬 조회 (조직 정보 포함)
     const [licenses, assets] = await Promise.all([
       prisma.license.findMany({
         select: {
@@ -33,6 +33,13 @@ export async function GET(request: NextRequest) {
           paymentCycle: true,
           purchaseDate: true,
           expiryDate: true,
+          orgUnit: {
+            select: {
+              id: true,
+              name: true,
+              company: { select: { name: true } },
+            },
+          },
         },
       }),
       prisma.asset.findMany({
@@ -45,6 +52,13 @@ export async function GET(request: NextRequest) {
           purchaseDate: true,
           expiryDate: true,
           createdAt: true,
+          orgUnit: {
+            select: {
+              id: true,
+              name: true,
+              company: { select: { name: true } },
+            },
+          },
         },
       }),
     ]);

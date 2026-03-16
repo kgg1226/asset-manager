@@ -19,6 +19,8 @@ const BILLING_CYCLE_KEY_MAP: Record<string, string> = {
 };
 const CONTRACT_TYPE_KEYS = ["typeMaintenance", "typeLicense", "typeSubscription", "typeService", "typeLease", "typeOther"] as const;
 
+type OrgOption = { id: number; name: string; companyName: string };
+
 export default function ContractEditPage() {
   const router = useRouter();
   const params = useParams();
@@ -34,6 +36,36 @@ export default function ContractEditPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [orgUnits, setOrgUnits] = useState<OrgOption[]>([]);
+  const [selectedOrgUnitId, setSelectedOrgUnitId] = useState("");
+
+  // 조직 목록 조회
+  useEffect(() => {
+    fetch("/api/org/companies")
+      .then((res) => res.ok ? res.json() : { companies: [] })
+      .then((data) => {
+        const opts: OrgOption[] = [];
+        for (const company of data.companies ?? []) {
+          const flattenOrg = (unit: { id: number; name: string; children?: unknown[] }, depth = 0) => {
+            opts.push({
+              id: unit.id,
+              name: `${"  ".repeat(depth)}${unit.name}`,
+              companyName: company.name,
+            });
+            if (Array.isArray((unit as Record<string, unknown>).children)) {
+              for (const child of (unit as { children: { id: number; name: string; children?: unknown[] }[] }).children) {
+                flattenOrg(child, depth + 1);
+              }
+            }
+          };
+          for (const org of company.orgs ?? []) {
+            flattenOrg(org);
+          }
+        }
+        setOrgUnits(opts);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -47,6 +79,7 @@ export default function ContractEditPage() {
           setContract({ contractNumber: cd.contractNumber || "", counterparty: cd.counterparty || "", contractType: cd.contractType || "", autoRenew: cd.autoRenew || false });
         }
         setCia({ ciaC: d.ciaC ?? null, ciaI: d.ciaI ?? null, ciaA: d.ciaA ?? null });
+        if (d.orgUnit) setSelectedOrgUnitId(String(d.orgUnit.id));
       } catch { toast.error(t.common.error); router.push("/contracts"); }
       finally { setIsLoadingData(false); }
     })();
@@ -80,6 +113,7 @@ export default function ContractEditPage() {
         vendor: form.vendor || null, cost: form.cost ? Number(form.cost) : null,
         currency: form.currency, billingCycle: form.billingCycle,
         purchaseDate: form.purchaseDate || null, expiryDate: form.expiryDate || null,
+        orgUnitId: selectedOrgUnitId ? Number(selectedOrgUnitId) : null,
         contractDetail: { contractNumber: contract.contractNumber || null, counterparty: contract.counterparty || null, contractType: contract.contractType || null, autoRenew: contract.autoRenew },
         ciaC: cia.ciaC, ciaI: cia.ciaI, ciaA: cia.ciaA,
       };
@@ -140,6 +174,15 @@ export default function ContractEditPage() {
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
               <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.asset.purchaseDate}</label><input type="date" name="purchaseDate" value={form.purchaseDate} onChange={onChange} className={inputCls} /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.asset.expiryDate}</label><input type="date" name="expiryDate" value={form.expiryDate} onChange={onChange} className={inputCls} /></div>
+            </div>
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t.license.managingOrg}</label>
+              <select value={selectedOrgUnitId} onChange={(e) => setSelectedOrgUnitId(e.target.value)} className={inputCls}>
+                <option value="">{t.common.none}</option>
+                {orgUnits.map((org) => (
+                  <option key={org.id} value={org.id}>[{org.companyName}] {org.name}</option>
+                ))}
+              </select>
             </div>
           </div>
 

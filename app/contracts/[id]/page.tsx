@@ -127,6 +127,7 @@ export default function ContractDetailPage() {
               {asset.expiryDate && <div><p className="text-sm text-gray-600">{t.asset.expiryDate}</p><p className="mt-1 text-gray-900">{new Date(asset.expiryDate).toLocaleDateString()}</p></div>}
             </div>
             {asset.assignee && <div><p className="text-sm text-gray-600">{t.asset.assignee}</p><p className="mt-1"><Link href={`/employees/${asset.assignee.id}`} className="text-blue-600 hover:underline">{asset.assignee.name}</Link></p></div>}
+            {asset.orgUnit && <div><p className="text-sm text-gray-600">{t.license.managingOrg}</p><p className="mt-1 text-gray-900">{asset.orgUnit.name}</p></div>}
             <div className="border-t border-gray-200 pt-4"><p className="text-xs text-gray-500">{t.common.createdAt}: {new Date(asset.createdAt).toLocaleString()} &bull; {t.common.updatedAt}: {new Date(asset.updatedAt).toLocaleString()}</p></div>
           </div>
         </div>

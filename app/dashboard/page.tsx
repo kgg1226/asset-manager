@@ -9,7 +9,7 @@ import DashboardContent from "./_components/dashboard-content";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  // 서버 사이드에서 초기 데이터 fetch (전체 통합 뷰)
+  // 서버 사이드에서 초기 데이터 fetch (전체 통합 뷰, 조직 정보 포함)
   const [licenses, assets] = await Promise.all([
     prisma.license.findMany({
       select: {
@@ -20,6 +20,13 @@ export default async function DashboardPage() {
         paymentCycle: true,
         purchaseDate: true,
         expiryDate: true,
+        orgUnit: {
+          select: {
+            id: true,
+            name: true,
+            company: { select: { name: true } },
+          },
+        },
       },
     }),
     prisma.asset.findMany({
@@ -32,6 +39,13 @@ export default async function DashboardPage() {
         purchaseDate: true,
         expiryDate: true,
         createdAt: true,
+        orgUnit: {
+          select: {
+            id: true,
+            name: true,
+            company: { select: { name: true } },
+          },
+        },
       },
     }),
   ]);
