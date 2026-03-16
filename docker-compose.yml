@@ -27,7 +27,7 @@ services:
       context: .
       dockerfile: dockerfile
     image: asset-manager:latest
-    container_name: license-app
+    container_name: asset-app
     ports:
       - "8080:3000"
     environment:

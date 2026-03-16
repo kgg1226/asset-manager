@@ -5,10 +5,10 @@ Set-StrictMode -Version Latest
 $PROFILE_NAME = "your-aws-profile"           # AWS CLI 프로필명
 $REGION = "ap-northeast-2"                   # AWS 리전
 $S3_BUCKET = "s3://your-bucket/your-path"    # S3 배포 경로
-$ZIP_NAME = "license-manager.zip"            # 압축 파일명 (변경 불필요)
+$ZIP_NAME = "asset-manager.zip"              # 압축 파일명 (변경 불필요)
 $EC2_ID = "i-0xxxxxxxxxxxx"                  # EC2 인스턴스 ID
 $REMOTE_DIR = "/home/ssm-user/app"           # EC2 내 배포 디렉토리
-$APP_NAME = "license-manager"                # 앱 디렉토리명 (변경 불필요)
+$APP_NAME = "asset-manager"                  # 앱 디렉토리명 (변경 불필요)
 
 # --- [유틸리티 함수] ---
 function Log($msg)     { Write-Host "[$(Get-Date -Format 'HH:mm:ss')] $msg" }
