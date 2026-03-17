@@ -69,6 +69,7 @@ export const ko: TranslationDict = {
     employees: "조직원",
     orgChart: "조직도",
     reports: "보고서",
+    assetMap: "자산지도",
     changeHistory: "변경 이력",
     settings: "설정",
     profile: "내 프로필",

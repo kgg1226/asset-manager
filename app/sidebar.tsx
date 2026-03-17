@@ -24,6 +24,7 @@ import {
   UserCircle,
   BookOpen,
   Bell,
+  Map,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 
@@ -45,6 +46,7 @@ const NAV_GROUPS: NavGroup[] = [
     titleKey: "",
     items: [
       { href: "/dashboard", labelKey: "dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
+      { href: "/asset-map", labelKey: "assetMap", icon: <Map className="h-4 w-4" /> },
       { href: "/hardware", labelKey: "hardware", icon: <HardDrive className="h-4 w-4" /> },
       { href: "/licenses", labelKey: "licenses", icon: <FileText className="h-4 w-4" /> },
       { href: "/cloud", labelKey: "cloud", icon: <Cloud className="h-4 w-4" /> },

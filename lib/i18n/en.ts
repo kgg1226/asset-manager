@@ -69,6 +69,7 @@ export const en: TranslationDict = {
     employees: "Employees",
     orgChart: "Org Chart",
     reports: "Reports",
+    assetMap: "Asset Map",
     changeHistory: "Change History",
     settings: "Settings",
     profile: "My Profile",

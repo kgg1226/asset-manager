@@ -71,6 +71,7 @@ export type TranslationDict = {
     employees: string;
     orgChart: string;
     reports: string;
+    assetMap: string;
     changeHistory: string;
     settings: string;
     profile: string;

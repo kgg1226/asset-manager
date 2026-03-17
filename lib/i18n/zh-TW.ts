@@ -69,6 +69,7 @@ export const zhTW: TranslationDict = {
     employees: "員工",
     orgChart: "組織架構",
     reports: "報表",
+    assetMap: "資產地圖",
     changeHistory: "變更紀錄",
     settings: "設定",
     profile: "個人資料",

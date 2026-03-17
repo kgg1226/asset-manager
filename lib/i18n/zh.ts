@@ -69,6 +69,7 @@ export const zh: TranslationDict = {
     employees: "员工",
     orgChart: "组织架构",
     reports: "报表",
+    assetMap: "资产地图",
     changeHistory: "变更记录",
     settings: "设置",
     profile: "个人资料",

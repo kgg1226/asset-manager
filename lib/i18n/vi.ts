@@ -69,6 +69,7 @@ export const vi: TranslationDict = {
     employees: "Nhân viên",
     orgChart: "Sơ đồ tổ chức",
     reports: "Báo cáo",
+    assetMap: "Bản đồ tài sản",
     changeHistory: "Lịch sử thay đổi",
     settings: "Cài đặt",
     profile: "Hồ sơ cá nhân",

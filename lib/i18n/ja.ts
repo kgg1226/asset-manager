@@ -69,6 +69,7 @@ export const ja: TranslationDict = {
     employees: "社員",
     orgChart: "組織図",
     reports: "レポート",
+    assetMap: "資産マップ",
     changeHistory: "変更履歴",
     settings: "設定",
     profile: "マイプロフィール",
