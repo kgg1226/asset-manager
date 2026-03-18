@@ -959,16 +959,23 @@ function SectionModal({
 function EdgeDetailModal({
   edge,
   nodes,
+  assets,
   onDelete,
+  onEdit,
   onClose,
   t,
 }: {
   edge: Edge;
   nodes: Node[];
+  assets: AssetNode[];
   onDelete: () => void;
+  onEdit: (sourceId: string, targetId: string) => void;
   onClose: () => void;
   t: ReturnType<typeof useTranslation>["t"];
 }) {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteText, setDeleteText] = useState("");
+
   const edgeData = (edge.data || {}) as Record<string, unknown>;
   const sourceNode = nodes.find((n) => n.id === edge.source);
   const targetNode = nodes.find((n) => n.id === edge.target);
@@ -1050,20 +1057,52 @@ function EdgeDetailModal({
           )}
         </div>
 
-        {/* Delete Button */}
-        <div className="mt-5 pt-4 border-t flex gap-2">
-          <button
-            onClick={onClose}
-            className="flex-1 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            닫기
-          </button>
-          <button
-            onClick={onDelete}
-            className="flex-1 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-          >
-            {t.common?.delete ?? "삭제"}
-          </button>
+        {/* Action Buttons */}
+        <div className="mt-5 pt-4 border-t space-y-3">
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                onEdit(edge.source, edge.target);
+                onClose();
+              }}
+              className="flex-1 rounded-md bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:bg-amber-600 transition-colors"
+            >
+              수정
+            </button>
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="flex-1 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors"
+            >
+              삭제
+            </button>
+          </div>
+
+          {/* Delete Confirmation */}
+          {showDeleteConfirm && (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-3 space-y-2">
+              <p className="text-xs text-red-700 font-medium">
+                삭제하려면 &quot;삭제하겠습니다&quot;를 입력하세요
+              </p>
+              <input
+                value={deleteText}
+                onChange={(e) => setDeleteText(e.target.value)}
+                className="w-full rounded-md border border-red-300 px-3 py-1.5 text-sm focus:outline-none focus:border-red-500"
+                placeholder="삭제하겠습니다"
+                autoFocus
+              />
+              <button
+                onClick={() => {
+                  if (deleteText === "삭제하겠습니다") {
+                    onDelete();
+                  }
+                }}
+                disabled={deleteText !== "삭제하겠습니다"}
+                className="w-full rounded-md bg-red-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                삭제 확인
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1524,9 +1563,29 @@ function AssetPalette({
         ))}
       </div>
 
-      {/* Stats */}
-      <div className="px-3 py-1.5 border-b text-[10px] text-gray-400">
-        캔버스: {placedCount}개 | 미배치: {unplacedAssets.length}개
+      {/* Stats + Bulk Actions */}
+      <div className="px-3 py-1.5 border-b flex items-center justify-between">
+        <span className="text-[10px] text-gray-400">
+          캔버스: {placedCount} | 미배치: {unplacedAssets.length}
+        </span>
+        <div className="flex gap-1">
+          {unplacedAssets.length > 0 && (
+            <button
+              onClick={() => unplacedAssets.forEach((a) => onAddToCanvas(a))}
+              className="text-[10px] font-medium text-blue-600 hover:text-blue-800 px-1.5 py-0.5 rounded hover:bg-blue-50"
+            >
+              전체 추가
+            </button>
+          )}
+          {placedCount > 0 && (
+            <button
+              onClick={() => filteredAssets.filter((a) => placedAssetIds.has(a.id)).forEach((a) => onRemoveFromCanvas(a.id))}
+              className="text-[10px] font-medium text-red-500 hover:text-red-700 px-1.5 py-0.5 rounded hover:bg-red-50"
+            >
+              전체 제거
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Asset List */}
@@ -2154,9 +2213,14 @@ export default function AssetMapContent() {
         <EdgeDetailModal
           edge={selectedEdge}
           nodes={nodes}
+          assets={assets}
           onDelete={() => {
             handleDeleteEdge(selectedEdge.id);
             setSelectedEdge(null);
+          }}
+          onEdit={(sourceId: string, targetId: string) => {
+            setPendingConnection({ source: sourceId, target: targetId });
+            setShowModal(true);
           }}
           onClose={() => setSelectedEdge(null)}
           t={t}
