@@ -24,6 +24,7 @@ import {
   UserCircle,
   BookOpen,
   Bell,
+  Map,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 
@@ -54,6 +55,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/org", labelKey: "orgChart", icon: <Network className="h-4 w-4" /> },
       { href: "/reports", labelKey: "reports", icon: <BarChart3 className="h-4 w-4" /> },
       { href: "/history", labelKey: "changeHistory", icon: <History className="h-4 w-4" /> },
+      { href: "/asset-map", labelKey: "assetMap", icon: <Map className="h-4 w-4" /> },
     ],
   },
   {
@@ -134,6 +136,11 @@ export default function Sidebar() {
                       >
                         {item.icon}
                         {getLabel(item.labelKey)}
+                        {item.href === "/asset-map" && (
+                          <span className="ml-auto rounded-full bg-purple-100 px-1.5 py-0.5 text-[10px] font-semibold text-purple-700">
+                            Alpha
+                          </span>
+                        )}
                       </Link>
                     </li>
                   ))}

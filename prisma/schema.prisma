@@ -396,12 +396,38 @@ model Asset {
   assignmentHistories    AssetAssignmentHistory[]
   notificationLogs       NotificationLog[]
   licenseLinks           AssetLicenseLink[]
+  outgoingLinks          AssetLink[]        @relation("AssetLinkSource")
+  incomingLinks          AssetLink[]        @relation("AssetLinkTarget")
 
   @@index([type])
   @@index([subCategoryId])
   @@index([status])
   @@index([expiryDate])
   @@index([companyId])
+}
+
+model AssetLink {
+  id                Int      @id @default(autoincrement())
+  sourceAssetId     Int
+  targetAssetId     Int
+  linkType          String   // DATA_FLOW | NETWORK | DEPENDENCY | AUTH
+  direction         String   @default("UNI") // UNI | BI
+  label             String?
+  dataTypes         String?  // JSON array: ["PII","LOG","CREDENTIAL"]
+  piiItems          String?  // JSON array: ["이름","이메일"]
+  protocol          String?
+  legalBasis        String?
+  retentionPeriod   String?
+  destructionMethod String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  sourceAsset Asset @relation("AssetLinkSource", fields: [sourceAssetId], references: [id], onDelete: Cascade)
+  targetAsset Asset @relation("AssetLinkTarget", fields: [targetAssetId], references: [id], onDelete: Cascade)
+
+  @@index([sourceAssetId])
+  @@index([targetAssetId])
+  @@index([linkType])
 }
 
 model HardwareDetail {
