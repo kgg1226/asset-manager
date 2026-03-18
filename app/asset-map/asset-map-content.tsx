@@ -2070,13 +2070,45 @@ export default function AssetMapContent() {
     [setEdges, fetchGraph]
   );
 
-  // When a FREE node (no parent) is dropped inside a section → adopt it (smallest section wins)
+  // Node drag stop: adopt into section or release from section
   const onNodeDragStop = useCallback((_event: React.MouseEvent, draggedNode: Node) => {
-    if (draggedNode.type === "section" || draggedNode.parentId) return;
+    if (draggedNode.type === "section") return;
 
     const sectionNodes = nodes.filter((n) => n.type === "section");
 
-    // Find all containing sections, pick the smallest
+    // Case 1: Already a child — check if still inside parent section
+    if (draggedNode.parentId) {
+      const parentSection = sectionNodes.find((s) => s.id === draggedNode.parentId);
+      if (parentSection) {
+        const sw = (parentSection.style?.width as number) || 400;
+        const sh = (parentSection.style?.height as number) || 300;
+        const nx = draggedNode.position.x;
+        const ny = draggedNode.position.y;
+
+        // If node moved outside parent bounds → release
+        if (nx < -20 || ny < -20 || nx > sw + 20 || ny > sh + 20) {
+          setNodes((nds) =>
+            nds.map((n) => {
+              if (n.id === draggedNode.id) {
+                return {
+                  ...n,
+                  parentId: undefined,
+                  extent: undefined,
+                  position: {
+                    x: nx + parentSection.position.x,
+                    y: ny + parentSection.position.y,
+                  },
+                };
+              }
+              return n;
+            })
+          );
+        }
+      }
+      return;
+    }
+
+    // Case 2: Free node — check if dropped inside a section
     const candidates: { section: Node; area: number }[] = [];
     for (const section of sectionNodes) {
       const sw = (section.style?.width as number) || 400;
@@ -2096,11 +2128,9 @@ export default function AssetMapContent() {
 
     if (candidates.length === 0) return;
 
-    // Pick smallest section; if tied, pick the latest one (higher index = created later)
+    // Pick smallest section; if tied, pick the latest one
     candidates.sort((a, b) => a.area - b.area || sectionNodes.indexOf(b.section) - sectionNodes.indexOf(a.section));
     const winner = candidates[0].section;
-    const sx = winner.position.x;
-    const sy = winner.position.y;
 
     setNodes((nds) =>
       nds.map((n) => {
@@ -2108,8 +2138,7 @@ export default function AssetMapContent() {
           return {
             ...n,
             parentId: winner.id,
-            extent: "parent" as const,
-            position: { x: draggedNode.position.x - sx, y: draggedNode.position.y - sy },
+            position: { x: draggedNode.position.x - winner.position.x, y: draggedNode.position.y - winner.position.y },
           };
         }
         return n;
