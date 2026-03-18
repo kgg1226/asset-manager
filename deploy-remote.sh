@@ -1,14 +1,25 @@
 #!/bin/bash
 # deploy-remote.sh — EC2에서 실행되는 배포 스크립트 (최소 중단 방식)
-# 사용법: SSM 세션 접속 후 아래 명령 실행
-#   cd /home/ssm-user/app && aws s3 cp s3://<bucket>/deploy-remote.sh . && chmod +x deploy-remote.sh && bash deploy-remote.sh
+#
+# 사용법:
+#   bash deploy-remote.sh <S3_ZIP_URL>
+#
+# 예시:
+#   bash deploy-remote.sh s3://my-bucket/my-path/asset-manager.zip
 #
 # 핵심: 이미지를 먼저 빌드한 뒤, 컨테이너 교체만 수행 → 중단 ~3초
 set -e
 
+# ── 인자 검증 ──
+if [ -z "$1" ]; then
+    echo "사용법: bash deploy-remote.sh <S3_ZIP_URL>"
+    echo "예시:   bash deploy-remote.sh s3://my-bucket/my-path/asset-manager.zip"
+    exit 1
+fi
+
+S3_URL="$1"
 DIR="/home/ssm-user/app"
 APP="asset-manager"
-S3_BUCKET="s3://triplecomma-releases/triplecomma-backoffice"
 ZIP_NAME="asset-manager.zip"
 NEW_TAG="asset-manager:new"
 LIVE_TAG="asset-manager:latest"
@@ -39,6 +50,7 @@ trap rollback EXIT
 echo '=== [1/7] 사전 점검 ==='
 if ! sudo docker info > /dev/null 2>&1; then echo 'ABORT: Docker 데몬이 실행 중이 아닙니다'; exit 1; fi
 echo 'Docker 데몬 OK'
+echo "S3 소스: $S3_URL"
 
 echo '=== [2/7] 디스크 공간 점검 ==='
 AVAIL_KB=$(df / --output=avail | tail -1 | tr -d ' ')
@@ -57,7 +69,7 @@ fi
 
 echo '=== [4/7] S3에서 소스코드 다운로드 ==='
 cd $DIR
-aws s3 cp $S3_BUCKET/$ZIP_NAME .
+aws s3 cp "$S3_URL" ./$ZIP_NAME
 sudo rm -rf ${APP}-new
 sudo mkdir -p ${APP}-new && sudo chown -R ssm-user:ssm-user ${APP}-new
 unzip -q $ZIP_NAME -d ${APP}-new && rm $ZIP_NAME
