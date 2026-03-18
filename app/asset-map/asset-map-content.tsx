@@ -10,11 +10,12 @@ import {
   MiniMap,
   useNodesState,
   useEdgesState,
-  addEdge,
   Connection,
   MarkerType,
   BackgroundVariant,
   Panel,
+  Handle,
+  Position,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import dagre from "dagre";
@@ -28,10 +29,14 @@ import {
   LayoutGrid,
   Plus,
   X,
-  Trash2,
   Building2,
   Save,
   ChevronDown,
+  ArrowRight,
+  ArrowLeftRight,
+  User,
+  Eye,
+  Link2,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 
@@ -45,6 +50,9 @@ type AssetNode = {
   vendor: string | null;
   assigneeName: string | null;
   serviceCategory?: string | null;
+  description?: string | null;
+  monthlyCost?: number | null;
+  currency?: string | null;
 };
 
 type AssetEdge = {
@@ -77,7 +85,8 @@ type AssetGroup = {
   name: string;
   description: string | null;
   color: string;
-  members: { assetId: number; asset: { name: string; type: string } }[];
+  members?: { assetId: number; asset: { name: string; type: string } }[];
+  assetIds?: number[];
 };
 
 type SavedView = {
@@ -88,18 +97,24 @@ type SavedView = {
 
 type ViewType = "all" | "pii" | "network" | "data_flow";
 
+type SelectedNodeData = {
+  id: string;
+  type: string;
+  data: Record<string, unknown>;
+};
+
 const LINK_TYPES = ["DATA_FLOW", "NETWORK", "DEPENDENCY", "AUTH"] as const;
 const DATA_TYPES = ["PII", "LOG", "CREDENTIAL"] as const;
 
 // ─── Colors ────────────────────────────────────────────────────────────
 
-const ASSET_COLORS: Record<string, { bg: string; border: string; icon: string }> = {
-  HARDWARE: { bg: "#EFF6FF", border: "#3B82F6", icon: "#2563EB" },
-  CLOUD: { bg: "#F5F3FF", border: "#8B5CF6", icon: "#7C3AED" },
-  DOMAIN_SSL: { bg: "#ECFDF5", border: "#10B981", icon: "#059669" },
-  SOFTWARE: { bg: "#FFF7ED", border: "#F97316", icon: "#EA580C" },
-  CONTRACT: { bg: "#F9FAFB", border: "#6B7280", icon: "#4B5563" },
-  OTHER: { bg: "#FEF2F2", border: "#EF4444", icon: "#DC2626" },
+const ASSET_COLORS: Record<string, { bg: string; border: string; icon: string; light: string }> = {
+  HARDWARE: { bg: "#EFF6FF", border: "#3B82F6", icon: "#2563EB", light: "#DBEAFE" },
+  CLOUD: { bg: "#F5F3FF", border: "#8B5CF6", icon: "#7C3AED", light: "#EDE9FE" },
+  DOMAIN_SSL: { bg: "#ECFDF5", border: "#10B981", icon: "#059669", light: "#D1FAE5" },
+  SOFTWARE: { bg: "#FFF7ED", border: "#F97316", icon: "#EA580C", light: "#FFEDD5" },
+  CONTRACT: { bg: "#F9FAFB", border: "#6B7280", icon: "#4B5563", light: "#F3F4F6" },
+  OTHER: { bg: "#FEF2F2", border: "#EF4444", icon: "#DC2626", light: "#FEE2E2" },
 };
 
 const EXTERNAL_ENTITY_COLORS: Record<string, { bg: string; border: string }> = {
@@ -116,10 +131,47 @@ const LINK_COLORS: Record<string, string> = {
   AUTH: "#EF4444",
 };
 
+const LINK_BG_COLORS: Record<string, string> = {
+  DATA_FLOW: "#EFF6FF",
+  NETWORK: "#ECFDF5",
+  DEPENDENCY: "#FFF7ED",
+  AUTH: "#FEF2F2",
+};
+
+const STATUS_COLORS: Record<string, { dot: string; bg: string; text: string }> = {
+  IN_USE: { dot: "#22C55E", bg: "#F0FDF4", text: "#15803D" },
+  IN_STOCK: { dot: "#9CA3AF", bg: "#F9FAFB", text: "#6B7280" },
+  INACTIVE: { dot: "#EF4444", bg: "#FEF2F2", text: "#DC2626" },
+  UNUSABLE: { dot: "#EF4444", bg: "#FEF2F2", text: "#DC2626" },
+  PENDING_DISPOSAL: { dot: "#F59E0B", bg: "#FFFBEB", text: "#B45309" },
+  DISPOSED: { dot: "#6B7280", bg: "#F3F4F6", text: "#4B5563" },
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────
+
+function formatCost(cost: number | null | undefined, currency?: string | null): string {
+  if (!cost) return "";
+  if (currency === "USD") return `$${cost.toLocaleString()}/mo`;
+  if (currency === "EUR") return `\u20AC${cost.toLocaleString()}/mo`;
+  if (currency === "JPY") return `\u00A5${cost.toLocaleString()}/mo`;
+  return `\u20A9${cost.toLocaleString()}/mo`;
+}
+
+function getAssetDetailPath(assetType: string, assetId: string): string {
+  switch (assetType) {
+    case "HARDWARE": return `/hardware/${assetId}`;
+    case "CLOUD": return `/cloud/${assetId}`;
+    case "DOMAIN_SSL": return `/domains/${assetId}`;
+    case "SOFTWARE": return `/licenses/${assetId}`;
+    case "CONTRACT": return `/contracts/${assetId}`;
+    default: return `/hardware/${assetId}`;
+  }
+}
+
 // ─── Custom Nodes ─────────────────────────────────────────────────────
 
-function AssetIcon({ type, color }: { type: string; color: string }) {
-  const props = { className: "w-5 h-5", style: { color } };
+function AssetIcon({ type, color, size = "w-5 h-5" }: { type: string; color: string; size?: string }) {
+  const props = { className: size, style: { color } };
   switch (type) {
     case "HARDWARE": return <HardDrive {...props} />;
     case "CLOUD": return <Cloud {...props} />;
@@ -130,25 +182,87 @@ function AssetIcon({ type, color }: { type: string; color: string }) {
   }
 }
 
+function StatusDot({ status }: { status: string }) {
+  const colors = STATUS_COLORS[status] || STATUS_COLORS.IN_STOCK;
+  return (
+    <span
+      className="inline-block w-2 h-2 rounded-full flex-shrink-0"
+      style={{ backgroundColor: colors.dot }}
+    />
+  );
+}
+
 function AssetNodeComponent({ data }: { data: Record<string, unknown> }) {
   const type = (data.assetType as string) || "OTHER";
+  const status = (data.status as string) || "IN_STOCK";
   const colors = ASSET_COLORS[type] || ASSET_COLORS.OTHER;
+  const cost = data.monthlyCost as number | null;
+  const currency = data.currency as string | null;
+  const assignee = data.assigneeName as string | null;
+  const costStr = formatCost(cost, currency);
 
   return (
     <div
-      className="rounded-lg border-2 px-4 py-3 shadow-sm min-w-[160px]"
-      style={{ backgroundColor: colors.bg, borderColor: colors.border }}
+      className="rounded-xl border-2 px-4 py-3 min-w-[200px] relative"
+      style={{
+        backgroundColor: colors.bg,
+        borderColor: colors.border,
+        boxShadow: `0 2px 8px ${colors.border}20, 0 1px 3px rgba(0,0,0,0.06)`,
+      }}
     >
-      <div className="flex items-center gap-2">
-        <AssetIcon type={type} color={colors.icon} />
-        <div className="min-w-0">
-          <div className="text-sm font-semibold text-gray-900 truncate max-w-[140px]">
-            {data.label as string}
-          </div>
-          <div className="text-xs text-gray-500 truncate max-w-[140px]">
-            {(data.vendor as string) || (data.assigneeName as string) || type}
-          </div>
+      {/* Connection handles */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full"
+        style={{ backgroundColor: colors.border }}
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full"
+        style={{ backgroundColor: colors.border }}
+      />
+
+      {/* Icon centered above name */}
+      <div className="flex flex-col items-center gap-1.5">
+        <div
+          className="w-10 h-10 rounded-lg flex items-center justify-center"
+          style={{ backgroundColor: colors.light }}
+        >
+          <AssetIcon type={type} color={colors.icon} size="w-6 h-6" />
         </div>
+
+        {/* Name */}
+        <div className="text-sm font-semibold text-gray-900 truncate max-w-[180px] text-center">
+          {data.label as string}
+        </div>
+
+        {/* Status + Type row */}
+        <div className="flex items-center gap-1.5">
+          <StatusDot status={status} />
+          <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">
+            {type.replace("_", " ")}
+          </span>
+        </div>
+
+        {/* Assignee */}
+        {assignee && (
+          <div className="flex items-center gap-1 text-xs text-gray-600">
+            <User className="w-3 h-3" />
+            <span className="truncate max-w-[140px]">{assignee}</span>
+          </div>
+        )}
+
+        {/* Cost */}
+        {costStr && (
+          <div
+            className="text-xs font-semibold rounded-md px-2 py-0.5"
+            style={{ color: colors.icon, backgroundColor: colors.light }}
+          >
+            {costStr}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -166,27 +280,48 @@ function ExternalEntityNodeComponent({ data }: { data: Record<string, unknown> }
 
   return (
     <div
-      className="rounded-lg border-2 border-dashed px-4 py-3 shadow-sm min-w-[160px]"
-      style={{ backgroundColor: colors.bg, borderColor: colors.border }}
+      className="rounded-xl border-2 border-dashed px-4 py-3 min-w-[200px] relative"
+      style={{
+        backgroundColor: colors.bg,
+        borderColor: colors.border,
+        boxShadow: `0 2px 8px ${colors.border}15, 0 1px 3px rgba(0,0,0,0.04)`,
+      }}
     >
-      <div className="flex items-center gap-2">
-        <Building2 className="w-5 h-5" style={{ color: colors.border }} />
-        <div className="min-w-0">
-          <div className="text-sm font-semibold text-gray-900 truncate max-w-[140px]">
-            {data.label as string}
-          </div>
-          <div className="flex items-center gap-1">
-            <span
-              className="inline-block rounded px-1.5 py-0.5 text-[10px] font-medium"
-              style={{
-                backgroundColor: entityType === "GOVERNMENT" ? "#FEE2E2" : "#E5E7EB",
-                color: entityType === "GOVERNMENT" ? "#DC2626" : "#4B5563",
-              }}
-            >
-              {entityTypeLabels[entityType]}
-            </span>
-          </div>
+      {/* Connection handles */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full"
+        style={{ backgroundColor: colors.border }}
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full"
+        style={{ backgroundColor: colors.border }}
+      />
+
+      <div className="flex flex-col items-center gap-1.5">
+        <div
+          className="w-10 h-10 rounded-lg flex items-center justify-center"
+          style={{ backgroundColor: `${colors.border}20` }}
+        >
+          <Building2 className="w-6 h-6" style={{ color: colors.border }} />
         </div>
+
+        <div className="text-sm font-semibold text-gray-900 truncate max-w-[180px] text-center">
+          {data.label as string}
+        </div>
+
+        <span
+          className="inline-block rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+          style={{
+            backgroundColor: entityType === "GOVERNMENT" ? "#FEE2E2" : "#E5E7EB",
+            color: entityType === "GOVERNMENT" ? "#DC2626" : "#4B5563",
+          }}
+        >
+          {entityTypeLabels[entityType]}
+        </span>
       </div>
     </div>
   );
@@ -230,7 +365,47 @@ const nodeTypes = {
   piiStageLabel: PiiStageLabelComponent,
 };
 
+// ─── Custom Edge Label ────────────────────────────────────────────────
+
+function EdgeLabelBadge({
+  linkType,
+  protocol,
+  label,
+}: {
+  linkType: string;
+  protocol?: string | null;
+  label?: string | null;
+}) {
+  const color = LINK_COLORS[linkType] || "#6B7280";
+  const bgColor = LINK_BG_COLORS[linkType] || "#F9FAFB";
+  const typeLabels: Record<string, string> = {
+    DATA_FLOW: "Data",
+    NETWORK: "Net",
+    DEPENDENCY: "Dep",
+    AUTH: "Auth",
+  };
+
+  const text = label || typeLabels[linkType] || linkType;
+  const suffix = protocol ? ` (${protocol})` : "";
+
+  return (
+    <div
+      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border whitespace-nowrap"
+      style={{
+        color: color,
+        backgroundColor: bgColor,
+        borderColor: `${color}40`,
+      }}
+    >
+      {text}{suffix}
+    </div>
+  );
+}
+
 // ─── Layout ────────────────────────────────────────────────────────────
+
+const NODE_WIDTH = 220;
+const NODE_HEIGHT = 130;
 
 function getLayoutedElements(nodes: Node[], edges: Edge[]) {
   const nonGroupNodes = nodes.filter((n) => n.type !== "assetGroup" && n.type !== "piiStageLabel");
@@ -238,9 +413,9 @@ function getLayoutedElements(nodes: Node[], edges: Edge[]) {
 
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: "LR", nodesep: 60, ranksep: 120 });
+  g.setGraph({ rankdir: "LR", nodesep: 80, ranksep: 160 });
 
-  nonGroupNodes.forEach((node) => g.setNode(node.id, { width: 200, height: 70 }));
+  nonGroupNodes.forEach((node) => g.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT }));
   edges.forEach((edge) => {
     if (g.hasNode(edge.source) && g.hasNode(edge.target)) {
       g.setEdge(edge.source, edge.target);
@@ -252,7 +427,7 @@ function getLayoutedElements(nodes: Node[], edges: Edge[]) {
   const layoutedNodes = nonGroupNodes.map((node) => {
     const pos = g.node(node.id);
     if (pos) {
-      return { ...node, position: { x: pos.x - 100, y: pos.y - 35 } };
+      return { ...node, position: { x: pos.x - NODE_WIDTH / 2, y: pos.y - NODE_HEIGHT / 2 } };
     }
     return node;
   });
@@ -343,8 +518,8 @@ function getPiiLifecycleLayout(
     }
   });
 
-  const ROW_HEIGHT = 160;
-  const COL_WIDTH = 240;
+  const ROW_HEIGHT = 180;
+  const COL_WIDTH = 260;
   const LABEL_WIDTH = 120;
   const START_X = LABEL_WIDTH + 40;
   const START_Y = 40;
@@ -647,6 +822,282 @@ function SavedViewsDropdown({
   );
 }
 
+// ─── Side Panel ───────────────────────────────────────────────────────
+
+function SidePanel({
+  node,
+  edges,
+  nodes,
+  onClose,
+  t,
+}: {
+  node: SelectedNodeData;
+  edges: Edge[];
+  nodes: Node[];
+  onClose: () => void;
+  t: ReturnType<typeof useTranslation>["t"];
+}) {
+  const data = node.data;
+  const isExternal = node.type === "externalEntity";
+  const assetType = (data.assetType as string) || "OTHER";
+  const status = (data.status as string) || "";
+  const vendor = (data.vendor as string) || "";
+  const assigneeName = (data.assigneeName as string) || "";
+  const description = (data.description as string) || "";
+  const serviceCategory = (data.serviceCategory as string) || "";
+  const contactInfo = (data.contactInfo as string) || "";
+  const colors = isExternal
+    ? { bg: "#F3F4F6", border: "#6B7280", icon: "#4B5563", light: "#F3F4F6" }
+    : (ASSET_COLORS[assetType] || ASSET_COLORS.OTHER);
+  const statusColors = STATUS_COLORS[status] || STATUS_COLORS.IN_STOCK;
+
+  const linkTypeLabels: Record<string, string> = {
+    DATA_FLOW: t.assetMap.dataFlow,
+    NETWORK: t.assetMap.network,
+    DEPENDENCY: t.assetMap.dependency,
+    AUTH: t.assetMap.auth,
+  };
+
+  // Find connected edges
+  const connectedEdges = useMemo(() => {
+    return edges.filter(
+      (e) => e.source === node.id || e.target === node.id
+    );
+  }, [edges, node.id]);
+
+  // Build connected node info
+  const connections = useMemo(() => {
+    return connectedEdges.map((edge) => {
+      const isOutgoing = edge.source === node.id;
+      const otherNodeId = isOutgoing ? edge.target : edge.source;
+      const otherNode = nodes.find((n) => n.id === otherNodeId);
+      const edgeData = edge.data as Record<string, unknown> | undefined;
+      return {
+        edgeId: edge.id,
+        direction: isOutgoing ? "outgoing" : "incoming",
+        otherNodeName: (otherNode?.data?.label as string) || otherNodeId,
+        otherNodeType: (otherNode?.data?.assetType as string) || "",
+        linkType: (edgeData?.linkType as string) || "",
+        protocol: (edgeData?.protocol as string) || "",
+        isBi: !!edge.markerStart,
+      };
+    });
+  }, [connectedEdges, nodes, node.id]);
+
+  const detailPath = !isExternal ? getAssetDetailPath(assetType, node.id) : null;
+  const cost = data.monthlyCost as number | null;
+  const currency = data.currency as string | null;
+
+  return (
+    <div className="fixed top-0 right-0 h-full w-80 bg-white border-l border-gray-200 shadow-2xl z-40 flex flex-col overflow-hidden animate-slide-in">
+      {/* Panel Header */}
+      <div
+        className="px-5 py-4 border-b flex items-center justify-between flex-shrink-0"
+        style={{ backgroundColor: colors.bg, borderColor: colors.border + "30" }}
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <div
+            className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+            style={{ backgroundColor: colors.light || `${colors.border}20` }}
+          >
+            {isExternal ? (
+              <Building2 className="w-6 h-6" style={{ color: colors.border }} />
+            ) : (
+              <AssetIcon type={assetType} color={colors.icon} size="w-6 h-6" />
+            )}
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-sm font-bold text-gray-900 truncate">
+              {data.label as string}
+            </h3>
+            <p className="text-xs text-gray-500 uppercase tracking-wide">
+              {isExternal ? (data.entityType as string) : assetType.replace("_", " ")}
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={onClose}
+          className="w-7 h-7 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 flex-shrink-0"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      {/* Panel Body */}
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+        {/* Status & Info */}
+        {!isExternal && (
+          <div className="space-y-3">
+            {/* Status */}
+            {status && (
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Status</span>
+                <span
+                  className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                  style={{ backgroundColor: statusColors.bg, color: statusColors.text }}
+                >
+                  <span
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{ backgroundColor: statusColors.dot }}
+                  />
+                  {status.replace("_", " ")}
+                </span>
+              </div>
+            )}
+
+            {/* Vendor */}
+            {vendor && (
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Vendor</span>
+                <span className="text-sm text-gray-900">{vendor}</span>
+              </div>
+            )}
+
+            {/* Assignee */}
+            {assigneeName && (
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Assignee</span>
+                <span className="inline-flex items-center gap-1 text-sm text-gray-900">
+                  <User className="w-3.5 h-3.5 text-gray-400" />
+                  {assigneeName}
+                </span>
+              </div>
+            )}
+
+            {/* Cost */}
+            {cost != null && cost > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Monthly Cost</span>
+                <span className="text-sm font-semibold" style={{ color: colors.icon }}>
+                  {formatCost(cost, currency)}
+                </span>
+              </div>
+            )}
+
+            {/* Service Category */}
+            {serviceCategory && (
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Category</span>
+                <span className="text-sm text-gray-900">{serviceCategory}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* External entity info */}
+        {isExternal && (
+          <div className="space-y-3">
+            {description && (
+              <div>
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide block mb-1">Description</span>
+                <p className="text-sm text-gray-700">{description}</p>
+              </div>
+            )}
+            {contactInfo && (
+              <div>
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide block mb-1">Contact</span>
+                <p className="text-sm text-gray-700">{contactInfo}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Description */}
+        {!isExternal && description && (
+          <div>
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide block mb-1">Description</span>
+            <p className="text-sm text-gray-600 leading-relaxed">{description}</p>
+          </div>
+        )}
+
+        {/* Connections */}
+        <div>
+          <div className="flex items-center gap-1.5 mb-3">
+            <Link2 className="w-4 h-4 text-gray-400" />
+            <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+              Connections ({connections.length})
+            </span>
+          </div>
+
+          {connections.length === 0 ? (
+            <p className="text-xs text-gray-400 italic">{t.assetMap.noLinks}</p>
+          ) : (
+            <div className="space-y-2">
+              {connections.map((conn) => {
+                const linkColor = LINK_COLORS[conn.linkType] || "#6B7280";
+                const linkBg = LINK_BG_COLORS[conn.linkType] || "#F9FAFB";
+                return (
+                  <div
+                    key={conn.edgeId}
+                    className="rounded-lg border p-2.5 hover:bg-gray-50 transition-colors"
+                    style={{ borderColor: `${linkColor}30` }}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      {/* Direction arrow */}
+                      {conn.isBi ? (
+                        <ArrowLeftRight className="w-3.5 h-3.5 flex-shrink-0" style={{ color: linkColor }} />
+                      ) : conn.direction === "outgoing" ? (
+                        <ArrowRight className="w-3.5 h-3.5 flex-shrink-0" style={{ color: linkColor }} />
+                      ) : (
+                        <ArrowRight className="w-3.5 h-3.5 flex-shrink-0 rotate-180" style={{ color: linkColor }} />
+                      )}
+                      {/* Link type badge */}
+                      <span
+                        className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                        style={{ backgroundColor: linkBg, color: linkColor }}
+                      >
+                        {linkTypeLabels[conn.linkType] || conn.linkType}
+                      </span>
+                      {conn.protocol && (
+                        <span className="text-[10px] text-gray-400">({conn.protocol})</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5 pl-5">
+                      {conn.otherNodeType && (
+                        <AssetIcon type={conn.otherNodeType} color="#9CA3AF" size="w-3.5 h-3.5" />
+                      )}
+                      <span className="text-xs text-gray-700 truncate">{conn.otherNodeName}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Panel Footer */}
+      {detailPath && (
+        <div className="px-5 py-3 border-t border-gray-100 flex-shrink-0">
+          <a
+            href={detailPath}
+            className="flex items-center justify-center gap-2 w-full rounded-lg px-4 py-2.5 text-sm font-medium text-white transition-colors"
+            style={{ backgroundColor: colors.border }}
+          >
+            <Eye className="w-4 h-4" />
+            View Detail
+          </a>
+        </div>
+      )}
+
+      {/* Slide-in animation */}
+      <style jsx>{`
+        @keyframes slideIn {
+          from {
+            transform: translateX(100%);
+          }
+          to {
+            transform: translateX(0);
+          }
+        }
+        .animate-slide-in {
+          animation: slideIn 0.2s ease-out;
+        }
+      `}</style>
+    </div>
+  );
+}
+
 // ─── Main Component ────────────────────────────────────────────────────
 
 export default function AssetMapContent() {
@@ -662,6 +1113,7 @@ export default function AssetMapContent() {
   const [showSaveViewModal, setShowSaveViewModal] = useState(false);
   const [pendingConnection, setPendingConnection] = useState<{ source: string; target: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedNode, setSelectedNode] = useState<SelectedNodeData | null>(null);
 
   // Fetch saved views on mount
   useEffect(() => {
@@ -694,11 +1146,18 @@ export default function AssetMapContent() {
       setExternalEntities(fetchedEntities);
       setGroups(fetchedGroups);
 
+      // Helper: get asset IDs from group (handles both API shapes)
+      function getGroupAssetIds(group: AssetGroup): number[] {
+        if (group.assetIds && group.assetIds.length > 0) return group.assetIds;
+        if (group.members && group.members.length > 0) return group.members.map((m) => m.assetId);
+        return [];
+      }
+
       // Build group membership lookup: assetId -> group
       const assetGroupMap = new Map<number, AssetGroup>();
       fetchedGroups.forEach((group) => {
-        group.members.forEach((m) => {
-          assetGroupMap.set(m.assetId, group);
+        getGroupAssetIds(group).forEach((assetId) => {
+          assetGroupMap.set(assetId, group);
         });
       });
 
@@ -706,14 +1165,14 @@ export default function AssetMapContent() {
       const groupNodes: Node[] = fetchedGroups.map((group, gi) => ({
         id: `group-${group.id}`,
         type: "assetGroup",
-        position: { x: gi * 500, y: 0 },
+        position: { x: gi * 560, y: 0 },
         data: {
           label: group.name,
           groupColor: group.color,
         },
         style: {
-          width: Math.max(260, group.members.length * 220 + 40),
-          height: 140,
+          width: Math.max(280, getGroupAssetIds(group).length * 240 + 40),
+          height: 180,
         },
         draggable: true,
         selectable: false,
@@ -725,21 +1184,26 @@ export default function AssetMapContent() {
         const baseNode: Node = {
           id: String(n.id),
           type: "asset",
-          position: { x: (i % 5) * 240, y: Math.floor(i / 5) * 120 },
+          position: { x: (i % 5) * 260, y: Math.floor(i / 5) * 160 },
           data: {
             label: n.name,
             assetType: n.type,
+            status: n.status,
             vendor: n.vendor,
             assigneeName: n.assigneeName,
             serviceCategory: n.serviceCategory || null,
+            description: n.description || null,
+            monthlyCost: n.monthlyCost || null,
+            currency: n.currency || null,
           },
         };
 
         if (parentGroup) {
-          const memberIdx = parentGroup.members.findIndex((m) => m.assetId === n.id);
+          const memberIds = getGroupAssetIds(parentGroup);
+          const memberIdx = memberIds.indexOf(n.id);
           baseNode.parentId = `group-${parentGroup.id}`;
           baseNode.extent = "parent";
-          baseNode.position = { x: 20 + memberIdx * 210, y: 40 };
+          baseNode.position = { x: 20 + (memberIdx >= 0 ? memberIdx : 0) * 230, y: 40 };
         }
 
         return baseNode;
@@ -749,7 +1213,7 @@ export default function AssetMapContent() {
       const entityNodes: Node[] = fetchedEntities.map((ent, i) => ({
         id: `ext-${ent.id}`,
         type: "externalEntity",
-        position: { x: (fetchedAssets.length % 5 + i) * 240, y: Math.floor((fetchedAssets.length + i) / 5) * 120 },
+        position: { x: (fetchedAssets.length % 5 + i) * 260, y: Math.floor((fetchedAssets.length + i) / 5) * 160 },
         data: {
           label: ent.name,
           entityType: ent.type,
@@ -763,23 +1227,63 @@ export default function AssetMapContent() {
         },
       }));
 
-      const flowEdges: Edge[] = (data.edges || []).map((e: AssetEdge) => {
+      const flowEdges: Edge[] = (data.edges || []).map((e: AssetEdge & { source?: string; target?: string; sourceName?: string; targetName?: string }) => {
+        const sourceId = e.source ? String(e.source) : String(e.sourceAssetId);
+        const targetId = e.target ? String(e.target) : String(e.targetAssetId);
+        const linkType = e.linkType || "DATA_FLOW";
+        const linkColor = LINK_COLORS[linkType] || "#6B7280";
+
+        // Edge style based on link type
+        let strokeDasharray: string | undefined;
+        if (linkType === "DATA_FLOW") strokeDasharray = "6 3";
+        else if (linkType === "DEPENDENCY") strokeDasharray = "3 3";
+
         const edgeObj: Edge = {
           id: `link-${e.id}`,
-          source: String(e.sourceAssetId),
-          target: String(e.targetAssetId),
-          label: e.label || e.protocol || "",
-          style: { stroke: LINK_COLORS[e.linkType] || "#6B7280", strokeWidth: 2 },
-          markerEnd: { type: MarkerType.ArrowClosed, color: LINK_COLORS[e.linkType] || "#6B7280" },
-          data: { linkId: e.id, linkType: e.linkType, dataTypes: e.dataTypes, piiItems: e.piiItems },
+          source: sourceId,
+          target: targetId,
+          style: {
+            stroke: linkColor,
+            strokeWidth: 2,
+            strokeDasharray,
+          },
+          markerEnd: { type: MarkerType.ArrowClosed, color: linkColor, width: 16, height: 16 },
+          data: {
+            linkId: e.id,
+            linkType: linkType,
+            dataTypes: e.dataTypes,
+            piiItems: e.piiItems,
+            protocol: e.protocol,
+          },
+          label: "",
+          labelStyle: { fontSize: 0 },
         };
+
         if (e.direction === "BI") {
-          edgeObj.markerStart = { type: MarkerType.ArrowClosed, color: LINK_COLORS[e.linkType] || "#6B7280" };
+          edgeObj.markerStart = { type: MarkerType.ArrowClosed, color: linkColor, width: 16, height: 16 };
         }
+
+        // Build edge label as badge HTML
+        const labelParts: string[] = [];
+        const displayLabel = e.label || e.linkType;
+        if (displayLabel) labelParts.push(displayLabel);
+        if (e.protocol) labelParts.push(`(${e.protocol})`);
+
         // Add PII items summary on edges when in PII view
         if (view === "pii" && e.piiItems) {
           edgeObj.label = e.piiItems;
+          edgeObj.labelStyle = { fontSize: 10, fill: linkColor, fontWeight: 600 };
+          edgeObj.labelBgStyle = { fill: LINK_BG_COLORS[linkType] || "#F9FAFB", fillOpacity: 0.95 };
+          edgeObj.labelBgPadding = [6, 4] as [number, number];
+          edgeObj.labelBgBorderRadius = 6;
+        } else {
+          edgeObj.label = labelParts.join(" ");
+          edgeObj.labelStyle = { fontSize: 10, fill: linkColor, fontWeight: 600 };
+          edgeObj.labelBgStyle = { fill: LINK_BG_COLORS[linkType] || "#F9FAFB", fillOpacity: 0.95 };
+          edgeObj.labelBgPadding = [6, 4] as [number, number];
+          edgeObj.labelBgBorderRadius = 6;
         }
+
         return edgeObj;
       });
 
@@ -809,6 +1313,15 @@ export default function AssetMapContent() {
       setPendingConnection({ source: params.source, target: params.target });
       setShowModal(true);
     }
+  }, []);
+
+  const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
+    if (node.type === "assetGroup" || node.type === "piiStageLabel") return;
+    setSelectedNode({
+      id: node.id,
+      type: node.type || "asset",
+      data: node.data as Record<string, unknown>,
+    });
   }, []);
 
   async function handleSaveLink(data: Record<string, unknown>) {
@@ -890,7 +1403,7 @@ export default function AssetMapContent() {
     );
   }
 
-  const views: { key: ViewType; label: string }[] = [
+  const viewTabs: { key: ViewType; label: string }[] = [
     { key: "all", label: t.assetMap.viewAll },
     { key: "pii", label: t.assetMap.viewPii },
     { key: "network", label: t.assetMap.viewNetwork },
@@ -898,7 +1411,7 @@ export default function AssetMapContent() {
   ];
 
   return (
-    <div className="h-[calc(100vh-64px)]">
+    <div className="h-[calc(100vh-64px)] relative">
       {/* Header */}
       <div className="flex items-center justify-between border-b bg-white px-6 py-3">
         <div className="flex items-center gap-3">
@@ -910,7 +1423,7 @@ export default function AssetMapContent() {
         <div className="flex items-center gap-2">
           {/* View tabs */}
           <div className="flex rounded-lg border border-gray-200 bg-gray-50 p-0.5">
-            {views.map((v) => (
+            {viewTabs.map((v) => (
               <button
                 key={v.key}
                 onClick={() => setView(v.key)}
@@ -947,9 +1460,14 @@ export default function AssetMapContent() {
       </div>
 
       {/* ReactFlow */}
-      <div className="h-full">
+      <div className={`h-full transition-all ${selectedNode ? "pr-80" : ""}`}>
         {loading ? (
-          <div className="flex h-full items-center justify-center text-gray-400">Loading...</div>
+          <div className="flex h-full items-center justify-center text-gray-400">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-8 h-8 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
+              <span className="text-sm">Loading...</span>
+            </div>
+          </div>
         ) : (
           <ReactFlow
             nodes={nodes}
@@ -957,13 +1475,16 @@ export default function AssetMapContent() {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            onNodeClick={onNodeClick}
             onEdgeDoubleClick={(_e, edge) => handleDeleteEdge(edge.id)}
             nodeTypes={nodeTypes}
+            snapToGrid={true}
+            snapGrid={[20, 20]}
             fitView
             attributionPosition="bottom-left"
           >
             <Controls />
-            <Background variant={BackgroundVariant.Dots} gap={20} />
+            <Background variant={BackgroundVariant.Lines} gap={20} color="#f0f0f0" />
             <MiniMap
               nodeColor={(node) => {
                 if (node.type === "externalEntity") {
@@ -989,6 +1510,17 @@ export default function AssetMapContent() {
           </ReactFlow>
         )}
       </div>
+
+      {/* Side Panel */}
+      {selectedNode && (
+        <SidePanel
+          node={selectedNode}
+          edges={edges}
+          nodes={nodes}
+          onClose={() => setSelectedNode(null)}
+          t={t}
+        />
+      )}
 
       {/* Link Modal */}
       {showModal && (

@@ -69,30 +69,42 @@ export async function GET(request: NextRequest) {
     let assetNodes;
     if (view === "all") {
       // "all" 뷰일 때는 연결이 없는 자산도 모두 포함
-      assetNodes = await prisma.asset.findMany({
-        select: {
+      const assetSelect = {
           id: true,
           name: true,
           type: true,
           status: true,
           vendor: true,
+          description: true,
+          monthlyCost: true,
+          currency: true,
           assignee: { select: { id: true, name: true } },
-        },
+          subCategory: { select: { name: true, majorCategory: { select: { name: true } } } },
+        } as const;
+
+      assetNodes = await prisma.asset.findMany({
+        select: assetSelect,
         orderBy: { name: "asc" },
       });
     } else {
+      const assetSelect = {
+          id: true,
+          name: true,
+          type: true,
+          status: true,
+          vendor: true,
+          description: true,
+          monthlyCost: true,
+          currency: true,
+          assignee: { select: { id: true, name: true } },
+          subCategory: { select: { name: true, majorCategory: { select: { name: true } } } },
+        } as const;
+
       // 필터링된 뷰에서는 엣지에 관련된 노드만 반환
       assetNodes = assetNodeIds.size > 0
         ? await prisma.asset.findMany({
             where: { id: { in: Array.from(assetNodeIds) } },
-            select: {
-              id: true,
-              name: true,
-              type: true,
-              status: true,
-              vendor: true,
-              assignee: { select: { id: true, name: true } },
-            },
+            select: assetSelect,
             orderBy: { name: "asc" },
           })
         : [];
@@ -127,8 +139,19 @@ export async function GET(request: NextRequest) {
 
     // ── 응답 구성 ──
 
-    // 자산 노드 (기존 호환)
-    const nodes = assetNodes;
+    // 자산 노드 (기존 호환 + 추가 필드)
+    const nodes = assetNodes.map((a) => ({
+      id: a.id,
+      name: a.name,
+      type: a.type,
+      status: a.status,
+      vendor: a.vendor,
+      description: a.description,
+      monthlyCost: a.monthlyCost ? Number(a.monthlyCost) : null,
+      currency: a.currency,
+      assigneeName: a.assignee?.name ?? null,
+      serviceCategory: a.subCategory?.majorCategory?.name ?? a.subCategory?.name ?? null,
+    }));
 
     // 외부 엔티티 노드 (type: "EXTERNAL" 포함)
     const externalNodes = externalEntities.map((entity) => ({
