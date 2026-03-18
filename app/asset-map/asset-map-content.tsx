@@ -369,6 +369,49 @@ function GroupNodeComponent({ data }: { data: Record<string, unknown> }) {
   );
 }
 
+const SECTION_COLORS = [
+  { label: "Blue", value: "#3B82F6" },
+  { label: "Purple", value: "#8B5CF6" },
+  { label: "Green", value: "#10B981" },
+  { label: "Orange", value: "#F97316" },
+  { label: "Red", value: "#EF4444" },
+  { label: "Gray", value: "#6B7280" },
+  { label: "Teal", value: "#14B8A6" },
+  { label: "Pink", value: "#EC4899" },
+];
+
+function SectionNodeComponent({ data }: { data: Record<string, unknown> }) {
+  const color = (data.sectionColor as string) || "#3B82F6";
+  const description = (data.description as string) || "";
+
+  return (
+    <div
+      className="rounded-2xl border-2 p-4 min-w-[300px] min-h-[200px]"
+      style={{
+        backgroundColor: `${color}08`,
+        borderColor: `${color}40`,
+        borderStyle: "solid",
+      }}
+    >
+      <div className="flex items-center gap-2 mb-2">
+        <div
+          className="w-3 h-3 rounded-full flex-shrink-0"
+          style={{ backgroundColor: color }}
+        />
+        <span
+          className="text-sm font-bold uppercase tracking-wide"
+          style={{ color }}
+        >
+          {data.label as string}
+        </span>
+      </div>
+      {description && (
+        <p className="text-[10px] text-gray-400 leading-tight">{description}</p>
+      )}
+    </div>
+  );
+}
+
 function PiiStageLabelComponent({ data }: { data: Record<string, unknown> }) {
   return (
     <div className="flex items-center justify-center h-full">
@@ -384,6 +427,7 @@ const nodeTypes = {
   externalEntity: ExternalEntityNodeComponent,
   assetGroup: GroupNodeComponent,
   piiStageLabel: PiiStageLabelComponent,
+  section: SectionNodeComponent,
 };
 
 // ─── Custom Edge Label ────────────────────────────────────────────────
@@ -429,8 +473,8 @@ const NODE_WIDTH = 220;
 const NODE_HEIGHT = 130;
 
 function getLayoutedElements(nodes: Node[], edges: Edge[]) {
-  const nonGroupNodes = nodes.filter((n) => n.type !== "assetGroup" && n.type !== "piiStageLabel");
-  const otherNodes = nodes.filter((n) => n.type === "assetGroup" || n.type === "piiStageLabel");
+  const nonGroupNodes = nodes.filter((n) => n.type !== "assetGroup" && n.type !== "piiStageLabel" && n.type !== "section");
+  const otherNodes = nodes.filter((n) => n.type === "assetGroup" || n.type === "piiStageLabel" || n.type === "section");
 
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
@@ -516,7 +560,7 @@ function getPiiLifecycleLayout(
 
   const stageAssignments: Map<string, number> = new Map();
   const contentNodes = nodes.filter(
-    (n) => n.type !== "assetGroup" && n.type !== "piiStageLabel"
+    (n) => n.type !== "assetGroup" && n.type !== "piiStageLabel" && n.type !== "section"
   );
   const otherNodes = nodes.filter(
     (n) => n.type === "assetGroup"
@@ -777,6 +821,110 @@ function SaveViewModal({
             className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
           >
             {t.assetMap.saveView}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Section Modal ───────────────────────────────────────────────────
+
+function SectionModal({
+  onSave,
+  onClose,
+}: {
+  onSave: (name: string, color: string, description: string, width: number, height: number) => void;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [color, setColor] = useState("#3B82F6");
+  const [description, setDescription] = useState("");
+  const [width, setWidth] = useState(400);
+  const [height, setHeight] = useState(300);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) return;
+    onSave(name.trim(), color, description.trim(), width, height);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold">섹션 추가</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">섹션 이름</label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+              placeholder="예: Production, DMZ, Internal..."
+              autoFocus
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">설명 (선택)</label>
+            <input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+              placeholder="이 섹션에 대한 설명"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">색상</label>
+            <div className="flex flex-wrap gap-2">
+              {SECTION_COLORS.map((c) => (
+                <button
+                  key={c.value}
+                  type="button"
+                  onClick={() => setColor(c.value)}
+                  className={`w-8 h-8 rounded-full border-2 transition ${
+                    color === c.value ? "border-gray-900 scale-110" : "border-transparent"
+                  }`}
+                  style={{ backgroundColor: c.value }}
+                  title={c.label}
+                />
+              ))}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">너비 (px)</label>
+              <input
+                type="number"
+                value={width}
+                onChange={(e) => setWidth(Number(e.target.value))}
+                className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                min={200}
+                max={2000}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">높이 (px)</label>
+              <input
+                type="number"
+                value={height}
+                onChange={(e) => setHeight(Number(e.target.value))}
+                className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                min={150}
+                max={2000}
+              />
+            </div>
+          </div>
+          <button
+            type="submit"
+            className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            섹션 추가
           </button>
         </form>
       </div>
@@ -1132,6 +1280,8 @@ export default function AssetMapContent() {
   const [savedViews, setSavedViews] = useState<SavedView[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [showSaveViewModal, setShowSaveViewModal] = useState(false);
+  const [showSectionModal, setShowSectionModal] = useState(false);
+  const [sectionCounter, setSectionCounter] = useState(0);
   const [pendingConnection, setPendingConnection] = useState<{ source: string; target: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedNode, setSelectedNode] = useState<SelectedNodeData | null>(null);
@@ -1338,7 +1488,7 @@ export default function AssetMapContent() {
   }, []);
 
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
-    if (node.type === "assetGroup" || node.type === "piiStageLabel") return;
+    if (node.type === "assetGroup" || node.type === "piiStageLabel" || node.type === "section") return;
     setSelectedNode({
       id: node.id,
       type: node.type || "asset",
@@ -1384,6 +1534,22 @@ export default function AssetMapContent() {
       setNodes(layouted.nodes);
       setEdges(layouted.edges);
     }
+  }
+
+  function handleAddSection(name: string, color: string, description: string, width: number, height: number) {
+    const id = `section-${Date.now()}-${sectionCounter}`;
+    setSectionCounter((c) => c + 1);
+    const newSection: Node = {
+      id,
+      type: "section",
+      position: { x: 100 + sectionCounter * 50, y: 100 + sectionCounter * 50 },
+      data: { label: name, sectionColor: color, description },
+      style: { width, height, zIndex: -1 },
+      draggable: true,
+      selectable: true,
+    };
+    setNodes((prev) => [newSection, ...prev]); // sections behind other nodes
+    setShowSectionModal(false);
   }
 
   // Save current view positions
@@ -1470,6 +1636,13 @@ export default function AssetMapContent() {
             {t.assetMap.saveView}
           </button>
 
+          <button
+            onClick={() => setShowSectionModal(true)}
+            className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+          >
+            <Plus className="inline h-3.5 w-3.5 mr-1" />
+            섹션
+          </button>
           <button onClick={handleAutoLayout} className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">
             <LayoutGrid className="inline h-3.5 w-3.5 mr-1" />
             {t.assetMap.autoLayout}
@@ -1519,6 +1692,9 @@ export default function AssetMapContent() {
                 if (node.type === "piiStageLabel") {
                   return "#6366F1";
                 }
+                if (node.type === "section") {
+                  return (node.data?.sectionColor as string) || "#3B82F6";
+                }
                 const type = (node.data?.assetType as string) || "OTHER";
                 return ASSET_COLORS[type]?.border || "#6B7280";
               }}
@@ -1562,6 +1738,14 @@ export default function AssetMapContent() {
           onSave={handleSaveView}
           onClose={() => setShowSaveViewModal(false)}
           t={t}
+        />
+      )}
+
+      {/* Section Modal */}
+      {showSectionModal && (
+        <SectionModal
+          onSave={handleAddSection}
+          onClose={() => setShowSectionModal(false)}
         />
       )}
     </div>
