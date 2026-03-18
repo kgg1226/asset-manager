@@ -16,6 +16,7 @@ import {
   Panel,
   Handle,
   Position,
+  NodeResizer,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import dagre from "dagre";
@@ -43,6 +44,9 @@ import {
   Router,
   Smartphone,
   Printer,
+  Search,
+  GripVertical,
+  Check,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 
@@ -348,24 +352,33 @@ function ExternalEntityNodeComponent({ data }: { data: Record<string, unknown> }
   );
 }
 
-function GroupNodeComponent({ data }: { data: Record<string, unknown> }) {
+function GroupNodeComponent({ data, selected }: { data: Record<string, unknown>; selected?: boolean }) {
   const color = (data.groupColor as string) || "#E5E7EB";
 
   return (
-    <div
-      className="rounded-xl border-2 border-dashed p-2 min-w-[220px] min-h-[100px]"
-      style={{
-        backgroundColor: `${color}20`,
-        borderColor: color,
-      }}
-    >
+    <>
+      <NodeResizer
+        isVisible={!!selected}
+        minWidth={200}
+        minHeight={80}
+        lineStyle={{ borderColor: color, borderWidth: 2 }}
+        handleStyle={{ backgroundColor: color, width: 8, height: 8, borderRadius: 4 }}
+      />
       <div
-        className="text-xs font-bold px-2 py-1 rounded mb-1 inline-block"
-        style={{ backgroundColor: color, color: "#fff" }}
+        className="rounded-xl border-2 border-dashed p-2 w-full h-full"
+        style={{
+          backgroundColor: `${color}20`,
+          borderColor: color,
+        }}
       >
-        {data.label as string}
+        <div
+          className="text-xs font-bold px-2 py-1 rounded mb-1 inline-block"
+          style={{ backgroundColor: color, color: "#fff" }}
+        >
+          {data.label as string}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -380,35 +393,44 @@ const SECTION_COLORS = [
   { label: "Pink", value: "#EC4899" },
 ];
 
-function SectionNodeComponent({ data }: { data: Record<string, unknown> }) {
+function SectionNodeComponent({ data, selected }: { data: Record<string, unknown>; selected?: boolean }) {
   const color = (data.sectionColor as string) || "#3B82F6";
   const description = (data.description as string) || "";
 
   return (
-    <div
-      className="rounded-2xl border-2 p-4 min-w-[300px] min-h-[200px]"
-      style={{
-        backgroundColor: `${color}08`,
-        borderColor: `${color}40`,
-        borderStyle: "solid",
-      }}
-    >
-      <div className="flex items-center gap-2 mb-2">
-        <div
-          className="w-3 h-3 rounded-full flex-shrink-0"
-          style={{ backgroundColor: color }}
-        />
-        <span
-          className="text-sm font-bold uppercase tracking-wide"
-          style={{ color }}
-        >
-          {data.label as string}
-        </span>
+    <>
+      <NodeResizer
+        isVisible={!!selected}
+        minWidth={200}
+        minHeight={120}
+        lineStyle={{ borderColor: color, borderWidth: 2 }}
+        handleStyle={{ backgroundColor: color, width: 8, height: 8, borderRadius: 4 }}
+      />
+      <div
+        className="rounded-2xl border-2 p-4 w-full h-full"
+        style={{
+          backgroundColor: `${color}08`,
+          borderColor: `${color}40`,
+          borderStyle: "solid",
+        }}
+      >
+        <div className="flex items-center gap-2 mb-2">
+          <div
+            className="w-3 h-3 rounded-full flex-shrink-0"
+            style={{ backgroundColor: color }}
+          />
+          <span
+            className="text-sm font-bold uppercase tracking-wide"
+            style={{ color }}
+          >
+            {data.label as string}
+          </span>
+        </div>
+        {description && (
+          <p className="text-[10px] text-gray-400 leading-tight">{description}</p>
+        )}
       </div>
-      {description && (
-        <p className="text-[10px] text-gray-400 leading-tight">{description}</p>
-      )}
-    </div>
+    </>
   );
 }
 
@@ -1289,6 +1311,167 @@ function SidePanel({
   );
 }
 
+// ─── Asset Palette (Left Sidebar) ─────────────────────────────────────
+
+function AssetPalette({
+  allAssets,
+  placedAssetIds,
+  onAddToCanvas,
+  t,
+}: {
+  allAssets: AssetNode[];
+  placedAssetIds: Set<number>;
+  onAddToCanvas: (asset: AssetNode) => void;
+  t: ReturnType<typeof useTranslation>["t"];
+}) {
+  const [search, setSearch] = useState("");
+  const [filterType, setFilterType] = useState<string>("all");
+  const [collapsed, setCollapsed] = useState(false);
+
+  const filteredAssets = useMemo(() => {
+    return allAssets.filter((a) => {
+      if (filterType !== "all" && a.type !== filterType) return false;
+      if (search && !a.name.toLowerCase().includes(search.toLowerCase())) return false;
+      return true;
+    });
+  }, [allAssets, search, filterType]);
+
+  const unplacedAssets = filteredAssets.filter((a) => !placedAssetIds.has(a.id));
+  const placedCount = filteredAssets.filter((a) => placedAssetIds.has(a.id)).length;
+
+  const typeOptions = [
+    { value: "all", label: t.common?.all ?? "전체" },
+    { value: "HARDWARE", label: t.hw?.title ?? "하드웨어" },
+    { value: "CLOUD", label: t.cloud?.title ?? "클라우드" },
+    { value: "DOMAIN_SSL", label: t.domain?.title ?? "도메인" },
+  ];
+
+  if (collapsed) {
+    return (
+      <div className="w-10 border-r bg-gray-50 flex flex-col items-center py-3">
+        <button
+          onClick={() => setCollapsed(false)}
+          className="w-7 h-7 rounded flex items-center justify-center text-gray-500 hover:bg-gray-200"
+          title="자산 팔레트 열기"
+        >
+          <GripVertical className="w-4 h-4" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-64 border-r bg-white flex flex-col flex-shrink-0 overflow-hidden">
+      {/* Palette Header */}
+      <div className="px-3 py-2.5 border-b flex items-center justify-between">
+        <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+          자산 팔레트
+        </span>
+        <button
+          onClick={() => setCollapsed(true)}
+          className="w-5 h-5 rounded flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {/* Search */}
+      <div className="px-3 py-2 border-b">
+        <div className="relative">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+          <input
+            type="text"
+            placeholder={t.common?.search ?? "검색..."}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-7 pr-2 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:border-blue-400"
+          />
+        </div>
+      </div>
+
+      {/* Type Filter */}
+      <div className="px-3 py-1.5 border-b flex gap-1 flex-wrap">
+        {typeOptions.map((opt) => (
+          <button
+            key={opt.value}
+            onClick={() => setFilterType(opt.value)}
+            className={`px-2 py-0.5 rounded text-[10px] font-medium transition ${
+              filterType === opt.value
+                ? "bg-blue-100 text-blue-700"
+                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Stats */}
+      <div className="px-3 py-1.5 border-b text-[10px] text-gray-400">
+        캔버스: {placedCount}개 | 미배치: {unplacedAssets.length}개
+      </div>
+
+      {/* Asset List */}
+      <div className="flex-1 overflow-y-auto">
+        {unplacedAssets.length === 0 && placedCount === 0 ? (
+          <div className="px-3 py-8 text-center text-xs text-gray-400">
+            등록된 자산이 없습니다
+          </div>
+        ) : (
+          <>
+            {/* Unplaced assets */}
+            {unplacedAssets.map((asset) => {
+              const colors = ASSET_COLORS[asset.type] || ASSET_COLORS.OTHER;
+              return (
+                <button
+                  key={asset.id}
+                  onClick={() => onAddToCanvas(asset)}
+                  className="w-full px-3 py-2 flex items-center gap-2.5 hover:bg-blue-50 transition-colors text-left border-b border-gray-50"
+                >
+                  <div
+                    className="w-7 h-7 rounded flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: colors.light || `${colors.border}15` }}
+                  >
+                    <AssetIcon type={asset.type} color={colors.icon} size="w-4 h-4" deviceType={asset.deviceType} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-medium text-gray-800 truncate">{asset.name}</div>
+                    <div className="text-[10px] text-gray-400 uppercase">{asset.type.replace("_", " ")}</div>
+                  </div>
+                  <Plus className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" />
+                </button>
+              );
+            })}
+
+            {/* Placed assets (dimmed) */}
+            {filteredAssets.filter((a) => placedAssetIds.has(a.id)).map((asset) => {
+              const colors = ASSET_COLORS[asset.type] || ASSET_COLORS.OTHER;
+              return (
+                <div
+                  key={asset.id}
+                  className="w-full px-3 py-2 flex items-center gap-2.5 opacity-40 border-b border-gray-50"
+                >
+                  <div
+                    className="w-7 h-7 rounded flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: colors.light || `${colors.border}15` }}
+                  >
+                    <AssetIcon type={asset.type} color={colors.icon} size="w-4 h-4" deviceType={asset.deviceType} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-medium text-gray-800 truncate">{asset.name}</div>
+                    <div className="text-[10px] text-gray-400 uppercase">{asset.type.replace("_", " ")}</div>
+                  </div>
+                  <Check className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+                </div>
+              );
+            })}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Component ────────────────────────────────────────────────────
 
 export default function AssetMapContent() {
@@ -1296,6 +1479,7 @@ export default function AssetMapContent() {
   const [view, setView] = useState<ViewType>("all");
   const [nodes, setNodes, onNodesChange] = useNodesState([] as Node[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([] as Edge[]);
+  const [allAssets, setAllAssets] = useState<AssetNode[]>([]);
   const [assets, setAssets] = useState<AssetNode[]>([]);
   const [externalEntities, setExternalEntities] = useState<ExternalEntity[]>([]);
   const [groups, setGroups] = useState<AssetGroup[]>([]);
@@ -1331,10 +1515,30 @@ export default function AssetMapContent() {
       if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
 
-      const fetchedAssets: AssetNode[] = data.nodes || [];
+      const fetchedAllAssets: AssetNode[] = data.nodes || [];
       const fetchedEntities: ExternalEntity[] = data.externalEntities || [];
       const fetchedGroups: AssetGroup[] = data.groups || [];
+      const fetchedEdges: AssetEdge[] = data.edges || [];
 
+      // Save all assets for palette
+      setAllAssets(fetchedAllAssets);
+
+      // Only show assets that have connections or are in groups
+      const connectedAssetIds = new Set<number>();
+      fetchedEdges.forEach((e: AssetEdge) => {
+        connectedAssetIds.add(e.sourceAssetId);
+        connectedAssetIds.add(e.targetAssetId);
+      });
+      fetchedGroups.forEach((g) => {
+        (g.assetIds || []).forEach((id) => connectedAssetIds.add(id));
+        (g.members || []).forEach((m) => connectedAssetIds.add(m.assetId));
+      });
+
+      // Placed assets = connected ones + manually added
+      const currentPlacedIds = new Set(nodes.filter(n => n.type === "asset").map(n => Number(n.id)));
+      const placedIds = new Set([...connectedAssetIds, ...currentPlacedIds]);
+
+      const fetchedAssets = fetchedAllAssets.filter((a) => placedIds.has(a.id));
       setAssets(fetchedAssets);
       setExternalEntities(fetchedEntities);
       setGroups(fetchedGroups);
@@ -1574,6 +1778,38 @@ export default function AssetMapContent() {
     setShowSectionModal(false);
   }
 
+  // placedAssetIds — which assets are currently on canvas
+  const placedAssetIds = useMemo(() => {
+    return new Set(nodes.filter((n) => n.type === "asset").map((n) => Number(n.id)));
+  }, [nodes]);
+
+  // Add asset from palette to canvas
+  function handleAddAssetToCanvas(asset: AssetNode) {
+    const existingIds = new Set(nodes.map((n) => n.id));
+    if (existingIds.has(String(asset.id))) return; // already on canvas
+
+    const colors = ASSET_COLORS[asset.type] || ASSET_COLORS.OTHER;
+    const newNode: Node = {
+      id: String(asset.id),
+      type: "asset",
+      position: { x: 300 + Math.random() * 200, y: 200 + Math.random() * 200 },
+      data: {
+        label: asset.name,
+        assetType: asset.type,
+        status: asset.status,
+        vendor: asset.vendor,
+        assigneeName: asset.assigneeName,
+        serviceCategory: asset.serviceCategory || null,
+        description: asset.description || null,
+        monthlyCost: asset.monthlyCost || null,
+        currency: asset.currency || null,
+        deviceType: asset.deviceType || null,
+      },
+    };
+    setNodes((prev) => [...prev, newNode]);
+    setAssets((prev) => [...prev, asset]);
+  }
+
   // Save current view positions
   async function handleSaveView(name: string) {
     const nodePositions: Record<string, { x: number; y: number }> = {};
@@ -1621,9 +1857,9 @@ export default function AssetMapContent() {
   ];
 
   return (
-    <div className="h-[calc(100vh-64px)] relative">
+    <div className="h-[calc(100vh-64px)] relative flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between border-b bg-white px-6 py-3">
+      <div className="flex items-center justify-between border-b bg-white px-6 py-3 flex-shrink-0">
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-bold">{t.assetMap.title}</h1>
           <span className="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-semibold text-purple-700">
@@ -1676,8 +1912,18 @@ export default function AssetMapContent() {
         </div>
       </div>
 
+      {/* Body: Palette + ReactFlow */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Asset Palette */}
+        <AssetPalette
+          allAssets={allAssets}
+          placedAssetIds={placedAssetIds}
+          onAddToCanvas={handleAddAssetToCanvas}
+          t={t}
+        />
+
       {/* ReactFlow */}
-      <div className={`h-full transition-all ${selectedNode ? "pr-80" : ""}`}>
+      <div className={`flex-1 transition-all ${selectedNode ? "pr-80" : ""}`}>
         {loading ? (
           <div className="flex h-full items-center justify-center text-gray-400">
             <div className="flex flex-col items-center gap-3">
@@ -1730,6 +1976,8 @@ export default function AssetMapContent() {
           </ReactFlow>
         )}
       </div>
+
+      </div> {/* End Body flex */}
 
       {/* Side Panel */}
       {selectedNode && (
