@@ -72,6 +72,7 @@ export type TranslationDict = {
     orgChart: string;
     reports: string;
     changeHistory: string;
+    assetMap: string;
     settings: string;
     profile: string;
     groupSettings: string;
@@ -927,5 +928,39 @@ export type TranslationDict = {
     guideSectionsDesc: string;
     guideQuickLinksTitle: string;
     guideQuickLinksDesc: string;
+  };
+
+  // Asset Map
+  assetMap: {
+    title: string;
+    alpha: string;
+    addLink: string;
+    editLink: string;
+    deleteLink: string;
+    viewAll: string;
+    viewPii: string;
+    viewNetwork: string;
+    viewDataFlow: string;
+    autoLayout: string;
+    linkType: string;
+    direction: string;
+    dataTypes: string;
+    piiItems: string;
+    protocol: string;
+    label: string;
+    legalBasis: string;
+    retentionPeriod: string;
+    destructionMethod: string;
+    sourceAsset: string;
+    targetAsset: string;
+    noAssets: string;
+    noLinks: string;
+    confirmDelete: string;
+    uniDirectional: string;
+    biDirectional: string;
+    dataFlow: string;
+    network: string;
+    dependency: string;
+    auth: string;
   };
 };
