@@ -371,6 +371,32 @@
 
 ---
 
+## 📦 CSV 대량 등록 (임포트) 현황
+
+> **최종 업데이트**: 2026-03-18
+
+### ✅ 지원 중 (8개 타입)
+
+| 타입 | 필수 필드 | 주요 옵션 필드 | 비고 |
+|---|---|---|---|
+| **라이선스** | name, totalQuantity, purchaseDate | vendor, paymentCycle, unitPrice, currency, exchangeRate, licenseType, key, parentLicenseName | 계층구조·비용 필드 지원 |
+| **조직원** | name, department | email, title, companyName, orgUnitName, groupName | title 임포트 시 하드웨어 CIA 자동 캐스케이드 |
+| **그룹** | name | description, isDefault, licenseNames(;구분) | 라이선스 멤버 자동 동기화 |
+| **할당** | licenseName, employeeEmail | assignedDate, reason | 시트 자동 배정 |
+| **시트(키)** | licenseName, key | — | KEY_BASED 전용 |
+| **클라우드** | name | vendor, platform, accountId, region, serviceCategory, resourceType, instanceSpec, monthlyCost, currency | 배정자·조직 연결 지원 |
+| **도메인·SSL** | name | domainName, registrar, sslType, issuer, cost, currency, autoRenew | — |
+| **하드웨어** | name | deviceType, manufacturer, model, serialNumber, assetTag, hostname, os, cpu, ram, storage, ciaC, ciaI, ciaA | CIA 직접 입력(1~3) 또는 배정자 직책 매핑 자동 적용 |
+
+### 🟡 미지원 / 향후 추가 검토
+
+- [ ] **계약(Contract)** 임포트 — 계약 유형·거래처·자동갱신 등
+- [ ] **CSV 일괄 수정(업데이트)** — 현재 클라우드/도메인/하드웨어는 생성만 지원, 기존 자산 업데이트 미지원
+- [ ] **임포트 미리보기** — 실제 반영 전 변경 예정 내역 프리뷰 UI
+- [ ] **임포트 이력** — 언제 누가 몇 건 임포트했는지 조회 (현재 AuditLog에만 기록)
+
+---
+
 ## 📋 요약: 이 파일의 역할
 
 | 섹션 | 상태 | 참고 |
