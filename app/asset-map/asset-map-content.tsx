@@ -17,6 +17,7 @@ import {
   Handle,
   Position,
   NodeResizer,
+  reconnectEdge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import dagre from "dagre";
@@ -2056,6 +2057,32 @@ export default function AssetMapContent() {
     }
   }, []);
 
+  const onReconnect = useCallback(
+    async (oldEdge: Edge, newConnection: Connection) => {
+      // Update the edge visually
+      setEdges((eds) => reconnectEdge(oldEdge, newConnection, eds));
+
+      // Update in DB
+      const edgeData = oldEdge.data as Record<string, unknown> | undefined;
+      const linkId = edgeData?.linkId;
+      if (linkId && newConnection.target) {
+        try {
+          await fetch(`/api/asset-links/${linkId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              targetAssetId: Number(newConnection.target),
+            }),
+          });
+        } catch {
+          // Revert on failure
+          fetchGraph();
+        }
+      }
+    },
+    [setEdges, fetchGraph]
+  );
+
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
     if (node.type === "assetGroup" || node.type === "piiStageLabel" || node.type === "section") return;
     setSelectedNode({
@@ -2286,6 +2313,8 @@ export default function AssetMapContent() {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            onReconnect={onReconnect}
+            edgesReconnectable={true}
             onNodeClick={onNodeClick}
             onEdgeDoubleClick={(_e, edge) => setSelectedEdge(edge)}
             nodeTypes={nodeTypes}
