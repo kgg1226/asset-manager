@@ -1921,11 +1921,38 @@ export default function AssetMapContent() {
         },
       }));
 
-      const flowEdges: Edge[] = (data.edges || []).map((e: AssetEdge & { source?: string; target?: string; sourceName?: string; targetName?: string }) => {
+      // Count edges per source-target pair to offset overlapping edges
+      const edgePairCount = new Map<string, number>();
+      const rawEdges = data.edges || [];
+      rawEdges.forEach((e: AssetEdge & { source?: string; target?: string }) => {
+        const s = String(e.source || e.sourceAssetId);
+        const t = String(e.target || e.targetAssetId);
+        const key = [s, t].sort().join("-");
+        edgePairCount.set(key, (edgePairCount.get(key) || 0) + 1);
+      });
+      const edgePairIndex = new Map<string, number>();
+
+      // Handle pairs for offset: use different handles for each edge in a pair
+      const HANDLE_PAIRS = [
+        { sourceHandle: "right-s", targetHandle: "left-t" },
+        { sourceHandle: "top-s", targetHandle: "top-t" },
+        { sourceHandle: "bottom-s", targetHandle: "bottom-t" },
+        { sourceHandle: "left-s", targetHandle: "right-t" },
+      ];
+
+      const flowEdges: Edge[] = rawEdges.map((e: AssetEdge & { source?: string; target?: string; sourceName?: string; targetName?: string }) => {
         const sourceId = e.source ? String(e.source) : String(e.sourceAssetId);
         const targetId = e.target ? String(e.target) : String(e.targetAssetId);
         const linkType = e.linkType || "DATA_FLOW";
         const linkColor = LINK_COLORS[linkType] || "#6B7280";
+
+        // Determine which handle pair to use for this edge
+        const pairKey = [sourceId, targetId].sort().join("-");
+        const pairTotal = edgePairCount.get(pairKey) || 1;
+        const pairIdx = edgePairIndex.get(pairKey) || 0;
+        edgePairIndex.set(pairKey, pairIdx + 1);
+
+        const handlePair = pairTotal > 1 ? HANDLE_PAIRS[pairIdx % HANDLE_PAIRS.length] : HANDLE_PAIRS[0];
 
         // Edge style based on link type
         let strokeDasharray: string | undefined;
@@ -1936,6 +1963,8 @@ export default function AssetMapContent() {
           id: `link-${e.id}`,
           source: sourceId,
           target: targetId,
+          sourceHandle: handlePair.sourceHandle,
+          targetHandle: handlePair.targetHandle,
           style: {
             stroke: linkColor,
             strokeWidth: 2,
