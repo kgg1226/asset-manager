@@ -205,6 +205,8 @@ export async function GET(request: NextRequest) {
         legalBasis: link.legalBasis,
         retentionPeriod: link.retentionPeriod,
         destructionMethod: link.destructionMethod,
+        sourceHandle: link.sourceHandle,
+        targetHandle: link.targetHandle,
         createdAt: link.createdAt,
         updatedAt: link.updatedAt,
         sourceName,

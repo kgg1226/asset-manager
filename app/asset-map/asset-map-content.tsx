@@ -83,6 +83,8 @@ type AssetEdge = {
   legalBasis: string | null;
   retentionPeriod: string | null;
   destructionMethod: string | null;
+  sourceHandle: string | null;
+  targetHandle: string | null;
   sourceAssetName: string;
   targetAssetName: string;
 };
@@ -1785,7 +1787,7 @@ export default function AssetMapContent() {
   const [showSaveViewModal, setShowSaveViewModal] = useState(false);
   const [showSectionModal, setShowSectionModal] = useState(false);
   const [sectionCounter, setSectionCounter] = useState(0);
-  const [pendingConnection, setPendingConnection] = useState<{ source: string; target: string } | null>(null);
+  const [pendingConnection, setPendingConnection] = useState<{ source: string; target: string; sourceHandle?: string; targetHandle?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedNode, setSelectedNode] = useState<SelectedNodeData | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
@@ -1941,6 +1943,8 @@ export default function AssetMapContent() {
           id: `link-${e.id}`,
           source: sourceId,
           target: targetId,
+          sourceHandle: e.sourceHandle || "right",
+          targetHandle: e.targetHandle || "left",
           style: {
             stroke: linkColor,
             strokeWidth: 2,
@@ -2026,7 +2030,12 @@ export default function AssetMapContent() {
 
   const onConnect = useCallback((params: Connection) => {
     if (params.source && params.target && params.source !== params.target) {
-      setPendingConnection({ source: params.source, target: params.target });
+      setPendingConnection({
+        source: params.source,
+        target: params.target,
+        sourceHandle: params.sourceHandle || undefined,
+        targetHandle: params.targetHandle || undefined,
+      });
       setShowModal(true);
     }
   }, []);
@@ -2068,10 +2077,16 @@ export default function AssetMapContent() {
 
   async function handleSaveLink(data: Record<string, unknown>) {
     try {
+      // Include handle info from pending connection
+      const payload = {
+        ...data,
+        sourceHandle: pendingConnection?.sourceHandle || "right",
+        targetHandle: pendingConnection?.targetHandle || "left",
+      };
       const res = await fetch("/api/asset-links", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
         setShowModal(false);

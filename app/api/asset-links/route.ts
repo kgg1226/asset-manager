@@ -114,6 +114,8 @@ export async function POST(request: NextRequest) {
           legalBasis: body.legalBasis ?? null,
           retentionPeriod: body.retentionPeriod ?? null,
           destructionMethod: body.destructionMethod ?? null,
+          sourceHandle: body.sourceHandle ?? null,
+          targetHandle: body.targetHandle ?? null,
         },
         include: {
           sourceAsset: { select: { id: true, name: true, type: true, status: true } },
