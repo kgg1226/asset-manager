@@ -945,6 +945,7 @@ function SavedViewsDropdown({
 }) {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const safeViews = Array.isArray(views) ? views : [];
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -967,12 +968,12 @@ function SavedViewsDropdown({
       </button>
       {open && (
         <div className="absolute right-0 top-full mt-1 z-50 w-56 rounded-lg border bg-white shadow-lg">
-          {views.length === 0 ? (
+          {safeViews.length === 0 ? (
             <div className="px-3 py-2 text-xs text-gray-400">
               {t.assetMap.noSavedViews}
             </div>
           ) : (
-            views.map((v) => (
+            safeViews.map((v) => (
               <button
                 key={v.id}
                 onClick={() => {
@@ -998,12 +999,16 @@ function SidePanel({
   edges,
   nodes,
   onClose,
+  onAddLink,
+  onDeleteLink,
   t,
 }: {
   node: SelectedNodeData;
   edges: Edge[];
   nodes: Node[];
   onClose: () => void;
+  onAddLink: (sourceId: string) => void;
+  onDeleteLink: (edgeId: string) => void;
   t: ReturnType<typeof useTranslation>["t"];
 }) {
   const data = node.data;
@@ -1181,11 +1186,20 @@ function SidePanel({
 
         {/* Connections */}
         <div>
-          <div className="flex items-center gap-1.5 mb-3">
-            <Link2 className="w-4 h-4 text-gray-400" />
-            <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
-              Connections ({connections.length})
-            </span>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-1.5">
+              <Link2 className="w-4 h-4 text-gray-400" />
+              <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                Connections ({connections.length})
+              </span>
+            </div>
+            <button
+              onClick={() => onAddLink(node.id)}
+              className="flex items-center gap-1 rounded-md bg-blue-50 px-2 py-1 text-[10px] font-semibold text-blue-600 hover:bg-blue-100 transition-colors"
+            >
+              <Plus className="w-3 h-3" />
+              {t.assetMap.addLink}
+            </button>
           </div>
 
           {connections.length === 0 ? (
@@ -1198,7 +1212,7 @@ function SidePanel({
                 return (
                   <div
                     key={conn.edgeId}
-                    className="rounded-lg border p-2.5 hover:bg-gray-50 transition-colors"
+                    className="group rounded-lg border p-2.5 hover:bg-gray-50 transition-colors"
                     style={{ borderColor: `${linkColor}30` }}
                   >
                     <div className="flex items-center gap-2 mb-1">
@@ -1220,6 +1234,14 @@ function SidePanel({
                       {conn.protocol && (
                         <span className="text-[10px] text-gray-400">({conn.protocol})</span>
                       )}
+                      {/* Delete button (visible on hover) */}
+                      <button
+                        onClick={() => onDeleteLink(conn.edgeId)}
+                        className="ml-auto opacity-0 group-hover:opacity-100 rounded p-0.5 text-red-400 hover:text-red-600 hover:bg-red-50 transition-all"
+                        title={t.common.delete}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
                     </div>
                     <div className="flex items-center gap-1.5 pl-5">
                       {conn.otherNodeType && (
@@ -1716,6 +1738,11 @@ export default function AssetMapContent() {
           edges={edges}
           nodes={nodes}
           onClose={() => setSelectedNode(null)}
+          onAddLink={(sourceId: string) => {
+            setPendingConnection({ source: sourceId, target: "" });
+            setShowModal(true);
+          }}
+          onDeleteLink={handleDeleteEdge}
           t={t}
         />
       )}
