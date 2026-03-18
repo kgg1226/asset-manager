@@ -39,24 +39,10 @@ export default function ChangePasswordPage() {
 
     setIsLoading(true);
     try {
-      const sessionRes = await fetch("/api/auth/session");
-      if (!sessionRes.ok) {
-        toast.error(t.auth.sessionFetchFail);
-        return;
-      }
-
-      const sessionData = await sessionRes.json();
-      if (!sessionData.authenticated || !sessionData.user) {
-        toast.error(t.auth.authRequired);
-        return;
-      }
-
-      const userId = sessionData.user.id;
-
       const res = await fetch(`/api/auth/change-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, newPassword }),
+        body: JSON.stringify({ newPassword }),
       });
 
       if (!res.ok) {
