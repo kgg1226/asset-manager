@@ -228,19 +228,21 @@ function AssetNodeComponent({ data, selected }: { data: Record<string, unknown>;
 
   return (
     <div
-      className="rounded-xl border-2 px-4 py-3 min-w-[200px] relative"
+      className="rounded-xl border-2 px-4 py-3 relative w-full h-full"
       style={{
         backgroundColor: colors.bg,
         borderColor: colors.border,
         boxShadow: `0 2px 8px ${colors.border}20, 0 1px 3px rgba(0,0,0,0.06)`,
+        minWidth: 80,
+        minHeight: 60,
       }}
     >
       <NodeResizer
         isVisible={!!selected}
-        minWidth={160}
-        minHeight={80}
+        minWidth={80}
+        minHeight={60}
         lineStyle={{ borderColor: colors.border, borderWidth: 1.5 }}
-        handleStyle={{ backgroundColor: colors.border, width: 6, height: 6, borderRadius: 3 }}
+        handleStyle={{ backgroundColor: colors.border, width: 8, height: 8, borderRadius: 4 }}
       />
       {/* Connection handles */}
       <Handle
@@ -366,8 +368,8 @@ function GroupNodeComponent({ data, selected }: { data: Record<string, unknown>;
     <>
       <NodeResizer
         isVisible={!!selected}
-        minWidth={200}
-        minHeight={80}
+        minWidth={100}
+        minHeight={60}
         lineStyle={{ borderColor: color, borderWidth: 2 }}
         handleStyle={{ backgroundColor: color, width: 8, height: 8, borderRadius: 4 }}
       />
