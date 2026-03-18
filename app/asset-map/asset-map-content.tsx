@@ -226,9 +226,30 @@ function AssetNodeComponent({ data, selected }: { data: Record<string, unknown>;
   const assignee = data.assigneeName as string | null;
   const costStr = formatCost(cost, currency);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [nodeSize, setNodeSize] = useState({ w: 200, h: 150 });
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      const { width, height } = entries[0].contentRect;
+      setNodeSize({ w: width, h: height });
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Size thresholds for progressive content hiding
+  const isCompact = nodeSize.w < 150 || nodeSize.h < 100;
+  const isTiny = nodeSize.w < 110 || nodeSize.h < 80;
+  const iconSize = isCompact ? "w-5 h-5" : "w-6 h-6";
+  const iconBoxSize = isCompact ? "w-7 h-7" : "w-10 h-10";
+
   return (
     <div
-      className="rounded-xl border-2 px-4 py-3 relative w-full h-full"
+      ref={containerRef}
+      className="rounded-xl border-2 px-2 py-2 relative w-full h-full overflow-hidden"
       style={{
         backgroundColor: colors.bg,
         borderColor: colors.border,
@@ -259,37 +280,43 @@ function AssetNodeComponent({ data, selected }: { data: Record<string, unknown>;
       />
 
       {/* Icon centered above name */}
-      <div className="flex flex-col items-center gap-1.5">
+      <div className={`flex flex-col items-center ${isCompact ? "gap-0.5" : "gap-1.5"}`}>
         <div
-          className="w-10 h-10 rounded-lg flex items-center justify-center"
+          className={`${iconBoxSize} rounded-lg flex items-center justify-center`}
           style={{ backgroundColor: colors.light }}
         >
-          <AssetIcon type={type} color={colors.icon} size="w-6 h-6" deviceType={deviceType} />
+          <AssetIcon type={type} color={colors.icon} size={iconSize} deviceType={deviceType} />
         </div>
 
-        {/* Name */}
-        <div className="text-sm font-semibold text-gray-900 truncate max-w-[180px] text-center">
+        {/* Name — always shown, font scales */}
+        <div
+          className={`font-semibold text-gray-900 truncate text-center w-full ${
+            isCompact ? "text-[10px]" : "text-sm"
+          }`}
+        >
           {data.label as string}
         </div>
 
-        {/* Status + Type row */}
-        <div className="flex items-center gap-1.5">
-          <StatusDot status={status} />
-          <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">
-            {type.replace("_", " ")}
-          </span>
-        </div>
+        {/* Status + Type row — hidden when tiny */}
+        {!isTiny && (
+          <div className="flex items-center gap-1.5">
+            <StatusDot status={status} />
+            <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">
+              {type.replace("_", " ")}
+            </span>
+          </div>
+        )}
 
-        {/* Assignee */}
-        {assignee && (
+        {/* Assignee — hidden when compact */}
+        {!isCompact && assignee && (
           <div className="flex items-center gap-1 text-xs text-gray-600">
             <User className="w-3 h-3" />
             <span className="truncate max-w-[140px]">{assignee}</span>
           </div>
         )}
 
-        {/* Cost */}
-        {costStr && (
+        {/* Cost — hidden when compact */}
+        {!isCompact && costStr && (
           <div
             className="text-xs font-semibold rounded-md px-2 py-0.5"
             style={{ color: colors.icon, backgroundColor: colors.light }}
