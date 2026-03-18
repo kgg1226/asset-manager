@@ -378,6 +378,7 @@ model Asset {
   ciaC            Int?                                // 기밀성 Confidentiality
   ciaI            Int?                                // 무결성 Integrity
   ciaA            Int?                                // 가용성 Availability
+  piiStage        String?                             // PII 생명주기 단계: COLLECTION | STORAGE | USAGE_PROVISION | DESTRUCTION
 
   // 메타
   createdAt       DateTime     @default(now())
@@ -398,6 +399,7 @@ model Asset {
   licenseLinks           AssetLicenseLink[]
   outgoingLinks          AssetLink[]        @relation("AssetLinkSource")
   incomingLinks          AssetLink[]        @relation("AssetLinkTarget")
+  groupMembers           AssetGroupMember[]
 
   @@index([type])
   @@index([subCategoryId])
@@ -407,27 +409,85 @@ model Asset {
 }
 
 model AssetLink {
-  id                Int      @id @default(autoincrement())
-  sourceAssetId     Int
-  targetAssetId     Int
-  linkType          String   // DATA_FLOW | NETWORK | DEPENDENCY | AUTH
-  direction         String   @default("UNI") // UNI | BI
-  label             String?
-  dataTypes         String?  // JSON array: ["PII","LOG","CREDENTIAL"]
-  piiItems          String?  // JSON array: ["이름","이메일"]
-  protocol          String?
-  legalBasis        String?
-  retentionPeriod   String?
-  destructionMethod String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                  Int      @id @default(autoincrement())
+  sourceAssetId       Int?
+  targetAssetId       Int?
+  sourceExternalId    Int?
+  targetExternalId    Int?
+  linkType            String   // DATA_FLOW | NETWORK | DEPENDENCY | AUTH
+  direction           String   @default("UNI") // UNI | BI
+  label               String?
+  dataTypes           String?  // JSON array: ["PII","LOG","CREDENTIAL"]
+  piiItems            String?  // JSON array: ["이름","이메일"]
+  protocol            String?
+  legalBasis          String?
+  retentionPeriod     String?
+  destructionMethod   String?
+  sourceHandle        String?  // 핸들 ID: top, bottom, left, right, top-left, top-right, bottom-left, bottom-right
+  targetHandle        String?  // 핸들 ID
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
-  sourceAsset Asset @relation("AssetLinkSource", fields: [sourceAssetId], references: [id], onDelete: Cascade)
-  targetAsset Asset @relation("AssetLinkTarget", fields: [targetAssetId], references: [id], onDelete: Cascade)
+  sourceAsset    Asset?          @relation("AssetLinkSource", fields: [sourceAssetId], references: [id], onDelete: Cascade)
+  targetAsset    Asset?          @relation("AssetLinkTarget", fields: [targetAssetId], references: [id], onDelete: Cascade)
+  sourceExternal ExternalEntity? @relation("ExternalLinkSource", fields: [sourceExternalId], references: [id], onDelete: Cascade)
+  targetExternal ExternalEntity? @relation("ExternalLinkTarget", fields: [targetExternalId], references: [id], onDelete: Cascade)
 
   @@index([sourceAssetId])
   @@index([targetAssetId])
+  @@index([sourceExternalId])
+  @@index([targetExternalId])
   @@index([linkType])
+}
+
+model ExternalEntity {
+  id          Int      @id @default(autoincrement())
+  name        String
+  type        String   // TRUSTEE | PARTNER | GOVERNMENT | OTHER
+  description String?
+  contactInfo String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  outgoingLinks AssetLink[] @relation("ExternalLinkSource")
+  incomingLinks AssetLink[] @relation("ExternalLinkTarget")
+}
+
+model AssetMapView {
+  id             Int      @id @default(autoincrement())
+  name           String
+  description    String?
+  viewType       String   @default("ALL") // ALL | PII | NETWORK | DATA_FLOW | CUSTOM
+  nodePositions  String?  // JSON: { "asset-1": {x,y}, "ext-2": {x,y} }
+  filterConfig   String?  // JSON: filter settings
+  createdBy      Int?
+  isShared       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model AssetGroup {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  color       String   @default("#6B7280")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members AssetGroupMember[]
+}
+
+model AssetGroupMember {
+  id           Int   @id @default(autoincrement())
+  assetGroupId Int
+  assetId      Int
+
+  assetGroup AssetGroup @relation(fields: [assetGroupId], references: [id], onDelete: Cascade)
+  asset      Asset      @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@unique([assetGroupId, assetId])
+  @@index([assetGroupId])
+  @@index([assetId])
 }
 
 model HardwareDetail {
