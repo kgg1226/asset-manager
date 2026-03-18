@@ -2096,8 +2096,8 @@ export default function AssetMapContent() {
 
     if (candidates.length === 0) return;
 
-    // Pick smallest section (most specific)
-    candidates.sort((a, b) => a.area - b.area);
+    // Pick smallest section; if tied, pick the latest one (higher index = created later)
+    candidates.sort((a, b) => a.area - b.area || sectionNodes.indexOf(b.section) - sectionNodes.indexOf(a.section));
     const winner = candidates[0].section;
     const sx = winner.position.x;
     const sy = winner.position.y;
