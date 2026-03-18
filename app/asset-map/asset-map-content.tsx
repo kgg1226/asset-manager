@@ -670,7 +670,7 @@ export default function AssetMapContent() {
         const res = await fetch("/api/asset-map/views");
         if (res.ok) {
           const data = await res.json();
-          setSavedViews(data);
+          setSavedViews(Array.isArray(data) ? data : data.views ?? []);
         }
       } catch {
         // silently fail
