@@ -2118,16 +2118,18 @@ export default function AssetMapContent() {
   }, [nodes, setNodes]);
 
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
-    if (node.type === "assetGroup" || node.type === "piiStageLabel") return;
-    if (node.type === "section") {
-      setEditingSection(node);
-      return;
-    }
+    if (node.type === "assetGroup" || node.type === "piiStageLabel" || node.type === "section") return;
     setSelectedNode({
       id: node.id,
       type: node.type || "asset",
       data: node.data as Record<string, unknown>,
     });
+  }, []);
+
+  const onNodeDoubleClick = useCallback((_event: React.MouseEvent, node: Node) => {
+    if (node.type === "section") {
+      setEditingSection(node);
+    }
   }, []);
 
   async function handleSaveLink(data: Record<string, unknown>) {
@@ -2397,6 +2399,7 @@ export default function AssetMapContent() {
             onReconnect={onReconnect}
             edgesReconnectable={true}
             onNodeClick={onNodeClick}
+            onNodeDoubleClick={onNodeDoubleClick}
             onNodeDragStop={onNodeDragStop}
             onEdgeDoubleClick={(_e, edge) => setSelectedEdge(edge)}
             nodeTypes={nodeTypes}
