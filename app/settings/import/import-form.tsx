@@ -22,6 +22,9 @@ export default function ImportForm() {
     { value: "groups", label: t.license.group },
     { value: "assignments", label: t.license.seatAssignment },
     { value: "seats", label: t.license.seat },
+    { value: "cloud", label: t.cloud?.title ?? "클라우드" },
+    { value: "domains", label: t.domain?.title ?? "도메인·SSL" },
+    { value: "hardware", label: t.hw?.title ?? "하드웨어" },
   ];
 
   async function handleDownloadTemplate() {
@@ -232,5 +235,8 @@ function getRequiredHeaders(type: ImportType): string[] {
     case "groups": return ["name"];
     case "assignments": return ["licenseName", "employeeEmail"];
     case "seats": return ["licenseName", "key"];
+    case "cloud": return ["name"];
+    case "domains": return ["name"];
+    case "hardware": return ["name"];
   }
 }

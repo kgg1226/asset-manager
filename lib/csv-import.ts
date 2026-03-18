@@ -1,4 +1,4 @@
-export type ImportType = "licenses" | "employees" | "groups" | "assignments" | "seats";
+export type ImportType = "licenses" | "employees" | "groups" | "assignments" | "seats" | "cloud" | "domains" | "hardware";
 
 export type RowError = {
   row: number;
