@@ -193,6 +193,8 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
         include: {
           sourceAsset: { select: { name: true } },
           targetAsset: { select: { name: true } },
+          sourceExternal: { select: { name: true } },
+          targetExternal: { select: { name: true } },
         },
       });
       if (!existing) {
@@ -212,8 +214,8 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
           sourceAssetId: existing.sourceAssetId,
           targetAssetId: existing.targetAssetId,
           linkType: existing.linkType,
-          sourceName: existing.sourceAsset.name,
-          targetName: existing.targetAsset.name,
+          sourceName: existing.sourceAsset?.name ?? existing.sourceExternal?.name ?? null,
+          targetName: existing.targetAsset?.name ?? existing.targetExternal?.name ?? null,
         },
       });
     });
