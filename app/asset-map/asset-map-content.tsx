@@ -954,6 +954,122 @@ function SectionModal({
   );
 }
 
+// ─── Edge Detail Modal ───────────────────────────────────────────────
+
+function EdgeDetailModal({
+  edge,
+  nodes,
+  onDelete,
+  onClose,
+  t,
+}: {
+  edge: Edge;
+  nodes: Node[];
+  onDelete: () => void;
+  onClose: () => void;
+  t: ReturnType<typeof useTranslation>["t"];
+}) {
+  const edgeData = (edge.data || {}) as Record<string, unknown>;
+  const sourceNode = nodes.find((n) => n.id === edge.source);
+  const targetNode = nodes.find((n) => n.id === edge.target);
+  const linkType = (edgeData.linkType as string) || "DATA_FLOW";
+  const linkColor = LINK_COLORS[linkType] || "#6B7280";
+  const linkBg = LINK_BG_COLORS[linkType] || "#F9FAFB";
+  const dataTypes = (edgeData.dataTypes as string) || "";
+  const piiItems = (edgeData.piiItems as string) || "";
+  const protocol = (edgeData.protocol as string) || "";
+
+  const linkTypeLabels: Record<string, string> = {
+    DATA_FLOW: t.assetMap?.dataFlow ?? "Data Flow",
+    NETWORK: t.assetMap?.network ?? "Network",
+    DEPENDENCY: t.assetMap?.dependency ?? "Dependency",
+    AUTH: t.assetMap?.auth ?? "Auth",
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+      <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold">연결 상세</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          {/* Source → Target */}
+          <div className="flex items-center gap-2 rounded-lg bg-gray-50 p-3">
+            <span className="text-sm font-medium text-gray-800 truncate">
+              {(sourceNode?.data?.label as string) || edge.source}
+            </span>
+            <ArrowRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <span className="text-sm font-medium text-gray-800 truncate">
+              {(targetNode?.data?.label as string) || edge.target}
+            </span>
+          </div>
+
+          {/* Link Type */}
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-500">유형</span>
+            <span
+              className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
+              style={{ backgroundColor: linkBg, color: linkColor }}
+            >
+              {linkTypeLabels[linkType] || linkType}
+            </span>
+          </div>
+
+          {/* Protocol */}
+          {protocol && (
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-500">프로토콜</span>
+              <span className="text-sm text-gray-800">{protocol}</span>
+            </div>
+          )}
+
+          {/* Data Types */}
+          {dataTypes && (
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-500">데이터 유형</span>
+              <div className="flex gap-1">
+                {dataTypes.split(",").map((dt) => (
+                  <span key={dt} className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-600">
+                    {dt.trim()}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* PII Items */}
+          {piiItems && (
+            <div>
+              <span className="text-xs text-gray-500 block mb-1">개인정보 항목</span>
+              <p className="text-sm text-gray-800 bg-red-50 rounded-lg p-2">{piiItems}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Delete Button */}
+        <div className="mt-5 pt-4 border-t flex gap-2">
+          <button
+            onClick={onClose}
+            className="flex-1 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            닫기
+          </button>
+          <button
+            onClick={onDelete}
+            className="flex-1 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+          >
+            {t.common?.delete ?? "삭제"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Saved Views Dropdown ─────────────────────────────────────────────
 
 function SavedViewsDropdown({
@@ -1317,11 +1433,13 @@ function AssetPalette({
   allAssets,
   placedAssetIds,
   onAddToCanvas,
+  onRemoveFromCanvas,
   t,
 }: {
   allAssets: AssetNode[];
   placedAssetIds: Set<number>;
   onAddToCanvas: (asset: AssetNode) => void;
+  onRemoveFromCanvas: (assetId: number) => void;
   t: ReturnType<typeof useTranslation>["t"];
 }) {
   const [search, setSearch] = useState("");
@@ -1443,13 +1561,14 @@ function AssetPalette({
               );
             })}
 
-            {/* Placed assets (dimmed) */}
+            {/* Placed assets (removable) */}
             {filteredAssets.filter((a) => placedAssetIds.has(a.id)).map((asset) => {
               const colors = ASSET_COLORS[asset.type] || ASSET_COLORS.OTHER;
               return (
-                <div
+                <button
                   key={asset.id}
-                  className="w-full px-3 py-2 flex items-center gap-2.5 opacity-40 border-b border-gray-50"
+                  onClick={() => onRemoveFromCanvas(asset.id)}
+                  className="w-full px-3 py-2 flex items-center gap-2.5 bg-green-50/50 hover:bg-red-50 border-b border-gray-50 transition-colors text-left group"
                 >
                   <div
                     className="w-7 h-7 rounded flex items-center justify-center flex-shrink-0"
@@ -1461,8 +1580,9 @@ function AssetPalette({
                     <div className="text-xs font-medium text-gray-800 truncate">{asset.name}</div>
                     <div className="text-[10px] text-gray-400 uppercase">{asset.type.replace("_", " ")}</div>
                   </div>
-                  <Check className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
-                </div>
+                  <Check className="w-3.5 h-3.5 text-green-500 flex-shrink-0 group-hover:hidden" />
+                  <X className="w-3.5 h-3.5 text-red-400 flex-shrink-0 hidden group-hover:block" />
+                </button>
               );
             })}
           </>
@@ -1491,6 +1611,7 @@ export default function AssetMapContent() {
   const [pendingConnection, setPendingConnection] = useState<{ source: string; target: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedNode, setSelectedNode] = useState<SelectedNodeData | null>(null);
+  const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
 
   // Fetch saved views on mount
   useEffect(() => {
@@ -1919,6 +2040,10 @@ export default function AssetMapContent() {
           allAssets={allAssets}
           placedAssetIds={placedAssetIds}
           onAddToCanvas={handleAddAssetToCanvas}
+          onRemoveFromCanvas={(assetId: number) => {
+            setNodes((prev) => prev.filter((n) => n.id !== String(assetId)));
+            setEdges((prev) => prev.filter((e) => e.source !== String(assetId) && e.target !== String(assetId)));
+          }}
           t={t}
         />
 
@@ -1939,7 +2064,7 @@ export default function AssetMapContent() {
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
             onNodeClick={onNodeClick}
-            onEdgeDoubleClick={(_e, edge) => handleDeleteEdge(edge.id)}
+            onEdgeDoubleClick={(_e, edge) => setSelectedEdge(edge)}
             nodeTypes={nodeTypes}
             snapToGrid={true}
             snapGrid={[20, 20]}
@@ -1970,7 +2095,7 @@ export default function AssetMapContent() {
             />
             <Panel position="bottom-center">
               <div className="rounded-lg border bg-white/90 px-3 py-1.5 text-xs text-gray-500 backdrop-blur">
-                {t.assetMap.addLink}: 노드 핸들 드래그 | {t.assetMap.deleteLink}: 엣지 더블클릭
+                {t.assetMap.addLink}: 노드 핸들 드래그 | 연결 상세: 엣지 더블클릭
               </div>
             </Panel>
           </ReactFlow>
@@ -2021,6 +2146,20 @@ export default function AssetMapContent() {
         <SectionModal
           onSave={handleAddSection}
           onClose={() => setShowSectionModal(false)}
+        />
+      )}
+
+      {/* Edge Detail Modal */}
+      {selectedEdge && (
+        <EdgeDetailModal
+          edge={selectedEdge}
+          nodes={nodes}
+          onDelete={() => {
+            handleDeleteEdge(selectedEdge.id);
+            setSelectedEdge(null);
+          }}
+          onClose={() => setSelectedEdge(null)}
+          t={t}
         />
       )}
     </div>
