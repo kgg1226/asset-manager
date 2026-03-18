@@ -2066,6 +2066,80 @@ export default function AssetMapContent() {
     [setEdges, fetchGraph]
   );
 
+  // When a node is dropped, check if it landed inside a section → auto-parent
+  const onNodeDragStop = useCallback((_event: React.MouseEvent, draggedNode: Node) => {
+    if (draggedNode.type === "section") return; // sections can't be children
+
+    const sectionNodes = nodes.filter((n) => n.type === "section");
+    let newParentId: string | undefined;
+
+    for (const section of sectionNodes) {
+      const sw = (section.style?.width as number) || 400;
+      const sh = (section.style?.height as number) || 300;
+      const sx = section.position.x;
+      const sy = section.position.y;
+
+      // Check if dragged node center is inside section bounds
+      const nx = draggedNode.position.x + (draggedNode.parentId === section.id ? sx : 0);
+      const ny = draggedNode.position.y + (draggedNode.parentId === section.id ? sy : 0);
+
+      if (
+        !draggedNode.parentId && // not already a child
+        draggedNode.position.x > sx &&
+        draggedNode.position.x < sx + sw &&
+        draggedNode.position.y > sy &&
+        draggedNode.position.y < sy + sh
+      ) {
+        newParentId = section.id;
+        break;
+      }
+    }
+
+    if (newParentId && draggedNode.parentId !== newParentId) {
+      // Move into section: convert absolute position to relative
+      const parentSection = sectionNodes.find((s) => s.id === newParentId);
+      if (parentSection) {
+        setNodes((nds) =>
+          nds.map((n) => {
+            if (n.id === draggedNode.id) {
+              return {
+                ...n,
+                parentId: newParentId,
+                extent: "parent" as const,
+                position: {
+                  x: draggedNode.position.x - parentSection.position.x,
+                  y: draggedNode.position.y - parentSection.position.y,
+                },
+              };
+            }
+            return n;
+          })
+        );
+      }
+    } else if (draggedNode.parentId && !newParentId) {
+      // Moved outside section: remove parent
+      const parentSection = sectionNodes.find((s) => s.id === draggedNode.parentId);
+      if (parentSection) {
+        setNodes((nds) =>
+          nds.map((n) => {
+            if (n.id === draggedNode.id) {
+              return {
+                ...n,
+                parentId: undefined,
+                extent: undefined,
+                position: {
+                  x: draggedNode.position.x + parentSection.position.x,
+                  y: draggedNode.position.y + parentSection.position.y,
+                },
+              };
+            }
+            return n;
+          })
+        );
+      }
+    }
+  }, [nodes, setNodes]);
+
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
     if (node.type === "assetGroup" || node.type === "piiStageLabel" || node.type === "section") return;
     setSelectedNode({
@@ -2342,6 +2416,7 @@ export default function AssetMapContent() {
             onReconnect={onReconnect}
             edgesReconnectable={true}
             onNodeClick={onNodeClick}
+            onNodeDragStop={onNodeDragStop}
             onEdgeDoubleClick={(_e, edge) => setSelectedEdge(edge)}
             nodeTypes={nodeTypes}
             snapToGrid={true}
