@@ -397,6 +397,75 @@
 
 ---
 
+## 🟣 Phase 6 — 자산 지도 + 흐름도 자동 생성 📚 ROADMAP
+
+> 📌 **미래 계획입니다.** 자산 간 연결 관계(그래프 데이터)를 기반으로 다양한 뷰를 자동 생성.
+> 사이드바에 **[Alpha]** 태그 표시, 기능 확인용 페이지로 운영.
+
+### 핵심 아이디어
+
+자산 간 연결(edge) 데이터를 한번 정의하면, 같은 그래프에서 여러 뷰를 자동 렌더링:
+- **자산 지도** — 전체 인프라 토폴로지 (노드 그래프)
+- **개인정보 흐름도** — PII 생명주기별 자동 분류 (수집→저장→이용→파기)
+- **네트워크 토폴로지** — 네트워크 연결 관계
+- **데이터 흐름도** — 시스템 간 데이터 이동 경로
+
+### 백엔드 (`role/backend`)
+
+**DB 모델:**
+- [ ] **[BE-070]** `AssetLink` 모델 추가 (자산 연결 관계)
+  ```
+  AssetLink {
+    id, sourceAssetId, targetAssetId,
+    linkType: DATA_FLOW | NETWORK | DEPENDENCY | AUTH
+    direction: UNI | BI
+    label: string (예: "API 호출", "DB 연결", "개인정보 전송")
+    dataTypes: string[] (예: ["PII", "LOG", "CREDENTIAL"])
+    protocol: string? (예: "HTTPS", "TCP", "SSH")
+  }
+  ```
+- [ ] **[BE-071]** `AssetLink` CRUD API: `GET|POST|PUT|DELETE /api/asset-links`
+
+**그래프 조회 API:**
+- [ ] **[BE-072]** `GET /api/asset-map` — 전체 자산 그래프 (노드 + 엣지)
+- [ ] **[BE-073]** `GET /api/asset-map?view=pii` — PII 흐름만 필터
+- [ ] **[BE-074]** `GET /api/asset-map?view=network` — 네트워크 연결만 필터
+
+**자동 분류 로직:**
+- [ ] **[BE-075]** PII 흐름도 자동 생성
+  - `linkType=DATA_FLOW` + `dataTypes includes PII` → 개인정보 흐름도 포함
+  - 자산 `type`(CLOUD/HARDWARE/DOMAIN)으로 생명주기 단계 자동 분류
+  - 수집 단계: 사용자 접점 자산 (웹서버, 앱서버)
+  - 저장 단계: DB, 스토리지 (RDS, S3)
+  - 이용/제공: 외부 연계 자산
+  - 파기: 배치/스케줄러 자산
+
+### 프론트엔드 (`role/frontend`)
+
+- [ ] **[FE-040]** `/asset-map` — 자산 지도 페이지 (Alpha)
+  - reactflow 기반 인터랙티브 노드 그래프
+  - 자산 유형별 노드 아이콘/색상 (서버, DB, 스토리지, 네트워크)
+  - 드래그앤드롭으로 노드 위치 조정
+  - 엣지 클릭 시 연결 상세 (프로토콜, 데이터 유형)
+  - 뷰 전환: 전체 / PII 흐름 / 네트워크 / 데이터 흐름
+- [ ] **[FE-041]** 자산 연결 편집 UI
+  - 노드 간 드래그로 새 연결 생성
+  - 연결 유형·방향·라벨·데이터유형 설정 모달
+- [ ] **[FE-042]** PII 흐름도 뷰
+  - 생명주기별 레이아웃 (수집 → 저장 → 이용/제공 → 파기)
+  - 이미지 예시처럼 행(수집/저장/이용/파기) × 열(정보주체/처리흐름/외부연계) 구조
+  - 처리 개인정보 항목 자동 표시
+- [ ] **[FE-043]** 사이드바에 `[Alpha]` 태그 표시
+  - "자산 지도 [Alpha]" 메뉴 항목 추가
+  - Alpha 배지 스타일 (보라색 뱃지)
+
+### 기술 스택 (폐쇄망 호환)
+- **그래프 렌더링**: `reactflow` (npm 번들, CDN 불필요)
+- **레이아웃 알고리즘**: `dagre` (계층 레이아웃) 또는 `d3-force` (물리 시뮬레이션)
+- **내보내기**: SVG/PNG 다운로드 지원
+
+---
+
 ## 📋 요약: 이 파일의 역할
 
 | 섹션 | 상태 | 참고 |
@@ -405,6 +474,7 @@
 | **우선순위 2 (배포 전 마무리)** | ✅ COMPLETED | 역사 기록용 |
 | **Phase 2-4** | ✅ COMPLETED | `current-state.md` 참조 |
 | **Phase 5 (UX + 버그 + 고도화)** | ✅ COMPLETED | PR #50 |
+| **Phase 6 (자산 지도 + 흐름도)** | 📚 ROADMAP | Alpha 버전 |
 | **완료된 기능** | 📚 REFERENCE | 구현된 기능 목록 |
 
 ---
