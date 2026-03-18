@@ -442,28 +442,31 @@ function SectionNodeComponent({ data, selected }: { data: Record<string, unknown
         handleStyle={{ backgroundColor: color, width: 8, height: 8, borderRadius: 4 }}
       />
       <div
-        className="rounded-2xl border-2 p-4 w-full h-full"
+        className="rounded-2xl border-2 w-full h-full flex flex-col"
         style={{
           backgroundColor: `${color}08`,
           borderColor: `${color}40`,
           borderStyle: "solid",
         }}
       >
-        <div className="flex items-center gap-2 mb-2">
+        {/* Section header — centered at top */}
+        <div className="flex items-center justify-center gap-2 py-2 px-4 border-b" style={{ borderColor: `${color}20` }}>
           <div
-            className="w-3 h-3 rounded-full flex-shrink-0"
+            className="w-2.5 h-2.5 rounded-full flex-shrink-0"
             style={{ backgroundColor: color }}
           />
           <span
-            className="text-sm font-bold uppercase tracking-wide"
+            className="text-xs font-bold uppercase tracking-wider"
             style={{ color }}
           >
             {data.label as string}
           </span>
+          {description && (
+            <span className="text-[9px] text-gray-400 ml-1">— {description}</span>
+          )}
         </div>
-        {description && (
-          <p className="text-[10px] text-gray-400 leading-tight">{description}</p>
-        )}
+        {/* Content area for child nodes */}
+        <div className="flex-1" />
       </div>
     </>
   );
