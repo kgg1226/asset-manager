@@ -216,7 +216,7 @@ function StatusDot({ status }: { status: string }) {
   );
 }
 
-function AssetNodeComponent({ data }: { data: Record<string, unknown> }) {
+function AssetNodeComponent({ data, selected }: { data: Record<string, unknown>; selected?: boolean }) {
   const type = (data.assetType as string) || "OTHER";
   const status = (data.status as string) || "IN_STOCK";
   const deviceType = (data.deviceType as string) || null;
@@ -235,6 +235,13 @@ function AssetNodeComponent({ data }: { data: Record<string, unknown> }) {
         boxShadow: `0 2px 8px ${colors.border}20, 0 1px 3px rgba(0,0,0,0.06)`,
       }}
     >
+      <NodeResizer
+        isVisible={!!selected}
+        minWidth={160}
+        minHeight={80}
+        lineStyle={{ borderColor: colors.border, borderWidth: 1.5 }}
+        handleStyle={{ backgroundColor: colors.border, width: 6, height: 6, borderRadius: 3 }}
+      />
       {/* Connection handles */}
       <Handle
         type="target"
