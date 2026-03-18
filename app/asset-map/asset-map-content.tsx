@@ -1952,7 +1952,8 @@ export default function AssetMapContent() {
         const pairIdx = edgePairIndex.get(pairKey) || 0;
         edgePairIndex.set(pairKey, pairIdx + 1);
 
-        const handlePair = pairTotal > 1 ? HANDLE_PAIRS[pairIdx % HANDLE_PAIRS.length] : HANDLE_PAIRS[0];
+        // Only use alternate handles when same pair has multiple edges; otherwise default right→left
+        const handlePair = pairTotal > 1 ? HANDLE_PAIRS[pairIdx % HANDLE_PAIRS.length] : { sourceHandle: undefined, targetHandle: undefined };
 
         // Edge style based on link type
         let strokeDasharray: string | undefined;
@@ -1963,8 +1964,8 @@ export default function AssetMapContent() {
           id: `link-${e.id}`,
           source: sourceId,
           target: targetId,
-          sourceHandle: handlePair.sourceHandle,
-          targetHandle: handlePair.targetHandle,
+          ...(handlePair.sourceHandle ? { sourceHandle: handlePair.sourceHandle } : {}),
+          ...(handlePair.targetHandle ? { targetHandle: handlePair.targetHandle } : {}),
           style: {
             stroke: linkColor,
             strokeWidth: 2,
