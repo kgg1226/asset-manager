@@ -269,15 +269,16 @@ function AssetNodeComponent({ data, selected }: { data: Record<string, unknown>;
         lineStyle={{ borderColor: colors.border, borderWidth: 1.5 }}
         handleStyle={{ backgroundColor: colors.border, width: 8, height: 8, borderRadius: 4 }}
       />
-      {/* Connection handles — 4 directions, each as both source+target */}
-      <Handle type="target" position={Position.Top} id="top-t" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-60 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
-      <Handle type="source" position={Position.Top} id="top-s" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-60 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, left: "55%" }} />
-      <Handle type="target" position={Position.Bottom} id="bottom-t" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-60 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
-      <Handle type="source" position={Position.Bottom} id="bottom-s" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-60 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, left: "55%" }} />
-      <Handle type="target" position={Position.Left} id="left-t" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full" style={{ backgroundColor: colors.border }} />
-      <Handle type="source" position={Position.Left} id="left-s" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-60 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, top: "55%" }} />
-      <Handle type="target" position={Position.Right} id="right-t" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-60 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, top: "45%" }} />
-      <Handle type="source" position={Position.Right} id="right-s" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full" style={{ backgroundColor: colors.border }} />
+      {/* Connection handles — 8 points (top/bottom/left/right + 4 diagonals) */}
+      <Handle type="source" position={Position.Top} id="top" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full !opacity-40 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
+      <Handle type="source" position={Position.Bottom} id="bottom" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full !opacity-40 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
+      <Handle type="source" position={Position.Left} id="left" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full" style={{ backgroundColor: colors.border }} />
+      <Handle type="source" position={Position.Right} id="right" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full" style={{ backgroundColor: colors.border }} />
+      {/* Diagonal handles */}
+      <Handle type="source" position={Position.Top} id="top-left" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-30 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, left: "15%" }} />
+      <Handle type="source" position={Position.Top} id="top-right" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-30 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, left: "85%" }} />
+      <Handle type="source" position={Position.Bottom} id="bottom-left" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-30 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, left: "15%" }} />
+      <Handle type="source" position={Position.Bottom} id="bottom-right" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-30 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, left: "85%" }} />
 
       {/* Icon centered above name */}
       <div className={`flex flex-col items-center ${isCompact ? "gap-0.5" : "gap-1.5"}`}>
@@ -348,15 +349,15 @@ function ExternalEntityNodeComponent({ data }: { data: Record<string, unknown> }
         boxShadow: `0 2px 8px ${colors.border}15, 0 1px 3px rgba(0,0,0,0.04)`,
       }}
     >
-      {/* Connection handles — 4 directions */}
-      <Handle type="target" position={Position.Top} id="top-t" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-60 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
-      <Handle type="source" position={Position.Top} id="top-s" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-60 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, left: "55%" }} />
-      <Handle type="target" position={Position.Bottom} id="bottom-t" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-60 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
-      <Handle type="source" position={Position.Bottom} id="bottom-s" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-60 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, left: "55%" }} />
-      <Handle type="target" position={Position.Left} id="left-t" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full" style={{ backgroundColor: colors.border }} />
-      <Handle type="source" position={Position.Left} id="left-s" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-60 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, top: "55%" }} />
-      <Handle type="target" position={Position.Right} id="right-t" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-60 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, top: "45%" }} />
-      <Handle type="source" position={Position.Right} id="right-s" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full" style={{ backgroundColor: colors.border }} />
+      {/* Connection handles — 8 points */}
+      <Handle type="source" position={Position.Top} id="top" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full !opacity-40 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
+      <Handle type="source" position={Position.Bottom} id="bottom" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full !opacity-40 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
+      <Handle type="source" position={Position.Left} id="left" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full" style={{ backgroundColor: colors.border }} />
+      <Handle type="source" position={Position.Right} id="right" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full" style={{ backgroundColor: colors.border }} />
+      <Handle type="source" position={Position.Top} id="top-left" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-30 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, left: "15%" }} />
+      <Handle type="source" position={Position.Top} id="top-right" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-30 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, left: "85%" }} />
+      <Handle type="source" position={Position.Bottom} id="bottom-left" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-30 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, left: "15%" }} />
+      <Handle type="source" position={Position.Bottom} id="bottom-right" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-30 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, left: "85%" }} />
 
       <div className="flex flex-col items-center gap-1.5">
         <div
@@ -1775,6 +1776,7 @@ export default function AssetMapContent() {
   const [nodes, setNodes, onNodesChange] = useNodesState([] as Node[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([] as Edge[]);
   const [allAssets, setAllAssets] = useState<AssetNode[]>([]);
+  const placedAssetIdsRef = useRef<Set<number>>(new Set());
   const [assets, setAssets] = useState<AssetNode[]>([]);
   const [externalEntities, setExternalEntities] = useState<ExternalEntity[]>([]);
   const [groups, setGroups] = useState<AssetGroup[]>([]);
@@ -1819,7 +1821,7 @@ export default function AssetMapContent() {
       // Save all assets for palette
       setAllAssets(fetchedAllAssets);
 
-      // Only show assets that have connections or are in groups
+      // Only show assets that have connections or are in groups or were manually placed
       const connectedAssetIds = new Set<number>();
       fetchedEdges.forEach((e: AssetEdge) => {
         connectedAssetIds.add(e.sourceAssetId);
@@ -1830,8 +1832,8 @@ export default function AssetMapContent() {
         (g.members || []).forEach((m) => connectedAssetIds.add(m.assetId));
       });
 
-      // Placed assets = connected ones + manually added
-      const currentPlacedIds = new Set(nodes.filter(n => n.type === "asset").map(n => Number(n.id)));
+      // Preserve manually placed assets — use ref to avoid stale closure
+      const currentPlacedIds = new Set(placedAssetIdsRef.current);
       const placedIds = new Set([...connectedAssetIds, ...currentPlacedIds]);
 
       const fetchedAssets = fetchedAllAssets.filter((a) => placedIds.has(a.id));
@@ -1922,39 +1924,13 @@ export default function AssetMapContent() {
         },
       }));
 
-      // Count edges per source-target pair to offset overlapping edges
-      const edgePairCount = new Map<string, number>();
       const rawEdges = data.edges || [];
-      rawEdges.forEach((e: AssetEdge & { source?: string; target?: string }) => {
-        const s = String(e.source || e.sourceAssetId);
-        const t = String(e.target || e.targetAssetId);
-        const key = [s, t].sort().join("-");
-        edgePairCount.set(key, (edgePairCount.get(key) || 0) + 1);
-      });
-      const edgePairIndex = new Map<string, number>();
-
-      // Handle pairs for offset: use different handles for each edge in a pair
-      const HANDLE_PAIRS = [
-        { sourceHandle: "right-s", targetHandle: "left-t" },
-        { sourceHandle: "top-s", targetHandle: "top-t" },
-        { sourceHandle: "bottom-s", targetHandle: "bottom-t" },
-        { sourceHandle: "left-s", targetHandle: "right-t" },
-      ];
 
       const flowEdges: Edge[] = rawEdges.map((e: AssetEdge & { source?: string; target?: string; sourceName?: string; targetName?: string }) => {
         const sourceId = e.source ? String(e.source) : String(e.sourceAssetId);
         const targetId = e.target ? String(e.target) : String(e.targetAssetId);
         const linkType = e.linkType || "DATA_FLOW";
         const linkColor = LINK_COLORS[linkType] || "#6B7280";
-
-        // Determine which handle pair to use for this edge
-        const pairKey = [sourceId, targetId].sort().join("-");
-        const pairTotal = edgePairCount.get(pairKey) || 1;
-        const pairIdx = edgePairIndex.get(pairKey) || 0;
-        edgePairIndex.set(pairKey, pairIdx + 1);
-
-        // Always specify handles explicitly — default right→left, alternate for duplicates
-        const handlePair = HANDLE_PAIRS[pairTotal > 1 ? (pairIdx % HANDLE_PAIRS.length) : 0];
 
         // Edge style based on link type
         let strokeDasharray: string | undefined;
@@ -1965,8 +1941,6 @@ export default function AssetMapContent() {
           id: `link-${e.id}`,
           source: sourceId,
           target: targetId,
-          sourceHandle: handlePair.sourceHandle,
-          targetHandle: handlePair.targetHandle,
           style: {
             stroke: linkColor,
             strokeWidth: 2,
@@ -2150,7 +2124,9 @@ export default function AssetMapContent() {
 
   // placedAssetIds — which assets are currently on canvas
   const placedAssetIds = useMemo(() => {
-    return new Set(nodes.filter((n) => n.type === "asset").map((n) => Number(n.id)));
+    const ids = new Set(nodes.filter((n) => n.type === "asset").map((n) => Number(n.id)));
+    placedAssetIdsRef.current = ids;
+    return ids;
   }, [nodes]);
 
   // Add asset from palette to canvas
@@ -2320,6 +2296,8 @@ export default function AssetMapContent() {
             nodeTypes={nodeTypes}
             snapToGrid={true}
             snapGrid={[20, 20]}
+            connectionRadius={40}
+            connectionMode={"loose" as never}
             fitView
             attributionPosition="bottom-left"
           >
