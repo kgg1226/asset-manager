@@ -269,13 +269,13 @@ function AssetNodeComponent({ data, selected }: { data: Record<string, unknown>;
         handleStyle={{ backgroundColor: colors.border, width: 8, height: 8, borderRadius: 4 }}
       />
       {/* Connection handles — 4 directions, each as both source+target */}
-      <Handle type="target" position={Position.Top} id="top-t" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
-      <Handle type="source" position={Position.Top} id="top-s" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, left: "55%" }} />
-      <Handle type="target" position={Position.Bottom} id="bottom-t" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
-      <Handle type="source" position={Position.Bottom} id="bottom-s" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, left: "55%" }} />
+      <Handle type="target" position={Position.Top} id="top-t" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-60 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
+      <Handle type="source" position={Position.Top} id="top-s" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-60 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, left: "55%" }} />
+      <Handle type="target" position={Position.Bottom} id="bottom-t" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-60 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
+      <Handle type="source" position={Position.Bottom} id="bottom-s" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-60 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, left: "55%" }} />
       <Handle type="target" position={Position.Left} id="left-t" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full" style={{ backgroundColor: colors.border }} />
-      <Handle type="source" position={Position.Left} id="left-s" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, top: "55%" }} />
-      <Handle type="target" position={Position.Right} id="right-t" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, top: "45%" }} />
+      <Handle type="source" position={Position.Left} id="left-s" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-60 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, top: "55%" }} />
+      <Handle type="target" position={Position.Right} id="right-t" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-60 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, top: "45%" }} />
       <Handle type="source" position={Position.Right} id="right-s" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full" style={{ backgroundColor: colors.border }} />
 
       {/* Icon centered above name */}
@@ -348,13 +348,13 @@ function ExternalEntityNodeComponent({ data }: { data: Record<string, unknown> }
       }}
     >
       {/* Connection handles — 4 directions */}
-      <Handle type="target" position={Position.Top} id="top-t" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
-      <Handle type="source" position={Position.Top} id="top-s" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, left: "55%" }} />
-      <Handle type="target" position={Position.Bottom} id="bottom-t" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
-      <Handle type="source" position={Position.Bottom} id="bottom-s" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, left: "55%" }} />
+      <Handle type="target" position={Position.Top} id="top-t" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-60 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
+      <Handle type="source" position={Position.Top} id="top-s" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-60 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, left: "55%" }} />
+      <Handle type="target" position={Position.Bottom} id="bottom-t" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-60 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
+      <Handle type="source" position={Position.Bottom} id="bottom-s" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-60 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, left: "55%" }} />
       <Handle type="target" position={Position.Left} id="left-t" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full" style={{ backgroundColor: colors.border }} />
-      <Handle type="source" position={Position.Left} id="left-s" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, top: "55%" }} />
-      <Handle type="target" position={Position.Right} id="right-t" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, top: "45%" }} />
+      <Handle type="source" position={Position.Left} id="left-s" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-60 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, top: "55%" }} />
+      <Handle type="target" position={Position.Right} id="right-t" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-60 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, top: "45%" }} />
       <Handle type="source" position={Position.Right} id="right-s" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full" style={{ backgroundColor: colors.border }} />
 
       <div className="flex flex-col items-center gap-1.5">
@@ -1048,15 +1048,27 @@ function EdgeDetailModal({
   const linkType = (edgeData.linkType as string) || "DATA_FLOW";
   const linkColor = LINK_COLORS[linkType] || "#6B7280";
   const linkBg = LINK_BG_COLORS[linkType] || "#F9FAFB";
+  const direction = (edgeData.direction as string) || "UNI";
   const dataTypes = (edgeData.dataTypes as string) || "";
   const piiItems = (edgeData.piiItems as string) || "";
   const protocol = (edgeData.protocol as string) || "";
+  const edgeLabel = (edgeData.label as string) || "";
+  const legalBasis = (edgeData.legalBasis as string) || "";
+  const retentionPeriod = (edgeData.retentionPeriod as string) || "";
+  const destructionMethod = (edgeData.destructionMethod as string) || "";
 
   const linkTypeLabels: Record<string, string> = {
     DATA_FLOW: t.assetMap?.dataFlow ?? "Data Flow",
     NETWORK: t.assetMap?.network ?? "Network",
     DEPENDENCY: t.assetMap?.dependency ?? "Dependency",
     AUTH: t.assetMap?.auth ?? "Auth",
+  };
+
+  const directionLabels: Record<string, string> = {
+    UNI: "단방향 →",
+    BI: "양방향 ↔",
+    REVERSE: "역방향 ←",
+    CONDITIONAL: "조건부 ⇢",
   };
 
   return (
@@ -1081,7 +1093,7 @@ function EdgeDetailModal({
             </span>
           </div>
 
-          {/* Link Type */}
+          {/* Link Type + Direction */}
           <div className="flex items-center justify-between">
             <span className="text-xs text-gray-500">유형</span>
             <span
@@ -1091,6 +1103,19 @@ function EdgeDetailModal({
               {linkTypeLabels[linkType] || linkType}
             </span>
           </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-500">방향</span>
+            <span className="text-sm text-gray-800">{directionLabels[direction] || direction}</span>
+          </div>
+
+          {/* Label */}
+          {edgeLabel && (
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-500">라벨</span>
+              <span className="text-sm text-gray-800">{edgeLabel}</span>
+            </div>
+          )}
 
           {/* Protocol */}
           {protocol && (
@@ -1104,7 +1129,7 @@ function EdgeDetailModal({
           {dataTypes && (
             <div className="flex items-center justify-between">
               <span className="text-xs text-gray-500">데이터 유형</span>
-              <div className="flex gap-1">
+              <div className="flex gap-1 flex-wrap">
                 {dataTypes.split(",").map((dt) => (
                   <span key={dt} className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-600">
                     {dt.trim()}
@@ -1119,6 +1144,30 @@ function EdgeDetailModal({
             <div>
               <span className="text-xs text-gray-500 block mb-1">개인정보 항목</span>
               <p className="text-sm text-gray-800 bg-red-50 rounded-lg p-2">{piiItems}</p>
+            </div>
+          )}
+
+          {/* Legal Basis */}
+          {legalBasis && (
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-500">법적 근거</span>
+              <span className="text-sm text-gray-800">{legalBasis}</span>
+            </div>
+          )}
+
+          {/* Retention Period */}
+          {retentionPeriod && (
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-500">보유기간</span>
+              <span className="text-sm text-gray-800">{retentionPeriod}</span>
+            </div>
+          )}
+
+          {/* Destruction Method */}
+          {destructionMethod && (
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-500">파기방법</span>
+              <span className="text-sm text-gray-800">{destructionMethod}</span>
             </div>
           )}
         </div>
@@ -1896,9 +1945,14 @@ export default function AssetMapContent() {
           data: {
             linkId: e.id,
             linkType: linkType,
+            direction: e.direction || "UNI",
             dataTypes: e.dataTypes,
             piiItems: e.piiItems,
             protocol: e.protocol,
+            legalBasis: e.legalBasis,
+            retentionPeriod: e.retentionPeriod,
+            destructionMethod: e.destructionMethod,
+            label: e.label,
           },
           label: "",
           labelStyle: { fontSize: 0 },
