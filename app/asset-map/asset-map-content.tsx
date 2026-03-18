@@ -1794,6 +1794,7 @@ export default function AssetMapContent() {
   const [loading, setLoading] = useState(true);
   const [selectedNode, setSelectedNode] = useState<SelectedNodeData | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
+  const [editingSection, setEditingSection] = useState<Node | null>(null);
 
   // Fetch saved views on mount
   useEffect(() => {
@@ -2069,13 +2070,14 @@ export default function AssetMapContent() {
     [setEdges, fetchGraph]
   );
 
-  // When a FREE node (no parent) is dropped inside a section → adopt it
+  // When a FREE node (no parent) is dropped inside a section → adopt it (smallest section wins)
   const onNodeDragStop = useCallback((_event: React.MouseEvent, draggedNode: Node) => {
-    // Only process free nodes (no parent) that aren't sections themselves
     if (draggedNode.type === "section" || draggedNode.parentId) return;
 
     const sectionNodes = nodes.filter((n) => n.type === "section");
 
+    // Find all containing sections, pick the smallest
+    const candidates: { section: Node; area: number }[] = [];
     for (const section of sectionNodes) {
       const sw = (section.style?.width as number) || 400;
       const sh = (section.style?.height as number) || 300;
@@ -2088,30 +2090,39 @@ export default function AssetMapContent() {
         draggedNode.position.y > sy &&
         draggedNode.position.y < sy + sh
       ) {
-        // Adopt: convert absolute → relative position
-        setNodes((nds) =>
-          nds.map((n) => {
-            if (n.id === draggedNode.id) {
-              return {
-                ...n,
-                parentId: section.id,
-                extent: "parent" as const,
-                position: {
-                  x: draggedNode.position.x - sx,
-                  y: draggedNode.position.y - sy,
-                },
-              };
-            }
-            return n;
-          })
-        );
-        return;
+        candidates.push({ section, area: sw * sh });
       }
     }
+
+    if (candidates.length === 0) return;
+
+    // Pick smallest section (most specific)
+    candidates.sort((a, b) => a.area - b.area);
+    const winner = candidates[0].section;
+    const sx = winner.position.x;
+    const sy = winner.position.y;
+
+    setNodes((nds) =>
+      nds.map((n) => {
+        if (n.id === draggedNode.id) {
+          return {
+            ...n,
+            parentId: winner.id,
+            extent: "parent" as const,
+            position: { x: draggedNode.position.x - sx, y: draggedNode.position.y - sy },
+          };
+        }
+        return n;
+      })
+    );
   }, [nodes, setNodes]);
 
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
-    if (node.type === "assetGroup" || node.type === "piiStageLabel" || node.type === "section") return;
+    if (node.type === "assetGroup" || node.type === "piiStageLabel") return;
+    if (node.type === "section") {
+      setEditingSection(node);
+      return;
+    }
     setSelectedNode({
       id: node.id,
       type: node.type || "asset",
@@ -2472,6 +2483,104 @@ export default function AssetMapContent() {
           onSave={handleAddSection}
           onClose={() => setShowSectionModal(false)}
         />
+      )}
+
+      {/* Section Edit Modal */}
+      {editingSection && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setEditingSection(null)}>
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold">섹션 편집</h3>
+              <button onClick={() => setEditingSection(null)} className="text-gray-400 hover:text-gray-600">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">이름</label>
+                <input
+                  defaultValue={(editingSection.data?.label as string) || ""}
+                  onBlur={(e) => {
+                    const newName = e.target.value.trim();
+                    if (newName) {
+                      setNodes((nds) => nds.map((n) =>
+                        n.id === editingSection.id ? { ...n, data: { ...n.data, label: newName } } : n
+                      ));
+                    }
+                  }}
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">설명</label>
+                <input
+                  defaultValue={(editingSection.data?.description as string) || ""}
+                  onBlur={(e) => {
+                    setNodes((nds) => nds.map((n) =>
+                      n.id === editingSection.id ? { ...n, data: { ...n.data, description: e.target.value.trim() } } : n
+                    ));
+                  }}
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">색상</label>
+                <div className="flex flex-wrap gap-2">
+                  {SECTION_COLORS.map((c) => (
+                    <button
+                      key={c.value}
+                      type="button"
+                      onClick={() => {
+                        setNodes((nds) => nds.map((n) =>
+                          n.id === editingSection.id ? { ...n, data: { ...n.data, sectionColor: c.value } } : n
+                        ));
+                      }}
+                      className={`w-8 h-8 rounded-full border-2 transition ${
+                        (editingSection.data?.sectionColor as string) === c.value ? "border-gray-900 scale-110" : "border-transparent"
+                      }`}
+                      style={{ backgroundColor: c.value }}
+                      title={c.label}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 pt-4 border-t flex gap-2">
+              <button
+                onClick={() => setEditingSection(null)}
+                className="flex-1 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                닫기
+              </button>
+              <button
+                onClick={() => {
+                  // Release children first
+                  const childIds = nodes.filter((n) => n.parentId === editingSection.id).map((n) => n.id);
+                  setNodes((nds) => nds.map((n) => {
+                    if (childIds.includes(n.id)) {
+                      return {
+                        ...n,
+                        parentId: undefined,
+                        extent: undefined,
+                        position: {
+                          x: n.position.x + editingSection.position.x,
+                          y: n.position.y + editingSection.position.y,
+                        },
+                      };
+                    }
+                    return n;
+                  }).filter((n) => n.id !== editingSection.id));
+                  setEditingSection(null);
+                }}
+                className="flex-1 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+              >
+                삭제
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Edge Detail Modal */}
