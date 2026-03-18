@@ -33,7 +33,11 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/licenses");
+      if (data.mustChangePassword) {
+        router.push("/change-password");
+      } else {
+        router.push("/licenses");
+      }
       router.refresh();
     } catch {
       setError("서버에 연결할 수 없습니다.");

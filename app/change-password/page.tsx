@@ -2,29 +2,30 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { useToast } from "@/app/toast";
 import { useTranslation } from "@/lib/i18n";
 
 export default function ChangePasswordPage() {
   const { t } = useTranslation();
   const router = useRouter();
+  const { toast } = useToast();
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleChangePassword = async () => {
     if (!newPassword.trim()) {
-      toast.error(t.auth.passwordRequired);
+      toast(t.auth.passwordRequired, "error");
       return;
     }
 
     if (newPassword.length < 8) {
-      toast.error(t.auth.passwordMinLength);
+      toast(t.auth.passwordMinLength, "error");
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      toast.error(t.auth.passwordMismatch);
+      toast(t.auth.passwordMismatch, "error");
       return;
     }
 
@@ -33,44 +34,30 @@ export default function ChangePasswordPage() {
     const hasSpecialChar = /[!@#$%^&*]/.test(newPassword);
 
     if (!hasNumber || !hasUpperCase || !hasSpecialChar) {
-      toast.warning(t.auth.passwordStrengthWarning);
+      toast(t.auth.passwordStrengthWarning, "error");
       return;
     }
 
     setIsLoading(true);
     try {
-      const sessionRes = await fetch("/api/auth/session");
-      if (!sessionRes.ok) {
-        toast.error(t.auth.sessionFetchFail);
-        return;
-      }
-
-      const sessionData = await sessionRes.json();
-      if (!sessionData.authenticated || !sessionData.user) {
-        toast.error(t.auth.authRequired);
-        return;
-      }
-
-      const userId = sessionData.user.id;
-
       const res = await fetch(`/api/auth/change-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, newPassword }),
+        body: JSON.stringify({ newPassword }),
       });
 
       if (!res.ok) {
         const err = await res.json();
-        toast.error(err.error || t.auth.passwordChangeFail);
+        toast(err.error || t.auth.passwordChangeFail, "error");
         return;
       }
 
-      toast.success(t.auth.passwordChanged);
+      toast(t.auth.passwordChanged);
 
       setTimeout(() => router.push("/dashboard"), 1000);
     } catch (error) {
       console.error("Failed to change password:", error);
-      toast.error(t.auth.passwordChangeFail);
+      toast(t.auth.passwordChangeFail, "error");
     } finally {
       setIsLoading(false);
     }

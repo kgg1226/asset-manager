@@ -97,6 +97,7 @@ export async function POST(request: NextRequest) {
 
     const response = NextResponse.json({
       user: { id: user.id, username: user.username, role: user.role },
+      mustChangePassword: user.mustChangePassword,
     });
 
     response.cookies.set(SESSION_COOKIE, sessionId, {

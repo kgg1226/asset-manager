@@ -533,14 +533,21 @@ const NODE_WIDTH = 220;
 const NODE_HEIGHT = 130;
 
 function getLayoutedElements(nodes: Node[], edges: Edge[]) {
-  const nonGroupNodes = nodes.filter((n) => n.type !== "assetGroup" && n.type !== "piiStageLabel" && n.type !== "section");
-  const otherNodes = nodes.filter((n) => n.type === "assetGroup" || n.type === "piiStageLabel" || n.type === "section");
+  const sectionNodes = nodes.filter((n) => n.type === "section");
+  const otherNodes = nodes.filter((n) => n.type === "assetGroup" || n.type === "piiStageLabel");
 
+  // Separate free nodes vs section children
+  const freeNodes = nodes.filter((n) =>
+    n.type !== "assetGroup" && n.type !== "piiStageLabel" && n.type !== "section" && !n.parentId
+  );
+  const childNodes = nodes.filter((n) => !!n.parentId);
+
+  // Layout free nodes with dagre
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
   g.setGraph({ rankdir: "LR", nodesep: 80, ranksep: 160 });
 
-  nonGroupNodes.forEach((node) => g.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT }));
+  freeNodes.forEach((node) => g.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT }));
   edges.forEach((edge) => {
     if (g.hasNode(edge.source) && g.hasNode(edge.target)) {
       g.setEdge(edge.source, edge.target);
@@ -549,7 +556,7 @@ function getLayoutedElements(nodes: Node[], edges: Edge[]) {
 
   dagre.layout(g);
 
-  const layoutedNodes = nonGroupNodes.map((node) => {
+  const layoutedFreeNodes = freeNodes.map((node) => {
     const pos = g.node(node.id);
     if (pos) {
       return { ...node, position: { x: pos.x - NODE_WIDTH / 2, y: pos.y - NODE_HEIGHT / 2 } };
@@ -557,7 +564,43 @@ function getLayoutedElements(nodes: Node[], edges: Edge[]) {
     return node;
   });
 
-  return { nodes: [...otherNodes, ...layoutedNodes], edges };
+  // Layout children within each section — centered, evenly spaced
+  const layoutedChildNodes = childNodes.map((node) => {
+    const parentSection = sectionNodes.find((s) => s.id === node.parentId);
+    if (!parentSection) return node;
+
+    const siblings = childNodes.filter((n) => n.parentId === node.parentId);
+    const siblingIdx = siblings.indexOf(node);
+    const siblingCount = siblings.length;
+
+    const sw = (parentSection.style?.width as number) || 400;
+    const sh = (parentSection.style?.height as number) || 300;
+    const headerHeight = 32; // section header bar height
+    const contentH = sh - headerHeight;
+    const padding = 20;
+
+    // Grid layout: calculate columns and rows
+    const cols = Math.min(siblingCount, Math.max(1, Math.floor((sw - padding * 2) / (NODE_WIDTH + 20))));
+    const rows = Math.ceil(siblingCount / cols);
+    const col = siblingIdx % cols;
+    const row = Math.floor(siblingIdx / cols);
+
+    // Center the grid within section
+    const totalGridW = cols * (NODE_WIDTH + 20) - 20;
+    const totalGridH = rows * (NODE_HEIGHT + 20) - 20;
+    const offsetX = (sw - totalGridW) / 2;
+    const offsetY = headerHeight + (contentH - totalGridH) / 2;
+
+    return {
+      ...node,
+      position: {
+        x: offsetX + col * (NODE_WIDTH + 20),
+        y: offsetY + row * (NODE_HEIGHT + 20),
+      },
+    };
+  });
+
+  return { nodes: [...sectionNodes, ...otherNodes, ...layoutedFreeNodes, ...layoutedChildNodes], edges };
 }
 
 // ─── PII Lifecycle Layout ─────────────────────────────────────────────
