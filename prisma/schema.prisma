@@ -378,6 +378,7 @@ model Asset {
   ciaC            Int?                                // 기밀성 Confidentiality
   ciaI            Int?                                // 무결성 Integrity
   ciaA            Int?                                // 가용성 Availability
+  piiStage        String?                             // PII 생명주기 단계: COLLECTION | STORAGE | USAGE_PROVISION | DESTRUCTION
 
   // 메타
   createdAt       DateTime     @default(now())

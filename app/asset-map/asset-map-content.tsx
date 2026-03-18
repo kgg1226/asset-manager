@@ -47,6 +47,8 @@ import {
   Search,
   GripVertical,
   Check,
+  ArrowLeft,
+  GitBranch,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 
@@ -64,6 +66,7 @@ type AssetNode = {
   monthlyCost?: number | null;
   currency?: string | null;
   deviceType?: string | null;
+  piiStage?: string | null;
 };
 
 type AssetEdge = {
@@ -265,19 +268,15 @@ function AssetNodeComponent({ data, selected }: { data: Record<string, unknown>;
         lineStyle={{ borderColor: colors.border, borderWidth: 1.5 }}
         handleStyle={{ backgroundColor: colors.border, width: 8, height: 8, borderRadius: 4 }}
       />
-      {/* Connection handles */}
-      <Handle
-        type="target"
-        position={Position.Left}
-        className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full"
-        style={{ backgroundColor: colors.border }}
-      />
-      <Handle
-        type="source"
-        position={Position.Right}
-        className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full"
-        style={{ backgroundColor: colors.border }}
-      />
+      {/* Connection handles — 4 directions, each as both source+target */}
+      <Handle type="target" position={Position.Top} id="top-t" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
+      <Handle type="source" position={Position.Top} id="top-s" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, left: "55%" }} />
+      <Handle type="target" position={Position.Bottom} id="bottom-t" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
+      <Handle type="source" position={Position.Bottom} id="bottom-s" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, left: "55%" }} />
+      <Handle type="target" position={Position.Left} id="left-t" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full" style={{ backgroundColor: colors.border }} />
+      <Handle type="source" position={Position.Left} id="left-s" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, top: "55%" }} />
+      <Handle type="target" position={Position.Right} id="right-t" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, top: "45%" }} />
+      <Handle type="source" position={Position.Right} id="right-s" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full" style={{ backgroundColor: colors.border }} />
 
       {/* Icon centered above name */}
       <div className={`flex flex-col items-center ${isCompact ? "gap-0.5" : "gap-1.5"}`}>
@@ -348,19 +347,15 @@ function ExternalEntityNodeComponent({ data }: { data: Record<string, unknown> }
         boxShadow: `0 2px 8px ${colors.border}15, 0 1px 3px rgba(0,0,0,0.04)`,
       }}
     >
-      {/* Connection handles */}
-      <Handle
-        type="target"
-        position={Position.Left}
-        className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full"
-        style={{ backgroundColor: colors.border }}
-      />
-      <Handle
-        type="source"
-        position={Position.Right}
-        className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full"
-        style={{ backgroundColor: colors.border }}
-      />
+      {/* Connection handles — 4 directions */}
+      <Handle type="target" position={Position.Top} id="top-t" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
+      <Handle type="source" position={Position.Top} id="top-s" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, left: "55%" }} />
+      <Handle type="target" position={Position.Bottom} id="bottom-t" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
+      <Handle type="source" position={Position.Bottom} id="bottom-s" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, left: "55%" }} />
+      <Handle type="target" position={Position.Left} id="left-t" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full" style={{ backgroundColor: colors.border }} />
+      <Handle type="source" position={Position.Left} id="left-s" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, top: "55%" }} />
+      <Handle type="target" position={Position.Right} id="right-t" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, top: "45%" }} />
+      <Handle type="source" position={Position.Right} id="right-s" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full" style={{ backgroundColor: colors.border }} />
 
       <div className="flex flex-col items-center gap-1.5">
         <div
@@ -624,9 +619,26 @@ function getPiiLifecycleLayout(
     (n) => n.type === "assetGroup"
   );
 
-  // Assign each node to a stage
+  // piiStage → stage index mapping
+  const PII_STAGE_MAP: Record<string, number> = {
+    COLLECTION: 0,
+    STORAGE: 1,
+    USAGE_PROVISION: 2,
+    DESTRUCTION: 3,
+  };
+
+  // Assign each node to a stage (piiStage field takes priority over pattern matching)
   contentNodes.forEach((node) => {
     const data = node.data as Record<string, unknown>;
+    const piiStage = data.piiStage as string | null;
+
+    // Priority 1: explicit piiStage field
+    if (piiStage && PII_STAGE_MAP[piiStage] !== undefined) {
+      stageAssignments.set(node.id, PII_STAGE_MAP[piiStage]);
+      return;
+    }
+
+    // Priority 2: pattern matching fallback
     let assigned = false;
     for (let si = 0; si < stages.length; si++) {
       if (stages[si].matchFn(data)) {
@@ -765,10 +777,28 @@ function LinkModal({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.assetMap.direction}</label>
-              <select value={direction} onChange={(e) => setDirection(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm">
-                <option value="UNI">{t.assetMap.uniDirectional}</option>
-                <option value="BI">{t.assetMap.biDirectional}</option>
-              </select>
+              <div className="grid grid-cols-4 gap-1">
+                {[
+                  { value: "UNI", label: "→", desc: t.assetMap.uniDirectional },
+                  { value: "BI", label: "↔", desc: t.assetMap.biDirectional },
+                  { value: "REVERSE", label: "←", desc: "역방향" },
+                  { value: "CONDITIONAL", label: "⇢", desc: "조건부" },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setDirection(opt.value)}
+                    className={`rounded-md border px-2 py-1.5 text-center transition ${
+                      direction === opt.value
+                        ? "border-blue-500 bg-blue-50 text-blue-700"
+                        : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+                    }`}
+                  >
+                    <span className="text-lg block">{opt.label}</span>
+                    <span className="text-[9px] block">{opt.desc}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -1809,6 +1839,7 @@ export default function AssetMapContent() {
             monthlyCost: n.monthlyCost || null,
             currency: n.currency || null,
             deviceType: n.deviceType || null,
+            piiStage: n.piiStage || null,
           },
         };
 
@@ -1875,6 +1906,18 @@ export default function AssetMapContent() {
 
         if (e.direction === "BI") {
           edgeObj.markerStart = { type: MarkerType.ArrowClosed, color: linkColor, width: 16, height: 16 };
+        } else if (e.direction === "REVERSE") {
+          // Swap: arrow on source side
+          edgeObj.markerEnd = undefined;
+          edgeObj.markerStart = { type: MarkerType.ArrowClosed, color: linkColor, width: 16, height: 16 };
+        } else if (e.direction === "CONDITIONAL") {
+          // Dashed + lighter color
+          edgeObj.style = {
+            ...edgeObj.style,
+            strokeDasharray: "4 4",
+            strokeWidth: 1.5,
+            opacity: 0.7,
+          };
         }
 
         // Build edge label as badge HTML
@@ -2020,6 +2063,7 @@ export default function AssetMapContent() {
         monthlyCost: asset.monthlyCost || null,
         currency: asset.currency || null,
         deviceType: asset.deviceType || null,
+        piiStage: asset.piiStage || null,
       },
     };
     setNodes((prev) => [...prev, newNode]);

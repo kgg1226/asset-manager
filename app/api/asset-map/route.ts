@@ -81,6 +81,7 @@ export async function GET(request: NextRequest) {
           assignee: { select: { id: true, name: true } },
           subCategory: { select: { name: true, majorCategory: { select: { name: true } } } },
           hardwareDetail: { select: { deviceType: true } },
+          piiStage: true,
         } as const;
 
       assetNodes = await prisma.asset.findMany({
@@ -100,6 +101,7 @@ export async function GET(request: NextRequest) {
           assignee: { select: { id: true, name: true } },
           subCategory: { select: { name: true, majorCategory: { select: { name: true } } } },
           hardwareDetail: { select: { deviceType: true } },
+          piiStage: true,
         } as const;
 
       // 필터링된 뷰에서는 엣지에 관련된 노드만 반환
@@ -154,6 +156,7 @@ export async function GET(request: NextRequest) {
       assigneeName: a.assignee?.name ?? null,
       serviceCategory: a.subCategory?.majorCategory?.name ?? a.subCategory?.name ?? null,
       deviceType: a.hardwareDetail?.deviceType ?? null,
+      piiStage: a.piiStage ?? null,
     }));
 
     // 외부 엔티티 노드 (type: "EXTERNAL" 포함)
