@@ -37,6 +37,12 @@ import {
   User,
   Eye,
   Link2,
+  Laptop,
+  Monitor,
+  Server,
+  Router,
+  Smartphone,
+  Printer,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 
@@ -53,6 +59,7 @@ type AssetNode = {
   description?: string | null;
   monthlyCost?: number | null;
   currency?: string | null;
+  deviceType?: string | null;
 };
 
 type AssetEdge = {
@@ -170,8 +177,21 @@ function getAssetDetailPath(assetType: string, assetId: string): string {
 
 // ─── Custom Nodes ─────────────────────────────────────────────────────
 
-function AssetIcon({ type, color, size = "w-5 h-5" }: { type: string; color: string; size?: string }) {
+function AssetIcon({ type, color, size = "w-5 h-5", deviceType }: { type: string; color: string; size?: string; deviceType?: string | null }) {
   const props = { className: size, style: { color } };
+
+  // 하드웨어 세부 유형별 아이콘
+  if (type === "HARDWARE" && deviceType) {
+    const dt = deviceType.toLowerCase();
+    if (dt.includes("laptop") || dt.includes("notebook")) return <Laptop {...props} />;
+    if (dt.includes("desktop") || dt.includes("pc") || dt.includes("workstation")) return <Monitor {...props} />;
+    if (dt.includes("server")) return <Server {...props} />;
+    if (dt.includes("network") || dt.includes("switch") || dt.includes("router") || dt.includes("firewall")) return <Router {...props} />;
+    if (dt.includes("mobile") || dt.includes("phone") || dt.includes("tablet")) return <Smartphone {...props} />;
+    if (dt.includes("printer") || dt.includes("peripheral")) return <Printer {...props} />;
+    return <HardDrive {...props} />;
+  }
+
   switch (type) {
     case "HARDWARE": return <HardDrive {...props} />;
     case "CLOUD": return <Cloud {...props} />;
@@ -195,6 +215,7 @@ function StatusDot({ status }: { status: string }) {
 function AssetNodeComponent({ data }: { data: Record<string, unknown> }) {
   const type = (data.assetType as string) || "OTHER";
   const status = (data.status as string) || "IN_STOCK";
+  const deviceType = (data.deviceType as string) || null;
   const colors = ASSET_COLORS[type] || ASSET_COLORS.OTHER;
   const cost = data.monthlyCost as number | null;
   const currency = data.currency as string | null;
@@ -230,7 +251,7 @@ function AssetNodeComponent({ data }: { data: Record<string, unknown> }) {
           className="w-10 h-10 rounded-lg flex items-center justify-center"
           style={{ backgroundColor: colors.light }}
         >
-          <AssetIcon type={type} color={colors.icon} size="w-6 h-6" />
+          <AssetIcon type={type} color={colors.icon} size="w-6 h-6" deviceType={deviceType} />
         </div>
 
         {/* Name */}
@@ -903,7 +924,7 @@ function SidePanel({
             {isExternal ? (
               <Building2 className="w-6 h-6" style={{ color: colors.border }} />
             ) : (
-              <AssetIcon type={assetType} color={colors.icon} size="w-6 h-6" />
+              <AssetIcon type={assetType} color={colors.icon} size="w-6 h-6" deviceType={(data.deviceType as string) || null} />
             )}
           </div>
           <div className="min-w-0">
@@ -1195,6 +1216,7 @@ export default function AssetMapContent() {
             description: n.description || null,
             monthlyCost: n.monthlyCost || null,
             currency: n.currency || null,
+            deviceType: n.deviceType || null,
           },
         };
 
