@@ -2089,9 +2089,44 @@ export default function AssetMapContent() {
         body: JSON.stringify(payload),
       });
       if (res.ok) {
+        const newLink = await res.json();
         setShowModal(false);
+
+        // Add edge locally without re-fetching (preserves node positions)
+        const linkType = (newLink.linkType as string) || "DATA_FLOW";
+        const linkColor = LINK_COLORS[linkType] || "#6B7280";
+        let strokeDasharray: string | undefined;
+        if (linkType === "DATA_FLOW") strokeDasharray = "6 3";
+        else if (linkType === "DEPENDENCY") strokeDasharray = "3 3";
+
+        const newEdge: Edge = {
+          id: `link-${newLink.id}`,
+          source: String(newLink.sourceAssetId),
+          target: String(newLink.targetAssetId),
+          sourceHandle: newLink.sourceHandle || pendingConnection?.sourceHandle || "right",
+          targetHandle: newLink.targetHandle || pendingConnection?.targetHandle || "left",
+          style: { stroke: linkColor, strokeWidth: 2, strokeDasharray },
+          markerEnd: { type: MarkerType.ArrowClosed, color: linkColor, width: 16, height: 16 },
+          data: {
+            linkId: newLink.id,
+            linkType,
+            direction: newLink.direction || "UNI",
+            dataTypes: newLink.dataTypes,
+            piiItems: newLink.piiItems,
+            protocol: newLink.protocol,
+            legalBasis: newLink.legalBasis,
+            retentionPeriod: newLink.retentionPeriod,
+            destructionMethod: newLink.destructionMethod,
+            label: newLink.label,
+          },
+          label: newLink.label || linkType,
+          labelStyle: { fontSize: 10, fill: linkColor, fontWeight: 600 },
+          labelBgStyle: { fill: LINK_BG_COLORS[linkType] || "#F9FAFB", fillOpacity: 0.95 },
+          labelBgPadding: [6, 4] as [number, number],
+          labelBgBorderRadius: 6,
+        };
+        setEdges((prev) => [...prev, newEdge]);
         setPendingConnection(null);
-        fetchGraph();
       }
     } catch {
       // silently fail
