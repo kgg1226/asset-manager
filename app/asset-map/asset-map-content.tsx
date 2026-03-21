@@ -271,16 +271,24 @@ function AssetNodeComponent({ data, selected }: { data: Record<string, unknown>;
         lineStyle={{ borderColor: colors.border, borderWidth: 1.5 }}
         handleStyle={{ backgroundColor: colors.border, width: 8, height: 8, borderRadius: 4 }}
       />
-      {/* Connection handles — 8 points (top/bottom/left/right + 4 diagonals) */}
-      <Handle type="source" position={Position.Top} id="top" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full !opacity-40 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
-      <Handle type="source" position={Position.Bottom} id="bottom" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full !opacity-40 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
-      <Handle type="source" position={Position.Left} id="left" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full" style={{ backgroundColor: colors.border }} />
-      <Handle type="source" position={Position.Right} id="right" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full" style={{ backgroundColor: colors.border }} />
-      {/* Diagonal handles */}
-      <Handle type="source" position={Position.Top} id="top-left" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-30 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, left: "15%" }} />
-      <Handle type="source" position={Position.Top} id="top-right" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-30 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, left: "85%" }} />
-      <Handle type="source" position={Position.Bottom} id="bottom-left" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-30 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, left: "15%" }} />
-      <Handle type="source" position={Position.Bottom} id="bottom-right" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-30 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, left: "85%" }} />
+      {/* Connection handles — 4 cardinal + dynamic percent-based handles */}
+      <Handle type="source" position={Position.Top} id="top" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
+      <Handle type="source" position={Position.Bottom} id="bottom" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
+      <Handle type="source" position={Position.Left} id="left" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
+      <Handle type="source" position={Position.Right} id="right" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
+      {/* Dynamic handles: "side-pN" format — rendered from data._handles */}
+      {((data._handles as string[]) || []).filter((h: string) => h.includes("-p")).map((hId: string) => {
+        const side = hId.split("-p")[0];
+        const pct = parseInt(hId.split("-p")[1], 10);
+        const pos = side === "top" ? Position.Top : side === "bottom" ? Position.Bottom : side === "left" ? Position.Left : Position.Right;
+        const isHorizontal = side === "top" || side === "bottom";
+        return (
+          <Handle key={hId} type="source" position={pos} id={hId}
+            className="!w-1.5 !h-1.5 !border !border-white !rounded-full !opacity-0"
+            style={{ backgroundColor: colors.border, ...(isHorizontal ? { left: `${pct}%` } : { top: `${pct}%` }) }}
+          />
+        );
+      })}
 
       {/* Icon centered above name */}
       <div className={`flex flex-col items-center ${isCompact ? "gap-0.5" : "gap-1.5"}`}>
@@ -351,15 +359,23 @@ function ExternalEntityNodeComponent({ data }: { data: Record<string, unknown> }
         boxShadow: `0 2px 8px ${colors.border}15, 0 1px 3px rgba(0,0,0,0.04)`,
       }}
     >
-      {/* Connection handles — 8 points */}
-      <Handle type="source" position={Position.Top} id="top" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full !opacity-40 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
-      <Handle type="source" position={Position.Bottom} id="bottom" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full !opacity-40 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
-      <Handle type="source" position={Position.Left} id="left" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full" style={{ backgroundColor: colors.border }} />
-      <Handle type="source" position={Position.Right} id="right" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full" style={{ backgroundColor: colors.border }} />
-      <Handle type="source" position={Position.Top} id="top-left" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-30 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, left: "15%" }} />
-      <Handle type="source" position={Position.Top} id="top-right" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-30 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, left: "85%" }} />
-      <Handle type="source" position={Position.Bottom} id="bottom-left" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-30 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, left: "15%" }} />
-      <Handle type="source" position={Position.Bottom} id="bottom-right" className="!w-2 !h-2 !border !border-white !rounded-full !opacity-30 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border, left: "85%" }} />
+      {/* Connection handles — 4 cardinal + dynamic */}
+      <Handle type="source" position={Position.Top} id="top" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
+      <Handle type="source" position={Position.Bottom} id="bottom" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
+      <Handle type="source" position={Position.Left} id="left" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
+      <Handle type="source" position={Position.Right} id="right" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
+      {((data._handles as string[]) || []).filter((h: string) => h.includes("-p")).map((hId: string) => {
+        const side = hId.split("-p")[0];
+        const pct = parseInt(hId.split("-p")[1], 10);
+        const pos = side === "top" ? Position.Top : side === "bottom" ? Position.Bottom : side === "left" ? Position.Left : Position.Right;
+        const isHorizontal = side === "top" || side === "bottom";
+        return (
+          <Handle key={hId} type="source" position={pos} id={hId}
+            className="!w-1.5 !h-1.5 !border !border-white !rounded-full !opacity-0"
+            style={{ backgroundColor: colors.border, ...(isHorizontal ? { left: `${pct}%` } : { top: `${pct}%` }) }}
+          />
+        );
+      })}
 
       <div className="flex flex-col items-center gap-1.5">
         <div
@@ -525,6 +541,79 @@ function EdgeLabelBadge({
       {text}{suffix}
     </div>
   );
+}
+
+// ─── Edge Handle Distribution ──────────────────────────────────────────
+// 같은 노드+방향에 여러 엣지가 몰리면 동적 핸들 ID로 분배 (최대 10개 이상 지원)
+
+// 핸들 ID → 방향(side) 매핑
+function getHandleSide(handleId: string): string {
+  if (handleId.startsWith("top")) return "top";
+  if (handleId.startsWith("bottom")) return "bottom";
+  if (handleId.startsWith("left")) return "left";
+  if (handleId.startsWith("right")) return "right";
+  return "right";
+}
+
+/**
+ * N개 엣지를 한 방향에 균등 분배할 핸들 ID 생성
+ * 예: side="left", count=3 → ["left-p17", "left-p50", "left-p83"]
+ *     side="right", count=1 → ["right"]
+ */
+function generateSlots(side: string, count: number): string[] {
+  if (count <= 1) return [side];
+  return Array.from({ length: count }, (_, i) => {
+    const pct = Math.round(((i + 1) / (count + 1)) * 100);
+    return `${side}-p${pct}`;
+  });
+}
+
+/**
+ * 엣지 배열을 받아서 같은 노드+방향에 여러 엣지가 도착/출발하면
+ * 핸들을 균등 분산시킨다.
+ */
+function distributeEdgeHandles(edges: import("@xyflow/react").Edge[]): import("@xyflow/react").Edge[] {
+  // 1. 노드+방향별 엣지 그룹화
+  const targetGroups: Record<string, import("@xyflow/react").Edge[]> = {};
+  const sourceGroups: Record<string, import("@xyflow/react").Edge[]> = {};
+
+  for (const edge of edges) {
+    const tSide = getHandleSide(edge.targetHandle || "left");
+    const tKey = `${edge.target}:${tSide}`;
+    (targetGroups[tKey] ??= []).push(edge);
+
+    const sSide = getHandleSide(edge.sourceHandle || "right");
+    const sKey = `${edge.source}:${sSide}`;
+    (sourceGroups[sKey] ??= []).push(edge);
+  }
+
+  // 2. target 핸들 분배
+  for (const [, group] of Object.entries(targetGroups)) {
+    if (group.length <= 1) continue;
+    const side = getHandleSide(group[0].targetHandle || "left");
+    const slots = generateSlots(side, group.length);
+    group.forEach((edge, i) => { edge.targetHandle = slots[i]; });
+  }
+
+  // 3. source 핸들 분배
+  for (const [, group] of Object.entries(sourceGroups)) {
+    if (group.length <= 1) continue;
+    const side = getHandleSide(group[0].sourceHandle || "right");
+    const slots = generateSlots(side, group.length);
+    group.forEach((edge, i) => { edge.sourceHandle = slots[i]; });
+  }
+
+  return edges;
+}
+
+/** distributeEdgeHandles가 사용하는 동적 핸들 ID에서 필요한 핸들 세트를 수집 */
+function collectDynamicHandles(edges: import("@xyflow/react").Edge[], nodeId: string): string[] {
+  const handles = new Set<string>();
+  for (const e of edges) {
+    if (e.source === nodeId && e.sourceHandle) handles.add(e.sourceHandle);
+    if (e.target === nodeId && e.targetHandle) handles.add(e.targetHandle);
+  }
+  return Array.from(handles);
 }
 
 // ─── Layout ────────────────────────────────────────────────────────────
@@ -1821,7 +1910,7 @@ function AssetPalette({
 export default function AssetMapContent() {
   const { t } = useTranslation();
   const [view, setView] = useState<ViewType>("all");
-  const [nodes, setNodes, onNodesChange] = useNodesState([] as Node[]);
+  const [nodes, setNodes, defaultOnNodesChange] = useNodesState([] as Node[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([] as Edge[]);
   const [allAssets, setAllAssets] = useState<AssetNode[]>([]);
   const placedAssetIdsRef = useRef<Set<number>>(new Set());
@@ -1870,22 +1959,28 @@ export default function AssetMapContent() {
       // Save all assets for palette
       setAllAssets(fetchedAllAssets);
 
-      // Only show assets that have connections or are in groups or were manually placed
-      const connectedAssetIds = new Set<number>();
-      fetchedEdges.forEach((e: AssetEdge) => {
-        connectedAssetIds.add(e.sourceAssetId);
-        connectedAssetIds.add(e.targetAssetId);
-      });
-      fetchedGroups.forEach((g) => {
-        (g.assetIds || []).forEach((id) => connectedAssetIds.add(id));
-        (g.members || []).forEach((m) => connectedAssetIds.add(m.assetId));
-      });
+      // "all" 뷰: 모든 자산을 캔버스에 표시
+      // 필터링 뷰 (pii/network/data_flow): 연결·그룹·수동 배치된 자산만 표시
+      let fetchedAssets: AssetNode[];
+      if (view === "all") {
+        fetchedAssets = fetchedAllAssets;
+      } else {
+        const connectedAssetIds = new Set<number>();
+        fetchedEdges.forEach((e: AssetEdge) => {
+          connectedAssetIds.add(e.sourceAssetId);
+          connectedAssetIds.add(e.targetAssetId);
+        });
+        fetchedGroups.forEach((g) => {
+          (g.assetIds || []).forEach((id) => connectedAssetIds.add(id));
+          (g.members || []).forEach((m) => connectedAssetIds.add(m.assetId));
+        });
 
-      // Preserve manually placed assets — use ref to avoid stale closure
-      const currentPlacedIds = new Set(placedAssetIdsRef.current);
-      const placedIds = new Set([...connectedAssetIds, ...currentPlacedIds]);
+        // Preserve manually placed assets — use ref to avoid stale closure
+        const currentPlacedIds = new Set(placedAssetIdsRef.current);
+        const placedIds = new Set([...connectedAssetIds, ...currentPlacedIds]);
 
-      const fetchedAssets = fetchedAllAssets.filter((a) => placedIds.has(a.id));
+        fetchedAssets = fetchedAllAssets.filter((a) => placedIds.has(a.id));
+      }
       setAssets(fetchedAssets);
       setExternalEntities(fetchedEntities);
       setGroups(fetchedGroups);
@@ -1988,6 +2083,7 @@ export default function AssetMapContent() {
 
         const edgeObj: Edge = {
           id: `link-${e.id}`,
+          type: "smoothstep",
           source: sourceId,
           target: targetId,
           sourceHandle: e.sourceHandle || "right",
@@ -2054,6 +2150,17 @@ export default function AssetMapContent() {
         return edgeObj;
       });
 
+      // 같은 노드+방향에 여러 엣지가 몰리면 핸들 자동 분배
+      distributeEdgeHandles(flowEdges);
+
+      // 각 노드에 필요한 동적 핸들 ID 주입
+      for (const node of [...flowNodes, ...entityNodes]) {
+        const handles = collectDynamicHandles(flowEdges, node.id);
+        if (handles.length > 0) {
+          node.data = { ...node.data, _handles: handles };
+        }
+      }
+
       const allNodes = [...groupNodes, ...flowNodes, ...entityNodes];
 
       // Apply layout based on view type
@@ -2113,45 +2220,70 @@ export default function AssetMapContent() {
     [setEdges, fetchGraph]
   );
 
-  // Node drag stop: adopt into section or release from section
+  // ── 커스텀 onNodesChange: 섹션 자식의 드래그 시 부모 해제 처리 ──
+  const onNodesChange = useCallback((changes: import("@xyflow/react").NodeChange[]) => {
+    // 먼저 기본 변경 적용
+    defaultOnNodesChange(changes);
+
+    // position 변경 중 섹션 자식이 부모 경계를 벗어나면 부모 해제
+    const positionChanges = changes.filter(
+      (c) => c.type === "position" && c.dragging
+    );
+    if (positionChanges.length === 0) return;
+
+    setNodes((currentNodes) => {
+      let changed = false;
+      const result = currentNodes.map((node) => {
+        // 섹션 자식이 아니거나 그룹 자식이면 무시
+        if (!node.parentId) return node;
+        if (String(node.parentId).startsWith("group-")) return node;
+
+        // 이 노드가 드래그 중인지 확인
+        const posChange = positionChanges.find((c) => "id" in c && c.id === node.id);
+        if (!posChange) return node;
+
+        const parentSection = currentNodes.find((n) => n.id === node.parentId && n.type === "section");
+        if (!parentSection) return node;
+
+        const sw = (parentSection.style?.width as number) || 400;
+        const sh = (parentSection.style?.height as number) || 300;
+        const margin = 20;
+
+        // 부모 경계 밖으로 나갔는지 확인
+        if (
+          node.position.x < -margin ||
+          node.position.y < -margin ||
+          node.position.x > sw + margin ||
+          node.position.y > sh + margin
+        ) {
+          changed = true;
+          return {
+            ...node,
+            parentId: undefined,
+            extent: undefined,
+            position: {
+              x: node.position.x + parentSection.position.x,
+              y: node.position.y + parentSection.position.y,
+            },
+          };
+        }
+        return node;
+      });
+      return changed ? result : currentNodes;
+    });
+  }, [defaultOnNodesChange, setNodes]);
+
+  // 드래그 종료: 자유 노드가 섹션 위에 드랍되면 자식으로 편입
   const onNodeDragStop = useCallback((_event: React.MouseEvent, draggedNode: Node) => {
-    if (draggedNode.type === "section") return;
+    if (draggedNode.type === "section" || draggedNode.type === "assetGroup") return;
+    // assetGroup 자식은 무시
+    if (draggedNode.parentId && String(draggedNode.parentId).startsWith("group-")) return;
+    // 이미 다른 부모가 있으면 무시
+    if (draggedNode.parentId) return;
 
     const sectionNodes = nodes.filter((n) => n.type === "section");
 
-    // Case 1: Already a child — check if still inside parent section
-    if (draggedNode.parentId) {
-      const parentSection = sectionNodes.find((s) => s.id === draggedNode.parentId);
-      if (parentSection) {
-        const sw = (parentSection.style?.width as number) || 400;
-        const sh = (parentSection.style?.height as number) || 300;
-        const nx = draggedNode.position.x;
-        const ny = draggedNode.position.y;
-
-        // If node moved outside parent bounds → release
-        if (nx < -20 || ny < -20 || nx > sw + 20 || ny > sh + 20) {
-          setNodes((nds) =>
-            nds.map((n) => {
-              if (n.id === draggedNode.id) {
-                return {
-                  ...n,
-                  parentId: undefined,
-                  extent: undefined,
-                  position: {
-                    x: nx + parentSection.position.x,
-                    y: ny + parentSection.position.y,
-                  },
-                };
-              }
-              return n;
-            })
-          );
-        }
-      }
-      return;
-    }
-
-    // Case 2: Free node — check if dropped inside a section
+    // 자유 노드가 섹션 영역 안에 드랍되었는지 확인
     const candidates: { section: Node; area: number }[] = [];
     for (const section of sectionNodes) {
       const sw = (section.style?.width as number) || 400;
@@ -2171,7 +2303,7 @@ export default function AssetMapContent() {
 
     if (candidates.length === 0) return;
 
-    // Pick smallest section; if tied, pick the latest one
+    // 가장 작은 섹션 선택
     candidates.sort((a, b) => a.area - b.area || sectionNodes.indexOf(b.section) - sectionNodes.indexOf(a.section));
     const winner = candidates[0].section;
 
@@ -2181,6 +2313,7 @@ export default function AssetMapContent() {
           return {
             ...n,
             parentId: winner.id,
+            extent: undefined,
             position: { x: draggedNode.position.x - winner.position.x, y: draggedNode.position.y - winner.position.y },
           };
         }
@@ -2230,6 +2363,7 @@ export default function AssetMapContent() {
 
         const newEdge: Edge = {
           id: `link-${newLink.id}`,
+          type: "smoothstep",
           source: String(newLink.sourceAssetId),
           target: String(newLink.targetAssetId),
           sourceHandle: newLink.sourceHandle || pendingConnection?.sourceHandle || "right",
@@ -2254,7 +2388,19 @@ export default function AssetMapContent() {
           labelBgPadding: [6, 4] as [number, number],
           labelBgBorderRadius: 6,
         };
-        setEdges((prev) => [...prev, newEdge]);
+        setEdges((prev) => {
+          const allEdges = [...prev, newEdge];
+          distributeEdgeHandles(allEdges);
+          // 핸들 갱신을 위해 노드의 _handles 업데이트
+          setNodes((nds) => nds.map((n) => {
+            const handles = collectDynamicHandles(allEdges, n.id);
+            if (handles.length > 0) {
+              return { ...n, data: { ...n.data, _handles: handles } };
+            }
+            return n;
+          }));
+          return allEdges;
+        });
         setPendingConnection(null);
       }
     } catch {
@@ -2362,17 +2508,34 @@ export default function AssetMapContent() {
   }
 
   // Load a saved view by applying nodePositions
-  function handleLoadView(savedView: SavedView) {
-    const positions = savedView.nodePositions;
-    setNodes((currentNodes) =>
-      currentNodes.map((node) => {
-        const savedPos = positions[node.id];
-        if (savedPos) {
-          return { ...node, position: { x: savedPos.x, y: savedPos.y } };
-        }
-        return node;
-      })
-    );
+  // 캔버스가 비어있으면 fetchGraph로 노드를 다시 로드한 후 위치 적용
+  async function handleLoadView(savedView: SavedView) {
+    const positions: Record<string, { x: number; y: number }> =
+      typeof savedView.nodePositions === "string"
+        ? JSON.parse(savedView.nodePositions)
+        : savedView.nodePositions ?? {};
+
+    const positionKeys = Object.keys(positions);
+    if (positionKeys.length === 0) return;
+
+    // 캔버스에 노드가 없으면 먼저 데이터를 다시 로드
+    const assetNodes = nodes.filter((n) => n.type === "asset" || n.type === "externalEntity");
+    if (assetNodes.length === 0) {
+      await fetchGraph();
+    }
+
+    // 위치 적용 (fetchGraph 후 state 업데이트가 반영된 후 실행)
+    setTimeout(() => {
+      setNodes((currentNodes) =>
+        currentNodes.map((node) => {
+          const savedPos = positions[node.id];
+          if (savedPos) {
+            return { ...node, position: { x: savedPos.x, y: savedPos.y } };
+          }
+          return node;
+        })
+      );
+    }, 100);
   }
 
   const viewTabs: { key: ViewType; label: string }[] = [
@@ -2503,6 +2666,8 @@ export default function AssetMapContent() {
                 return ASSET_COLORS[type]?.border || "#6B7280";
               }}
               style={{ height: 100 }}
+              pannable
+              zoomable
             />
             <Panel position="bottom-center">
               <div className="rounded-lg border bg-white/90 px-3 py-1.5 text-xs text-gray-500 backdrop-blur">
