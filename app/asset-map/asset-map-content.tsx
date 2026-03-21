@@ -587,18 +587,25 @@ function distributeEdgeHandles(edges: import("@xyflow/react").Edge[]): import("@
     (sourceGroups[sKey] ??= []).push(edge);
   }
 
-  // 2. target 핸들 분배
+  // 2. target 핸들 분배 (1개여도 기본 방향으로 정규화)
   for (const [, group] of Object.entries(targetGroups)) {
-    if (group.length <= 1) continue;
     const side = getHandleSide(group[0].targetHandle || "left");
+    if (group.length <= 1) {
+      // 레거시 핸들 ID(top-left 등)를 기본 방향(top)으로 정규화
+      group[0].targetHandle = side;
+      continue;
+    }
     const slots = generateSlots(side, group.length);
     group.forEach((edge, i) => { edge.targetHandle = slots[i]; });
   }
 
-  // 3. source 핸들 분배
+  // 3. source 핸들 분배 (1개여도 기본 방향으로 정규화)
   for (const [, group] of Object.entries(sourceGroups)) {
-    if (group.length <= 1) continue;
     const side = getHandleSide(group[0].sourceHandle || "right");
+    if (group.length <= 1) {
+      group[0].sourceHandle = side;
+      continue;
+    }
     const slots = generateSlots(side, group.length);
     group.forEach((edge, i) => { edge.sourceHandle = slots[i]; });
   }
@@ -1855,7 +1862,7 @@ function AssetPalette({
               const colors = ASSET_COLORS[asset.type] || ASSET_COLORS.OTHER;
               return (
                 <button
-                  key={asset.id}
+                  key={`unplaced-${asset.id}`}
                   onClick={() => onAddToCanvas(asset)}
                   className="w-full px-3 py-2 flex items-center gap-2.5 hover:bg-blue-50 transition-colors text-left border-b border-gray-50"
                 >
@@ -1879,7 +1886,7 @@ function AssetPalette({
               const colors = ASSET_COLORS[asset.type] || ASSET_COLORS.OTHER;
               return (
                 <button
-                  key={asset.id}
+                  key={`placed-${asset.id}`}
                   onClick={() => onRemoveFromCanvas(asset.id)}
                   className="w-full px-3 py-2 flex items-center gap-2.5 bg-green-50/50 hover:bg-red-50 border-b border-gray-50 transition-colors text-left group"
                 >
@@ -1963,7 +1970,13 @@ export default function AssetMapContent() {
       // 필터링 뷰 (pii/network/data_flow): 연결·그룹·수동 배치된 자산만 표시
       let fetchedAssets: AssetNode[];
       if (view === "all") {
-        fetchedAssets = fetchedAllAssets;
+        // 중복 ID 제거
+        const seen = new Set<number>();
+        fetchedAssets = fetchedAllAssets.filter((a) => {
+          if (seen.has(a.id)) return false;
+          seen.add(a.id);
+          return true;
+        });
       } else {
         const connectedAssetIds = new Set<number>();
         fetchedEdges.forEach((e: AssetEdge) => {
