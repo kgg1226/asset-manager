@@ -52,6 +52,9 @@ Desktop.ini
 *.swo
 *~
 
+# ── Local demo seed ────────────────────────────────────────────────────────
+prisma/seed-demo.ts
+
 # ── Local IDE / editor metadata ──────────────────────────────────────────────
 .vscode/
 .idea/
