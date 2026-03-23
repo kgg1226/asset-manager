@@ -7,6 +7,7 @@ import DeleteButton from "./delete-button";
 import AssignButton from "./assign-button";
 import UnassignButton from "./unassign-button";
 import LicenseRow from "./license-row";
+import { LifecycleGaugeInline } from "@/app/_components/lifecycle-gauge";
 
 type SortField = "name" | "totalQuantity" | "assigned" | "expiryDate";
 type SortOrder = "asc" | "desc";
@@ -104,7 +105,7 @@ export default function LicensesContent({
     const diffMs = noticeDate.getTime() - now.getTime();
     const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
-    if (diffDays < 0) return { label: t.license.noticePeriod.includes("Notice") ? "Overdue" : "\uAE30\uD55C \uCD08\uACFC", variant: "red" };
+    if (diffDays < 0) return { label: locale === "en" ? "Overdue" : "\uAE30\uD55C \uCD08\uACFC", variant: "red" };
     if (diffDays <= 7) return { label: `D-${diffDays}`, variant: "red" };
     if (diffDays <= 30) return { label: `D-${diffDays}`, variant: "yellow" };
     return { label: `D-${diffDays}`, variant: "green" };
@@ -179,6 +180,9 @@ export default function LicensesContent({
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 whitespace-nowrap">
                       {t.license.noticePeriod}
                     </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 whitespace-nowrap">
+                      {t.lifecycle.heading}
+                    </th>
                     {isLoggedIn && (
                       <th className="px-4 py-3 text-center text-xs font-medium uppercase text-gray-500 whitespace-nowrap">
                         {t.common.actions}
@@ -221,7 +225,7 @@ export default function LicensesContent({
                         <td className="px-4 py-3 text-sm text-gray-600 tabular-nums">
                           {license.maxCapacity === 0 ? (
                             <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-500">
-                              {locale === "en" ? "Group" : "그룹"}
+                              {t.license.group}
                             </span>
                           ) : license.maxCapacity}
                         </td>
@@ -260,25 +264,31 @@ export default function LicensesContent({
                             <span className="text-gray-400">{"\u2014"}</span>
                           )}
                         </td>
+                        <td className="px-4 py-3">
+                          <LifecycleGaugeInline
+                            startDate={license.purchaseDate}
+                            endDate={license.expiryDate}
+                          />
+                        </td>
                         {isLoggedIn && (
                           <td className="px-4 py-3 text-center">
-                            <div className="flex items-center justify-center gap-1">
-                              {license.maxCapacity > 0 && (
-                                <>
-                                  <AssignButton
-                                    licenseId={license.id}
-                                    licenseName={license.name}
-                                    remaining={license.remainingCount}
-                                    employees={employees}
-                                    assignedEmployeeIds={license.assignedEmployeeIds}
-                                    licenseType={license.licenseType}
-                                  />
-                                  <UnassignButton
-                                    licenseName={license.name}
-                                    assignedEmployees={license.assignedEmployees}
-                                  />
-                                </>
-                              )}
+                            <div className="flex items-center justify-center gap-2">
+                              {license.maxCapacity > 0 ? (
+                                <AssignButton
+                                  licenseId={license.id}
+                                  licenseName={license.name}
+                                  remaining={license.remainingCount}
+                                  employees={employees}
+                                  assignedEmployeeIds={license.assignedEmployeeIds}
+                                  licenseType={license.licenseType}
+                                />
+                              ) : <span className="rounded px-2 py-1 text-xs invisible">{t.common.assign}</span>}
+                              {license.maxCapacity > 0 && license.assignedEmployees?.length > 0 ? (
+                                <UnassignButton
+                                  licenseName={license.name}
+                                  assignedEmployees={license.assignedEmployees}
+                                />
+                              ) : <span className="rounded px-2 py-1 text-xs invisible">{t.license.unassign}</span>}
                               <DeleteButton id={license.id} name={license.name} />
                             </div>
                           </td>

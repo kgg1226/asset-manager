@@ -443,6 +443,85 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // ── 5. 자산 수명 임계치 알림 (50%, 80%, 95%) ─────────────────────────
+  // purchaseDate ~ expiryDate 기준으로 경과율 계산
+  const LIFECYCLE_THRESHOLDS = [50, 80, 95] as const;
+
+  try {
+    const lifecycleAssets = await prisma.asset.findMany({
+      where: {
+        purchaseDate: { not: null },
+        expiryDate: { not: null },
+        status: { in: ["IN_STOCK", "IN_USE", "INACTIVE"] },
+      },
+      include: {
+        assignee: { select: { id: true, name: true, email: true } },
+        orgUnit: { select: { id: true, name: true } },
+      },
+    });
+
+    for (const asset of lifecycleAssets) {
+      if (!asset.purchaseDate || !asset.expiryDate) continue;
+
+      const totalMs = asset.expiryDate.getTime() - asset.purchaseDate.getTime();
+      const elapsedMs = now.getTime() - asset.purchaseDate.getTime();
+      if (totalMs <= 0) continue;
+
+      const percent = (elapsedMs / totalMs) * 100;
+      const totalDays = Math.ceil(totalMs / (1000 * 60 * 60 * 24));
+      const elapsedDays = Math.ceil(elapsedMs / (1000 * 60 * 60 * 24));
+
+      for (const threshold of LIFECYCLE_THRESHOLDS) {
+        const thresholdDay = Math.floor(totalDays * (threshold / 100));
+        // 오늘이 정확히 임계일에 해당하는지 확인 (±1일 오차 허용)
+        if (Math.abs(elapsedDays - thresholdDay) > 1) continue;
+
+        const typeLabel: Record<string, string> = {
+          SOFTWARE: "소프트웨어", CLOUD: "클라우드", HARDWARE: "하드웨어",
+          DOMAIN_SSL: "도메인/SSL", CONTRACT: "계약", OTHER: "기타",
+        };
+        const daysLeft = totalDays - elapsedDays;
+        const thresholdMsg = `📊 자산 수명 ${threshold}% 경과 알림\n자산: ${asset.name} (${typeLabel[asset.type] ?? asset.type})\n수명: ${Math.round(percent)}% 경과 (D-${Math.max(0, daysLeft)})\n만료일: ${asset.expiryDate.toISOString().slice(0, 10)}\n${threshold >= 95 ? "⚠️ 교체 또는 갱신을 즉시 검토하세요." : threshold >= 80 ? "교체 또는 갱신 계획을 수립하세요." : "수명 절반이 경과했습니다. 상태를 점검하세요."}`;
+
+        // 담당자 이메일 발송
+        if (asset.assignee?.email) {
+          const result = await sendEmail({
+            to: asset.assignee.email,
+            subject: `[자산관리] ${asset.name} 수명 ${threshold}% 경과`,
+            text: thresholdMsg,
+          }).then(() => ({ ok: true, error: undefined })).catch((e: Error) => ({ ok: false, error: e.message }));
+
+          summary.push({
+            entityType: "ASSET",
+            entityId: asset.id,
+            entityName: asset.name,
+            daysLeft: Math.max(0, daysLeft),
+            channel: "EMAIL",
+            recipient: asset.assignee.email,
+            status: result.ok ? "SUCCESS" : "FAILED",
+            ...(!result.ok && { error: result.error }),
+          });
+          result.ok ? notified++ : skipped++;
+        }
+
+        // Slack 발송
+        try {
+          await sendSlackMessage(thresholdMsg);
+          summary.push({
+            entityType: "ASSET", entityId: asset.id, entityName: asset.name,
+            daysLeft: Math.max(0, daysLeft), channel: "SLACK", recipient: "channel",
+            status: "SUCCESS",
+          });
+          notified++;
+        } catch {
+          skipped++;
+        }
+      }
+    }
+  } catch (err) {
+    console.error("[cron/renewal-notify] lifecycle threshold error:", err);
+  }
+
   console.log(`[cron/renewal-notify] 완료 (${now.toISOString()}) — 성공: ${notified}, 실패/스킵: ${skipped}`);
 
   return NextResponse.json({

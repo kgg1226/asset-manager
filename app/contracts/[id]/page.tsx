@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
 import CiaScoreDisplay from "@/app/_components/cia-score-display";
+import LifecycleGauge from "@/app/_components/lifecycle-gauge";
 
 type AssetStatus = "IN_STOCK" | "IN_USE" | "INACTIVE" | "UNUSABLE" | "PENDING_DISPOSAL" | "DISPOSED";
 
@@ -108,6 +109,12 @@ export default function ContractDetailPage() {
             <p className="text-sm text-gray-600">{t.asset.expiryDate}</p>
             <p className="mt-2 text-2xl font-bold text-gray-900">{asset.expiryDate ? new Date(asset.expiryDate).toLocaleDateString() : "—"}</p>
           </div>
+        </div>
+
+        {/* 수명 게이지 */}
+        <div className="mb-8 rounded-lg bg-white p-6 shadow-sm">
+          <h2 className="mb-3 text-sm font-semibold text-gray-700">{t.lifecycle.heading}</h2>
+          <LifecycleGauge startDate={asset.purchaseDate} endDate={asset.expiryDate} size="md" showLabel showDates showThresholds />
         </div>
 
         <div className="mb-8 rounded-lg bg-white p-6 shadow-sm">

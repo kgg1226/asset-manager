@@ -203,7 +203,7 @@ export default function NewLicensePage() {
                 />
                 {!parentId && (
                   <p className="mt-1 text-xs text-gray-400">
-                    {locale === "en" ? "Set to 0 for group/container licenses" : "그룹(컨테이너) 라이선스는 0으로 설정"}
+                    {t.classification.containerHintDetail}
                   </p>
                 )}
               </Field>

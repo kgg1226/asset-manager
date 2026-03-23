@@ -86,7 +86,7 @@ function RenewalStatusPanel({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error ?? "상태 변경 실패");
+        setError(data.error ?? t.classification.statusChangeFail);
         return;
       }
       setMemo("");
@@ -107,7 +107,7 @@ function RenewalStatusPanel({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error ?? "갱신일 설정 실패");
+        setError(data.error ?? t.classification.renewalDateFail);
         return;
       }
       setShowDateForm(false);
@@ -276,7 +276,7 @@ function RenewalHistoryPanel({ licenseId }: { licenseId: number }) {
     fetch(`/api/licenses/${licenseId}/renewal-history`)
       .then((r) => r.json())
       .then((data) => setHistory(Array.isArray(data) ? data : []))
-      .catch(() => setError("이력 로드 실패"))
+      .catch(() => setError(t.classification.historyLoadFail))
       .finally(() => setLoading(false));
   }, [licenseId]);
 
@@ -380,7 +380,7 @@ function LicenseOwnersPanel({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error ?? "담당자 추가 실패");
+        setError(data.error ?? t.classification.addOwnerFail);
         return;
       }
       setShowAdd(false);

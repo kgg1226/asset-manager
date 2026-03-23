@@ -66,7 +66,7 @@ function SecurityNodeCard({
   };
 
   const handleDelete = async () => {
-    if (!confirm(`"${node.title}" 노드를 삭제하시겠습니까? 하위 노드도 함께 삭제됩니다.`)) return;
+    if (!confirm(`"${node.title}" ${t.classification.confirmDeleteNode}`)) return;
     try {
       const res = await fetch(`/api/org/security-chart/${node.id}`, { method: "DELETE" });
       if (!res.ok) { toast.error(t.toast.deleteFail); return; }
@@ -123,7 +123,7 @@ function SecurityNodeCard({
               <option value="">{t.org.unassignedPerson}</option>
               {employees.map((emp) => (
                 <option key={emp.id} value={emp.id}>
-                  {emp.name} ({emp.department ?? "부서없음"})
+                  {emp.name} ({emp.department ?? t.classification.noDept})
                 </option>
               ))}
             </select>
@@ -188,7 +188,7 @@ function SecurityNodeCard({
             autoFocus
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
-            placeholder="직책/역할명"
+            placeholder={t.classification.positionRoleName}
             className="rounded border border-green-300 px-2 py-1 text-sm"
             onKeyDown={(e) => { if (e.key === "Enter") handleAddChild(); if (e.key === "Escape") { setShowAddChild(false); setNewTitle(""); } }}
           />
@@ -297,7 +297,7 @@ export default function SecurityOrgChart() {
             autoFocus
             value={newRootTitle}
             onChange={(e) => setNewRootTitle(e.target.value)}
-            placeholder="예: 정보보호 최고책임자 (CISO)"
+            placeholder="e.g. CISO, Security Manager"
             className="flex-1 rounded border border-red-300 px-3 py-2 text-sm"
             onKeyDown={(e) => {
               if (e.key === "Enter") handleCreateRoot();

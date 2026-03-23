@@ -33,8 +33,8 @@ export default function ExternalEntityNewPage() {
 
   const validate = () => {
     const errs: Record<string, string> = {};
-    if (!form.name.trim()) errs.name = "필수 항목입니다";
-    if (!form.type) errs.type = "필수 항목입니다";
+    if (!form.name.trim()) errs.name = t.common.required;
+    if (!form.type) errs.type = t.common.required;
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -56,13 +56,13 @@ export default function ExternalEntityNewPage() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "생성에 실패했습니다.");
+        throw new Error(err.error || t.toast.createFail);
       }
       const data = await res.json();
-      toast.success(`${form.name} 등록 완료`);
+      toast.success(t.toast.createSuccess);
       router.push(`/external/${data.id}`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "생성에 실패했습니다.");
+      toast.error(err instanceof Error ? err.message : t.toast.createFail);
     } finally {
       setSubmitting(false);
     }
@@ -98,7 +98,7 @@ export default function ExternalEntityNewPage() {
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   className={errors.name ? errCls : inputCls}
-                  placeholder="예: AWS Korea, 안랩 SOC"
+                  placeholder="e.g. AWS Korea, Vendor SOC"
                 />
                 {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
               </div>
@@ -130,7 +130,7 @@ export default function ExternalEntityNewPage() {
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   className={inputCls}
                   rows={3}
-                  placeholder="조직에 대한 설명"
+                  placeholder={t.common.description}
                 />
               </div>
 
@@ -144,7 +144,7 @@ export default function ExternalEntityNewPage() {
                   value={form.contactInfo}
                   onChange={(e) => setForm({ ...form, contactInfo: e.target.value })}
                   className={inputCls}
-                  placeholder="담당자, 이메일, 전화번호 등"
+                  placeholder={t.externalEntity.contactInfo}
                 />
               </div>
             </div>
@@ -158,13 +158,13 @@ export default function ExternalEntityNewPage() {
               className="flex flex-1 items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
             >
               <Save className="h-4 w-4" />
-              {submitting ? "저장 중..." : t.externalEntity.create}
+              {submitting ? t.common.processing : t.externalEntity.create}
             </button>
             <Link
               href="/external"
               className="flex flex-1 items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
-              {t.common?.cancel || "취소"}
+              {t.common.cancel}
             </Link>
           </div>
         </form>

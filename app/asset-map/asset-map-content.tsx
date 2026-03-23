@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import {
   ReactFlow,
+  ReactFlowProvider,
   Node,
   Edge,
   Controls,
@@ -10,6 +11,7 @@ import {
   MiniMap,
   useNodesState,
   useEdgesState,
+  useReactFlow,
   Connection,
   MarkerType,
   BackgroundVariant,
@@ -53,6 +55,20 @@ import {
   Check,
   ArrowLeft,
   GitBranch,
+  Copy,
+  Share2,
+  Star,
+  MoreVertical,
+  Pencil,
+  Trash2,
+  CheckCircle2,
+  Loader2,
+  AlertCircle,
+  Folder,
+  FolderPlus,
+  ChevronRight,
+  FolderOpen,
+  MoveRight,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 
@@ -75,8 +91,10 @@ type AssetNode = {
 
 type AssetEdge = {
   id: number;
-  sourceAssetId: number;
-  targetAssetId: number;
+  sourceAssetId: number | null;
+  targetAssetId: number | null;
+  sourceExternalId?: number | null;
+  targetExternalId?: number | null;
   linkType: string;
   direction: string;
   label: string | null;
@@ -109,11 +127,44 @@ type AssetGroup = {
   assetIds?: number[];
 };
 
+type SectionDataItem = {
+  id: string;
+  name: string;
+  color: string;
+  description: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  children: string[];
+};
+
+type ViewportState = { x: number; y: number; zoom: number };
+
 type SavedView = {
   id: number;
   name: string;
   nodePositions: Record<string, { x: number; y: number }>;
+  sectionData?: SectionDataItem[] | null;
+  viewport?: ViewportState | null;
+  edgeVisibility?: Record<string, unknown> | null;
+  filterConfig?: Record<string, unknown> | null;
+  viewType?: string;
+  isDefault?: boolean;
+  isShared?: boolean;
+  lastAccessedAt?: string;
+  createdBy?: number;
+  folderId?: number | null;
 };
+
+type MapFolder = {
+  id: number;
+  name: string;
+  color: string;
+  pages: SavedView[];
+};
+
+type SaveStatus = "saved" | "saving" | "dirty";
 
 type ViewType = "all" | "pii" | "network" | "data_flow";
 
@@ -474,8 +525,8 @@ function SectionNodeComponent({ data, selected }: { data: Record<string, unknown
           borderStyle: "solid",
         }}
       >
-        {/* Section header — centered at top */}
-        <div className="flex items-center justify-center gap-2 py-2 px-4 border-b" style={{ borderColor: `${color}20` }}>
+        {/* Section header — left aligned */}
+        <div className="flex items-center gap-2 py-2 px-4 border-b" style={{ borderColor: `${color}20` }}>
           <div
             className="w-2.5 h-2.5 rounded-full flex-shrink-0"
             style={{ backgroundColor: color }}
@@ -848,6 +899,7 @@ function getPiiLifecycleLayout(
 
 function LinkModal({
   assets,
+  externalEntities,
   onSave,
   onClose,
   initialSource,
@@ -855,6 +907,7 @@ function LinkModal({
   t,
 }: {
   assets: AssetNode[];
+  externalEntities: ExternalEntity[];
   onSave: (data: Record<string, unknown>) => void;
   onClose: () => void;
   initialSource?: string;
@@ -876,9 +929,15 @@ function LinkModal({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!sourceAssetId || !targetAssetId) return;
+    const isSourceExternal = sourceAssetId.startsWith("ext-");
+    const isTargetExternal = targetAssetId.startsWith("ext-");
     onSave({
-      sourceAssetId: Number(sourceAssetId),
-      targetAssetId: Number(targetAssetId),
+      ...(isSourceExternal
+        ? { sourceExternalId: Number(sourceAssetId.replace("ext-", "")) }
+        : { sourceAssetId: Number(sourceAssetId) }),
+      ...(isTargetExternal
+        ? { targetExternalId: Number(targetAssetId.replace("ext-", "")) }
+        : { targetAssetId: Number(targetAssetId) }),
       linkType,
       direction,
       label: label || null,
@@ -911,14 +970,28 @@ function LinkModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.assetMap.sourceAsset}</label>
               <select value={sourceAssetId} onChange={(e) => setSourceAssetId(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" required>
                 <option value="">--</option>
-                {assets.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                <optgroup label={t.assetMap.assetOptgroup}>
+                  {assets.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </optgroup>
+                {externalEntities.length > 0 && (
+                  <optgroup label={t.assetMap.externalEntityOptgroup}>
+                    {externalEntities.map((e) => <option key={`ext-${e.id}`} value={`ext-${e.id}`}>{e.name} ({e.type})</option>)}
+                  </optgroup>
+                )}
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.assetMap.targetAsset}</label>
               <select value={targetAssetId} onChange={(e) => setTargetAssetId(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" required>
                 <option value="">--</option>
-                {assets.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                <optgroup label={t.assetMap.assetOptgroup}>
+                  {assets.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </optgroup>
+                {externalEntities.length > 0 && (
+                  <optgroup label={t.assetMap.externalEntityOptgroup}>
+                    {externalEntities.map((e) => <option key={`ext-${e.id}`} value={`ext-${e.id}`}>{e.name} ({e.type})</option>)}
+                  </optgroup>
+                )}
               </select>
             </div>
           </div>
@@ -936,8 +1009,8 @@ function LinkModal({
                 {[
                   { value: "UNI", label: "→", desc: t.assetMap.uniDirectional },
                   { value: "BI", label: "↔", desc: t.assetMap.biDirectional },
-                  { value: "REVERSE", label: "←", desc: "역방향" },
-                  { value: "CONDITIONAL", label: "⇢", desc: "조건부" },
+                  { value: "REVERSE", label: "←", desc: t.assetMap.reverseDirection },
+                  { value: "CONDITIONAL", label: "⇢", desc: t.assetMap.conditionalDirection },
                 ].map((opt) => (
                   <button
                     key={opt.value}
@@ -960,7 +1033,7 @@ function LinkModal({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.assetMap.label}</label>
-              <input value={label} onChange={(e) => setLabel(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" placeholder="API 호출, DB 연결..." />
+              <input value={label} onChange={(e) => setLabel(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" placeholder={t.assetMap.labelPlaceholder} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.assetMap.protocol}</label>
@@ -989,7 +1062,7 @@ function LinkModal({
             <>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t.assetMap.piiItems}</label>
-                <input value={piiItemsText} onChange={(e) => setPiiItemsText(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" placeholder="이름, 이메일, 전화번호" />
+                <input value={piiItemsText} onChange={(e) => setPiiItemsText(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" placeholder={t.assetMap.piiItemsPlaceholder} />
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div>
@@ -1076,9 +1149,11 @@ function SaveViewModal({
 function SectionModal({
   onSave,
   onClose,
+  t,
 }: {
   onSave: (name: string, color: string, description: string, width: number, height: number) => void;
   onClose: () => void;
+  t: ReturnType<typeof useTranslation>["t"];
 }) {
   const [name, setName] = useState("");
   const [color, setColor] = useState("#3B82F6");
@@ -1096,14 +1171,14 @@ function SectionModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold">섹션 추가</h3>
+          <h3 className="text-lg font-bold">{t.assetMap.addSection}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="h-5 w-5" />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">섹션 이름</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t.assetMap.sectionName}</label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -1114,16 +1189,16 @@ function SectionModal({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">설명 (선택)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t.assetMap.descriptionOptional}</label>
             <input
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-              placeholder="이 섹션에 대한 설명"
+              placeholder={t.assetMap.sectionDescPlaceholder}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">색상</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t.assetMap.color}</label>
             <div className="flex flex-wrap gap-2">
               {SECTION_COLORS.map((c) => (
                 <button
@@ -1141,7 +1216,7 @@ function SectionModal({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">너비 (px)</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">{t.assetMap.widthPx}</label>
               <input
                 type="number"
                 value={width}
@@ -1152,7 +1227,7 @@ function SectionModal({
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">높이 (px)</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">{t.assetMap.heightPx}</label>
               <input
                 type="number"
                 value={height}
@@ -1167,7 +1242,7 @@ function SectionModal({
             type="submit"
             className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
           >
-            섹션 추가
+            {t.assetMap.addSection}
           </button>
         </form>
       </div>
@@ -1220,17 +1295,17 @@ function EdgeDetailModal({
   };
 
   const directionLabels: Record<string, string> = {
-    UNI: "단방향 →",
-    BI: "양방향 ↔",
-    REVERSE: "역방향 ←",
-    CONDITIONAL: "조건부 ⇢",
+    UNI: `${t.assetMap.uniDirectional} →`,
+    BI: `${t.assetMap.biDirectional} ↔`,
+    REVERSE: `${t.assetMap.reverseDirection} ←`,
+    CONDITIONAL: `${t.assetMap.conditionalDirection} ⇢`,
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
       <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold">연결 상세</h3>
+          <h3 className="text-lg font-bold">{t.assetMap.linkDetail}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="h-5 w-5" />
           </button>
@@ -1250,7 +1325,7 @@ function EdgeDetailModal({
 
           {/* Link Type + Direction */}
           <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-500">유형</span>
+            <span className="text-xs text-gray-500">{t.assetMap.typeLabel}</span>
             <span
               className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
               style={{ backgroundColor: linkBg, color: linkColor }}
@@ -1260,14 +1335,14 @@ function EdgeDetailModal({
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-500">방향</span>
+            <span className="text-xs text-gray-500">{t.assetMap.directionLabel}</span>
             <span className="text-sm text-gray-800">{directionLabels[direction] || direction}</span>
           </div>
 
           {/* Label */}
           {edgeLabel && (
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">라벨</span>
+              <span className="text-xs text-gray-500">{t.assetMap.labelField}</span>
               <span className="text-sm text-gray-800">{edgeLabel}</span>
             </div>
           )}
@@ -1275,7 +1350,7 @@ function EdgeDetailModal({
           {/* Protocol */}
           {protocol && (
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">프로토콜</span>
+              <span className="text-xs text-gray-500">{t.assetMap.protocolField}</span>
               <span className="text-sm text-gray-800">{protocol}</span>
             </div>
           )}
@@ -1283,7 +1358,7 @@ function EdgeDetailModal({
           {/* Data Types */}
           {dataTypes && (
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">데이터 유형</span>
+              <span className="text-xs text-gray-500">{t.assetMap.dataTypesField}</span>
               <div className="flex gap-1 flex-wrap">
                 {dataTypes.split(",").map((dt) => (
                   <span key={dt} className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-600">
@@ -1297,7 +1372,7 @@ function EdgeDetailModal({
           {/* PII Items */}
           {piiItems && (
             <div>
-              <span className="text-xs text-gray-500 block mb-1">개인정보 항목</span>
+              <span className="text-xs text-gray-500 block mb-1">{t.assetMap.piiItemsField}</span>
               <p className="text-sm text-gray-800 bg-red-50 rounded-lg p-2">{piiItems}</p>
             </div>
           )}
@@ -1305,7 +1380,7 @@ function EdgeDetailModal({
           {/* Legal Basis */}
           {legalBasis && (
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">법적 근거</span>
+              <span className="text-xs text-gray-500">{t.assetMap.legalBasisField}</span>
               <span className="text-sm text-gray-800">{legalBasis}</span>
             </div>
           )}
@@ -1313,7 +1388,7 @@ function EdgeDetailModal({
           {/* Retention Period */}
           {retentionPeriod && (
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">보유기간</span>
+              <span className="text-xs text-gray-500">{t.assetMap.retentionPeriodField}</span>
               <span className="text-sm text-gray-800">{retentionPeriod}</span>
             </div>
           )}
@@ -1321,7 +1396,7 @@ function EdgeDetailModal({
           {/* Destruction Method */}
           {destructionMethod && (
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">파기방법</span>
+              <span className="text-xs text-gray-500">{t.assetMap.destructionMethodField}</span>
               <span className="text-sm text-gray-800">{destructionMethod}</span>
             </div>
           )}
@@ -1337,13 +1412,13 @@ function EdgeDetailModal({
               }}
               className="flex-1 rounded-md bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:bg-amber-600 transition-colors"
             >
-              수정
+              {t.common.edit}
             </button>
             <button
               onClick={() => setShowDeleteConfirm(true)}
               className="flex-1 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors"
             >
-              삭제
+              {t.common.delete}
             </button>
           </div>
 
@@ -1351,25 +1426,25 @@ function EdgeDetailModal({
           {showDeleteConfirm && (
             <div className="rounded-lg border border-red-200 bg-red-50 p-3 space-y-2">
               <p className="text-xs text-red-700 font-medium">
-                삭제하려면 &quot;삭제하겠습니다&quot;를 입력하세요
+                {t.assetMap.deleteConfirmPrompt}
               </p>
               <input
                 value={deleteText}
                 onChange={(e) => setDeleteText(e.target.value)}
                 className="w-full rounded-md border border-red-300 px-3 py-1.5 text-sm focus:outline-none focus:border-red-500"
-                placeholder="삭제하겠습니다"
+                placeholder={t.assetMap.deleteConfirmPlaceholder}
                 autoFocus
               />
               <button
                 onClick={() => {
-                  if (deleteText === "삭제하겠습니다") {
+                  if (deleteText === t.assetMap.deleteConfirmPlaceholder) {
                     onDelete();
                   }
                 }}
-                disabled={deleteText !== "삭제하겠습니다"}
+                disabled={deleteText !== t.assetMap.deleteConfirmPlaceholder}
                 className="w-full rounded-md bg-red-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
-                삭제 확인
+                {t.assetMap.deleteConfirmButton}
               </button>
             </div>
           )}
@@ -1510,7 +1585,7 @@ function SidePanel({
   const currency = data.currency as string | null;
 
   return (
-    <div className="fixed top-0 right-0 h-full w-80 bg-white border-l border-gray-200 shadow-2xl z-40 flex flex-col overflow-hidden animate-slide-in">
+    <div className="absolute top-0 right-0 h-full w-80 bg-white border-l border-gray-200 shadow-2xl z-40 flex flex-col overflow-hidden animate-slide-in">
       {/* Panel Header */}
       <div
         className="px-5 py-4 border-b flex items-center justify-between flex-shrink-0"
@@ -1779,7 +1854,7 @@ function AssetPalette({
         <button
           onClick={() => setCollapsed(false)}
           className="w-7 h-7 rounded flex items-center justify-center text-gray-500 hover:bg-gray-200"
-          title="자산 팔레트 열기"
+          title={t.assetMap.openAssetPalette}
         >
           <GripVertical className="w-4 h-4" />
         </button>
@@ -1792,7 +1867,7 @@ function AssetPalette({
       {/* Palette Header */}
       <div className="px-3 py-2.5 border-b flex items-center justify-between">
         <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">
-          자산 팔레트
+          {t.assetMap.assetPalette}
         </span>
         <button
           onClick={() => setCollapsed(true)}
@@ -1836,7 +1911,7 @@ function AssetPalette({
       {/* Stats + Bulk Actions */}
       <div className="px-3 py-1.5 border-b flex items-center justify-between">
         <span className="text-[10px] text-gray-400">
-          캔버스: {placedCount} | 미배치: {unplacedAssets.length}
+          {t.assetMap.canvasCount}: {placedCount} | {t.assetMap.unplacedCount}: {unplacedAssets.length}
         </span>
         <div className="flex gap-1">
           {unplacedAssets.length > 0 && (
@@ -1844,7 +1919,7 @@ function AssetPalette({
               onClick={() => unplacedAssets.forEach((a) => onAddToCanvas(a))}
               className="text-[10px] font-medium text-blue-600 hover:text-blue-800 px-1.5 py-0.5 rounded hover:bg-blue-50"
             >
-              전체 추가
+              {t.assetMap.addAll}
             </button>
           )}
           {placedCount > 0 && (
@@ -1852,7 +1927,7 @@ function AssetPalette({
               onClick={() => filteredAssets.filter((a) => placedAssetIds.has(a.id)).forEach((a) => onRemoveFromCanvas(a.id))}
               className="text-[10px] font-medium text-red-500 hover:text-red-700 px-1.5 py-0.5 rounded hover:bg-red-50"
             >
-              전체 제거
+              {t.assetMap.removeAll}
             </button>
           )}
         </div>
@@ -1862,7 +1937,7 @@ function AssetPalette({
       <div className="flex-1 overflow-y-auto">
         {unplacedAssets.length === 0 && placedCount === 0 ? (
           <div className="px-3 py-8 text-center text-xs text-gray-400">
-            등록된 자산이 없습니다
+            {t.assetMap.noRegisteredAssets}
           </div>
         ) : (
           <>
@@ -1923,8 +1998,9 @@ function AssetPalette({
 
 // ─── Main Component ────────────────────────────────────────────────────
 
-export default function AssetMapContent() {
+function AssetMapContentInner() {
   const { t } = useTranslation();
+  const reactFlowInstance = useReactFlow();
   const [view, setView] = useState<ViewType>("all");
   const [nodes, setNodes, defaultOnNodesChange] = useNodesState([] as Node[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([] as Edge[]);
@@ -1944,21 +2020,322 @@ export default function AssetMapContent() {
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
   const [editingSection, setEditingSection] = useState<Node | null>(null);
 
-  // Fetch saved views on mount
+  // ── Workspace state ──
+  const [activeWorkspace, setActiveWorkspace] = useState<SavedView | null>(null);
+  const [workspaces, setWorkspaces] = useState<SavedView[]>([]);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
+  const [editingWsName, setEditingWsName] = useState<number | null>(null);
+  const [wsContextMenu, setWsContextMenu] = useState<{ id: number; x: number; y: number } | null>(null);
+
+  // ── Folder state ──
+  const [folders, setFolders] = useState<MapFolder[]>([]);
+  const [showNewFolderModal, setShowNewFolderModal] = useState(false);
+  const [folderContextMenu, setFolderContextMenu] = useState<{ id: number; x: number; y: number } | null>(null);
+  const [editingFolderName, setEditingFolderName] = useState<number | null>(null);
+  const [expandedFolders, setExpandedFolders] = useState<Set<number>>(new Set());
+
+  // ── Gallery / Canvas view state ──
+  const [currentView, setCurrentView] = useState<"gallery" | "canvas">("gallery");
+  const [showNewWsModal, setShowNewWsModal] = useState(false);
+  const [showAssetPalette, setShowAssetPalette] = useState(false);
+  const [showEntityPalette, setShowEntityPalette] = useState(false);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const viewportSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dirtyRef = useRef(false);
+  const activeWorkspaceRef = useRef<SavedView | null>(null);
+  activeWorkspaceRef.current = activeWorkspace;
+
+  // ── Auto-save function ──
+  const flushSave = useCallback(async () => {
+    const ws = activeWorkspaceRef.current;
+    if (!ws || !dirtyRef.current) return;
+    dirtyRef.current = false;
+    setSaveStatus("saving");
+    try {
+      const currentNodes = reactFlowInstance.getNodes();
+      const viewport = reactFlowInstance.getViewport();
+      const nodePositions: Record<string, { x: number; y: number }> = {};
+      const sectionData: SectionDataItem[] = [];
+
+      for (const n of currentNodes) {
+        if (n.type === "piiStageLabel") continue;
+        if (n.type === "section") {
+          sectionData.push({
+            id: n.id,
+            name: (n.data?.sectionName as string) || "",
+            color: (n.data?.sectionColor as string) || "#3B82F6",
+            description: (n.data?.sectionDescription as string) || "",
+            x: n.position.x,
+            y: n.position.y,
+            width: (n.style?.width as number) || 400,
+            height: (n.style?.height as number) || 300,
+            children: currentNodes.filter(c => c.parentId === n.id).map(c => c.id),
+          });
+        } else {
+          nodePositions[n.id] = { x: n.position.x, y: n.position.y };
+        }
+      }
+
+      await fetch(`/api/asset-map/views/${ws.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nodePositions,
+          sectionData,
+          viewport: { x: viewport.x, y: viewport.y, zoom: viewport.zoom },
+          _autoSave: true,
+        }),
+      });
+      setSaveStatus("saved");
+    } catch {
+      setSaveStatus("dirty");
+      dirtyRef.current = true;
+    }
+  }, [reactFlowInstance]);
+
+  const markDirty = useCallback((debounceMs = 2000) => {
+    dirtyRef.current = true;
+    setSaveStatus("dirty");
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(() => flushSave(), debounceMs);
+  }, [flushSave]);
+
+  // ── Ctrl+S manual save ──
   useEffect(() => {
-    async function loadSavedViews() {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        flushSave();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [flushSave]);
+
+  // ── beforeunload save ──
+  useEffect(() => {
+    const handler = () => {
+      if (dirtyRef.current && activeWorkspaceRef.current) {
+        const currentNodes = reactFlowInstance.getNodes();
+        const viewport = reactFlowInstance.getViewport();
+        const nodePositions: Record<string, { x: number; y: number }> = {};
+        const sectionData: SectionDataItem[] = [];
+        for (const n of currentNodes) {
+          if (n.type === "piiStageLabel") continue;
+          if (n.type === "section") {
+            sectionData.push({
+              id: n.id, name: (n.data?.sectionName as string) || "",
+              color: (n.data?.sectionColor as string) || "#3B82F6",
+              description: (n.data?.sectionDescription as string) || "",
+              x: n.position.x, y: n.position.y,
+              width: (n.style?.width as number) || 400,
+              height: (n.style?.height as number) || 300,
+              children: currentNodes.filter(c => c.parentId === n.id).map(c => c.id),
+            });
+          } else {
+            nodePositions[n.id] = { x: n.position.x, y: n.position.y };
+          }
+        }
+        navigator.sendBeacon(
+          `/api/asset-map/views/${activeWorkspaceRef.current.id}`,
+          new Blob([JSON.stringify({
+            nodePositions, sectionData,
+            viewport: { x: viewport.x, y: viewport.y, zoom: viewport.zoom },
+            _autoSave: true,
+          })], { type: "application/json" }),
+        );
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [reactFlowInstance]);
+
+  // ── Viewport change auto-save (3s debounce) ──
+  const onMoveEnd = useCallback(() => {
+    if (!activeWorkspaceRef.current) return;
+    dirtyRef.current = true;
+    setSaveStatus("dirty");
+    if (viewportSaveTimerRef.current) clearTimeout(viewportSaveTimerRef.current);
+    viewportSaveTimerRef.current = setTimeout(() => flushSave(), 3000);
+  }, [flushSave]);
+
+  // ── Workspace operations ──
+  const loadWorkspace = useCallback(async (ws: SavedView) => {
+    // Flush current before switching
+    if (dirtyRef.current) await flushSave();
+
+    setActiveWorkspace(ws);
+    setCurrentView("canvas");
+    // Touch lastAccessedAt
+    fetch(`/api/asset-map/views/${ws.id}/touch`, { method: "PATCH" }).catch(() => {});
+  }, [flushSave]);
+
+  const createWorkspace = useCallback(async (name: string) => {
+    try {
+      const res = await fetch("/api/asset-map/views", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, viewType: "ALL" }),
+      });
+      if (res.ok) {
+        const created = await res.json();
+        setWorkspaces(prev => [created, ...prev]);
+        loadWorkspace(created);
+      }
+    } catch { /* silent */ }
+  }, [loadWorkspace]);
+
+  const duplicateWorkspace = useCallback(async (id: number) => {
+    try {
+      const res = await fetch(`/api/asset-map/views/${id}/duplicate`, { method: "POST" });
+      if (res.ok) {
+        const dup = await res.json();
+        setWorkspaces(prev => [dup, ...prev]);
+      }
+    } catch { /* silent */ }
+  }, []);
+
+  const deleteWorkspace = useCallback(async (id: number) => {
+    const ws = workspaces.find(w => w.id === id);
+    if (ws?.isDefault) return;
+    try {
+      const res = await fetch(`/api/asset-map/views/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setWorkspaces(prev => prev.filter(w => w.id !== id));
+        if (activeWorkspace?.id === id) {
+          const defaultWs = workspaces.find(w => w.isDefault && w.id !== id);
+          if (defaultWs) loadWorkspace(defaultWs);
+        }
+      }
+    } catch { /* silent */ }
+  }, [workspaces, activeWorkspace, loadWorkspace]);
+
+  const renameWorkspace = useCallback(async (id: number, name: string) => {
+    try {
+      await fetch(`/api/asset-map/views/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      setWorkspaces(prev => prev.map(w => w.id === id ? { ...w, name } : w));
+      if (activeWorkspace?.id === id) setActiveWorkspace(prev => prev ? { ...prev, name } : prev);
+    } catch { /* silent */ }
+  }, [activeWorkspace]);
+
+  const toggleShareWorkspace = useCallback(async (id: number) => {
+    const ws = workspaces.find(w => w.id === id);
+    if (!ws) return;
+    try {
+      await fetch(`/api/asset-map/views/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isShared: !ws.isShared }),
+      });
+      setWorkspaces(prev => prev.map(w => w.id === id ? { ...w, isShared: !w.isShared } : w));
+    } catch { /* silent */ }
+  }, [workspaces]);
+
+  // ── Folder operations ──
+  const fetchFolders = useCallback(async () => {
+    try {
+      const res = await fetch("/api/asset-map/folders");
+      if (res.ok) {
+        const data = await res.json();
+        setFolders(data.folders || []);
+      }
+    } catch { /* silent */ }
+  }, []);
+
+  const createFolder = useCallback(async (name: string) => {
+    try {
+      const res = await fetch("/api/asset-map/folders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      if (res.ok) {
+        const folder = await res.json();
+        setFolders(prev => [...prev, { ...folder, pages: [] }]);
+      }
+    } catch { /* silent */ }
+  }, []);
+
+  const renameFolder = useCallback(async (id: number, name: string) => {
+    try {
+      await fetch(`/api/asset-map/folders/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      setFolders(prev => prev.map(f => f.id === id ? { ...f, name } : f));
+    } catch { /* silent */ }
+  }, []);
+
+  const deleteFolder = useCallback(async (id: number) => {
+    try {
+      const res = await fetch(`/api/asset-map/folders/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setFolders(prev => prev.filter(f => f.id !== id));
+        // Refresh workspaces to get updated folderId
+        const viewsRes = await fetch("/api/asset-map/views");
+        if (viewsRes.ok) {
+          const data = await viewsRes.json();
+          const views = Array.isArray(data) ? data : data.views ?? [];
+          setWorkspaces(views);
+        }
+      }
+    } catch { /* silent */ }
+  }, []);
+
+  const movePageToFolder = useCallback(async (pageId: number, folderId: number | null) => {
+    try {
+      await fetch(`/api/asset-map/views/${pageId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folderId }),
+      });
+      setWorkspaces(prev => prev.map(w => w.id === pageId ? { ...w, folderId } : w));
+      fetchFolders();
+    } catch { /* silent */ }
+  }, [fetchFolders]);
+
+  const toggleFolder = useCallback((folderId: number) => {
+    setExpandedFolders(prev => {
+      const next = new Set(prev);
+      if (next.has(folderId)) next.delete(folderId);
+      else next.add(folderId);
+      return next;
+    });
+  }, []);
+
+  // ── Initial load: ensure-default (gallery stays, no auto-canvas) ──
+  useEffect(() => {
+    async function init() {
       try {
-        const res = await fetch("/api/asset-map/views");
+        const res = await fetch("/api/asset-map/views/ensure-default", { method: "POST" });
         if (res.ok) {
           const data = await res.json();
-          setSavedViews(Array.isArray(data) ? data : data.views ?? []);
+          const views: SavedView[] = data.views ?? [];
+          setWorkspaces(views);
+          setSavedViews(views);
+          // Do NOT auto-load into canvas — stay in gallery
         }
       } catch {
-        // silently fail
+        // Fallback: load views the old way
+        try {
+          const res = await fetch("/api/asset-map/views");
+          if (res.ok) {
+            const data = await res.json();
+            const views = Array.isArray(data) ? data : data.views ?? [];
+            setSavedViews(views);
+            setWorkspaces(views);
+          }
+        } catch { /* silent */ }
       }
     }
-    loadSavedViews();
-  }, []);
+    init();
+    fetchFolders();
+  }, [fetchFolders]);
 
   const fetchGraph = useCallback(async () => {
     setLoading(true);
@@ -1975,11 +2352,25 @@ export default function AssetMapContent() {
       // Save all assets for palette
       setAllAssets(fetchedAllAssets);
 
-      // "all" 뷰: 모든 자산을 캔버스에 표시
-      // 필터링 뷰 (pii/network/data_flow): 연결·그룹·수동 배치된 자산만 표시
+      // 워크스페이스에 저장된 nodePositions 기준으로 캔버스에 올릴 자산 결정
+      // - nodePositions가 있으면: 해당 ID의 자산만 배치 (저장된 페이지 복원)
+      // - nodePositions가 비어있으면: 빈 캔버스 (새 페이지)
+      // - isDefault이고 nodePositions가 null이면: 기존처럼 전체 배치 (최초 마이그레이션)
+      const ws = activeWorkspaceRef.current;
+      const savedPositions = ws?.nodePositions;
+      const hasSavedPositions = savedPositions && Object.keys(savedPositions).length > 0;
+      const isNewEmptyPage = ws && !hasSavedPositions && !ws.isDefault;
+
       let fetchedAssets: AssetNode[];
-      if (view === "all") {
-        // 중복 ID 제거
+      if (isNewEmptyPage) {
+        // 새 페이지: 빈 캔버스 — 팔레트에서 수동 추가만 가능
+        fetchedAssets = [];
+      } else if (hasSavedPositions && view === "all") {
+        // 저장된 위치가 있는 페이지: 저장된 ID만 캔버스에 배치
+        const savedIds = new Set(Object.keys(savedPositions).filter(k => !k.startsWith("ext-")).map(Number));
+        fetchedAssets = fetchedAllAssets.filter((a) => savedIds.has(a.id));
+      } else if (view === "all") {
+        // 기본 페이지 (최초 또는 마이그레이션): 전체 배치
         const seen = new Set<number>();
         fetchedAssets = fetchedAllAssets.filter((a) => {
           if (seen.has(a.id)) return false;
@@ -1989,8 +2380,8 @@ export default function AssetMapContent() {
       } else {
         const connectedAssetIds = new Set<number>();
         fetchedEdges.forEach((e: AssetEdge) => {
-          connectedAssetIds.add(e.sourceAssetId);
-          connectedAssetIds.add(e.targetAssetId);
+          if (e.sourceAssetId) connectedAssetIds.add(e.sourceAssetId);
+          if (e.targetAssetId) connectedAssetIds.add(e.targetAssetId);
         });
         fetchedGroups.forEach((g) => {
           (g.assetIds || []).forEach((id) => connectedAssetIds.add(id));
@@ -2072,8 +2463,17 @@ export default function AssetMapContent() {
         return baseNode;
       });
 
-      // Create external entity nodes
-      const entityNodes: Node[] = fetchedEntities.map((ent, i) => ({
+      // Create external entity nodes — only for entities with saved positions or on default page
+      const placedExtIds = hasSavedPositions
+        ? new Set(Object.keys(savedPositions!).filter(k => k.startsWith("ext-")).map(k => Number(k.replace("ext-", ""))))
+        : null;
+      const filteredEntities = isNewEmptyPage
+        ? [] // 새 페이지: 빈 캔버스
+        : placedExtIds
+          ? fetchedEntities.filter(e => placedExtIds.has(e.id)) // 저장된 것만
+          : fetchedEntities; // 기본 페이지: 전체
+
+      const entityNodes: Node[] = filteredEntities.map((ent, i) => ({
         id: `ext-${ent.id}`,
         type: "externalEntity",
         position: { x: (fetchedAssets.length % 5 + i) * 260, y: Math.floor((fetchedAssets.length + i) / 5) * 160 },
@@ -2093,8 +2493,8 @@ export default function AssetMapContent() {
       const rawEdges = data.edges || [];
 
       const flowEdges: Edge[] = rawEdges.map((e: AssetEdge & { source?: string; target?: string; sourceName?: string; targetName?: string }) => {
-        const sourceId = e.source ? String(e.source) : String(e.sourceAssetId);
-        const targetId = e.target ? String(e.target) : String(e.targetAssetId);
+        const sourceId = e.source ? String(e.source) : (e.sourceAssetId ? String(e.sourceAssetId) : `ext-${e.sourceExternalId}`);
+        const targetId = e.target ? String(e.target) : (e.targetAssetId ? String(e.targetAssetId) : `ext-${e.targetExternalId}`);
         const linkType = e.linkType || "DATA_FLOW";
         const linkColor = LINK_COLORS[linkType] || "#6B7280";
 
@@ -2202,7 +2602,70 @@ export default function AssetMapContent() {
     }
   }, [view, setNodes, setEdges, t]);
 
-  useEffect(() => { fetchGraph(); }, [fetchGraph]);
+  // Only fetch graph when in canvas view with an active workspace
+  useEffect(() => {
+    if (currentView === "canvas" && activeWorkspace) {
+      fetchGraph();
+    }
+  }, [currentView, activeWorkspace, fetchGraph]);
+
+  // ── Restore workspace state after graph loads ──
+  useEffect(() => {
+    if (loading || !activeWorkspace) return;
+
+    const ws = activeWorkspace;
+    const positions = ws.nodePositions;
+    const sections = ws.sectionData;
+    const vp = ws.viewport;
+
+    // Apply saved node positions
+    if (positions && Object.keys(positions).length > 0) {
+      setNodes((prev) => {
+        const updated = prev.map((n) => {
+          const saved = positions[n.id];
+          if (saved) return { ...n, position: { x: saved.x, y: saved.y } };
+          return n;
+        });
+
+        // Restore sections
+        if (sections && sections.length > 0) {
+          for (const sec of sections) {
+            const exists = updated.find((n) => n.id === sec.id);
+            if (!exists) {
+              updated.push({
+                id: sec.id,
+                type: "section",
+                position: { x: sec.x, y: sec.y },
+                style: { width: sec.width, height: sec.height },
+                data: {
+                  sectionName: sec.name,
+                  sectionColor: sec.color,
+                  sectionDescription: sec.description,
+                },
+                draggable: true,
+              });
+            }
+            // Re-parent children
+            for (const childId of sec.children) {
+              const childIdx = updated.findIndex((n) => n.id === childId);
+              if (childIdx >= 0) {
+                updated[childIdx] = { ...updated[childIdx], parentId: sec.id };
+              }
+            }
+          }
+        }
+
+        return updated;
+      });
+    }
+
+    // Restore viewport
+    if (vp) {
+      setTimeout(() => {
+        reactFlowInstance.setViewport({ x: vp.x, y: vp.y, zoom: vp.zoom });
+      }, 200);
+    }
+  }, [loading, activeWorkspace, setNodes, reactFlowInstance]);
 
   const onConnect = useCallback((params: Connection) => {
     if (params.source && params.target && params.source !== params.target) {
@@ -2297,6 +2760,7 @@ export default function AssetMapContent() {
 
   // 드래그 종료: 자유 노드가 섹션 위에 드랍되면 자식으로 편입
   const onNodeDragStop = useCallback((_event: React.MouseEvent, draggedNode: Node) => {
+    markDirty(2000); // auto-save after drag
     if (draggedNode.type === "section" || draggedNode.type === "assetGroup") return;
     // assetGroup 자식은 무시
     if (draggedNode.parentId && String(draggedNode.parentId).startsWith("group-")) return;
@@ -2374,7 +2838,7 @@ export default function AssetMapContent() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        alert(err.error || "연결 생성에 실패했습니다.");
+        alert(err.error || t.assetMap.linkCreateFail);
         return;
       }
         const newLink = await res.json();
@@ -2390,8 +2854,8 @@ export default function AssetMapContent() {
         const newEdge: Edge = {
           id: `link-${newLink.id}`,
           type: "smoothstep",
-          source: String(newLink.sourceAssetId),
-          target: String(newLink.targetAssetId),
+          source: newLink.sourceAssetId ? String(newLink.sourceAssetId) : `ext-${newLink.sourceExternalId}`,
+          target: newLink.targetAssetId ? String(newLink.targetAssetId) : `ext-${newLink.targetExternalId}`,
           sourceHandle: newLink.sourceHandle || pendingConnection?.sourceHandle || "right",
           targetHandle: newLink.targetHandle || pendingConnection?.targetHandle || "left",
           style: { stroke: linkColor, strokeWidth: 2, strokeDasharray },
@@ -2428,7 +2892,7 @@ export default function AssetMapContent() {
         });
         setPendingConnection(null);
     } catch {
-      alert("연결 생성 중 오류가 발생했습니다.");
+      alert(t.assetMap.linkCreateError);
     }
   }
 
@@ -2524,7 +2988,7 @@ export default function AssetMapContent() {
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          alert(err.error || "PDF 생성에 실패했습니다.");
+          alert(err.error || t.assetMap.pdfCreateFail);
           return;
         }
         const blob = await res.blob();
@@ -2631,7 +3095,7 @@ export default function AssetMapContent() {
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        alert(err.error || "PDF 생성에 실패했습니다.");
+        alert(err.error || t.assetMap.pdfCreateFail);
         return;
       }
 
@@ -2645,7 +3109,7 @@ export default function AssetMapContent() {
       URL.revokeObjectURL(url);
     } catch (e) {
       console.error("PDF export error:", e);
-      alert("PDF 내보내기 중 오류가 발생했습니다.");
+      alert(t.assetMap.pdfExportError);
     } finally {
       setExporting(false);
     }
@@ -2700,6 +3164,38 @@ export default function AssetMapContent() {
     };
     setNodes((prev) => [...prev, newNode]);
     setAssets((prev) => [...prev, asset]);
+    markDirty(2000);
+  }
+
+  function handleAddEntityToCanvas(entity: ExternalEntity) {
+    const nodeId = `ext-${entity.id}`;
+    if (nodes.some((n) => n.id === nodeId)) return;
+
+    const newNode: Node = {
+      id: nodeId,
+      type: "externalEntity",
+      position: { x: 300 + Math.random() * 200, y: 200 + Math.random() * 200 },
+      data: {
+        label: entity.name,
+        entityType: entity.type,
+        description: entity.description,
+        contactInfo: entity.contactInfo,
+        isExternalEntity: true,
+        trusteeLabel: t.assetMap.trustee,
+        partnerLabel: t.assetMap.partner,
+        governmentLabel: t.assetMap.government,
+        otherLabel: t.assetMap.otherEntity,
+      },
+    };
+    setNodes((prev) => [...prev, newNode]);
+    markDirty(2000);
+  }
+
+  function handleRemoveEntityFromCanvas(entityId: number) {
+    const nodeId = `ext-${entityId}`;
+    setNodes((prev) => prev.filter((n) => n.id !== nodeId));
+    setEdges((prev) => prev.filter((e) => e.source !== nodeId && e.target !== nodeId));
+    markDirty(2000);
   }
 
   // Save current view positions
@@ -2758,6 +3254,28 @@ export default function AssetMapContent() {
     }, 100);
   }
 
+  // ── Relative time helper ──
+  function formatRelativeTime(dateStr?: string) {
+    if (!dateStr) return "";
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return t.assetMap.justNow;
+    if (mins < 60) return `${mins}${t.assetMap.minutesAgo}`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}${t.assetMap.hoursAgo}`;
+    const days = Math.floor(hours / 24);
+    if (days < 30) return `${days}${t.assetMap.daysAgo}`;
+    const months = Math.floor(days / 30);
+    return `${months}${t.assetMap.monthsAgo}`;
+  }
+
+  // ── Back to gallery handler ──
+  const handleBackToGallery = useCallback(async () => {
+    if (dirtyRef.current) await flushSave();
+    setCurrentView("gallery");
+    setActiveWorkspace(null);
+  }, [flushSave]);
+
   const viewTabs: { key: ViewType; label: string }[] = [
     { key: "all", label: t.assetMap.viewAll },
     { key: "pii", label: t.assetMap.viewPii },
@@ -2765,12 +3283,512 @@ export default function AssetMapContent() {
     { key: "data_flow", label: t.assetMap.viewDataFlow },
   ];
 
+  // ── Onboarding: create example page ──
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
+  const showOnboarding = !onboardingDismissed && workspaces.length === 0 && folders.length === 0;
+
+  const createExamplePage = useCallback(async () => {
+    try {
+      // 예시 페이지 생성
+      const res = await fetch("/api/asset-map/views", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: t.assetMap.examplePageName,
+          viewType: "ALL",
+          description: t.assetMap.examplePageDesc,
+        }),
+      });
+      if (res.ok) {
+        const page = await res.json();
+        setWorkspaces(prev => [page, ...prev]);
+        setOnboardingDismissed(true);
+        loadWorkspace(page);
+      }
+    } catch { /* silent */ }
+  }, [loadWorkspace]);
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // ── Gallery View ──
+  // ═══════════════════════════════════════════════════════════════════════
+  if (currentView === "gallery") {
+    // Collect folder IDs from server-side folders
+    const folderPageIds = new Set(folders.flatMap(f => f.pages.map(p => p.id)));
+    // Root pages: not shared from others, and not inside any folder
+    const myRootWorkspaces = workspaces.filter(w =>
+      (!w.isShared || w.createdBy === undefined) && !w.folderId && !folderPageIds.has(w.id)
+    );
+    const sharedWorkspaces = workspaces.filter(w => w.isShared && w.createdBy !== undefined);
+
+    // Helper: render a page card (reused for root and folder children)
+    const renderPageCard = (ws: SavedView, compact?: boolean) => (
+      <div
+        key={ws.id}
+        className={`group relative bg-white rounded-xl border border-gray-200 cursor-pointer hover:shadow-md hover:border-blue-300 transition-all overflow-hidden${compact ? " scale-[0.97] origin-top" : ""}`}
+        onClick={() => loadWorkspace(ws)}
+        onContextMenu={(e) => { e.preventDefault(); setWsContextMenu({ id: ws.id, x: e.clientX, y: e.clientY }); }}
+      >
+        {/* 도면 미리보기 영역 */}
+        <div className={`${compact ? "h-16" : "h-24"} bg-gradient-to-br from-gray-50 to-gray-100 relative border-b border-gray-100`}>
+          <svg className="absolute inset-0 w-full h-full opacity-20" xmlns="http://www.w3.org/2000/svg">
+            <defs><pattern id={`grid-${ws.id}`} width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="#94a3b8" strokeWidth="0.5"/></pattern></defs>
+            <rect width="100%" height="100%" fill={`url(#grid-${ws.id})`} />
+          </svg>
+          <div className="absolute top-4 left-5 w-8 h-5 rounded border border-blue-200 bg-blue-50/80" />
+          <div className="absolute top-3 right-8 w-10 h-5 rounded border border-emerald-200 bg-emerald-50/80" />
+          {!compact && <div className="absolute bottom-3 left-12 w-7 h-5 rounded border border-purple-200 bg-purple-50/80" />}
+          {!compact && <div className="absolute top-6 left-16 w-12 h-[1px] bg-gray-300" />}
+          {ws.isDefault && (
+            <div className="absolute top-2 left-2 flex items-center gap-1 bg-amber-100 rounded-full px-1.5 py-0.5">
+              <Star className="h-3 w-3 text-amber-500" />
+              <span className="text-[9px] font-semibold text-amber-700">{t.assetMap.defaultBadge}</span>
+            </div>
+          )}
+          <button
+            onClick={(e) => { e.stopPropagation(); setWsContextMenu({ id: ws.id, x: e.clientX, y: e.clientY }); }}
+            className="absolute top-2 right-2 w-6 h-6 rounded-md flex items-center justify-center bg-white/70 text-gray-400 opacity-0 group-hover:opacity-100 hover:text-gray-700 hover:bg-white transition"
+          >
+            <MoreVertical className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        <div className="px-3 py-2.5">
+          {editingWsName === ws.id ? (
+            <input
+              autoFocus
+              defaultValue={ws.name}
+              className="w-full text-sm font-medium bg-white border border-blue-300 rounded px-2 py-1 mb-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onBlur={(e) => { renameWorkspace(ws.id, e.target.value); setEditingWsName(null); }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") { renameWorkspace(ws.id, (e.target as HTMLInputElement).value); setEditingWsName(null); }
+                if (e.key === "Escape") setEditingWsName(null);
+              }}
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <h3 className="text-sm font-medium text-gray-900 truncate">{ws.name}</h3>
+          )}
+          <div className="flex items-center gap-2 text-[11px] text-gray-400 mt-0.5">
+            {ws.isShared && <Share2 className="h-3 w-3 text-blue-400" />}
+            <span>{formatRelativeTime(ws.lastAccessedAt)}</span>
+          </div>
+        </div>
+      </div>
+    );
+
+    return (
+      <div className="h-[calc(100vh-64px)] relative flex flex-col bg-gray-50">
+        {/* Gallery Header */}
+        <div className="flex items-center justify-between border-b bg-white px-6 py-3 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-bold">{t.assetMap.title}</h1>
+            <span className="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-semibold text-purple-700">
+              {t.assetMap.alpha}
+            </span>
+          </div>
+        </div>
+
+        {/* Gallery Body */}
+        <div className="flex-1 overflow-y-auto px-8 py-6">
+          {/* Onboarding Banner */}
+          {showOnboarding && (
+            <div className="mb-6 rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-5">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 mb-1">{t.assetMap.onboardingTitle}</h3>
+                  <p className="text-xs text-gray-600 mb-3 whitespace-pre-line">
+                    {t.assetMap.onboardingDesc}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={createExamplePage}
+                      className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-medium text-white hover:bg-blue-700 transition"
+                    >
+                      {t.assetMap.startWithExample}
+                    </button>
+                    <button
+                      onClick={() => setOnboardingDismissed(true)}
+                      className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 transition"
+                    >
+                      {t.assetMap.skip}
+                    </button>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setOnboardingDismissed(true)}
+                  className="text-gray-400 hover:text-gray-600 ml-4"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* My Workspaces Section Header */}
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-gray-700">{t.assetMap.myWorkspaces}</h2>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowNewFolderModal(true)}
+                className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition"
+              >
+                <FolderPlus className="h-3.5 w-3.5" />
+                {t.assetMap.newFolder}
+              </button>
+              <button
+                onClick={() => setShowNewWsModal(true)}
+                className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                {t.assetMap.newWorkspace}
+              </button>
+            </div>
+          </div>
+
+          {/* Grid: Root pages + Folders + New cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-4">
+            {/* Root page cards */}
+            {myRootWorkspaces.map((ws) => renderPageCard(ws))}
+
+            {/* Folder cards */}
+            {folders.map((folder) => {
+              const isExpanded = expandedFolders.has(folder.id);
+              return (
+                <div
+                  key={`folder-${folder.id}`}
+                  className="group relative bg-white rounded-xl border border-gray-200 hover:shadow-md hover:border-amber-300 transition-all overflow-hidden cursor-pointer"
+                  onClick={() => toggleFolder(folder.id)}
+                  onContextMenu={(e) => { e.preventDefault(); setFolderContextMenu({ id: folder.id, x: e.clientX, y: e.clientY }); }}
+                >
+                  {/* Folder preview area */}
+                  <div className="h-24 relative border-b border-gray-100" style={{ background: `linear-gradient(135deg, ${folder.color}15, ${folder.color}08)` }}>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      {isExpanded ? (
+                        <FolderOpen className="h-12 w-12 opacity-20" style={{ color: folder.color }} />
+                      ) : (
+                        <Folder className="h-12 w-12 opacity-20" style={{ color: folder.color }} />
+                      )}
+                    </div>
+                    {/* Page count badge */}
+                    <div className="absolute top-2 left-2 flex items-center gap-1 rounded-full px-1.5 py-0.5" style={{ backgroundColor: `${folder.color}20` }}>
+                      <FileText className="h-3 w-3" style={{ color: folder.color }} />
+                      <span className="text-[9px] font-semibold" style={{ color: folder.color }}>{folder.pages.length}</span>
+                    </div>
+                    {/* Expand indicator */}
+                    <div className="absolute bottom-2 right-2">
+                      <ChevronRight className={`h-4 w-4 text-gray-400 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
+                    </div>
+                    {/* Context menu button */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setFolderContextMenu({ id: folder.id, x: e.clientX, y: e.clientY }); }}
+                      className="absolute top-2 right-2 w-6 h-6 rounded-md flex items-center justify-center bg-white/70 text-gray-400 opacity-0 group-hover:opacity-100 hover:text-gray-700 hover:bg-white transition"
+                    >
+                      <MoreVertical className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  {/* Folder name */}
+                  <div className="px-3 py-2.5">
+                    {editingFolderName === folder.id ? (
+                      <input
+                        autoFocus
+                        defaultValue={folder.name}
+                        className="w-full text-sm font-medium bg-white border border-blue-300 rounded px-2 py-1 mb-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        onBlur={(e) => { renameFolder(folder.id, e.target.value); setEditingFolderName(null); }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") { renameFolder(folder.id, (e.target as HTMLInputElement).value); setEditingFolderName(null); }
+                          if (e.key === "Escape") setEditingFolderName(null);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    ) : (
+                      <h3 className="text-sm font-medium text-gray-900 truncate flex items-center gap-1.5">
+                        <Folder className="h-3.5 w-3.5 flex-shrink-0" style={{ color: folder.color }} />
+                        {folder.name}
+                      </h3>
+                    )}
+                    <div className="text-[11px] text-gray-400 mt-0.5">
+                      {folder.pages.length > 0 ? `${folder.pages.length}${t.assetMap.pagesCount}` : t.assetMap.emptyFolder}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* "+ New Page" card */}
+            <div
+              className="bg-white rounded-xl border-2 border-dashed border-gray-300 cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-all flex flex-col items-center justify-center overflow-hidden"
+              onClick={() => setShowNewWsModal(true)}
+              style={{ minHeight: "152px" }}
+            >
+              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-2">
+                <Plus className="h-5 w-5 text-gray-400" />
+              </div>
+              <span className="text-xs font-medium text-gray-500">{t.assetMap.newWorkspace}</span>
+            </div>
+
+            {/* "+ New Folder" card */}
+            <div
+              className="bg-white rounded-xl border-2 border-dashed border-gray-300 cursor-pointer hover:border-amber-400 hover:bg-amber-50/30 transition-all flex flex-col items-center justify-center overflow-hidden"
+              onClick={() => setShowNewFolderModal(true)}
+              style={{ minHeight: "152px" }}
+            >
+              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-2">
+                <FolderPlus className="h-5 w-5 text-gray-400" />
+              </div>
+              <span className="text-xs font-medium text-gray-500">{t.assetMap.newFolder}</span>
+            </div>
+          </div>
+
+          {/* Expanded folder children — shown below the grid */}
+          {folders.map((folder) => {
+            if (!expandedFolders.has(folder.id) || folder.pages.length === 0) return null;
+            return (
+              <div key={`folder-children-${folder.id}`} className="mb-6">
+                <div className="flex items-center gap-2 mb-3 pl-2">
+                  <Folder className="h-4 w-4" style={{ color: folder.color }} />
+                  <span className="text-xs font-semibold text-gray-600">{folder.name}</span>
+                  <span className="text-[10px] text-gray-400">({folder.pages.length})</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 pl-4 border-l-2 ml-2" style={{ borderColor: `${folder.color}40` }}>
+                  {folder.pages.map((page) => {
+                    // Use the workspace data if available (has full info), otherwise use folder page data
+                    const fullWs = workspaces.find(w => w.id === page.id) || page;
+                    return renderPageCard(fullWs, true);
+                  })}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Shared Workspaces Section */}
+          {sharedWorkspaces.length > 0 && (
+            <>
+              <h2 className="text-sm font-semibold text-gray-700 mb-4">{t.assetMap.sharedWorkspaces}</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {sharedWorkspaces.map((ws) => (
+                  <div
+                    key={`shared-${ws.id}`}
+                    className="group relative bg-white rounded-xl border border-gray-200 cursor-pointer hover:shadow-md hover:border-blue-300 transition-all overflow-hidden"
+                    onClick={() => loadWorkspace(ws)}
+                  >
+                    <div className="h-24 bg-gradient-to-br from-blue-50 to-gray-100 relative border-b border-gray-100">
+                      <svg className="absolute inset-0 w-full h-full opacity-20" xmlns="http://www.w3.org/2000/svg">
+                        <defs><pattern id={`grid-s-${ws.id}`} width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="#94a3b8" strokeWidth="0.5"/></pattern></defs>
+                        <rect width="100%" height="100%" fill={`url(#grid-s-${ws.id})`} />
+                      </svg>
+                      <div className="absolute top-4 left-5 w-8 h-5 rounded border border-blue-200 bg-blue-50/80" />
+                      <div className="absolute top-3 right-8 w-10 h-5 rounded border border-emerald-200 bg-emerald-50/80" />
+                      <div className="absolute bottom-3 left-12 w-7 h-5 rounded border border-purple-200 bg-purple-50/80" />
+                      <div className="absolute top-2 left-2 flex items-center gap-1 bg-blue-100 rounded-full px-1.5 py-0.5">
+                        <Share2 className="h-3 w-3 text-blue-500" />
+                        <span className="text-[9px] font-semibold text-blue-700">{t.assetMap.shareWorkspace}</span>
+                      </div>
+                    </div>
+                    <div className="px-3 py-2.5">
+                      <h3 className="text-sm font-medium text-gray-900 truncate">{ws.name}</h3>
+                      <div className="text-[11px] text-gray-400 mt-0.5">
+                        <span>{formatRelativeTime(ws.lastAccessedAt)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Workspace Context Menu (with "Move to folder" submenu) */}
+        {wsContextMenu && (
+          <>
+            <div className="fixed inset-0 z-50" onClick={() => setWsContextMenu(null)} />
+            <div
+              className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[160px]"
+              style={{ left: wsContextMenu.x, top: wsContextMenu.y }}
+            >
+              <button onClick={() => { setEditingWsName(wsContextMenu.id); setWsContextMenu(null); }}
+                className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                <Pencil className="h-3 w-3" />{t.assetMap.renameWorkspace}
+              </button>
+              <button onClick={() => { duplicateWorkspace(wsContextMenu.id); setWsContextMenu(null); }}
+                className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                <Copy className="h-3 w-3" />{t.assetMap.duplicateWorkspace}
+              </button>
+              <button onClick={() => { toggleShareWorkspace(wsContextMenu.id); setWsContextMenu(null); }}
+                className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                <Share2 className="h-3 w-3" />{t.assetMap.shareWorkspace}
+              </button>
+              {/* Move to folder submenu */}
+              {folders.length > 0 && (
+                <>
+                  <hr className="my-1 border-gray-100" />
+                  <div className="px-3 py-1 text-[10px] font-semibold text-gray-400 uppercase">{t.assetMap.moveToFolder}</div>
+                  {(() => {
+                    const currentWs = workspaces.find(w => w.id === wsContextMenu.id);
+                    const currentFolderId = currentWs?.folderId ?? null;
+                    return (
+                      <>
+                        {currentFolderId !== null && (
+                          <button onClick={() => { movePageToFolder(wsContextMenu.id, null); setWsContextMenu(null); }}
+                            className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                            <MoveRight className="h-3 w-3" />{t.assetMap.rootNoFolder}
+                          </button>
+                        )}
+                        {folders.filter(f => f.id !== currentFolderId).map(f => (
+                          <button key={f.id} onClick={() => { movePageToFolder(wsContextMenu.id, f.id); setWsContextMenu(null); }}
+                            className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                            <Folder className="h-3 w-3" style={{ color: f.color }} />{f.name}
+                          </button>
+                        ))}
+                      </>
+                    );
+                  })()}
+                </>
+              )}
+              <hr className="my-1 border-gray-100" />
+              {workspaces.find(w => w.id === wsContextMenu.id)?.isDefault ? (
+                <div className="px-3 py-1.5 text-xs text-gray-400 flex items-center gap-2">
+                  <Trash2 className="h-3 w-3" />{t.assetMap.cannotDeleteDefault}
+                </div>
+              ) : (
+                <button onClick={() => { if (confirm(t.assetMap.deleteWorkspaceConfirm)) { deleteWorkspace(wsContextMenu.id); } setWsContextMenu(null); }}
+                  className="w-full px-3 py-1.5 text-left text-xs text-red-600 hover:bg-red-50 flex items-center gap-2">
+                  <Trash2 className="h-3 w-3" />{t.assetMap.deleteWorkspace}
+                </button>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* Folder Context Menu */}
+        {folderContextMenu && (
+          <>
+            <div className="fixed inset-0 z-50" onClick={() => setFolderContextMenu(null)} />
+            <div
+              className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[160px]"
+              style={{ left: folderContextMenu.x, top: folderContextMenu.y }}
+            >
+              <button onClick={() => { setEditingFolderName(folderContextMenu.id); setFolderContextMenu(null); }}
+                className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                <Pencil className="h-3 w-3" />{t.assetMap.renameFolder}
+              </button>
+              <hr className="my-1 border-gray-100" />
+              <button onClick={() => { if (confirm(t.assetMap.deleteFolderConfirm)) { deleteFolder(folderContextMenu.id); } setFolderContextMenu(null); }}
+                className="w-full px-3 py-1.5 text-left text-xs text-red-600 hover:bg-red-50 flex items-center gap-2">
+                <Trash2 className="h-3 w-3" />{t.assetMap.deleteFolder}
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* New Workspace Modal */}
+        {showNewWsModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowNewWsModal(false)}>
+            <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-lg font-bold mb-4">{t.assetMap.newWorkspace}</h3>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const form = e.target as HTMLFormElement;
+                  const input = form.elements.namedItem("wsName") as HTMLInputElement;
+                  const name = input.value.trim();
+                  if (name) {
+                    createWorkspace(name);
+                    setShowNewWsModal(false);
+                  }
+                }}
+              >
+                <input
+                  name="wsName"
+                  autoFocus
+                  placeholder={t.assetMap.workspaceName}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-4"
+                />
+                <div className="flex gap-2 justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setShowNewWsModal(false)}
+                    className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    {t.common.cancel}
+                  </button>
+                  <button
+                    type="submit"
+                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                  >
+                    {t.common.create}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* New Folder Modal */}
+        {showNewFolderModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowNewFolderModal(false)}>
+            <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                <FolderPlus className="h-5 w-5 text-amber-500" />
+                {t.assetMap.newFolder}
+              </h3>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const form = e.target as HTMLFormElement;
+                  const input = form.elements.namedItem("folderName") as HTMLInputElement;
+                  const name = input.value.trim();
+                  if (name) {
+                    createFolder(name);
+                    setShowNewFolderModal(false);
+                  }
+                }}
+              >
+                <input
+                  name="folderName"
+                  autoFocus
+                  placeholder={t.assetMap.folderNamePlaceholder}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 mb-4"
+                />
+                <div className="flex gap-2 justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setShowNewFolderModal(false)}
+                    className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    {t.common.cancel}
+                  </button>
+                  <button
+                    type="submit"
+                    className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:bg-amber-600"
+                  >
+                    {t.common.create}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // ── Canvas View (below) ──
+  // ═══════════════════════════════════════════════════════════════════════
+
   return (
     <div className="h-[calc(100vh-64px)] relative flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between border-b bg-white px-6 py-3 flex-shrink-0">
         <div className="flex items-center gap-3">
-          <h1 className="text-xl font-bold">{t.assetMap.title}</h1>
+          {/* Back to gallery button */}
+          <button
+            onClick={handleBackToGallery}
+            className="flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition"
+            title={t.assetMap.workspace}
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+          </button>
+          <h1 className="text-lg font-bold truncate max-w-[200px]">{activeWorkspace?.name || t.assetMap.title}</h1>
           <span className="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-semibold text-purple-700">
             {t.assetMap.alpha}
           </span>
@@ -2791,24 +3809,47 @@ export default function AssetMapContent() {
             ))}
           </div>
 
-          {/* Saved Views Dropdown */}
-          <SavedViewsDropdown views={savedViews} onLoad={handleLoadView} t={t} />
-
-          {/* Save View Button */}
+          {/* Asset Palette toggle */}
           <button
-            onClick={() => setShowSaveViewModal(true)}
-            className="flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+            onClick={() => setShowAssetPalette(!showAssetPalette)}
+            className={`flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium transition ${
+              showAssetPalette ? "border-blue-300 bg-blue-50 text-blue-700" : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+            }`}
           >
-            <Save className="h-3.5 w-3.5" />
-            {t.assetMap.saveView}
+            <Package className="h-3.5 w-3.5" />
+            {t.assetMap.assetPalette}
           </button>
+
+          {/* External Entity Palette toggle */}
+          <button
+            onClick={() => setShowEntityPalette(!showEntityPalette)}
+            className={`flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium transition ${
+              showEntityPalette ? "border-blue-300 bg-blue-50 text-blue-700" : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+            }`}
+          >
+            <Building2 className="h-3.5 w-3.5" />
+            {t.assetMap.externalEntity}
+          </button>
+
+          {/* Save status indicator */}
+          <div className="flex items-center gap-1.5 text-xs px-2">
+            {saveStatus === "saved" && (
+              <><CheckCircle2 className="h-3.5 w-3.5 text-green-500" /><span className="text-green-600">{t.assetMap.autoSaved}</span></>
+            )}
+            {saveStatus === "saving" && (
+              <><Loader2 className="h-3.5 w-3.5 text-blue-500 animate-spin" /><span className="text-blue-600">{t.assetMap.saving}</span></>
+            )}
+            {saveStatus === "dirty" && (
+              <><AlertCircle className="h-3.5 w-3.5 text-amber-500" /><span className="text-amber-600">{t.assetMap.unsavedChanges}</span></>
+            )}
+          </div>
 
           <button
             onClick={() => setShowSectionModal(true)}
             className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
           >
             <Plus className="inline h-3.5 w-3.5 mr-1" />
-            섹션
+            {t.assetMap.section}
           </button>
           <button onClick={handleAutoLayout} className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">
             <LayoutGrid className="inline h-3.5 w-3.5 mr-1" />
@@ -2831,20 +3872,70 @@ export default function AssetMapContent() {
 
       {/* Body: Palette + ReactFlow */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Asset Palette */}
-        <AssetPalette
-          allAssets={allAssets}
-          placedAssetIds={placedAssetIds}
-          onAddToCanvas={handleAddAssetToCanvas}
-          onRemoveFromCanvas={(assetId: number) => {
-            setNodes((prev) => prev.filter((n) => n.id !== String(assetId)));
-            setEdges((prev) => prev.filter((e) => e.source !== String(assetId) && e.target !== String(assetId)));
-          }}
-          t={t}
-        />
+        {/* Asset Palette (toggled from header) */}
+        {showAssetPalette && (
+          <AssetPalette
+            allAssets={allAssets}
+            placedAssetIds={placedAssetIds}
+            onAddToCanvas={handleAddAssetToCanvas}
+            onRemoveFromCanvas={(assetId: number) => {
+              setNodes((prev) => prev.filter((n) => n.id !== String(assetId)));
+              setEdges((prev) => prev.filter((e) => e.source !== String(assetId) && e.target !== String(assetId)));
+              markDirty(2000);
+            }}
+            t={t}
+          />
+        )}
+
+        {/* External Entity Palette (toggled from header) */}
+        {showEntityPalette && (
+          <div className="w-56 border-r border-gray-200 bg-white flex flex-col flex-shrink-0 overflow-hidden">
+            <div className="px-3 py-2.5 border-b border-gray-100 bg-gray-50">
+              <div className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-gray-500" />
+                <span className="text-xs font-semibold text-gray-700">{t.assetMap.externalEntity}</span>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              {externalEntities.length === 0 ? (
+                <div className="px-3 py-6 text-center text-xs text-gray-400">{t.assetMap.noExternalEntities}</div>
+              ) : (
+                externalEntities.map((ent) => {
+                  const isPlaced = nodes.some((n) => n.id === `ext-${ent.id}`);
+                  const typeLabel = { TRUSTEE: t.assetMap.trustee, PARTNER: t.assetMap.partner, GOVERNMENT: t.assetMap.government, OTHER: t.assetMap.otherEntity }[ent.type] || ent.type;
+                  return (
+                    <button
+                      key={ent.id}
+                      onClick={() => isPlaced ? handleRemoveEntityFromCanvas(ent.id) : handleAddEntityToCanvas(ent)}
+                      className={`w-full px-3 py-2 flex items-center gap-2.5 border-b border-gray-50 transition-colors text-left group ${
+                        isPlaced ? "bg-green-50/50 hover:bg-red-50" : "hover:bg-blue-50"
+                      }`}
+                    >
+                      <div className="w-7 h-7 rounded flex items-center justify-center flex-shrink-0 bg-gray-100">
+                        <Building2 className="w-4 h-4 text-gray-500" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-medium text-gray-800 truncate">{ent.name}</div>
+                        <div className="text-[10px] text-gray-400">{typeLabel}</div>
+                      </div>
+                      {isPlaced ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-green-500 flex-shrink-0 group-hover:hidden" />
+                          <X className="w-3.5 h-3.5 text-red-400 flex-shrink-0 hidden group-hover:block" />
+                        </>
+                      ) : (
+                        <Plus className="w-3.5 h-3.5 text-blue-400 flex-shrink-0 opacity-0 group-hover:opacity-100" />
+                      )}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
 
       {/* ReactFlow */}
-      <div className={`flex-1 transition-all ${selectedNode ? "pr-80" : ""}`}>
+      <div className={`flex-1 relative transition-all ${selectedNode ? "pr-80" : ""}`}>
         {loading ? (
           <div className="flex h-full items-center justify-center text-gray-400">
             <div className="flex flex-col items-center gap-3">
@@ -2865,6 +3956,7 @@ export default function AssetMapContent() {
             onNodeDoubleClick={onNodeDoubleClick}
             onNodeDragStop={onNodeDragStop}
             onEdgeDoubleClick={(_e, edge) => setSelectedEdge(edge)}
+            onMoveEnd={onMoveEnd}
             nodeTypes={nodeTypes}
             snapToGrid={true}
             snapGrid={[20, 20]}
@@ -2876,7 +3968,7 @@ export default function AssetMapContent() {
             panOnScroll={true}
             minZoom={0.05}
             maxZoom={20}
-            fitView
+            fitView={!activeWorkspace?.viewport}
             attributionPosition="bottom-left"
           >
             <Controls />
@@ -2906,7 +3998,7 @@ export default function AssetMapContent() {
             />
             <Panel position="bottom-center">
               <div className="rounded-lg border bg-white/90 px-3 py-1.5 text-xs text-gray-500 backdrop-blur">
-                드래그: 범위 선택 | 우클릭 드래그: 이동 | 핸들 드래그: 연결 추가 | 엣지 더블클릭: 상세
+                {t.assetMap.canvasHelpText}
               </div>
             </Panel>
           </ReactFlow>
@@ -2935,6 +4027,7 @@ export default function AssetMapContent() {
       {showModal && (
         <LinkModal
           assets={assets}
+          externalEntities={externalEntities}
           onSave={handleSaveLink}
           onClose={() => { setShowModal(false); setPendingConnection(null); }}
           initialSource={pendingConnection?.source}
@@ -2957,6 +4050,7 @@ export default function AssetMapContent() {
         <SectionModal
           onSave={handleAddSection}
           onClose={() => setShowSectionModal(false)}
+          t={t}
         />
       )}
 
@@ -2965,7 +4059,7 @@ export default function AssetMapContent() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setEditingSection(null)}>
           <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold">섹션 편집</h3>
+              <h3 className="text-lg font-bold">{t.assetMap.editSection}</h3>
               <button onClick={() => setEditingSection(null)} className="text-gray-400 hover:text-gray-600">
                 <X className="h-5 w-5" />
               </button>
@@ -2973,7 +4067,7 @@ export default function AssetMapContent() {
 
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">이름</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t.common.name}</label>
                 <input
                   defaultValue={(editingSection.data?.label as string) || ""}
                   onBlur={(e) => {
@@ -2988,7 +4082,7 @@ export default function AssetMapContent() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">설명</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t.common.description}</label>
                 <input
                   defaultValue={(editingSection.data?.description as string) || ""}
                   onBlur={(e) => {
@@ -3000,7 +4094,7 @@ export default function AssetMapContent() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">색상</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.assetMap.color}</label>
                 <div className="flex flex-wrap gap-2">
                   {SECTION_COLORS.map((c) => (
                     <button
@@ -3027,7 +4121,7 @@ export default function AssetMapContent() {
                 onClick={() => setEditingSection(null)}
                 className="flex-1 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
-                닫기
+                {t.common.close}
               </button>
               <button
                 onClick={() => {
@@ -3051,7 +4145,7 @@ export default function AssetMapContent() {
                 }}
                 className="flex-1 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
               >
-                삭제
+                {t.common.delete}
               </button>
             </div>
           </div>
@@ -3077,5 +4171,14 @@ export default function AssetMapContent() {
         />
       )}
     </div>
+  );
+}
+
+// ── Wrapper with ReactFlowProvider ──
+export default function AssetMapContent() {
+  return (
+    <ReactFlowProvider>
+      <AssetMapContentInner />
+    </ReactFlowProvider>
   );
 }

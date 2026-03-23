@@ -27,7 +27,7 @@ function CostTooltip({
     <div className="rounded-lg bg-white p-3 shadow-lg ring-1 ring-gray-200 text-sm">
       {payload.map((p, i) => (
         <p key={i} className="font-medium" style={{ color: p.color }}>
-          {p.name}: {p.value.toLocaleString()}{p.name.includes("비용") ? " 원" : "건"}
+          {p.name}: {p.value.toLocaleString()}{p.name.includes("비용") || p.name.includes("Cost") ? " ₩" : ""}
         </p>
       ))}
     </div>
@@ -78,8 +78,8 @@ export default function OrgUsageWidget({ data }: { data: OrgUsagePoint[] }) {
             <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#6b7280" }} tickLine={false} axisLine={false} width={32} />
             <Tooltip content={<CostTooltip />} cursor={{ fill: "#eff6ff" }} />
             <Legend formatter={(value: string) => <span className="text-xs text-gray-600">{value}</span>} />
-            <Bar dataKey="licenses" name="라이선스" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={32} />
-            <Bar dataKey="assets" name="자산" fill="#8b5cf6" radius={[4, 4, 0, 0]} maxBarSize={32} />
+            <Bar dataKey="licenses" name={t.license?.title ?? "Licenses"} fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={32} />
+            <Bar dataKey="assets" name={t.dashboard?.totalAssets ?? "Assets"} fill="#8b5cf6" radius={[4, 4, 0, 0]} maxBarSize={32} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -89,12 +89,12 @@ export default function OrgUsageWidget({ data }: { data: OrgUsagePoint[] }) {
         <table className="min-w-full divide-y divide-gray-200 text-sm">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-3 py-2 text-left font-medium text-gray-500">조직</th>
-              <th className="px-3 py-2 text-left font-medium text-gray-500">회사</th>
-              <th className="px-3 py-2 text-right font-medium text-gray-500">라이선스</th>
-              <th className="px-3 py-2 text-right font-medium text-gray-500">자산</th>
-              <th className="px-3 py-2 text-right font-medium text-gray-500">합계</th>
-              <th className="px-3 py-2 text-right font-medium text-gray-500">월 비용 (₩)</th>
+              <th className="px-3 py-2 text-left font-medium text-gray-500">{t.classification?.org ?? "Org"}</th>
+              <th className="px-3 py-2 text-left font-medium text-gray-500">{t.classification?.company ?? "Company"}</th>
+              <th className="px-3 py-2 text-right font-medium text-gray-500">{t.license?.title ?? "Licenses"}</th>
+              <th className="px-3 py-2 text-right font-medium text-gray-500">{t.dashboard?.totalAssets ?? "Assets"}</th>
+              <th className="px-3 py-2 text-right font-medium text-gray-500">{t.common.total}</th>
+              <th className="px-3 py-2 text-right font-medium text-gray-500">{t.classification?.monthlyCostKRW ?? "Monthly Cost (₩)"}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">

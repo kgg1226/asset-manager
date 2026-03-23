@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
 import CiaScoreInput from "@/app/_components/cia-score-input";
+import LifecycleGauge from "@/app/_components/lifecycle-gauge";
 import type { CiaLevel } from "@/lib/cia";
 
 const CURRENCIES = ["USD", "KRW", "EUR", "JPY", "GBP", "CNY"];
@@ -78,6 +79,15 @@ export default function HardwareEditPage() {
   const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => { const { name, value } = e.target; setForm((p) => ({ ...p, [name]: value })); if (errors[name]) setErrors((p) => { const n = { ...p }; delete n[name]; return n; }); };
   const onHwChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => { const { name, value } = e.target; setHw((p) => ({ ...p, [name]: value })); };
 
+  // Auto-calculate expiryDate from purchaseDate + usefulLifeYears
+  useEffect(() => {
+    if (form.purchaseDate && hw.usefulLifeYears) {
+      const start = new Date(form.purchaseDate);
+      start.setFullYear(start.getFullYear() + Number(hw.usefulLifeYears));
+      setForm(prev => ({ ...prev, expiryDate: start.toISOString().split('T')[0] }));
+    }
+  }, [form.purchaseDate, hw.usefulLifeYears]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) { toast.error(t.common.validationCheck); return; }
@@ -147,6 +157,11 @@ export default function HardwareEditPage() {
               <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.asset.purchaseDate}</label><input type="date" name="purchaseDate" value={form.purchaseDate} onChange={onChange} className={ic} /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.asset.expiryDate}</label><input type="date" name="expiryDate" value={form.expiryDate} onChange={onChange} className={ic} /></div>
             </div>
+            {form.purchaseDate && form.expiryDate && (
+              <div className="mb-6">
+                <LifecycleGauge startDate={form.purchaseDate} endDate={form.expiryDate} size="sm" showLabel showDates />
+              </div>
+            )}
           </div>
 
           <div className="rounded-lg bg-white p-6 shadow-sm">

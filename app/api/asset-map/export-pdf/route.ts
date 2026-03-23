@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
     const buffer = await renderToBuffer(doc);
 
     const filename = `AssetMap_${today}.pdf`;
-    return new NextResponse(buffer, {
+    return new NextResponse(buffer as unknown as BodyInit, {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",

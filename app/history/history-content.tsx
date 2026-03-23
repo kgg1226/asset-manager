@@ -157,11 +157,11 @@ export default function HistoryContent({
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">{t.common.date}</label>
+            <label className="mb-1 block text-xs font-medium text-gray-500">{t.history.startDate}</label>
             <input type="date" name="from" defaultValue={from} className="input text-sm" />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">{t.common.date}</label>
+            <label className="mb-1 block text-xs font-medium text-gray-500">{t.history.endDate}</label>
             <input type="date" name="to" defaultValue={to} className="input text-sm" />
           </div>
           <div>
