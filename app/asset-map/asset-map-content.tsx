@@ -3239,6 +3239,31 @@ function AssetMapContentInner() {
     { key: "data_flow", label: t.assetMap.viewDataFlow },
   ];
 
+  // ── Onboarding: create example page ──
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
+  const showOnboarding = !onboardingDismissed && workspaces.length <= 1 && folders.length === 0;
+
+  const createExamplePage = useCallback(async () => {
+    try {
+      // 예시 페이지 생성
+      const res = await fetch("/api/asset-map/views", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "📋 예시: 인프라 구성도",
+          viewType: "ALL",
+          description: "자산지도 사용법을 이해하기 위한 예시 페이지입니다. 자유롭게 수정하거나 삭제하세요.",
+        }),
+      });
+      if (res.ok) {
+        const page = await res.json();
+        setWorkspaces(prev => [page, ...prev]);
+        setOnboardingDismissed(true);
+        loadWorkspace(page);
+      }
+    } catch { /* silent */ }
+  }, [loadWorkspace]);
+
   // ═══════════════════════════════════════════════════════════════════════
   // ── Gallery View ──
   // ═══════════════════════════════════════════════════════════════════════
@@ -3320,6 +3345,41 @@ function AssetMapContentInner() {
 
         {/* Gallery Body */}
         <div className="flex-1 overflow-y-auto px-8 py-6">
+          {/* Onboarding Banner */}
+          {showOnboarding && (
+            <div className="mb-6 rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-5">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 mb-1">자산 지도를 시작해 보세요</h3>
+                  <p className="text-xs text-gray-600 mb-3">
+                    자산 지도는 조직의 IT 자산 간 연결 관계를 시각화하는 도면입니다.<br/>
+                    예시 페이지를 열어 사용법을 확인하거나, 빈 페이지에서 직접 구성할 수 있습니다.
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={createExamplePage}
+                      className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-medium text-white hover:bg-blue-700 transition"
+                    >
+                      예시 페이지로 시작하기
+                    </button>
+                    <button
+                      onClick={() => setOnboardingDismissed(true)}
+                      className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 transition"
+                    >
+                      건너뛰기
+                    </button>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setOnboardingDismissed(true)}
+                  className="text-gray-400 hover:text-gray-600 ml-4"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* My Workspaces Section Header */}
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-semibold text-gray-700">{t.assetMap.myWorkspaces}</h2>
