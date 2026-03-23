@@ -1,4 +1,4 @@
-// POST — 기본 워크스페이스 보장 (없으면 생성, 있으면 반환)
+// POST — 페이지 목록 조회 (초기 로드용)
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -10,25 +10,7 @@ export async function POST() {
     return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
 
   try {
-    // 사용자의 기본 워크스페이스 조회
-    let defaultView = await prisma.assetMapView.findFirst({
-      where: { createdBy: user.id, isDefault: true },
-    });
-
-    // 없으면 자동 생성
-    if (!defaultView) {
-      defaultView = await prisma.assetMapView.create({
-        data: {
-          name: "기본 페이지",
-          viewType: "ALL",
-          isDefault: true,
-          createdBy: user.id,
-          lastAccessedAt: new Date(),
-        },
-      });
-    }
-
-    // 전체 워크스페이스 목록 (내 것 + 공유)
+    // 전체 페이지 목록 (내 것 + 공유)
     const views = await prisma.assetMapView.findMany({
       where: {
         OR: [{ createdBy: user.id }, { isShared: true }],
@@ -50,14 +32,16 @@ export async function POST() {
       filterConfig: parseJson(v.filterConfig),
     }));
 
+    const defaultView = parsed.find((v) => v.isDefault) || parsed[0] || null;
+
     return NextResponse.json({
-      defaultView: parsed.find((v) => v.id === defaultView!.id),
+      defaultView,
       views: parsed,
     });
   } catch (error) {
-    console.error("Failed to ensure default workspace:", error);
+    console.error("Failed to load pages:", error);
     return NextResponse.json(
-      { error: "기본 워크스페이스 확보에 실패했습니다." },
+      { error: "페이지 목록 조회에 실패했습니다." },
       { status: 500 },
     );
   }

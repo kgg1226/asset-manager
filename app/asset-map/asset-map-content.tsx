@@ -3283,7 +3283,7 @@ function AssetMapContentInner() {
 
   // ── Onboarding: create example page ──
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
-  const showOnboarding = !onboardingDismissed && workspaces.length <= 1 && folders.length === 0;
+  const showOnboarding = !onboardingDismissed && workspaces.length === 0 && folders.length === 0;
 
   const createExamplePage = useCallback(async () => {
     try {
