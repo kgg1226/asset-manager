@@ -283,7 +283,7 @@ export default function LicensesContent({
                                   licenseType={license.licenseType}
                                 />
                               ) : <span className="rounded px-2 py-1 text-xs invisible">{t.common.assign}</span>}
-                              {license.maxCapacity > 0 ? (
+                              {license.maxCapacity > 0 && license.assignedEmployees?.length > 0 ? (
                                 <UnassignButton
                                   licenseName={license.name}
                                   assignedEmployees={license.assignedEmployees}
