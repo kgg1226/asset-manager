@@ -252,10 +252,13 @@ function AssetNodeComponent({ data, selected }: { data: Record<string, unknown>;
   const iconSize = isCompact ? "w-5 h-5" : "w-6 h-6";
   const iconBoxSize = isCompact ? "w-7 h-7" : "w-10 h-10";
 
+  const handleClass = "!w-3 !h-3 !border-2 !border-white !rounded-full !opacity-0 group-hover:!opacity-100 !transition-opacity !duration-200";
+  const dynHandleClass = "!w-1.5 !h-1.5 !border !border-white !rounded-full !opacity-0 group-hover:!opacity-60 !transition-opacity !duration-200";
+
   return (
     <div
       ref={containerRef}
-      className="rounded-xl border-2 px-2 py-2 relative w-full h-full overflow-hidden"
+      className="group rounded-xl border-2 px-2 py-2 relative w-full h-full overflow-hidden"
       style={{
         backgroundColor: colors.bg,
         borderColor: colors.border,
@@ -272,10 +275,10 @@ function AssetNodeComponent({ data, selected }: { data: Record<string, unknown>;
         handleStyle={{ backgroundColor: colors.border, width: 8, height: 8, borderRadius: 4 }}
       />
       {/* Connection handles — 4 cardinal + dynamic percent-based handles */}
-      <Handle type="source" position={Position.Top} id="top" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
-      <Handle type="source" position={Position.Bottom} id="bottom" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
-      <Handle type="source" position={Position.Left} id="left" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
-      <Handle type="source" position={Position.Right} id="right" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
+      <Handle type="source" position={Position.Top} id="top" className={handleClass} style={{ backgroundColor: colors.border }} />
+      <Handle type="source" position={Position.Bottom} id="bottom" className={handleClass} style={{ backgroundColor: colors.border }} />
+      <Handle type="source" position={Position.Left} id="left" className={handleClass} style={{ backgroundColor: colors.border }} />
+      <Handle type="source" position={Position.Right} id="right" className={handleClass} style={{ backgroundColor: colors.border }} />
       {/* Dynamic handles: "side-pN" format — rendered from data._handles */}
       {((data._handles as string[]) || []).filter((h: string) => h.includes("-p")).map((hId: string) => {
         const side = hId.split("-p")[0];
@@ -284,7 +287,7 @@ function AssetNodeComponent({ data, selected }: { data: Record<string, unknown>;
         const isHorizontal = side === "top" || side === "bottom";
         return (
           <Handle key={hId} type="source" position={pos} id={hId}
-            className="!w-1.5 !h-1.5 !border !border-white !rounded-full !opacity-0"
+            className={dynHandleClass}
             style={{ backgroundColor: colors.border, ...(isHorizontal ? { left: `${pct}%` } : { top: `${pct}%` }) }}
           />
         );
@@ -350,9 +353,12 @@ function ExternalEntityNodeComponent({ data }: { data: Record<string, unknown> }
     OTHER: (data.otherLabel as string) || "Other",
   };
 
+  const handleClass = "!w-3 !h-3 !border-2 !border-white !rounded-full !opacity-0 group-hover:!opacity-100 !transition-opacity !duration-200";
+  const dynHandleClass = "!w-1.5 !h-1.5 !border !border-white !rounded-full !opacity-0 group-hover:!opacity-60 !transition-opacity !duration-200";
+
   return (
     <div
-      className="rounded-xl border-2 border-dashed px-4 py-3 min-w-[200px] relative"
+      className="group rounded-xl border-2 border-dashed px-4 py-3 min-w-[200px] relative"
       style={{
         backgroundColor: colors.bg,
         borderColor: colors.border,
@@ -360,10 +366,10 @@ function ExternalEntityNodeComponent({ data }: { data: Record<string, unknown> }
       }}
     >
       {/* Connection handles — 4 cardinal + dynamic */}
-      <Handle type="source" position={Position.Top} id="top" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
-      <Handle type="source" position={Position.Bottom} id="bottom" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
-      <Handle type="source" position={Position.Left} id="left" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
-      <Handle type="source" position={Position.Right} id="right" className="!w-2.5 !h-2.5 !border-2 !border-white !rounded-full !opacity-0 hover:!opacity-100 !transition-opacity" style={{ backgroundColor: colors.border }} />
+      <Handle type="source" position={Position.Top} id="top" className={handleClass} style={{ backgroundColor: colors.border }} />
+      <Handle type="source" position={Position.Bottom} id="bottom" className={handleClass} style={{ backgroundColor: colors.border }} />
+      <Handle type="source" position={Position.Left} id="left" className={handleClass} style={{ backgroundColor: colors.border }} />
+      <Handle type="source" position={Position.Right} id="right" className={handleClass} style={{ backgroundColor: colors.border }} />
       {((data._handles as string[]) || []).filter((h: string) => h.includes("-p")).map((hId: string) => {
         const side = hId.split("-p")[0];
         const pct = parseInt(hId.split("-p")[1], 10);
@@ -371,7 +377,7 @@ function ExternalEntityNodeComponent({ data }: { data: Record<string, unknown> }
         const isHorizontal = side === "top" || side === "bottom";
         return (
           <Handle key={hId} type="source" position={pos} id={hId}
-            className="!w-1.5 !h-1.5 !border !border-white !rounded-full !opacity-0"
+            className={dynHandleClass}
             style={{ backgroundColor: colors.border, ...(isHorizontal ? { left: `${pct}%` } : { top: `${pct}%` }) }}
           />
         );
@@ -2363,7 +2369,11 @@ export default function AssetMapContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (res.ok) {
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || "연결 생성에 실패했습니다.");
+        return;
+      }
         const newLink = await res.json();
         setShowModal(false);
 
@@ -2404,7 +2414,6 @@ export default function AssetMapContent() {
         setEdges((prev) => {
           const allEdges = [...prev, newEdge];
           distributeEdgeHandles(allEdges);
-          // 핸들 갱신을 위해 노드의 _handles 업데이트
           setNodes((nds) => nds.map((n) => {
             const handles = collectDynamicHandles(allEdges, n.id);
             if (handles.length > 0) {
@@ -2415,9 +2424,8 @@ export default function AssetMapContent() {
           return allEdges;
         });
         setPendingConnection(null);
-      }
     } catch {
-      // silently fail
+      alert("연결 생성 중 오류가 발생했습니다.");
     }
   }
 

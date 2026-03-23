@@ -7,7 +7,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit-log";
 
 const LINK_TYPES = ["DATA_FLOW", "NETWORK", "DEPENDENCY", "AUTH"] as const;
-const DIRECTIONS = ["UNI", "BI"] as const;
+const DIRECTIONS = ["UNI", "BI", "REVERSE", "CONDITIONAL"] as const;
 
 // ── GET /api/asset-links — 자산 연결 목록 조회 ──
 
