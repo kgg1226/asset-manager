@@ -16,6 +16,11 @@ import {
   ArrowRight,
   BookOpen,
   ShieldCheck,
+  LayoutDashboard,
+  BarChart3,
+  ClipboardList,
+  Upload,
+  Users,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { TourGuide } from "@/app/_components/tour-guide";
@@ -283,6 +288,115 @@ export default function GuidePage() {
       ],
     },
     {
+      id: "dashboard",
+      icon: <LayoutDashboard className="h-5 w-5" />,
+      title: t.nav.dashboard,
+      subtitle: t.guide.dashboardDesc,
+      steps: [
+        {
+          id: "db1",
+          title: t.guide.dashboardOverview,
+          description: t.guide.dashboardOverviewDesc,
+          details: [
+            t.guide.dashboardOverviewDetail1,
+            t.guide.dashboardOverviewDetail2,
+            t.guide.dashboardOverviewDetail3,
+          ],
+          link: { href: "/dashboard", label: t.guide.dashboardLink },
+        },
+        {
+          id: "db2",
+          title: t.guide.dashboardCharts,
+          description: t.guide.dashboardChartsDesc,
+          details: [
+            t.guide.dashboardChartsDetail1,
+            t.guide.dashboardChartsDetail2,
+            t.guide.dashboardChartsDetail3,
+          ],
+        },
+      ],
+    },
+    {
+      id: "reports",
+      icon: <BarChart3 className="h-5 w-5" />,
+      title: t.report.title,
+      subtitle: t.guide.reportsDesc,
+      steps: [
+        {
+          id: "r1",
+          title: t.guide.reportGenerate,
+          description: t.guide.reportGenerateDesc,
+          details: [
+            t.guide.reportGenerateDetail1,
+            t.guide.reportGenerateDetail2,
+            t.guide.reportGenerateDetail3,
+          ],
+          link: { href: "/reports", label: t.guide.reportLink },
+        },
+        {
+          id: "r2",
+          title: t.guide.reportExport,
+          description: t.guide.reportExportDesc,
+          details: [
+            t.guide.reportExportDetail1,
+            t.guide.reportExportDetail2,
+            t.guide.reportExportDetail3,
+          ],
+        },
+      ],
+    },
+    {
+      id: "history",
+      icon: <ClipboardList className="h-5 w-5" />,
+      title: t.history.title,
+      subtitle: t.guide.historyDesc,
+      steps: [
+        {
+          id: "hi1",
+          title: t.guide.historySearch,
+          description: t.guide.historySearchDesc,
+          details: [
+            t.guide.historySearchDetail1,
+            t.guide.historySearchDetail2,
+            t.guide.historySearchDetail3,
+            t.guide.historySearchDetail4,
+          ],
+          link: { href: "/history", label: t.guide.historyLink },
+        },
+      ],
+    },
+    {
+      id: "settings",
+      icon: <Upload className="h-5 w-5" />,
+      title: t.guide.settingsTitle,
+      subtitle: t.guide.settingsDesc,
+      steps: [
+        {
+          id: "st1",
+          title: t.guide.profileSetup,
+          description: t.guide.profileSetupDesc,
+          details: [
+            t.guide.profileSetupDetail1,
+            t.guide.profileSetupDetail2,
+            t.guide.profileSetupDetail3,
+          ],
+          link: { href: "/settings/profile", label: t.guide.profileLink },
+        },
+        {
+          id: "st2",
+          title: t.guide.csvImport,
+          description: t.guide.csvImportDesc,
+          details: [
+            t.guide.csvImportDetail1,
+            t.guide.csvImportDetail2,
+            t.guide.csvImportDetail3,
+            t.guide.csvImportDetail4,
+          ],
+          link: { href: "/settings/import", label: t.guide.importLink },
+        },
+      ],
+    },
+    {
       id: "admin",
       icon: <ShieldCheck className="h-5 w-5" />,
       title: t.guide.adminFeaturesTitle,
@@ -319,6 +433,27 @@ export default function GuidePage() {
             t.guide.archiveExportDetail2,
           ],
           link: { href: "/admin/archives", label: t.guide.archiveLink },
+        },
+        {
+          id: "a4",
+          title: t.guide.userMgmtGuide,
+          description: t.guide.userMgmtGuideDesc,
+          details: [
+            t.guide.userMgmtDetail1,
+            t.guide.userMgmtDetail2,
+            t.guide.userMgmtDetail3,
+          ],
+          link: { href: "/admin/users", label: t.guide.userMgmtLink },
+        },
+        {
+          id: "a5",
+          title: t.guide.exchangeRateGuide,
+          description: t.guide.exchangeRateGuideDesc,
+          details: [
+            t.guide.exchangeRateDetail1,
+            t.guide.exchangeRateDetail2,
+          ],
+          link: { href: "/admin/exchange-rates", label: t.guide.exchangeRateLink },
         },
       ],
     },
@@ -435,17 +570,25 @@ export default function GuidePage() {
         {/* Quick Links */}
         <div className="mt-8 rounded-lg bg-blue-50 p-5" data-tour="guide-quick-links">
           <h3 className="text-sm font-semibold text-blue-900 mb-3">{t.guide.quickLinks}</h3>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
             {[
+              { href: "/dashboard", label: t.guide.dashboardLink },
               { href: "/hardware/new", label: t.hw.newHardware },
               { href: "/cloud/new", label: t.cloud.newCloud },
               { href: "/licenses/new", label: t.license.newLicense },
+              { href: "/domains/new", label: t.guide.domainRegisterLink },
+              { href: "/contracts/new", label: t.guide.contractRegisterLink },
               { href: "/employees", label: t.employee.title },
-              { href: "/settings/groups", label: t.license.groupSettings },
-              { href: "/settings/notifications", label: t.notification.title },
+              { href: "/reports", label: t.guide.reportLink },
               { href: "/history", label: t.history.title },
+              { href: "/settings/groups", label: t.license.groupSettings },
+              { href: "/settings/import", label: t.guide.importLink },
+              { href: "/settings/notifications", label: t.notification.title },
+              { href: "/settings/profile", label: t.guide.profileLink },
+              { href: "/admin/users", label: t.guide.userMgmtLink },
               { href: "/admin/title-cia", label: t.guide.titleCiaLink },
               { href: "/admin/archives", label: t.guide.archiveLink },
+              { href: "/admin/exchange-rates", label: t.guide.exchangeRateLink },
             ].map((link) => (
               <Link key={link.href} href={link.href} className="rounded-md bg-white px-3 py-2 text-xs font-medium text-blue-700 shadow-sm hover:bg-blue-100 transition-colors text-center">
                 {link.label}
