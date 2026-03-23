@@ -87,8 +87,10 @@ type AssetNode = {
 
 type AssetEdge = {
   id: number;
-  sourceAssetId: number;
-  targetAssetId: number;
+  sourceAssetId: number | null;
+  targetAssetId: number | null;
+  sourceExternalId?: number | null;
+  targetExternalId?: number | null;
   linkType: string;
   direction: string;
   label: string | null;
@@ -885,6 +887,7 @@ function getPiiLifecycleLayout(
 
 function LinkModal({
   assets,
+  externalEntities,
   onSave,
   onClose,
   initialSource,
@@ -892,6 +895,7 @@ function LinkModal({
   t,
 }: {
   assets: AssetNode[];
+  externalEntities: ExternalEntity[];
   onSave: (data: Record<string, unknown>) => void;
   onClose: () => void;
   initialSource?: string;
@@ -913,9 +917,15 @@ function LinkModal({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!sourceAssetId || !targetAssetId) return;
+    const isSourceExternal = sourceAssetId.startsWith("ext-");
+    const isTargetExternal = targetAssetId.startsWith("ext-");
     onSave({
-      sourceAssetId: Number(sourceAssetId),
-      targetAssetId: Number(targetAssetId),
+      ...(isSourceExternal
+        ? { sourceExternalId: Number(sourceAssetId.replace("ext-", "")) }
+        : { sourceAssetId: Number(sourceAssetId) }),
+      ...(isTargetExternal
+        ? { targetExternalId: Number(targetAssetId.replace("ext-", "")) }
+        : { targetAssetId: Number(targetAssetId) }),
       linkType,
       direction,
       label: label || null,
@@ -948,14 +958,28 @@ function LinkModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.assetMap.sourceAsset}</label>
               <select value={sourceAssetId} onChange={(e) => setSourceAssetId(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" required>
                 <option value="">--</option>
-                {assets.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                <optgroup label="자산">
+                  {assets.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </optgroup>
+                {externalEntities.length > 0 && (
+                  <optgroup label="외부 조직">
+                    {externalEntities.map((e) => <option key={`ext-${e.id}`} value={`ext-${e.id}`}>{e.name} ({e.type})</option>)}
+                  </optgroup>
+                )}
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.assetMap.targetAsset}</label>
               <select value={targetAssetId} onChange={(e) => setTargetAssetId(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" required>
                 <option value="">--</option>
-                {assets.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                <optgroup label="자산">
+                  {assets.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </optgroup>
+                {externalEntities.length > 0 && (
+                  <optgroup label="외부 조직">
+                    {externalEntities.map((e) => <option key={`ext-${e.id}`} value={`ext-${e.id}`}>{e.name} ({e.type})</option>)}
+                  </optgroup>
+                )}
               </select>
             </div>
           </div>
@@ -1985,10 +2009,14 @@ function AssetMapContentInner() {
   // ── Workspace state ──
   const [activeWorkspace, setActiveWorkspace] = useState<SavedView | null>(null);
   const [workspaces, setWorkspaces] = useState<SavedView[]>([]);
-  const [showWorkspacePanel, setShowWorkspacePanel] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [editingWsName, setEditingWsName] = useState<number | null>(null);
   const [wsContextMenu, setWsContextMenu] = useState<{ id: number; x: number; y: number } | null>(null);
+
+  // ── Gallery / Canvas view state ──
+  const [currentView, setCurrentView] = useState<"gallery" | "canvas">("gallery");
+  const [showNewWsModal, setShowNewWsModal] = useState(false);
+  const [showAssetPalette, setShowAssetPalette] = useState(false);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const viewportSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dirtyRef = useRef(false);
@@ -2115,6 +2143,7 @@ function AssetMapContentInner() {
     if (dirtyRef.current) await flushSave();
 
     setActiveWorkspace(ws);
+    setCurrentView("canvas");
     // Touch lastAccessedAt
     fetch(`/api/asset-map/views/${ws.id}/touch`, { method: "PATCH" }).catch(() => {});
   }, [flushSave]);
@@ -2184,7 +2213,7 @@ function AssetMapContentInner() {
     } catch { /* silent */ }
   }, [workspaces]);
 
-  // ── Initial load: ensure-default ──
+  // ── Initial load: ensure-default (gallery stays, no auto-canvas) ──
   useEffect(() => {
     async function init() {
       try {
@@ -2194,11 +2223,7 @@ function AssetMapContentInner() {
           const views: SavedView[] = data.views ?? [];
           setWorkspaces(views);
           setSavedViews(views);
-          // Load last accessed workspace
-          const defaultView = data.defaultView ?? views.find((v: SavedView) => v.isDefault) ?? views[0];
-          if (defaultView) {
-            setActiveWorkspace(defaultView);
-          }
+          // Do NOT auto-load into canvas — stay in gallery
         }
       } catch {
         // Fallback: load views the old way
@@ -2245,8 +2270,8 @@ function AssetMapContentInner() {
       } else {
         const connectedAssetIds = new Set<number>();
         fetchedEdges.forEach((e: AssetEdge) => {
-          connectedAssetIds.add(e.sourceAssetId);
-          connectedAssetIds.add(e.targetAssetId);
+          if (e.sourceAssetId) connectedAssetIds.add(e.sourceAssetId);
+          if (e.targetAssetId) connectedAssetIds.add(e.targetAssetId);
         });
         fetchedGroups.forEach((g) => {
           (g.assetIds || []).forEach((id) => connectedAssetIds.add(id));
@@ -2349,8 +2374,8 @@ function AssetMapContentInner() {
       const rawEdges = data.edges || [];
 
       const flowEdges: Edge[] = rawEdges.map((e: AssetEdge & { source?: string; target?: string; sourceName?: string; targetName?: string }) => {
-        const sourceId = e.source ? String(e.source) : String(e.sourceAssetId);
-        const targetId = e.target ? String(e.target) : String(e.targetAssetId);
+        const sourceId = e.source ? String(e.source) : (e.sourceAssetId ? String(e.sourceAssetId) : `ext-${e.sourceExternalId}`);
+        const targetId = e.target ? String(e.target) : (e.targetAssetId ? String(e.targetAssetId) : `ext-${e.targetExternalId}`);
         const linkType = e.linkType || "DATA_FLOW";
         const linkColor = LINK_COLORS[linkType] || "#6B7280";
 
@@ -2458,7 +2483,12 @@ function AssetMapContentInner() {
     }
   }, [view, setNodes, setEdges, t]);
 
-  useEffect(() => { fetchGraph(); }, [fetchGraph]);
+  // Only fetch graph when in canvas view with an active workspace
+  useEffect(() => {
+    if (currentView === "canvas" && activeWorkspace) {
+      fetchGraph();
+    }
+  }, [currentView, activeWorkspace, fetchGraph]);
 
   // ── Restore workspace state after graph loads ──
   useEffect(() => {
@@ -2705,8 +2735,8 @@ function AssetMapContentInner() {
         const newEdge: Edge = {
           id: `link-${newLink.id}`,
           type: "smoothstep",
-          source: String(newLink.sourceAssetId),
-          target: String(newLink.targetAssetId),
+          source: newLink.sourceAssetId ? String(newLink.sourceAssetId) : `ext-${newLink.sourceExternalId}`,
+          target: newLink.targetAssetId ? String(newLink.targetAssetId) : `ext-${newLink.targetExternalId}`,
           sourceHandle: newLink.sourceHandle || pendingConnection?.sourceHandle || "right",
           targetHandle: newLink.targetHandle || pendingConnection?.targetHandle || "left",
           style: { stroke: linkColor, strokeWidth: 2, strokeDasharray },
@@ -3073,6 +3103,28 @@ function AssetMapContentInner() {
     }, 100);
   }
 
+  // ── Relative time helper ──
+  function formatRelativeTime(dateStr?: string) {
+    if (!dateStr) return "";
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "방금 전";
+    if (mins < 60) return `${mins}분 전`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}시간 전`;
+    const days = Math.floor(hours / 24);
+    if (days < 30) return `${days}일 전`;
+    const months = Math.floor(days / 30);
+    return `${months}개월 전`;
+  }
+
+  // ── Back to gallery handler ──
+  const handleBackToGallery = useCallback(async () => {
+    if (dirtyRef.current) await flushSave();
+    setCurrentView("gallery");
+    setActiveWorkspace(null);
+  }, [flushSave]);
+
   const viewTabs: { key: ViewType; label: string }[] = [
     { key: "all", label: t.assetMap.viewAll },
     { key: "pii", label: t.assetMap.viewPii },
@@ -3080,12 +3132,231 @@ function AssetMapContentInner() {
     { key: "data_flow", label: t.assetMap.viewDataFlow },
   ];
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // ── Gallery View ──
+  // ═══════════════════════════════════════════════════════════════════════
+  if (currentView === "gallery") {
+    const myWorkspaces = workspaces.filter(w => !w.isShared || w.createdBy === undefined);
+    const sharedWorkspaces = workspaces.filter(w => w.isShared && w.createdBy !== undefined);
+
+    return (
+      <div className="h-[calc(100vh-64px)] relative flex flex-col bg-gray-50">
+        {/* Gallery Header */}
+        <div className="flex items-center justify-between border-b bg-white px-6 py-3 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-bold">{t.assetMap.title}</h1>
+            <span className="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-semibold text-purple-700">
+              {t.assetMap.alpha}
+            </span>
+          </div>
+        </div>
+
+        {/* Gallery Body */}
+        <div className="flex-1 overflow-y-auto px-8 py-6">
+          {/* My Workspaces Section */}
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-gray-700">{t.assetMap.myWorkspaces}</h2>
+            <button
+              onClick={() => setShowNewWsModal(true)}
+              className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              {t.assetMap.newWorkspace}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-8">
+            {myWorkspaces.map((ws) => (
+              <div
+                key={ws.id}
+                className="group relative bg-white rounded-xl border border-gray-200 p-4 cursor-pointer hover:shadow-md hover:border-blue-300 transition-all"
+                onClick={() => loadWorkspace(ws)}
+                onContextMenu={(e) => { e.preventDefault(); setWsContextMenu({ id: ws.id, x: e.clientX, y: e.clientY }); }}
+              >
+                {/* Card top row: icon + context menu */}
+                <div className="flex items-start justify-between mb-3">
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${ws.isDefault ? "bg-amber-50" : "bg-blue-50"}`}>
+                    {ws.isDefault ? (
+                      <Star className="h-5 w-5 text-amber-500" />
+                    ) : (
+                      <FolderOpen className="h-5 w-5 text-blue-500" />
+                    )}
+                  </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setWsContextMenu({ id: ws.id, x: e.clientX, y: e.clientY }); }}
+                    className="w-7 h-7 rounded-md flex items-center justify-center text-gray-300 opacity-0 group-hover:opacity-100 hover:text-gray-600 hover:bg-gray-100 transition"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {/* Card name */}
+                {editingWsName === ws.id ? (
+                  <input
+                    autoFocus
+                    defaultValue={ws.name}
+                    className="w-full text-sm font-medium bg-white border border-blue-300 rounded px-2 py-1 mb-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onBlur={(e) => { renameWorkspace(ws.id, e.target.value); setEditingWsName(null); }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") { renameWorkspace(ws.id, (e.target as HTMLInputElement).value); setEditingWsName(null); }
+                      if (e.key === "Escape") setEditingWsName(null);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                ) : (
+                  <h3 className="text-sm font-medium text-gray-900 truncate mb-1">{ws.name}</h3>
+                )}
+
+                {/* Card meta */}
+                <div className="flex items-center gap-2 text-[11px] text-gray-400">
+                  {ws.isShared && (
+                    <span className="flex items-center gap-0.5">
+                      <Share2 className="h-3 w-3 text-blue-400" />
+                    </span>
+                  )}
+                  <span>{formatRelativeTime(ws.lastAccessedAt)}</span>
+                </div>
+              </div>
+            ))}
+
+            {/* "+ New" card */}
+            <div
+              className="bg-white rounded-xl border-2 border-dashed border-gray-300 p-4 cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-all flex flex-col items-center justify-center min-h-[120px]"
+              onClick={() => setShowNewWsModal(true)}
+            >
+              <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center mb-2">
+                <Plus className="h-5 w-5 text-gray-400" />
+              </div>
+              <span className="text-xs font-medium text-gray-500">{t.assetMap.newWorkspace}</span>
+            </div>
+          </div>
+
+          {/* Shared Workspaces Section */}
+          {sharedWorkspaces.length > 0 && (
+            <>
+              <h2 className="text-sm font-semibold text-gray-700 mb-4">{t.assetMap.sharedWorkspaces}</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {sharedWorkspaces.map((ws) => (
+                  <div
+                    key={`shared-${ws.id}`}
+                    className="group relative bg-white rounded-xl border border-gray-200 p-4 cursor-pointer hover:shadow-md hover:border-blue-300 transition-all"
+                    onClick={() => loadWorkspace(ws)}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+                        <Share2 className="h-5 w-5 text-blue-500" />
+                      </div>
+                    </div>
+                    <h3 className="text-sm font-medium text-gray-900 truncate mb-1">{ws.name}</h3>
+                    <div className="text-[11px] text-gray-400">
+                      <span>{formatRelativeTime(ws.lastAccessedAt)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Workspace Context Menu (shared with canvas) */}
+        {wsContextMenu && (
+          <>
+            <div className="fixed inset-0 z-50" onClick={() => setWsContextMenu(null)} />
+            <div
+              className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[160px]"
+              style={{ left: wsContextMenu.x, top: wsContextMenu.y }}
+            >
+              <button onClick={() => { setEditingWsName(wsContextMenu.id); setWsContextMenu(null); }}
+                className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                <Pencil className="h-3 w-3" />{t.assetMap.renameWorkspace}
+              </button>
+              <button onClick={() => { duplicateWorkspace(wsContextMenu.id); setWsContextMenu(null); }}
+                className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                <Copy className="h-3 w-3" />{t.assetMap.duplicateWorkspace}
+              </button>
+              <button onClick={() => { toggleShareWorkspace(wsContextMenu.id); setWsContextMenu(null); }}
+                className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                <Share2 className="h-3 w-3" />{t.assetMap.shareWorkspace}
+              </button>
+              <hr className="my-1 border-gray-100" />
+              {workspaces.find(w => w.id === wsContextMenu.id)?.isDefault ? (
+                <div className="px-3 py-1.5 text-xs text-gray-400 flex items-center gap-2">
+                  <Trash2 className="h-3 w-3" />{t.assetMap.cannotDeleteDefault}
+                </div>
+              ) : (
+                <button onClick={() => { if (confirm(t.assetMap.deleteWorkspaceConfirm)) { deleteWorkspace(wsContextMenu.id); } setWsContextMenu(null); }}
+                  className="w-full px-3 py-1.5 text-left text-xs text-red-600 hover:bg-red-50 flex items-center gap-2">
+                  <Trash2 className="h-3 w-3" />{t.assetMap.deleteWorkspace}
+                </button>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* New Workspace Modal */}
+        {showNewWsModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowNewWsModal(false)}>
+            <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-lg font-bold mb-4">{t.assetMap.newWorkspace}</h3>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const form = e.target as HTMLFormElement;
+                  const input = form.elements.namedItem("wsName") as HTMLInputElement;
+                  const name = input.value.trim();
+                  if (name) {
+                    createWorkspace(name);
+                    setShowNewWsModal(false);
+                  }
+                }}
+              >
+                <input
+                  name="wsName"
+                  autoFocus
+                  placeholder={t.assetMap.workspaceName}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-4"
+                />
+                <div className="flex gap-2 justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setShowNewWsModal(false)}
+                    className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    {t.common.cancel}
+                  </button>
+                  <button
+                    type="submit"
+                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                  >
+                    {t.common.create}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // ── Canvas View (below) ──
+  // ═══════════════════════════════════════════════════════════════════════
+
   return (
     <div className="h-[calc(100vh-64px)] relative flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between border-b bg-white px-6 py-3 flex-shrink-0">
         <div className="flex items-center gap-3">
-          <h1 className="text-xl font-bold">{t.assetMap.title}</h1>
+          {/* Back to gallery button */}
+          <button
+            onClick={handleBackToGallery}
+            className="flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition"
+            title={t.assetMap.workspace}
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+          </button>
+          <h1 className="text-lg font-bold truncate max-w-[200px]">{activeWorkspace?.name || t.assetMap.title}</h1>
           <span className="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-semibold text-purple-700">
             {t.assetMap.alpha}
           </span>
@@ -3106,15 +3377,15 @@ function AssetMapContentInner() {
             ))}
           </div>
 
-          {/* Workspace toggle */}
+          {/* Asset Palette toggle */}
           <button
-            onClick={() => setShowWorkspacePanel(!showWorkspacePanel)}
+            onClick={() => setShowAssetPalette(!showAssetPalette)}
             className={`flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium transition ${
-              showWorkspacePanel ? "border-blue-300 bg-blue-50 text-blue-700" : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+              showAssetPalette ? "border-blue-300 bg-blue-50 text-blue-700" : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
             }`}
           >
-            <FolderOpen className="h-3.5 w-3.5" />
-            {t.assetMap.workspace}
+            <Package className="h-3.5 w-3.5" />
+            자산 팔레트
           </button>
 
           {/* Save status indicator */}
@@ -3156,144 +3427,21 @@ function AssetMapContentInner() {
         </div>
       </div>
 
-      {/* Body: Workspace Panel + Palette + ReactFlow */}
+      {/* Body: Palette + ReactFlow */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Workspace Panel */}
-        {showWorkspacePanel && (
-          <div className="w-56 border-r border-gray-200 bg-gray-50 flex flex-col flex-shrink-0 overflow-hidden">
-            <div className="px-3 py-2.5 border-b border-gray-200 flex items-center justify-between bg-white">
-              <span className="text-xs font-semibold text-gray-700">{t.assetMap.workspace}</span>
-              <button
-                onClick={() => {
-                  const name = prompt(t.assetMap.workspaceName);
-                  if (name?.trim()) createWorkspace(name.trim());
-                }}
-                className="w-6 h-6 rounded flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition"
-                title={t.assetMap.newWorkspace}
-              >
-                <Plus className="h-3.5 w-3.5" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto py-1">
-              {/* My workspaces */}
-              <div className="px-3 py-1">
-                <span className="text-[10px] font-medium uppercase tracking-wider text-gray-400">{t.assetMap.myWorkspaces}</span>
-              </div>
-              {workspaces.filter(w => !w.isShared || w.createdBy === undefined).map((ws) => (
-                <div
-                  key={ws.id}
-                  className={`group flex items-center gap-2 px-3 py-1.5 mx-1 rounded-md cursor-pointer transition text-sm ${
-                    activeWorkspace?.id === ws.id
-                      ? "bg-blue-100 text-blue-800"
-                      : "text-gray-700 hover:bg-gray-100"
-                  }`}
-                  onClick={() => loadWorkspace(ws)}
-                  onContextMenu={(e) => { e.preventDefault(); setWsContextMenu({ id: ws.id, x: e.clientX, y: e.clientY }); }}
-                >
-                  {ws.isDefault ? (
-                    <Star className="h-3 w-3 text-amber-500 flex-shrink-0" />
-                  ) : (
-                    <FolderOpen className="h-3 w-3 text-gray-400 flex-shrink-0" />
-                  )}
-
-                  {editingWsName === ws.id ? (
-                    <input
-                      autoFocus
-                      defaultValue={ws.name}
-                      className="flex-1 text-xs bg-white border rounded px-1 py-0.5"
-                      onBlur={(e) => { renameWorkspace(ws.id, e.target.value); setEditingWsName(null); }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") { renameWorkspace(ws.id, (e.target as HTMLInputElement).value); setEditingWsName(null); }
-                        if (e.key === "Escape") setEditingWsName(null);
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  ) : (
-                    <span className="flex-1 text-xs truncate">{ws.name}</span>
-                  )}
-
-                  {ws.isShared && <Share2 className="h-3 w-3 text-blue-400 flex-shrink-0" />}
-
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setWsContextMenu({ id: ws.id, x: e.clientX, y: e.clientY }); }}
-                    className="w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition"
-                  >
-                    <MoreVertical className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-
-              {/* Shared workspaces from others */}
-              {workspaces.some(w => w.isShared && w.createdBy !== undefined) && (
-                <>
-                  <div className="px-3 py-1 mt-2">
-                    <span className="text-[10px] font-medium uppercase tracking-wider text-gray-400">{t.assetMap.sharedWorkspaces}</span>
-                  </div>
-                  {workspaces.filter(w => w.isShared && w.createdBy !== undefined).map((ws) => (
-                    <div
-                      key={`shared-${ws.id}`}
-                      className={`group flex items-center gap-2 px-3 py-1.5 mx-1 rounded-md cursor-pointer transition text-sm ${
-                        activeWorkspace?.id === ws.id ? "bg-blue-100 text-blue-800" : "text-gray-700 hover:bg-gray-100"
-                      }`}
-                      onClick={() => loadWorkspace(ws)}
-                    >
-                      <Share2 className="h-3 w-3 text-blue-400 flex-shrink-0" />
-                      <span className="flex-1 text-xs truncate">{ws.name}</span>
-                    </div>
-                  ))}
-                </>
-              )}
-            </div>
-          </div>
+        {/* Asset Palette (toggled from header) */}
+        {showAssetPalette && (
+          <AssetPalette
+            allAssets={allAssets}
+            placedAssetIds={placedAssetIds}
+            onAddToCanvas={handleAddAssetToCanvas}
+            onRemoveFromCanvas={(assetId: number) => {
+              setNodes((prev) => prev.filter((n) => n.id !== String(assetId)));
+              setEdges((prev) => prev.filter((e) => e.source !== String(assetId) && e.target !== String(assetId)));
+            }}
+            t={t}
+          />
         )}
-
-        {/* Workspace Context Menu */}
-        {wsContextMenu && (
-          <>
-            <div className="fixed inset-0 z-50" onClick={() => setWsContextMenu(null)} />
-            <div
-              className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[160px]"
-              style={{ left: wsContextMenu.x, top: wsContextMenu.y }}
-            >
-              <button onClick={() => { setEditingWsName(wsContextMenu.id); setWsContextMenu(null); }}
-                className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-100 flex items-center gap-2">
-                <Pencil className="h-3 w-3" />{t.assetMap.renameWorkspace}
-              </button>
-              <button onClick={() => { duplicateWorkspace(wsContextMenu.id); setWsContextMenu(null); }}
-                className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-100 flex items-center gap-2">
-                <Copy className="h-3 w-3" />{t.assetMap.duplicateWorkspace}
-              </button>
-              <button onClick={() => { toggleShareWorkspace(wsContextMenu.id); setWsContextMenu(null); }}
-                className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-100 flex items-center gap-2">
-                <Share2 className="h-3 w-3" />{t.assetMap.shareWorkspace}
-              </button>
-              <hr className="my-1 border-gray-100" />
-              {workspaces.find(w => w.id === wsContextMenu.id)?.isDefault ? (
-                <div className="px-3 py-1.5 text-xs text-gray-400 flex items-center gap-2">
-                  <Trash2 className="h-3 w-3" />{t.assetMap.cannotDeleteDefault}
-                </div>
-              ) : (
-                <button onClick={() => { if (confirm(t.assetMap.deleteWorkspaceConfirm)) { deleteWorkspace(wsContextMenu.id); } setWsContextMenu(null); }}
-                  className="w-full px-3 py-1.5 text-left text-xs text-red-600 hover:bg-red-50 flex items-center gap-2">
-                  <Trash2 className="h-3 w-3" />{t.assetMap.deleteWorkspace}
-                </button>
-              )}
-            </div>
-          </>
-        )}
-
-        {/* Asset Palette */}
-        <AssetPalette
-          allAssets={allAssets}
-          placedAssetIds={placedAssetIds}
-          onAddToCanvas={handleAddAssetToCanvas}
-          onRemoveFromCanvas={(assetId: number) => {
-            setNodes((prev) => prev.filter((n) => n.id !== String(assetId)));
-            setEdges((prev) => prev.filter((e) => e.source !== String(assetId) && e.target !== String(assetId)));
-          }}
-          t={t}
-        />
 
       {/* ReactFlow */}
       <div className={`flex-1 relative transition-all ${selectedNode ? "pr-80" : ""}`}>
@@ -3388,6 +3536,7 @@ function AssetMapContentInner() {
       {showModal && (
         <LinkModal
           assets={assets}
+          externalEntities={externalEntities}
           onSave={handleSaveLink}
           onClose={() => { setShowModal(false); setPendingConnection(null); }}
           initialSource={pendingConnection?.source}
