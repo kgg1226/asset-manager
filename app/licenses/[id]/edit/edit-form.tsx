@@ -45,7 +45,7 @@ type OrgOption = { id: number; name: string; companyName: string };
 type Seat = {
   id: number;
   key: string | null;
-  assignedTo: { name: string; department: string } | null;
+  assignedTo: { name: string; department: string | null } | null;
 };
 
 function toDateString(date: Date | null): string {

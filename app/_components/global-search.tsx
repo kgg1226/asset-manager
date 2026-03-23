@@ -19,7 +19,7 @@ export default function GlobalSearch() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const ASSET_TYPE_META: Record<string, { label: string; icon: React.ReactNode; path: string }> = {
     HARDWARE: { label: t.hw.title, icon: <HardDrive className="h-3.5 w-3.5" />, path: "/hardware" },
