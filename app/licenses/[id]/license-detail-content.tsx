@@ -423,7 +423,7 @@ export default function LicenseDetailContent({
                 <InfoItem
                   icon={<CreditCard className="h-4 w-4" />}
                   label={t.license.exchangeRate}
-                  value={`1 ${license.currency} = ${krwSymbol}${license.exchangeRate.toLocaleString()}`}
+                  value={`1 ${license.currency} = ${krwSymbol}${Number(license.exchangeRate.toFixed(1)).toLocaleString()}`}
                 />
               )}
             </dl>
