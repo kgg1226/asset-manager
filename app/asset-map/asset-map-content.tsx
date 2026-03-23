@@ -2363,7 +2363,11 @@ export default function AssetMapContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (res.ok) {
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || "연결 생성에 실패했습니다.");
+        return;
+      }
         const newLink = await res.json();
         setShowModal(false);
 
@@ -2404,7 +2408,6 @@ export default function AssetMapContent() {
         setEdges((prev) => {
           const allEdges = [...prev, newEdge];
           distributeEdgeHandles(allEdges);
-          // 핸들 갱신을 위해 노드의 _handles 업데이트
           setNodes((nds) => nds.map((n) => {
             const handles = collectDynamicHandles(allEdges, n.id);
             if (handles.length > 0) {
@@ -2415,9 +2418,8 @@ export default function AssetMapContent() {
           return allEdges;
         });
         setPendingConnection(null);
-      }
     } catch {
-      // silently fail
+      alert("연결 생성 중 오류가 발생했습니다.");
     }
   }
 
