@@ -612,6 +612,70 @@ export type TranslationDict = {
     archiveExportDetail2: string;
     titleCiaLink: string;
     archiveLink: string;
+    // Dashboard section
+    dashboardDesc: string;
+    dashboardOverview: string;
+    dashboardOverviewDesc: string;
+    dashboardOverviewDetail1: string;
+    dashboardOverviewDetail2: string;
+    dashboardOverviewDetail3: string;
+    dashboardCharts: string;
+    dashboardChartsDesc: string;
+    dashboardChartsDetail1: string;
+    dashboardChartsDetail2: string;
+    dashboardChartsDetail3: string;
+    dashboardLink: string;
+    // Reports section
+    reportsDesc: string;
+    reportGenerate: string;
+    reportGenerateDesc: string;
+    reportGenerateDetail1: string;
+    reportGenerateDetail2: string;
+    reportGenerateDetail3: string;
+    reportExport: string;
+    reportExportDesc: string;
+    reportExportDetail1: string;
+    reportExportDetail2: string;
+    reportExportDetail3: string;
+    reportLink: string;
+    // History section
+    historyDesc: string;
+    historySearch: string;
+    historySearchDesc: string;
+    historySearchDetail1: string;
+    historySearchDetail2: string;
+    historySearchDetail3: string;
+    historySearchDetail4: string;
+    historyLink: string;
+    // Settings section
+    settingsTitle: string;
+    settingsDesc: string;
+    profileSetup: string;
+    profileSetupDesc: string;
+    profileSetupDetail1: string;
+    profileSetupDetail2: string;
+    profileSetupDetail3: string;
+    csvImport: string;
+    csvImportDesc: string;
+    csvImportDetail1: string;
+    csvImportDetail2: string;
+    csvImportDetail3: string;
+    csvImportDetail4: string;
+    profileLink: string;
+    importLink: string;
+    // User Management (admin)
+    userMgmtGuide: string;
+    userMgmtGuideDesc: string;
+    userMgmtDetail1: string;
+    userMgmtDetail2: string;
+    userMgmtDetail3: string;
+    userMgmtLink: string;
+    // Exchange Rates (admin)
+    exchangeRateGuide: string;
+    exchangeRateGuideDesc: string;
+    exchangeRateDetail1: string;
+    exchangeRateDetail2: string;
+    exchangeRateLink: string;
   };
 
   // Notifications
