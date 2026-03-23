@@ -55,7 +55,6 @@ import {
   Check,
   ArrowLeft,
   GitBranch,
-  FolderOpen,
   Copy,
   Share2,
   Star,
@@ -3169,62 +3168,70 @@ function AssetMapContentInner() {
             {myWorkspaces.map((ws) => (
               <div
                 key={ws.id}
-                className="group relative bg-white rounded-xl border border-gray-200 p-4 cursor-pointer hover:shadow-md hover:border-blue-300 transition-all"
+                className="group relative bg-white rounded-xl border border-gray-200 cursor-pointer hover:shadow-md hover:border-blue-300 transition-all overflow-hidden"
                 onClick={() => loadWorkspace(ws)}
                 onContextMenu={(e) => { e.preventDefault(); setWsContextMenu({ id: ws.id, x: e.clientX, y: e.clientY }); }}
               >
-                {/* Card top row: icon + context menu */}
-                <div className="flex items-start justify-between mb-3">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${ws.isDefault ? "bg-amber-50" : "bg-blue-50"}`}>
-                    {ws.isDefault ? (
-                      <Star className="h-5 w-5 text-amber-500" />
-                    ) : (
-                      <FolderOpen className="h-5 w-5 text-blue-500" />
-                    )}
-                  </div>
+                {/* 도면 미리보기 영역 */}
+                <div className="h-24 bg-gradient-to-br from-gray-50 to-gray-100 relative border-b border-gray-100">
+                  {/* 그리드 패턴 */}
+                  <svg className="absolute inset-0 w-full h-full opacity-20" xmlns="http://www.w3.org/2000/svg">
+                    <defs><pattern id={`grid-${ws.id}`} width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="#94a3b8" strokeWidth="0.5"/></pattern></defs>
+                    <rect width="100%" height="100%" fill={`url(#grid-${ws.id})`} />
+                  </svg>
+                  {/* 미니 노드 장식 (도면 느낌) */}
+                  <div className="absolute top-4 left-5 w-8 h-5 rounded border border-blue-200 bg-blue-50/80" />
+                  <div className="absolute top-3 right-8 w-10 h-5 rounded border border-emerald-200 bg-emerald-50/80" />
+                  <div className="absolute bottom-3 left-12 w-7 h-5 rounded border border-purple-200 bg-purple-50/80" />
+                  <div className="absolute top-6 left-16 w-12 h-[1px] bg-gray-300" />
+                  {/* 기본 뱃지 */}
+                  {ws.isDefault && (
+                    <div className="absolute top-2 left-2 flex items-center gap-1 bg-amber-100 rounded-full px-1.5 py-0.5">
+                      <Star className="h-3 w-3 text-amber-500" />
+                      <span className="text-[9px] font-semibold text-amber-700">기본</span>
+                    </div>
+                  )}
+                  {/* 컨텍스트 메뉴 버튼 */}
                   <button
                     onClick={(e) => { e.stopPropagation(); setWsContextMenu({ id: ws.id, x: e.clientX, y: e.clientY }); }}
-                    className="w-7 h-7 rounded-md flex items-center justify-center text-gray-300 opacity-0 group-hover:opacity-100 hover:text-gray-600 hover:bg-gray-100 transition"
+                    className="absolute top-2 right-2 w-6 h-6 rounded-md flex items-center justify-center bg-white/70 text-gray-400 opacity-0 group-hover:opacity-100 hover:text-gray-700 hover:bg-white transition"
                   >
-                    <MoreVertical className="h-4 w-4" />
+                    <MoreVertical className="h-3.5 w-3.5" />
                   </button>
                 </div>
 
-                {/* Card name */}
-                {editingWsName === ws.id ? (
-                  <input
-                    autoFocus
-                    defaultValue={ws.name}
-                    className="w-full text-sm font-medium bg-white border border-blue-300 rounded px-2 py-1 mb-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    onBlur={(e) => { renameWorkspace(ws.id, e.target.value); setEditingWsName(null); }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") { renameWorkspace(ws.id, (e.target as HTMLInputElement).value); setEditingWsName(null); }
-                      if (e.key === "Escape") setEditingWsName(null);
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                ) : (
-                  <h3 className="text-sm font-medium text-gray-900 truncate mb-1">{ws.name}</h3>
-                )}
-
-                {/* Card meta */}
-                <div className="flex items-center gap-2 text-[11px] text-gray-400">
-                  {ws.isShared && (
-                    <span className="flex items-center gap-0.5">
-                      <Share2 className="h-3 w-3 text-blue-400" />
-                    </span>
+                {/* 카드 하단: 이름 + 메타 */}
+                <div className="px-3 py-2.5">
+                  {editingWsName === ws.id ? (
+                    <input
+                      autoFocus
+                      defaultValue={ws.name}
+                      className="w-full text-sm font-medium bg-white border border-blue-300 rounded px-2 py-1 mb-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onBlur={(e) => { renameWorkspace(ws.id, e.target.value); setEditingWsName(null); }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") { renameWorkspace(ws.id, (e.target as HTMLInputElement).value); setEditingWsName(null); }
+                        if (e.key === "Escape") setEditingWsName(null);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  ) : (
+                    <h3 className="text-sm font-medium text-gray-900 truncate">{ws.name}</h3>
                   )}
-                  <span>{formatRelativeTime(ws.lastAccessedAt)}</span>
+                  <div className="flex items-center gap-2 text-[11px] text-gray-400 mt-0.5">
+                    {ws.isShared && <Share2 className="h-3 w-3 text-blue-400" />}
+                    <span>{formatRelativeTime(ws.lastAccessedAt)}</span>
+                  </div>
                 </div>
               </div>
             ))}
 
             {/* "+ New" card */}
             <div
-              className="bg-white rounded-xl border-2 border-dashed border-gray-300 p-4 cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-all flex flex-col items-center justify-center min-h-[120px]"
+              className="bg-white rounded-xl border-2 border-dashed border-gray-300 cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-all flex flex-col items-center justify-center overflow-hidden"
               onClick={() => setShowNewWsModal(true)}
+              style={{ minHeight: "152px" }}
             >
-              <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center mb-2">
+              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-2">
                 <Plus className="h-5 w-5 text-gray-400" />
               </div>
               <span className="text-xs font-medium text-gray-500">{t.assetMap.newWorkspace}</span>
@@ -3239,17 +3246,27 @@ function AssetMapContentInner() {
                 {sharedWorkspaces.map((ws) => (
                   <div
                     key={`shared-${ws.id}`}
-                    className="group relative bg-white rounded-xl border border-gray-200 p-4 cursor-pointer hover:shadow-md hover:border-blue-300 transition-all"
+                    className="group relative bg-white rounded-xl border border-gray-200 cursor-pointer hover:shadow-md hover:border-blue-300 transition-all overflow-hidden"
                     onClick={() => loadWorkspace(ws)}
                   >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-                        <Share2 className="h-5 w-5 text-blue-500" />
+                    <div className="h-24 bg-gradient-to-br from-blue-50 to-gray-100 relative border-b border-gray-100">
+                      <svg className="absolute inset-0 w-full h-full opacity-20" xmlns="http://www.w3.org/2000/svg">
+                        <defs><pattern id={`grid-s-${ws.id}`} width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="#94a3b8" strokeWidth="0.5"/></pattern></defs>
+                        <rect width="100%" height="100%" fill={`url(#grid-s-${ws.id})`} />
+                      </svg>
+                      <div className="absolute top-4 left-5 w-8 h-5 rounded border border-blue-200 bg-blue-50/80" />
+                      <div className="absolute top-3 right-8 w-10 h-5 rounded border border-emerald-200 bg-emerald-50/80" />
+                      <div className="absolute bottom-3 left-12 w-7 h-5 rounded border border-purple-200 bg-purple-50/80" />
+                      <div className="absolute top-2 left-2 flex items-center gap-1 bg-blue-100 rounded-full px-1.5 py-0.5">
+                        <Share2 className="h-3 w-3 text-blue-500" />
+                        <span className="text-[9px] font-semibold text-blue-700">{t.assetMap.shareWorkspace}</span>
                       </div>
                     </div>
-                    <h3 className="text-sm font-medium text-gray-900 truncate mb-1">{ws.name}</h3>
-                    <div className="text-[11px] text-gray-400">
-                      <span>{formatRelativeTime(ws.lastAccessedAt)}</span>
+                    <div className="px-3 py-2.5">
+                      <h3 className="text-sm font-medium text-gray-900 truncate">{ws.name}</h3>
+                      <div className="text-[11px] text-gray-400 mt-0.5">
+                        <span>{formatRelativeTime(ws.lastAccessedAt)}</span>
+                      </div>
                     </div>
                   </div>
                 ))}
