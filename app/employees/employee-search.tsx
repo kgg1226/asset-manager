@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Search, X } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 
 export default function EmployeeSearch({
   currentQuery,
@@ -14,6 +15,7 @@ export default function EmployeeSearch({
   currentUnassigned: boolean;
 }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [query, setQuery] = useState(currentQuery);
 
   const handleSearch = () => {
@@ -61,7 +63,7 @@ export default function EmployeeSearch({
             onKeyDown={(e) => {
               if (e.key === "Enter") handleSearch();
             }}
-            placeholder="이름 또는 부서로 검색..."
+            placeholder={`${t.common.search}...`}
             className="w-full border border-gray-300 rounded-lg bg-white pl-10 pr-8 py-2 text-sm placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
           {query && (
@@ -77,7 +79,7 @@ export default function EmployeeSearch({
           onClick={handleSearch}
           className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
         >
-          검색
+          {t.common.search}
         </button>
       </div>
 
@@ -85,7 +87,7 @@ export default function EmployeeSearch({
       <div className="flex flex-wrap gap-3">
         {/* 상태 필터 */}
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-gray-600">상태:</span>
+          <span className="text-xs font-medium text-gray-600">{t.common.status}:</span>
           <div className="flex gap-1">
             <button
               onClick={() => handleStatusChange(currentStatus === "ACTIVE" ? null : "ACTIVE")}
@@ -95,7 +97,7 @@ export default function EmployeeSearch({
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
-              활성
+              {t.employee.active}
             </button>
             <button
               onClick={() => handleStatusChange(currentStatus === "OFFBOARDING" ? null : "OFFBOARDING")}
@@ -105,7 +107,7 @@ export default function EmployeeSearch({
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
-              퇴사 예정
+              {t.employee.offboarding}
             </button>
           </div>
         </div>
@@ -119,7 +121,7 @@ export default function EmployeeSearch({
               onChange={(e) => handleUnassignedChange(e.target.checked)}
               className="rounded border-gray-300"
             />
-            라이선스 미할당만 보기
+            {t.license.unassigned}
           </label>
         </div>
 
@@ -129,7 +131,7 @@ export default function EmployeeSearch({
             onClick={handleClear}
             className="text-xs text-gray-500 hover:text-gray-700 underline"
           >
-            필터 초기화
+            {t.common.reset}
           </button>
         )}
       </div>
@@ -139,7 +141,7 @@ export default function EmployeeSearch({
         <div className="flex flex-wrap gap-2 pt-1 border-t border-gray-100">
           {currentQuery && (
             <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-3 py-1 text-xs text-blue-700">
-              검색: "{currentQuery}"
+              {t.common.search}: &quot;{currentQuery}&quot;
               <button
                 onClick={() => setQuery("")}
                 className="hover:text-blue-900"
@@ -150,7 +152,7 @@ export default function EmployeeSearch({
           )}
           {currentStatus && (
             <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-3 py-1 text-xs text-green-700">
-              {currentStatus === "ACTIVE" ? "활성" : "퇴사 예정"}
+              {currentStatus === "ACTIVE" ? t.employee.active : t.employee.offboarding}
               <button
                 onClick={() => handleStatusChange(null)}
                 className="hover:text-green-900"
@@ -161,7 +163,7 @@ export default function EmployeeSearch({
           )}
           {currentUnassigned && (
             <span className="inline-flex items-center gap-1 rounded-full bg-purple-50 px-3 py-1 text-xs text-purple-700">
-              라이선스 미할당
+              {t.license.unassigned}
               <button
                 onClick={() => handleUnassignedChange(false)}
                 className="hover:text-purple-900"

@@ -46,7 +46,7 @@ export default function ExternalEntityEditPage({ params }: { params: Promise<{ i
           contactInfo: data.contactInfo || "",
         });
       } catch {
-        toast.error("데이터를 불러올 수 없습니다.");
+        toast.error(t.toast.loadFail);
         router.push("/external");
       } finally {
         setIsLoading(false);
@@ -56,8 +56,8 @@ export default function ExternalEntityEditPage({ params }: { params: Promise<{ i
 
   const validate = () => {
     const errs: Record<string, string> = {};
-    if (!form.name.trim()) errs.name = "필수 항목입니다";
-    if (!form.type) errs.type = "필수 항목입니다";
+    if (!form.name.trim()) errs.name = t.common.required;
+    if (!form.type) errs.type = t.common.required;
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -79,12 +79,12 @@ export default function ExternalEntityEditPage({ params }: { params: Promise<{ i
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "수정에 실패했습니다.");
+        throw new Error(err.error || t.toast.updateFail);
       }
-      toast.success("수정 완료");
+      toast.success(t.toast.updateSuccess);
       router.push(`/external/${id}`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "수정에 실패했습니다.");
+      toast.error(err instanceof Error ? err.message : t.toast.updateFail);
     } finally {
       setSubmitting(false);
     }
@@ -184,13 +184,13 @@ export default function ExternalEntityEditPage({ params }: { params: Promise<{ i
               className="flex flex-1 items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
             >
               <Save className="h-4 w-4" />
-              {submitting ? "저장 중..." : t.externalEntity.edit}
+              {submitting ? t.common.processing : t.externalEntity.edit}
             </button>
             <Link
               href={`/external/${id}`}
               className="flex flex-1 items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
-              {t.common?.cancel || "취소"}
+              {t.common.cancel}
             </Link>
           </div>
         </form>

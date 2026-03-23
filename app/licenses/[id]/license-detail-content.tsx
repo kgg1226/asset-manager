@@ -201,7 +201,7 @@ export default function LicenseDetailContent({
             <h1 className="text-2xl font-bold text-gray-900">{license.name}</h1>
             {isContainer && (
               <span className="rounded px-2 py-0.5 text-xs font-semibold bg-indigo-100 text-indigo-700">
-                {locale === "en" ? "Group" : "그룹"}
+                {t.license.group}
               </span>
             )}
             {typeLabel && (
@@ -237,17 +237,17 @@ export default function LicenseDetailContent({
           <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
             <DashboardCard
               icon={<KeyRound className="h-5 w-5 text-blue-600" />}
-              label={locale === "en" ? "Sub-Licenses" : "하위 라이선스"}
+              label={t.classification.subLicenses}
               value={children.length}
             />
             <DashboardCard
               icon={<Users className="h-5 w-5 text-green-600" />}
-              label={locale === "en" ? "Total Seats (children)" : "총 시트 (하위 합계)"}
+              label={t.classification.totalSeatsChildren}
               value={children.reduce((sum, c) => sum + c.totalQuantity, 0)}
             />
             <DashboardCard
               icon={<CheckCircle className="h-5 w-5 text-gray-500" />}
-              label={locale === "en" ? "Total Assigned" : "총 배정"}
+              label={t.classification.totalAssigned}
               value={children.reduce((sum, c) => sum + c.assignments.length, 0)}
             />
           </div>

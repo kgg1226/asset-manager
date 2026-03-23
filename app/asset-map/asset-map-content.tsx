@@ -970,11 +970,11 @@ function LinkModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.assetMap.sourceAsset}</label>
               <select value={sourceAssetId} onChange={(e) => setSourceAssetId(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" required>
                 <option value="">--</option>
-                <optgroup label="자산">
+                <optgroup label={t.assetMap.assetOptgroup}>
                   {assets.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </optgroup>
                 {externalEntities.length > 0 && (
-                  <optgroup label="외부 조직">
+                  <optgroup label={t.assetMap.externalEntityOptgroup}>
                     {externalEntities.map((e) => <option key={`ext-${e.id}`} value={`ext-${e.id}`}>{e.name} ({e.type})</option>)}
                   </optgroup>
                 )}
@@ -984,11 +984,11 @@ function LinkModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.assetMap.targetAsset}</label>
               <select value={targetAssetId} onChange={(e) => setTargetAssetId(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" required>
                 <option value="">--</option>
-                <optgroup label="자산">
+                <optgroup label={t.assetMap.assetOptgroup}>
                   {assets.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </optgroup>
                 {externalEntities.length > 0 && (
-                  <optgroup label="외부 조직">
+                  <optgroup label={t.assetMap.externalEntityOptgroup}>
                     {externalEntities.map((e) => <option key={`ext-${e.id}`} value={`ext-${e.id}`}>{e.name} ({e.type})</option>)}
                   </optgroup>
                 )}
@@ -1009,8 +1009,8 @@ function LinkModal({
                 {[
                   { value: "UNI", label: "→", desc: t.assetMap.uniDirectional },
                   { value: "BI", label: "↔", desc: t.assetMap.biDirectional },
-                  { value: "REVERSE", label: "←", desc: "역방향" },
-                  { value: "CONDITIONAL", label: "⇢", desc: "조건부" },
+                  { value: "REVERSE", label: "←", desc: t.assetMap.reverseDirection },
+                  { value: "CONDITIONAL", label: "⇢", desc: t.assetMap.conditionalDirection },
                 ].map((opt) => (
                   <button
                     key={opt.value}
@@ -1033,7 +1033,7 @@ function LinkModal({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.assetMap.label}</label>
-              <input value={label} onChange={(e) => setLabel(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" placeholder="API 호출, DB 연결..." />
+              <input value={label} onChange={(e) => setLabel(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" placeholder={t.assetMap.labelPlaceholder} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.assetMap.protocol}</label>
@@ -1062,7 +1062,7 @@ function LinkModal({
             <>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t.assetMap.piiItems}</label>
-                <input value={piiItemsText} onChange={(e) => setPiiItemsText(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" placeholder="이름, 이메일, 전화번호" />
+                <input value={piiItemsText} onChange={(e) => setPiiItemsText(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" placeholder={t.assetMap.piiItemsPlaceholder} />
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div>
@@ -1149,9 +1149,11 @@ function SaveViewModal({
 function SectionModal({
   onSave,
   onClose,
+  t,
 }: {
   onSave: (name: string, color: string, description: string, width: number, height: number) => void;
   onClose: () => void;
+  t: ReturnType<typeof useTranslation>["t"];
 }) {
   const [name, setName] = useState("");
   const [color, setColor] = useState("#3B82F6");
@@ -1169,14 +1171,14 @@ function SectionModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold">섹션 추가</h3>
+          <h3 className="text-lg font-bold">{t.assetMap.addSection}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="h-5 w-5" />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">섹션 이름</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t.assetMap.sectionName}</label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -1187,16 +1189,16 @@ function SectionModal({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">설명 (선택)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t.assetMap.descriptionOptional}</label>
             <input
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-              placeholder="이 섹션에 대한 설명"
+              placeholder={t.assetMap.sectionDescPlaceholder}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">색상</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t.assetMap.color}</label>
             <div className="flex flex-wrap gap-2">
               {SECTION_COLORS.map((c) => (
                 <button
@@ -1214,7 +1216,7 @@ function SectionModal({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">너비 (px)</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">{t.assetMap.widthPx}</label>
               <input
                 type="number"
                 value={width}
@@ -1225,7 +1227,7 @@ function SectionModal({
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">높이 (px)</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">{t.assetMap.heightPx}</label>
               <input
                 type="number"
                 value={height}
@@ -1240,7 +1242,7 @@ function SectionModal({
             type="submit"
             className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
           >
-            섹션 추가
+            {t.assetMap.addSection}
           </button>
         </form>
       </div>
@@ -1293,17 +1295,17 @@ function EdgeDetailModal({
   };
 
   const directionLabels: Record<string, string> = {
-    UNI: "단방향 →",
-    BI: "양방향 ↔",
-    REVERSE: "역방향 ←",
-    CONDITIONAL: "조건부 ⇢",
+    UNI: `${t.assetMap.uniDirectional} →`,
+    BI: `${t.assetMap.biDirectional} ↔`,
+    REVERSE: `${t.assetMap.reverseDirection} ←`,
+    CONDITIONAL: `${t.assetMap.conditionalDirection} ⇢`,
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
       <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold">연결 상세</h3>
+          <h3 className="text-lg font-bold">{t.assetMap.linkDetail}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="h-5 w-5" />
           </button>
@@ -1323,7 +1325,7 @@ function EdgeDetailModal({
 
           {/* Link Type + Direction */}
           <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-500">유형</span>
+            <span className="text-xs text-gray-500">{t.assetMap.typeLabel}</span>
             <span
               className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
               style={{ backgroundColor: linkBg, color: linkColor }}
@@ -1333,14 +1335,14 @@ function EdgeDetailModal({
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-500">방향</span>
+            <span className="text-xs text-gray-500">{t.assetMap.directionLabel}</span>
             <span className="text-sm text-gray-800">{directionLabels[direction] || direction}</span>
           </div>
 
           {/* Label */}
           {edgeLabel && (
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">라벨</span>
+              <span className="text-xs text-gray-500">{t.assetMap.labelField}</span>
               <span className="text-sm text-gray-800">{edgeLabel}</span>
             </div>
           )}
@@ -1348,7 +1350,7 @@ function EdgeDetailModal({
           {/* Protocol */}
           {protocol && (
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">프로토콜</span>
+              <span className="text-xs text-gray-500">{t.assetMap.protocolField}</span>
               <span className="text-sm text-gray-800">{protocol}</span>
             </div>
           )}
@@ -1356,7 +1358,7 @@ function EdgeDetailModal({
           {/* Data Types */}
           {dataTypes && (
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">데이터 유형</span>
+              <span className="text-xs text-gray-500">{t.assetMap.dataTypesField}</span>
               <div className="flex gap-1 flex-wrap">
                 {dataTypes.split(",").map((dt) => (
                   <span key={dt} className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-600">
@@ -1370,7 +1372,7 @@ function EdgeDetailModal({
           {/* PII Items */}
           {piiItems && (
             <div>
-              <span className="text-xs text-gray-500 block mb-1">개인정보 항목</span>
+              <span className="text-xs text-gray-500 block mb-1">{t.assetMap.piiItemsField}</span>
               <p className="text-sm text-gray-800 bg-red-50 rounded-lg p-2">{piiItems}</p>
             </div>
           )}
@@ -1378,7 +1380,7 @@ function EdgeDetailModal({
           {/* Legal Basis */}
           {legalBasis && (
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">법적 근거</span>
+              <span className="text-xs text-gray-500">{t.assetMap.legalBasisField}</span>
               <span className="text-sm text-gray-800">{legalBasis}</span>
             </div>
           )}
@@ -1386,7 +1388,7 @@ function EdgeDetailModal({
           {/* Retention Period */}
           {retentionPeriod && (
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">보유기간</span>
+              <span className="text-xs text-gray-500">{t.assetMap.retentionPeriodField}</span>
               <span className="text-sm text-gray-800">{retentionPeriod}</span>
             </div>
           )}
@@ -1394,7 +1396,7 @@ function EdgeDetailModal({
           {/* Destruction Method */}
           {destructionMethod && (
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">파기방법</span>
+              <span className="text-xs text-gray-500">{t.assetMap.destructionMethodField}</span>
               <span className="text-sm text-gray-800">{destructionMethod}</span>
             </div>
           )}
@@ -1410,13 +1412,13 @@ function EdgeDetailModal({
               }}
               className="flex-1 rounded-md bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:bg-amber-600 transition-colors"
             >
-              수정
+              {t.common.edit}
             </button>
             <button
               onClick={() => setShowDeleteConfirm(true)}
               className="flex-1 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors"
             >
-              삭제
+              {t.common.delete}
             </button>
           </div>
 
@@ -1424,25 +1426,25 @@ function EdgeDetailModal({
           {showDeleteConfirm && (
             <div className="rounded-lg border border-red-200 bg-red-50 p-3 space-y-2">
               <p className="text-xs text-red-700 font-medium">
-                삭제하려면 &quot;삭제하겠습니다&quot;를 입력하세요
+                {t.assetMap.deleteConfirmPrompt}
               </p>
               <input
                 value={deleteText}
                 onChange={(e) => setDeleteText(e.target.value)}
                 className="w-full rounded-md border border-red-300 px-3 py-1.5 text-sm focus:outline-none focus:border-red-500"
-                placeholder="삭제하겠습니다"
+                placeholder={t.assetMap.deleteConfirmPlaceholder}
                 autoFocus
               />
               <button
                 onClick={() => {
-                  if (deleteText === "삭제하겠습니다") {
+                  if (deleteText === t.assetMap.deleteConfirmPlaceholder) {
                     onDelete();
                   }
                 }}
-                disabled={deleteText !== "삭제하겠습니다"}
+                disabled={deleteText !== t.assetMap.deleteConfirmPlaceholder}
                 className="w-full rounded-md bg-red-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
-                삭제 확인
+                {t.assetMap.deleteConfirmButton}
               </button>
             </div>
           )}
@@ -1852,7 +1854,7 @@ function AssetPalette({
         <button
           onClick={() => setCollapsed(false)}
           className="w-7 h-7 rounded flex items-center justify-center text-gray-500 hover:bg-gray-200"
-          title="자산 팔레트 열기"
+          title={t.assetMap.openAssetPalette}
         >
           <GripVertical className="w-4 h-4" />
         </button>
@@ -1865,7 +1867,7 @@ function AssetPalette({
       {/* Palette Header */}
       <div className="px-3 py-2.5 border-b flex items-center justify-between">
         <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">
-          자산 팔레트
+          {t.assetMap.assetPalette}
         </span>
         <button
           onClick={() => setCollapsed(true)}
@@ -1909,7 +1911,7 @@ function AssetPalette({
       {/* Stats + Bulk Actions */}
       <div className="px-3 py-1.5 border-b flex items-center justify-between">
         <span className="text-[10px] text-gray-400">
-          캔버스: {placedCount} | 미배치: {unplacedAssets.length}
+          {t.assetMap.canvasCount}: {placedCount} | {t.assetMap.unplacedCount}: {unplacedAssets.length}
         </span>
         <div className="flex gap-1">
           {unplacedAssets.length > 0 && (
@@ -1917,7 +1919,7 @@ function AssetPalette({
               onClick={() => unplacedAssets.forEach((a) => onAddToCanvas(a))}
               className="text-[10px] font-medium text-blue-600 hover:text-blue-800 px-1.5 py-0.5 rounded hover:bg-blue-50"
             >
-              전체 추가
+              {t.assetMap.addAll}
             </button>
           )}
           {placedCount > 0 && (
@@ -1925,7 +1927,7 @@ function AssetPalette({
               onClick={() => filteredAssets.filter((a) => placedAssetIds.has(a.id)).forEach((a) => onRemoveFromCanvas(a.id))}
               className="text-[10px] font-medium text-red-500 hover:text-red-700 px-1.5 py-0.5 rounded hover:bg-red-50"
             >
-              전체 제거
+              {t.assetMap.removeAll}
             </button>
           )}
         </div>
@@ -1935,7 +1937,7 @@ function AssetPalette({
       <div className="flex-1 overflow-y-auto">
         {unplacedAssets.length === 0 && placedCount === 0 ? (
           <div className="px-3 py-8 text-center text-xs text-gray-400">
-            등록된 자산이 없습니다
+            {t.assetMap.noRegisteredAssets}
           </div>
         ) : (
           <>
@@ -2836,7 +2838,7 @@ function AssetMapContentInner() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        alert(err.error || "연결 생성에 실패했습니다.");
+        alert(err.error || t.assetMap.linkCreateFail);
         return;
       }
         const newLink = await res.json();
@@ -2890,7 +2892,7 @@ function AssetMapContentInner() {
         });
         setPendingConnection(null);
     } catch {
-      alert("연결 생성 중 오류가 발생했습니다.");
+      alert(t.assetMap.linkCreateError);
     }
   }
 
@@ -2986,7 +2988,7 @@ function AssetMapContentInner() {
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          alert(err.error || "PDF 생성에 실패했습니다.");
+          alert(err.error || t.assetMap.pdfCreateFail);
           return;
         }
         const blob = await res.blob();
@@ -3093,7 +3095,7 @@ function AssetMapContentInner() {
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        alert(err.error || "PDF 생성에 실패했습니다.");
+        alert(err.error || t.assetMap.pdfCreateFail);
         return;
       }
 
@@ -3107,7 +3109,7 @@ function AssetMapContentInner() {
       URL.revokeObjectURL(url);
     } catch (e) {
       console.error("PDF export error:", e);
-      alert("PDF 내보내기 중 오류가 발생했습니다.");
+      alert(t.assetMap.pdfExportError);
     } finally {
       setExporting(false);
     }
@@ -3257,14 +3259,14 @@ function AssetMapContentInner() {
     if (!dateStr) return "";
     const diff = Date.now() - new Date(dateStr).getTime();
     const mins = Math.floor(diff / 60000);
-    if (mins < 1) return "방금 전";
-    if (mins < 60) return `${mins}분 전`;
+    if (mins < 1) return t.assetMap.justNow;
+    if (mins < 60) return `${mins}${t.assetMap.minutesAgo}`;
     const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}시간 전`;
+    if (hours < 24) return `${hours}${t.assetMap.hoursAgo}`;
     const days = Math.floor(hours / 24);
-    if (days < 30) return `${days}일 전`;
+    if (days < 30) return `${days}${t.assetMap.daysAgo}`;
     const months = Math.floor(days / 30);
-    return `${months}개월 전`;
+    return `${months}${t.assetMap.monthsAgo}`;
   }
 
   // ── Back to gallery handler ──
@@ -3292,9 +3294,9 @@ function AssetMapContentInner() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: "📋 예시: 인프라 구성도",
+          name: t.assetMap.examplePageName,
           viewType: "ALL",
-          description: "자산지도 사용법을 이해하기 위한 예시 페이지입니다. 자유롭게 수정하거나 삭제하세요.",
+          description: t.assetMap.examplePageDesc,
         }),
       });
       if (res.ok) {
@@ -3339,7 +3341,7 @@ function AssetMapContentInner() {
           {ws.isDefault && (
             <div className="absolute top-2 left-2 flex items-center gap-1 bg-amber-100 rounded-full px-1.5 py-0.5">
               <Star className="h-3 w-3 text-amber-500" />
-              <span className="text-[9px] font-semibold text-amber-700">기본</span>
+              <span className="text-[9px] font-semibold text-amber-700">{t.assetMap.defaultBadge}</span>
             </div>
           )}
           <button
@@ -3392,23 +3394,22 @@ function AssetMapContentInner() {
             <div className="mb-6 rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-5">
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="text-sm font-bold text-gray-900 mb-1">자산 지도를 시작해 보세요</h3>
-                  <p className="text-xs text-gray-600 mb-3">
-                    자산 지도는 조직의 IT 자산 간 연결 관계를 시각화하는 도면입니다.<br/>
-                    예시 페이지를 열어 사용법을 확인하거나, 빈 페이지에서 직접 구성할 수 있습니다.
+                  <h3 className="text-sm font-bold text-gray-900 mb-1">{t.assetMap.onboardingTitle}</h3>
+                  <p className="text-xs text-gray-600 mb-3 whitespace-pre-line">
+                    {t.assetMap.onboardingDesc}
                   </p>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={createExamplePage}
                       className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-medium text-white hover:bg-blue-700 transition"
                     >
-                      예시 페이지로 시작하기
+                      {t.assetMap.startWithExample}
                     </button>
                     <button
                       onClick={() => setOnboardingDismissed(true)}
                       className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 transition"
                     >
-                      건너뛰기
+                      {t.assetMap.skip}
                     </button>
                   </div>
                 </div>
@@ -3431,7 +3432,7 @@ function AssetMapContentInner() {
                 className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition"
               >
                 <FolderPlus className="h-3.5 w-3.5" />
-                {"새 폴더"}
+                {t.assetMap.newFolder}
               </button>
               <button
                 onClick={() => setShowNewWsModal(true)}
@@ -3505,7 +3506,7 @@ function AssetMapContentInner() {
                       </h3>
                     )}
                     <div className="text-[11px] text-gray-400 mt-0.5">
-                      {folder.pages.length > 0 ? `${folder.pages.length}개 페이지` : "비어있음"}
+                      {folder.pages.length > 0 ? `${folder.pages.length}${t.assetMap.pagesCount}` : t.assetMap.emptyFolder}
                     </div>
                   </div>
                 </div>
@@ -3533,7 +3534,7 @@ function AssetMapContentInner() {
               <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-2">
                 <FolderPlus className="h-5 w-5 text-gray-400" />
               </div>
-              <span className="text-xs font-medium text-gray-500">{"새 폴더"}</span>
+              <span className="text-xs font-medium text-gray-500">{t.assetMap.newFolder}</span>
             </div>
           </div>
 
@@ -3619,7 +3620,7 @@ function AssetMapContentInner() {
               {folders.length > 0 && (
                 <>
                   <hr className="my-1 border-gray-100" />
-                  <div className="px-3 py-1 text-[10px] font-semibold text-gray-400 uppercase">{"폴더로 이동"}</div>
+                  <div className="px-3 py-1 text-[10px] font-semibold text-gray-400 uppercase">{t.assetMap.moveToFolder}</div>
                   {(() => {
                     const currentWs = workspaces.find(w => w.id === wsContextMenu.id);
                     const currentFolderId = currentWs?.folderId ?? null;
@@ -3628,7 +3629,7 @@ function AssetMapContentInner() {
                         {currentFolderId !== null && (
                           <button onClick={() => { movePageToFolder(wsContextMenu.id, null); setWsContextMenu(null); }}
                             className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-100 flex items-center gap-2">
-                            <MoveRight className="h-3 w-3" />{"루트 (폴더 없음)"}
+                            <MoveRight className="h-3 w-3" />{t.assetMap.rootNoFolder}
                           </button>
                         )}
                         {folders.filter(f => f.id !== currentFolderId).map(f => (
@@ -3667,12 +3668,12 @@ function AssetMapContentInner() {
             >
               <button onClick={() => { setEditingFolderName(folderContextMenu.id); setFolderContextMenu(null); }}
                 className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-100 flex items-center gap-2">
-                <Pencil className="h-3 w-3" />{"이름 변경"}
+                <Pencil className="h-3 w-3" />{t.assetMap.renameFolder}
               </button>
               <hr className="my-1 border-gray-100" />
-              <button onClick={() => { if (confirm("폴더를 삭제하시겠습니까? 하위 페이지는 루트로 이동됩니다.")) { deleteFolder(folderContextMenu.id); } setFolderContextMenu(null); }}
+              <button onClick={() => { if (confirm(t.assetMap.deleteFolderConfirm)) { deleteFolder(folderContextMenu.id); } setFolderContextMenu(null); }}
                 className="w-full px-3 py-1.5 text-left text-xs text-red-600 hover:bg-red-50 flex items-center gap-2">
-                <Trash2 className="h-3 w-3" />{"폴더 삭제"}
+                <Trash2 className="h-3 w-3" />{t.assetMap.deleteFolder}
               </button>
             </div>
           </>
@@ -3727,7 +3728,7 @@ function AssetMapContentInner() {
             <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
               <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
                 <FolderPlus className="h-5 w-5 text-amber-500" />
-                {"새 폴더"}
+                {t.assetMap.newFolder}
               </h3>
               <form
                 onSubmit={(e) => {
@@ -3744,7 +3745,7 @@ function AssetMapContentInner() {
                 <input
                   name="folderName"
                   autoFocus
-                  placeholder={"폴더 이름을 입력하세요"}
+                  placeholder={t.assetMap.folderNamePlaceholder}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 mb-4"
                 />
                 <div className="flex gap-2 justify-end">
@@ -3816,7 +3817,7 @@ function AssetMapContentInner() {
             }`}
           >
             <Package className="h-3.5 w-3.5" />
-            자산 팔레트
+            {t.assetMap.assetPalette}
           </button>
 
           {/* External Entity Palette toggle */}
@@ -3848,7 +3849,7 @@ function AssetMapContentInner() {
             className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
           >
             <Plus className="inline h-3.5 w-3.5 mr-1" />
-            섹션
+            {t.assetMap.section}
           </button>
           <button onClick={handleAutoLayout} className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">
             <LayoutGrid className="inline h-3.5 w-3.5 mr-1" />
@@ -3897,7 +3898,7 @@ function AssetMapContentInner() {
             </div>
             <div className="flex-1 overflow-y-auto">
               {externalEntities.length === 0 ? (
-                <div className="px-3 py-6 text-center text-xs text-gray-400">외부 조직이 없습니다</div>
+                <div className="px-3 py-6 text-center text-xs text-gray-400">{t.assetMap.noExternalEntities}</div>
               ) : (
                 externalEntities.map((ent) => {
                   const isPlaced = nodes.some((n) => n.id === `ext-${ent.id}`);
@@ -3997,7 +3998,7 @@ function AssetMapContentInner() {
             />
             <Panel position="bottom-center">
               <div className="rounded-lg border bg-white/90 px-3 py-1.5 text-xs text-gray-500 backdrop-blur">
-                드래그: 범위 선택 | 우클릭 드래그: 이동 | 핸들 드래그: 연결 추가 | 엣지 더블클릭: 상세
+                {t.assetMap.canvasHelpText}
               </div>
             </Panel>
           </ReactFlow>
@@ -4049,6 +4050,7 @@ function AssetMapContentInner() {
         <SectionModal
           onSave={handleAddSection}
           onClose={() => setShowSectionModal(false)}
+          t={t}
         />
       )}
 
@@ -4057,7 +4059,7 @@ function AssetMapContentInner() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setEditingSection(null)}>
           <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold">섹션 편집</h3>
+              <h3 className="text-lg font-bold">{t.assetMap.editSection}</h3>
               <button onClick={() => setEditingSection(null)} className="text-gray-400 hover:text-gray-600">
                 <X className="h-5 w-5" />
               </button>
@@ -4065,7 +4067,7 @@ function AssetMapContentInner() {
 
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">이름</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t.common.name}</label>
                 <input
                   defaultValue={(editingSection.data?.label as string) || ""}
                   onBlur={(e) => {
@@ -4080,7 +4082,7 @@ function AssetMapContentInner() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">설명</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t.common.description}</label>
                 <input
                   defaultValue={(editingSection.data?.description as string) || ""}
                   onBlur={(e) => {
@@ -4092,7 +4094,7 @@ function AssetMapContentInner() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">색상</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.assetMap.color}</label>
                 <div className="flex flex-wrap gap-2">
                   {SECTION_COLORS.map((c) => (
                     <button
@@ -4119,7 +4121,7 @@ function AssetMapContentInner() {
                 onClick={() => setEditingSection(null)}
                 className="flex-1 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
-                닫기
+                {t.common.close}
               </button>
               <button
                 onClick={() => {
@@ -4143,7 +4145,7 @@ function AssetMapContentInner() {
                 }}
                 className="flex-1 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
               >
-                삭제
+                {t.common.delete}
               </button>
             </div>
           </div>

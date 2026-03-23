@@ -118,7 +118,7 @@ export default function DomainDetailPage() {
 
         {/* 수명 게이지 */}
         <div className="mb-8 rounded-lg bg-white p-6 shadow-sm">
-          <h2 className="mb-3 text-sm font-semibold text-gray-700">수명</h2>
+          <h2 className="mb-3 text-sm font-semibold text-gray-700">{t.lifecycle.heading}</h2>
           <LifecycleGauge startDate={asset.purchaseDate} endDate={asset.expiryDate} size="md" showLabel showDates showThresholds />
         </div>
 

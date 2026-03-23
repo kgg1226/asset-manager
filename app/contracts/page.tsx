@@ -178,7 +178,7 @@ export default function ContractListPage() {
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("status")}>{t.common.status}<SortIcon field="status" /></th>
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("cost")}>{t.asset.cost}<SortIcon field="cost" /></th>
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("expiryDate")}>{t.asset.expiryDate}<SortIcon field="expiryDate" /></th>
-                <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">수명</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.lifecycle.heading}</th>
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("assignee")}>{t.asset.assignee}<SortIcon field="assignee" /></th>
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("orgUnit")}>{t.license.managingOrg}<SortIcon field="orgUnit" /></th>
                 <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.cia.title}</th>

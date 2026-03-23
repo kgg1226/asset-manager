@@ -105,7 +105,7 @@ export default function LicensesContent({
     const diffMs = noticeDate.getTime() - now.getTime();
     const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
-    if (diffDays < 0) return { label: t.license.noticePeriod.includes("Notice") ? "Overdue" : "\uAE30\uD55C \uCD08\uACFC", variant: "red" };
+    if (diffDays < 0) return { label: locale === "en" ? "Overdue" : "\uAE30\uD55C \uCD08\uACFC", variant: "red" };
     if (diffDays <= 7) return { label: `D-${diffDays}`, variant: "red" };
     if (diffDays <= 30) return { label: `D-${diffDays}`, variant: "yellow" };
     return { label: `D-${diffDays}`, variant: "green" };
@@ -181,7 +181,7 @@ export default function LicensesContent({
                       {t.license.noticePeriod}
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 whitespace-nowrap">
-                      수명
+                      {t.lifecycle.heading}
                     </th>
                     {isLoggedIn && (
                       <th className="px-4 py-3 text-center text-xs font-medium uppercase text-gray-500 whitespace-nowrap">
@@ -225,7 +225,7 @@ export default function LicensesContent({
                         <td className="px-4 py-3 text-sm text-gray-600 tabular-nums">
                           {license.maxCapacity === 0 ? (
                             <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-500">
-                              {locale === "en" ? "Group" : "그룹"}
+                              {t.license.group}
                             </span>
                           ) : license.maxCapacity}
                         </td>
@@ -272,7 +272,7 @@ export default function LicensesContent({
                         </td>
                         {isLoggedIn && (
                           <td className="px-4 py-3 text-center">
-                            <div className="flex items-center justify-center gap-1">
+                            <div className="flex items-center justify-center gap-2">
                               {license.maxCapacity > 0 && (
                                 <>
                                   <AssignButton

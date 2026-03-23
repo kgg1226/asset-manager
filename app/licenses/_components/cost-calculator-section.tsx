@@ -201,9 +201,9 @@ export default function CostCalculatorSection({
               onClick={handleRefreshRate}
               disabled={rateLoading}
               className="shrink-0 rounded-md bg-gray-100 px-3 py-2 text-xs font-medium text-gray-600 ring-1 ring-gray-300 hover:bg-gray-200 disabled:opacity-50"
-              title="환율 관리 탭에서 최신 환율 가져오기"
+              title={t.classification.refreshRateTooltip}
             >
-              {rateLoading ? "..." : "↻ 환율 조회"}
+              {rateLoading ? "..." : `↻ ${t.classification.refreshRate}`}
             </button>
           )}
         </div>

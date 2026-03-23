@@ -221,7 +221,7 @@ export default function HardwareListPage() {
                     <td className="px-6 py-4 text-sm"><CiaBadge ciaC={a.ciaC} ciaI={a.ciaI} ciaA={a.ciaA} /></td>
                     {isAdmin && (
                       <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
+                        <div className="flex items-center justify-end gap-2">
                           {!a.assignee && a.status === "IN_STOCK" && (
                             <HwAssignButton assetId={a.id} assetName={a.name} onDone={loadAssets} />
                           )}

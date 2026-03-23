@@ -112,7 +112,7 @@ export default function UnassignButton({
                 {t.common.all}
               </label>
               {selected.size > 0 && (
-                <span className="text-xs text-gray-500">({selected.size}건 선택)</span>
+                <span className="text-xs text-gray-500">({selected.size})</span>
               )}
             </div>
 

@@ -697,7 +697,7 @@ function SeatTable({
                 </td>
                 <td className="px-3 py-2 text-center">
                   {editingId === seat.id ? (
-                    <div className="flex items-center justify-center gap-1">
+                    <div className="flex items-center justify-center gap-2">
                       <button
                         type="button"
                         onClick={() => handleSave(seat.id)}

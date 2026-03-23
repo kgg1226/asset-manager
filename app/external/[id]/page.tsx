@@ -61,7 +61,7 @@ export default function ExternalEntityDetailPage({ params }: { params: Promise<{
         const data = await res.json();
         setEntity(data);
       } catch {
-        toast.error("데이터를 불러올 수 없습니다.");
+        toast.error(t.toast.loadFail);
         router.push("/external");
       } finally {
         setIsLoading(false);
@@ -75,10 +75,10 @@ export default function ExternalEntityDetailPage({ params }: { params: Promise<{
     try {
       const res = await fetch(`/api/external-entities/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
-      toast.success(`${entity.name} 삭제 완료`);
+      toast.success(t.toast.deleteSuccess);
       router.push("/external");
     } catch {
-      toast.error("삭제에 실패했습니다.");
+      toast.error(t.toast.deleteFail);
     }
   };
 
@@ -165,11 +165,11 @@ export default function ExternalEntityDetailPage({ params }: { params: Promise<{
               <p className="mt-1 text-gray-900">{entity.contactInfo || "-"}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">등록일</p>
+              <p className="text-sm text-gray-600">{t.common.createdAt}</p>
               <p className="mt-1 text-gray-900">{new Date(entity.createdAt).toLocaleDateString()}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">수정일</p>
+              <p className="text-sm text-gray-600">{t.common.updatedAt}</p>
               <p className="mt-1 text-gray-900">{new Date(entity.updatedAt).toLocaleDateString()}</p>
             </div>
           </div>
@@ -185,16 +185,16 @@ export default function ExternalEntityDetailPage({ params }: { params: Promise<{
             </span>
           </h2>
           {allLinks.length === 0 ? (
-            <p className="py-8 text-center text-gray-500">연결된 자산이 없습니다.</p>
+            <p className="py-8 text-center text-gray-500">{t.assetMap.noLinks}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead className="border-b bg-gray-50">
                   <tr>
-                    <th className="px-4 py-2 font-medium text-gray-600">자산</th>
-                    <th className="px-4 py-2 font-medium text-gray-600">연결 유형</th>
-                    <th className="px-4 py-2 font-medium text-gray-600">방향</th>
-                    <th className="px-4 py-2 font-medium text-gray-600">라벨</th>
+                    <th className="px-4 py-2 font-medium text-gray-600">{t.asset.assetName}</th>
+                    <th className="px-4 py-2 font-medium text-gray-600">{t.assetMap.linkType}</th>
+                    <th className="px-4 py-2 font-medium text-gray-600">{t.assetMap.direction}</th>
+                    <th className="px-4 py-2 font-medium text-gray-600">{t.assetMap.label}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">

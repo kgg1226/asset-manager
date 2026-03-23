@@ -40,7 +40,7 @@ export default function ExternalEntityListPage() {
       const data = await res.json();
       setEntities(data.entities || []);
     } catch {
-      toast.error("데이터를 불러올 수 없습니다.");
+      toast.error(t.toast.loadFail);
     } finally {
       setIsLoading(false);
     }
@@ -69,10 +69,10 @@ export default function ExternalEntityListPage() {
     try {
       const res = await fetch(`/api/external-entities/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
-      toast.success(`${name} 삭제 완료`);
+      toast.success(t.toast.deleteSuccess);
       loadEntities();
     } catch {
-      toast.error("삭제에 실패했습니다.");
+      toast.error(t.toast.deleteFail);
     }
   };
 
@@ -123,7 +123,7 @@ export default function ExternalEntityListPage() {
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
-                {type === "" ? t.common?.all || "전체" : getTypeLabel(type)}
+                {type === "" ? t.common.all : getTypeLabel(type)}
               </button>
             ))}
           </div>

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, FileText, HardDrive, Cloud, Globe, FileSignature, Package, AlertTriangle } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 
 interface ExpiringItem {
   id: number;
@@ -30,6 +31,7 @@ function getBadgeColor(days: number): string {
 
 export default function NotificationBell() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [items, setItems] = useState<ExpiringItem[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -112,7 +114,7 @@ export default function NotificationBell() {
       <button
         onClick={handleOpen}
         className="relative rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-        title="알림"
+        title={t.notificationBell.title}
       >
         <Bell className="h-5 w-5" />
         {urgentCount > 0 && (
@@ -125,14 +127,14 @@ export default function NotificationBell() {
       {open && (
         <div className="absolute right-0 top-full mt-1 w-80 rounded-lg border border-gray-200 bg-white shadow-lg lg:w-96">
           <div className="flex items-center justify-between border-b px-4 py-3">
-            <h3 className="text-sm font-semibold text-gray-900">만료 알림</h3>
-            <span className="text-xs text-gray-500">{items.length}건</span>
+            <h3 className="text-sm font-semibold text-gray-900">{t.notificationBell.expiryAlert}</h3>
+            <span className="text-xs text-gray-500">{items.length}{t.notificationBell.itemCount}</span>
           </div>
 
           {loading ? (
-            <p className="px-4 py-6 text-center text-sm text-gray-400">로딩 중...</p>
+            <p className="px-4 py-6 text-center text-sm text-gray-400">{t.common.loading}</p>
           ) : items.length === 0 ? (
-            <p className="px-4 py-6 text-center text-sm text-gray-500">90일 내 만료 예정 항목이 없습니다</p>
+            <p className="px-4 py-6 text-center text-sm text-gray-500">{t.notificationBell.noExpiring}</p>
           ) : (
             <div className="max-h-80 overflow-y-auto">
               {items.map((item) => {
@@ -151,7 +153,7 @@ export default function NotificationBell() {
                       <div className="mt-0.5 flex items-center gap-2">
                         <span className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium ${getBadgeColor(item.daysLeft)}`}>
                           <AlertTriangle className="h-3 w-3" />
-                          {item.daysLeft === 0 ? "오늘 만료" : `D-${item.daysLeft}`}
+                          {item.daysLeft === 0 ? t.notificationBell.expiringToday : `D-${item.daysLeft}`}
                         </span>
                         <span className="text-xs text-gray-400">
                           {new Date(item.expiryDate).toLocaleDateString("ko-KR")}

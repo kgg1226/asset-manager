@@ -73,7 +73,7 @@ export default function AssignButton({
     setIsPending(false);
 
     if (totalAssigned > 0) {
-      toast(`${totalAssigned}명 할당 완료`, "success");
+      toast(`${totalAssigned} ${t.common.assign} ${t.common.success}`, "success");
       close();
     }
     if (errors.length > 0) {
@@ -129,7 +129,7 @@ export default function AssignButton({
               <p className="mb-1 text-xs text-blue-600">
                 {selected.size} / {remaining}
                 {selected.size >= remaining && (
-                  <span className="ml-1 text-amber-600">(최대)</span>
+                  <span className="ml-1 text-amber-600">(max)</span>
                 )}
               </p>
             )}

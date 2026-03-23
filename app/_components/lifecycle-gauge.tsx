@@ -1,19 +1,14 @@
 "use client";
 
-/**
- * LifecycleGauge — 자산 수명 게이지
- *
- * 구매일(startDate) ~ 만료일(endDate) 기준으로 경과율을 계산하여
- * 파란색(0%) → 노란색(50%) → 빨간색(100%) 그라데이션 게이지를 표시합니다.
- *
- * Props:
- *  - startDate: 구매일 / 시작일 (ISO string 또는 Date)
- *  - endDate: 만료일 (ISO string 또는 Date)
- *  - size?: "sm" | "md" | "lg" — 게이지 크기
- *  - showLabel?: boolean — 퍼센트 텍스트 표시 여부
- *  - showDates?: boolean — 시작/종료일 텍스트 표시 여부
- *  - thresholds?: number[] — 알림 임계치 표시 (기본 [50, 80, 95])
- */
+import { useTranslation } from "@/lib/i18n";
+
+type LifecycleGaugeLabels = {
+  noDate?: string;
+  expired?: string;
+  expiredShort?: string;
+  percentElapsed?: string;
+  daysOfTotal?: string;
+};
 
 type LifecycleGaugeProps = {
   startDate?: string | Date | null;
@@ -22,7 +17,19 @@ type LifecycleGaugeProps = {
   showLabel?: boolean;
   showDates?: boolean;
   showThresholds?: boolean;
+  labels?: LifecycleGaugeLabels;
 };
+
+function useDefaultLabels(): Required<LifecycleGaugeLabels> {
+  const { t } = useTranslation();
+  return {
+    noDate: t.lifecycle.noDate,
+    expired: t.lifecycle.expired,
+    expiredShort: t.lifecycle.expiredShort,
+    percentElapsed: t.lifecycle.percentElapsed,
+    daysOfTotal: t.lifecycle.daysOfTotal,
+  };
+}
 
 function parseDate(d: string | Date | null | undefined): Date | null {
   if (!d) return null;
@@ -57,31 +64,25 @@ export function calcLifecyclePercent(
   return { percent, daysLeft, totalDays, elapsedDays };
 }
 
-function getGaugeColor(percent: number): string {
-  // 파란(0%) → 노란(50%) → 빨간(100%)
+export function getGaugeColor(percent: number): string {
+  // 단색: 파란(0%) → 노란(50%) → 빨간(100%)
+  // 게이지가 줄어들수록(경과율↑) 붉어짐
   if (percent <= 0) return "rgb(59, 130, 246)"; // blue-500
   if (percent >= 100) return "rgb(239, 68, 68)"; // red-500
 
   if (percent <= 50) {
-    // blue → yellow
     const t = percent / 50;
     const r = Math.round(59 + (234 - 59) * t);
     const g = Math.round(130 + (179 - 130) * t);
     const b = Math.round(246 + (8 - 246) * t);
     return `rgb(${r}, ${g}, ${b})`;
   } else {
-    // yellow → red
     const t = (percent - 50) / 50;
     const r = Math.round(234 + (239 - 234) * t);
     const g = Math.round(179 + (68 - 179) * t);
     const b = Math.round(8 + (68 - 8) * t);
     return `rgb(${r}, ${g}, ${b})`;
   }
-}
-
-export function getGaugeBgGradient(percent: number): string {
-  const color = getGaugeColor(percent);
-  return `linear-gradient(to right, rgb(59, 130, 246), ${color})`;
 }
 
 export default function LifecycleGauge({
@@ -91,14 +92,17 @@ export default function LifecycleGauge({
   showLabel = true,
   showDates = false,
   showThresholds = false,
+  labels: labelsProp,
 }: LifecycleGaugeProps) {
+  const defaultLabels = useDefaultLabels();
+  const labels = { ...defaultLabels, ...labelsProp };
   const { percent, daysLeft, totalDays } = calcLifecyclePercent(startDate, endDate);
   const start = parseDate(startDate);
   const end = parseDate(endDate);
 
   if (!start || !end) {
     return (
-      <div className="text-xs text-gray-400">날짜 미설정</div>
+      <div className="text-xs text-gray-400">{labels.noDate}</div>
     );
   }
 
@@ -113,10 +117,10 @@ export default function LifecycleGauge({
       {showLabel && (
         <div className="flex items-center justify-between mb-1">
           <span className="text-xs font-medium" style={{ color }}>
-            {isExpired ? "만료됨" : `${Math.round(percent)}% 경과`}
+            {isExpired ? labels.expired : `${Math.round(percent)}${labels.percentElapsed}`}
           </span>
           <span className="text-xs text-gray-500">
-            {isExpired ? "만료" : `D-${daysLeft}`}
+            {isExpired ? labels.expiredShort : `D-${daysLeft}`}
           </span>
         </div>
       )}
@@ -127,7 +131,7 @@ export default function LifecycleGauge({
           className={`${barHeight} rounded-full transition-all duration-500`}
           style={{
             width: `${Math.max(2, percent)}%`,
-            background: getGaugeBgGradient(percent),
+            backgroundColor: color,
           }}
         />
         {/* Threshold markers */}
@@ -149,7 +153,7 @@ export default function LifecycleGauge({
       {showDates && (
         <div className="flex items-center justify-between mt-1 text-[10px] text-gray-400">
           <span>{formatDate(start)}</span>
-          <span className="text-gray-500">{totalDays}일 중 {Math.min(totalDays, totalDays - daysLeft)}일 경과</span>
+          <span className="text-gray-500">{Math.min(totalDays, totalDays - daysLeft)} / {totalDays}</span>
           <span>{formatDate(end)}</span>
         </div>
       )}
@@ -163,10 +167,14 @@ export default function LifecycleGauge({
 export function LifecycleGaugeInline({
   startDate,
   endDate,
+  labels: labelsProp,
 }: {
   startDate?: string | Date | null;
   endDate?: string | Date | null;
+  labels?: LifecycleGaugeLabels;
 }) {
+  const defaultLabels = useDefaultLabels();
+  const labels = { ...defaultLabels, ...labelsProp };
   const { percent, daysLeft } = calcLifecyclePercent(startDate, endDate);
   const start = parseDate(startDate);
   const end = parseDate(endDate);
@@ -183,12 +191,12 @@ export function LifecycleGaugeInline({
           className="h-1.5 rounded-full"
           style={{
             width: `${Math.max(2, percent)}%`,
-            background: getGaugeBgGradient(percent),
+            backgroundColor: color,
           }}
         />
       </div>
       <span className="text-[10px] font-medium whitespace-nowrap" style={{ color }}>
-        {isExpired ? "만료" : `D-${daysLeft}`}
+        {isExpired ? labels.expiredShort : `D-${daysLeft}`}
       </span>
     </div>
   );

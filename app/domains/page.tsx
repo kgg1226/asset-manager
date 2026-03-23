@@ -113,7 +113,7 @@ export default function DomainsListPage() {
                 <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.common.status}</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.asset.cost}</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.asset.expiryDate}</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">수명</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.lifecycle.heading}</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.asset.assignee}</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.cia.title}</th>
                 <th className="px-6 py-3 text-right text-xs font-semibold whitespace-nowrap">{t.common.actions}</th>
