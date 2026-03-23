@@ -24,6 +24,7 @@ import {
   RenewalHistoryPanel,
   LicenseOwnersPanel,
 } from "./license-renewal";
+import LifecycleGauge from "@/app/_components/lifecycle-gauge";
 
 // Serialized types (dates as ISO strings for client transport)
 type SeatData = {
@@ -389,6 +390,17 @@ export default function LicenseDetailContent({
               </div>
             )}
           </dl>
+          {/* Lifecycle Gauge */}
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <LifecycleGauge
+              startDate={license.purchaseDate}
+              endDate={license.expiryDate}
+              size="md"
+              showLabel
+              showDates
+              showThresholds
+            />
+          </div>
         </div>
 
         {/* Cost Breakdown */}

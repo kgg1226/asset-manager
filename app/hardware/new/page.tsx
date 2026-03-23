@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
 import CiaScoreInput from "@/app/_components/cia-score-input";
+import LifecycleGauge from "@/app/_components/lifecycle-gauge";
 import type { CiaLevel } from "@/lib/cia";
 
 const CURRENCIES = ["USD", "KRW", "EUR", "JPY", "GBP", "CNY"];
@@ -47,6 +48,15 @@ export default function HardwareNewPage() {
     if (errors[name]) setErrors((p) => { const n = { ...p }; delete n[name]; return n; });
   };
   const onHwChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => { const { name, value } = e.target; setHw((p) => ({ ...p, [name]: value })); };
+
+  // Auto-calculate expiryDate from purchaseDate + usefulLifeYears
+  useEffect(() => {
+    if (form.purchaseDate && hw.usefulLifeYears) {
+      const start = new Date(form.purchaseDate);
+      start.setFullYear(start.getFullYear() + Number(hw.usefulLifeYears));
+      setForm(prev => ({ ...prev, expiryDate: start.toISOString().split('T')[0] }));
+    }
+  }, [form.purchaseDate, hw.usefulLifeYears]);
 
   if (loading || !user) return <div className="min-h-screen bg-gray-50 p-6"><div className="mx-auto max-w-2xl"><p className="text-center text-gray-500">{loading ? t.common.loading : t.common.login}</p></div></div>;
 
@@ -119,6 +129,11 @@ export default function HardwareNewPage() {
               <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.asset.purchaseDate}</label><input type="date" name="purchaseDate" value={form.purchaseDate} onChange={onChange} className={ic} /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.asset.expiryDate}</label><input type="date" name="expiryDate" value={form.expiryDate} onChange={onChange} className={ic} /></div>
             </div>
+            {form.purchaseDate && form.expiryDate && (
+              <div className="mb-6">
+                <LifecycleGauge startDate={form.purchaseDate} endDate={form.expiryDate} size="sm" showLabel showDates />
+              </div>
+            )}
           </div>
 
           <div className="rounded-lg bg-white p-6 shadow-sm">

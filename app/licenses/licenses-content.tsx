@@ -7,6 +7,7 @@ import DeleteButton from "./delete-button";
 import AssignButton from "./assign-button";
 import UnassignButton from "./unassign-button";
 import LicenseRow from "./license-row";
+import { LifecycleGaugeInline } from "@/app/_components/lifecycle-gauge";
 
 type SortField = "name" | "totalQuantity" | "assigned" | "expiryDate";
 type SortOrder = "asc" | "desc";
@@ -179,6 +180,9 @@ export default function LicensesContent({
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 whitespace-nowrap">
                       {t.license.noticePeriod}
                     </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 whitespace-nowrap">
+                      수명
+                    </th>
                     {isLoggedIn && (
                       <th className="px-4 py-3 text-center text-xs font-medium uppercase text-gray-500 whitespace-nowrap">
                         {t.common.actions}
@@ -259,6 +263,12 @@ export default function LicensesContent({
                           ) : (
                             <span className="text-gray-400">{"\u2014"}</span>
                           )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <LifecycleGaugeInline
+                            startDate={license.purchaseDate}
+                            endDate={license.expiryDate}
+                          />
                         </td>
                         {isLoggedIn && (
                           <td className="px-4 py-3 text-center">

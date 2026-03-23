@@ -10,6 +10,7 @@ import { useTranslation } from "@/lib/i18n";
 import CiaBadge from "@/app/_components/cia-badge";
 import { TourGuide } from "@/app/_components/tour-guide";
 import { HARDWARE_TOUR_KEY, getHardwareSteps } from "@/app/_components/tours/hardware-tour";
+import { LifecycleGaugeInline } from "@/app/_components/lifecycle-gauge";
 import HwAssignButton from "./hw-assign-button";
 import HwUnassignButton from "./hw-unassign-button";
 
@@ -193,6 +194,7 @@ export default function HardwareListPage() {
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("manufacturer")}>{t.hw.manufacturer} / {t.hw.model}<SortIcon field="manufacturer" /></th>
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("status")}>{t.common.status}<SortIcon field="status" /></th>
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("cost")}>{t.asset.cost}<SortIcon field="cost" /></th>
+                <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.hw.usefulLife}</th>
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("assignee")}>{t.asset.assignee}<SortIcon field="assignee" /></th>
                 <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.cia.title}</th>
                 {isAdmin && <th className="px-6 py-3 text-right text-xs font-semibold whitespace-nowrap">{t.common.actions}</th>}
@@ -200,9 +202,9 @@ export default function HardwareListPage() {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={8} className="px-6 py-8 text-center text-gray-400">{t.common.loading}</td></tr>
+                <tr><td colSpan={9} className="px-6 py-8 text-center text-gray-400">{t.common.loading}</td></tr>
               ) : sortedAssets.length === 0 ? (
-                <tr><td colSpan={8} className="px-6 py-8 text-center text-gray-500">{t.common.noData}</td></tr>
+                <tr><td colSpan={9} className="px-6 py-8 text-center text-gray-500">{t.common.noData}</td></tr>
               ) : (
                 sortedAssets.map((a) => (
                   <tr key={a.id} className="border-b hover:bg-gray-50">
@@ -214,6 +216,7 @@ export default function HardwareListPage() {
                       {a.hardwareDetail?.condition && <span className={`ml-1 inline-block rounded px-1.5 py-0.5 text-xs font-bold ${a.hardwareDetail.condition === "A" ? "bg-green-100 text-green-700" : a.hardwareDetail.condition === "B" ? "bg-blue-100 text-blue-700" : a.hardwareDetail.condition === "C" ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"}`}>{a.hardwareDetail.condition}</span>}
                     </td>
                     <td className="px-6 py-4 text-sm">{formatCost(a.cost, a.currency)}</td>
+                    <td className="px-6 py-4 text-sm"><LifecycleGaugeInline startDate={a.purchaseDate} endDate={a.expiryDate} /></td>
                     <td className="px-6 py-4 text-sm">{a.assignee ? <Link href={`/employees/${a.assignee.id}`} className="text-blue-600 hover:underline">{a.assignee.name}</Link> : <span className="text-gray-400">{t.license.unassigned}</span>}</td>
                     <td className="px-6 py-4 text-sm"><CiaBadge ciaC={a.ciaC} ciaI={a.ciaI} ciaA={a.ciaA} /></td>
                     {isAdmin && (

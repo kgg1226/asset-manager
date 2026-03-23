@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
 import CiaBadge from "@/app/_components/cia-badge";
+import { LifecycleGaugeInline } from "@/app/_components/lifecycle-gauge";
 import { TourGuide } from "@/app/_components/tour-guide";
 import { CLOUD_TOUR_KEY, getCloudSteps } from "@/app/_components/tours/cloud-tour";
 
@@ -19,6 +20,7 @@ interface Asset {
   status: AssetStatus;
   cost?: number | null;
   currency: string;
+  purchaseDate?: string | null;
   expiryDate?: string | null;
   assignee?: { id: number; name: string } | null;
   ciaC?: number | null; ciaI?: number | null; ciaA?: number | null;
@@ -154,6 +156,7 @@ export default function CloudListPage() {
                 <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.common.status}</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.asset.cost}</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.asset.expiryDate}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">수명</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.asset.assignee}</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.cia.title}</th>
                 <th className="px-6 py-3 text-right text-xs font-semibold whitespace-nowrap">{t.common.actions}</th>
@@ -161,9 +164,9 @@ export default function CloudListPage() {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={8} className="px-6 py-8 text-center text-gray-400">{t.common.loading}</td></tr>
+                <tr><td colSpan={9} className="px-6 py-8 text-center text-gray-400">{t.common.loading}</td></tr>
               ) : assets.length === 0 ? (
-                <tr><td colSpan={8} className="px-6 py-8 text-center text-gray-500">{t.common.noData}</td></tr>
+                <tr><td colSpan={9} className="px-6 py-8 text-center text-gray-500">{t.common.noData}</td></tr>
               ) : (
                 assets.map((asset) => (
                   <tr key={asset.id} className="border-b hover:bg-gray-50">
@@ -179,6 +182,7 @@ export default function CloudListPage() {
                     </td>
                     <td className="px-6 py-4 text-sm">{formatCost(asset.cost, asset.currency)}</td>
                     <td className="px-6 py-4 text-sm">{formatDate(asset.expiryDate)}</td>
+                    <td className="px-6 py-4"><LifecycleGaugeInline startDate={asset.purchaseDate} endDate={asset.expiryDate} /></td>
                     <td className="px-6 py-4 text-sm">{asset.assignee?.name || "—"}</td>
                     <td className="px-6 py-4"><CiaBadge ciaC={asset.ciaC} ciaI={asset.ciaI} ciaA={asset.ciaA} /></td>
                     <td className="px-6 py-4 text-right">
