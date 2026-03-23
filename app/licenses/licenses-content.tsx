@@ -272,23 +272,23 @@ export default function LicensesContent({
                         </td>
                         {isLoggedIn && (
                           <td className="px-4 py-3 text-center">
-                            <div className="flex items-center justify-center gap-2">
-                              {license.maxCapacity > 0 && (
-                                <>
-                                  <AssignButton
-                                    licenseId={license.id}
-                                    licenseName={license.name}
-                                    remaining={license.remainingCount}
-                                    employees={employees}
-                                    assignedEmployeeIds={license.assignedEmployeeIds}
-                                    licenseType={license.licenseType}
-                                  />
-                                  <UnassignButton
-                                    licenseName={license.name}
-                                    assignedEmployees={license.assignedEmployees}
-                                  />
-                                </>
-                              )}
+                            <div className="grid grid-cols-3 gap-2 justify-items-center" style={{ minWidth: "140px" }}>
+                              {license.maxCapacity > 0 ? (
+                                <AssignButton
+                                  licenseId={license.id}
+                                  licenseName={license.name}
+                                  remaining={license.remainingCount}
+                                  employees={employees}
+                                  assignedEmployeeIds={license.assignedEmployeeIds}
+                                  licenseType={license.licenseType}
+                                />
+                              ) : <span />}
+                              {license.maxCapacity > 0 ? (
+                                <UnassignButton
+                                  licenseName={license.name}
+                                  assignedEmployees={license.assignedEmployees}
+                                />
+                              ) : <span />}
                               <DeleteButton id={license.id} name={license.name} />
                             </div>
                           </td>
