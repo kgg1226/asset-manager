@@ -459,7 +459,13 @@ model AssetMapView {
   description    String?
   viewType       String   @default("ALL") // ALL | PII | NETWORK | DATA_FLOW | CUSTOM
   nodePositions  String?  // JSON: { "asset-1": {x,y}, "ext-2": {x,y} }
+  sectionData    String?  // JSON: [{ id, name, color, description, x, y, width, height, children }]
+  viewport       String?  // JSON: { x, y, zoom }
+  edgeVisibility String?  // JSON: { showLabels, showDataTypes, hiddenEdgeIds }
   filterConfig   String?  // JSON: filter settings
+  isDefault      Boolean  @default(false)
+  lastAccessedAt DateTime @default(now())
+  sortOrder      Int      @default(0)
   createdBy      Int?
   isShared       Boolean  @default(false)
   createdAt      DateTime @default(now())

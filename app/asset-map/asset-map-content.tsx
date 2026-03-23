@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import {
   ReactFlow,
+  ReactFlowProvider,
   Node,
   Edge,
   Controls,
@@ -10,6 +11,7 @@ import {
   MiniMap,
   useNodesState,
   useEdgesState,
+  useReactFlow,
   Connection,
   MarkerType,
   BackgroundVariant,
@@ -53,6 +55,16 @@ import {
   Check,
   ArrowLeft,
   GitBranch,
+  FolderOpen,
+  Copy,
+  Share2,
+  Star,
+  MoreVertical,
+  Pencil,
+  Trash2,
+  CheckCircle2,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 
@@ -109,11 +121,36 @@ type AssetGroup = {
   assetIds?: number[];
 };
 
+type SectionDataItem = {
+  id: string;
+  name: string;
+  color: string;
+  description: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  children: string[];
+};
+
+type ViewportState = { x: number; y: number; zoom: number };
+
 type SavedView = {
   id: number;
   name: string;
   nodePositions: Record<string, { x: number; y: number }>;
+  sectionData?: SectionDataItem[] | null;
+  viewport?: ViewportState | null;
+  edgeVisibility?: Record<string, unknown> | null;
+  filterConfig?: Record<string, unknown> | null;
+  viewType?: string;
+  isDefault?: boolean;
+  isShared?: boolean;
+  lastAccessedAt?: string;
+  createdBy?: number;
 };
+
+type SaveStatus = "saved" | "saving" | "dirty";
 
 type ViewType = "all" | "pii" | "network" | "data_flow";
 
@@ -1510,7 +1547,7 @@ function SidePanel({
   const currency = data.currency as string | null;
 
   return (
-    <div className="fixed top-0 right-0 h-full w-80 bg-white border-l border-gray-200 shadow-2xl z-40 flex flex-col overflow-hidden animate-slide-in">
+    <div className="absolute top-0 right-0 h-full w-80 bg-white border-l border-gray-200 shadow-2xl z-40 flex flex-col overflow-hidden animate-slide-in">
       {/* Panel Header */}
       <div
         className="px-5 py-4 border-b flex items-center justify-between flex-shrink-0"
@@ -1923,8 +1960,9 @@ function AssetPalette({
 
 // ─── Main Component ────────────────────────────────────────────────────
 
-export default function AssetMapContent() {
+function AssetMapContentInner() {
   const { t } = useTranslation();
+  const reactFlowInstance = useReactFlow();
   const [view, setView] = useState<ViewType>("all");
   const [nodes, setNodes, defaultOnNodesChange] = useNodesState([] as Node[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([] as Edge[]);
@@ -1944,20 +1982,238 @@ export default function AssetMapContent() {
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
   const [editingSection, setEditingSection] = useState<Node | null>(null);
 
-  // Fetch saved views on mount
+  // ── Workspace state ──
+  const [activeWorkspace, setActiveWorkspace] = useState<SavedView | null>(null);
+  const [workspaces, setWorkspaces] = useState<SavedView[]>([]);
+  const [showWorkspacePanel, setShowWorkspacePanel] = useState(true);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
+  const [editingWsName, setEditingWsName] = useState<number | null>(null);
+  const [wsContextMenu, setWsContextMenu] = useState<{ id: number; x: number; y: number } | null>(null);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const viewportSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dirtyRef = useRef(false);
+  const activeWorkspaceRef = useRef<SavedView | null>(null);
+  activeWorkspaceRef.current = activeWorkspace;
+
+  // ── Auto-save function ──
+  const flushSave = useCallback(async () => {
+    const ws = activeWorkspaceRef.current;
+    if (!ws || !dirtyRef.current) return;
+    dirtyRef.current = false;
+    setSaveStatus("saving");
+    try {
+      const currentNodes = reactFlowInstance.getNodes();
+      const viewport = reactFlowInstance.getViewport();
+      const nodePositions: Record<string, { x: number; y: number }> = {};
+      const sectionData: SectionDataItem[] = [];
+
+      for (const n of currentNodes) {
+        if (n.type === "piiStageLabel") continue;
+        if (n.type === "section") {
+          sectionData.push({
+            id: n.id,
+            name: (n.data?.sectionName as string) || "",
+            color: (n.data?.sectionColor as string) || "#3B82F6",
+            description: (n.data?.sectionDescription as string) || "",
+            x: n.position.x,
+            y: n.position.y,
+            width: (n.style?.width as number) || 400,
+            height: (n.style?.height as number) || 300,
+            children: currentNodes.filter(c => c.parentId === n.id).map(c => c.id),
+          });
+        } else {
+          nodePositions[n.id] = { x: n.position.x, y: n.position.y };
+        }
+      }
+
+      await fetch(`/api/asset-map/views/${ws.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nodePositions,
+          sectionData,
+          viewport: { x: viewport.x, y: viewport.y, zoom: viewport.zoom },
+          _autoSave: true,
+        }),
+      });
+      setSaveStatus("saved");
+    } catch {
+      setSaveStatus("dirty");
+      dirtyRef.current = true;
+    }
+  }, [reactFlowInstance]);
+
+  const markDirty = useCallback((debounceMs = 2000) => {
+    dirtyRef.current = true;
+    setSaveStatus("dirty");
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(() => flushSave(), debounceMs);
+  }, [flushSave]);
+
+  // ── Ctrl+S manual save ──
   useEffect(() => {
-    async function loadSavedViews() {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        flushSave();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [flushSave]);
+
+  // ── beforeunload save ──
+  useEffect(() => {
+    const handler = () => {
+      if (dirtyRef.current && activeWorkspaceRef.current) {
+        const currentNodes = reactFlowInstance.getNodes();
+        const viewport = reactFlowInstance.getViewport();
+        const nodePositions: Record<string, { x: number; y: number }> = {};
+        const sectionData: SectionDataItem[] = [];
+        for (const n of currentNodes) {
+          if (n.type === "piiStageLabel") continue;
+          if (n.type === "section") {
+            sectionData.push({
+              id: n.id, name: (n.data?.sectionName as string) || "",
+              color: (n.data?.sectionColor as string) || "#3B82F6",
+              description: (n.data?.sectionDescription as string) || "",
+              x: n.position.x, y: n.position.y,
+              width: (n.style?.width as number) || 400,
+              height: (n.style?.height as number) || 300,
+              children: currentNodes.filter(c => c.parentId === n.id).map(c => c.id),
+            });
+          } else {
+            nodePositions[n.id] = { x: n.position.x, y: n.position.y };
+          }
+        }
+        navigator.sendBeacon(
+          `/api/asset-map/views/${activeWorkspaceRef.current.id}`,
+          new Blob([JSON.stringify({
+            nodePositions, sectionData,
+            viewport: { x: viewport.x, y: viewport.y, zoom: viewport.zoom },
+            _autoSave: true,
+          })], { type: "application/json" }),
+        );
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [reactFlowInstance]);
+
+  // ── Viewport change auto-save (3s debounce) ──
+  const onMoveEnd = useCallback(() => {
+    if (!activeWorkspaceRef.current) return;
+    dirtyRef.current = true;
+    setSaveStatus("dirty");
+    if (viewportSaveTimerRef.current) clearTimeout(viewportSaveTimerRef.current);
+    viewportSaveTimerRef.current = setTimeout(() => flushSave(), 3000);
+  }, [flushSave]);
+
+  // ── Workspace operations ──
+  const loadWorkspace = useCallback(async (ws: SavedView) => {
+    // Flush current before switching
+    if (dirtyRef.current) await flushSave();
+
+    setActiveWorkspace(ws);
+    // Touch lastAccessedAt
+    fetch(`/api/asset-map/views/${ws.id}/touch`, { method: "PATCH" }).catch(() => {});
+  }, [flushSave]);
+
+  const createWorkspace = useCallback(async (name: string) => {
+    try {
+      const res = await fetch("/api/asset-map/views", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, viewType: "ALL" }),
+      });
+      if (res.ok) {
+        const created = await res.json();
+        setWorkspaces(prev => [created, ...prev]);
+        loadWorkspace(created);
+      }
+    } catch { /* silent */ }
+  }, [loadWorkspace]);
+
+  const duplicateWorkspace = useCallback(async (id: number) => {
+    try {
+      const res = await fetch(`/api/asset-map/views/${id}/duplicate`, { method: "POST" });
+      if (res.ok) {
+        const dup = await res.json();
+        setWorkspaces(prev => [dup, ...prev]);
+      }
+    } catch { /* silent */ }
+  }, []);
+
+  const deleteWorkspace = useCallback(async (id: number) => {
+    const ws = workspaces.find(w => w.id === id);
+    if (ws?.isDefault) return;
+    try {
+      const res = await fetch(`/api/asset-map/views/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setWorkspaces(prev => prev.filter(w => w.id !== id));
+        if (activeWorkspace?.id === id) {
+          const defaultWs = workspaces.find(w => w.isDefault && w.id !== id);
+          if (defaultWs) loadWorkspace(defaultWs);
+        }
+      }
+    } catch { /* silent */ }
+  }, [workspaces, activeWorkspace, loadWorkspace]);
+
+  const renameWorkspace = useCallback(async (id: number, name: string) => {
+    try {
+      await fetch(`/api/asset-map/views/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      setWorkspaces(prev => prev.map(w => w.id === id ? { ...w, name } : w));
+      if (activeWorkspace?.id === id) setActiveWorkspace(prev => prev ? { ...prev, name } : prev);
+    } catch { /* silent */ }
+  }, [activeWorkspace]);
+
+  const toggleShareWorkspace = useCallback(async (id: number) => {
+    const ws = workspaces.find(w => w.id === id);
+    if (!ws) return;
+    try {
+      await fetch(`/api/asset-map/views/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isShared: !ws.isShared }),
+      });
+      setWorkspaces(prev => prev.map(w => w.id === id ? { ...w, isShared: !w.isShared } : w));
+    } catch { /* silent */ }
+  }, [workspaces]);
+
+  // ── Initial load: ensure-default ──
+  useEffect(() => {
+    async function init() {
       try {
-        const res = await fetch("/api/asset-map/views");
+        const res = await fetch("/api/asset-map/views/ensure-default", { method: "POST" });
         if (res.ok) {
           const data = await res.json();
-          setSavedViews(Array.isArray(data) ? data : data.views ?? []);
+          const views: SavedView[] = data.views ?? [];
+          setWorkspaces(views);
+          setSavedViews(views);
+          // Load last accessed workspace
+          const defaultView = data.defaultView ?? views.find((v: SavedView) => v.isDefault) ?? views[0];
+          if (defaultView) {
+            setActiveWorkspace(defaultView);
+          }
         }
       } catch {
-        // silently fail
+        // Fallback: load views the old way
+        try {
+          const res = await fetch("/api/asset-map/views");
+          if (res.ok) {
+            const data = await res.json();
+            const views = Array.isArray(data) ? data : data.views ?? [];
+            setSavedViews(views);
+            setWorkspaces(views);
+          }
+        } catch { /* silent */ }
       }
     }
-    loadSavedViews();
+    init();
   }, []);
 
   const fetchGraph = useCallback(async () => {
@@ -2204,6 +2460,64 @@ export default function AssetMapContent() {
 
   useEffect(() => { fetchGraph(); }, [fetchGraph]);
 
+  // ── Restore workspace state after graph loads ──
+  useEffect(() => {
+    if (loading || !activeWorkspace) return;
+
+    const ws = activeWorkspace;
+    const positions = ws.nodePositions;
+    const sections = ws.sectionData;
+    const vp = ws.viewport;
+
+    // Apply saved node positions
+    if (positions && Object.keys(positions).length > 0) {
+      setNodes((prev) => {
+        const updated = prev.map((n) => {
+          const saved = positions[n.id];
+          if (saved) return { ...n, position: { x: saved.x, y: saved.y } };
+          return n;
+        });
+
+        // Restore sections
+        if (sections && sections.length > 0) {
+          for (const sec of sections) {
+            const exists = updated.find((n) => n.id === sec.id);
+            if (!exists) {
+              updated.push({
+                id: sec.id,
+                type: "section",
+                position: { x: sec.x, y: sec.y },
+                style: { width: sec.width, height: sec.height },
+                data: {
+                  sectionName: sec.name,
+                  sectionColor: sec.color,
+                  sectionDescription: sec.description,
+                },
+                draggable: true,
+              });
+            }
+            // Re-parent children
+            for (const childId of sec.children) {
+              const childIdx = updated.findIndex((n) => n.id === childId);
+              if (childIdx >= 0) {
+                updated[childIdx] = { ...updated[childIdx], parentId: sec.id };
+              }
+            }
+          }
+        }
+
+        return updated;
+      });
+    }
+
+    // Restore viewport
+    if (vp) {
+      setTimeout(() => {
+        reactFlowInstance.setViewport({ x: vp.x, y: vp.y, zoom: vp.zoom });
+      }, 200);
+    }
+  }, [loading, activeWorkspace, setNodes, reactFlowInstance]);
+
   const onConnect = useCallback((params: Connection) => {
     if (params.source && params.target && params.source !== params.target) {
       setPendingConnection({
@@ -2297,6 +2611,7 @@ export default function AssetMapContent() {
 
   // 드래그 종료: 자유 노드가 섹션 위에 드랍되면 자식으로 편입
   const onNodeDragStop = useCallback((_event: React.MouseEvent, draggedNode: Node) => {
+    markDirty(2000); // auto-save after drag
     if (draggedNode.type === "section" || draggedNode.type === "assetGroup") return;
     // assetGroup 자식은 무시
     if (draggedNode.parentId && String(draggedNode.parentId).startsWith("group-")) return;
@@ -2791,17 +3106,29 @@ export default function AssetMapContent() {
             ))}
           </div>
 
-          {/* Saved Views Dropdown */}
-          <SavedViewsDropdown views={savedViews} onLoad={handleLoadView} t={t} />
-
-          {/* Save View Button */}
+          {/* Workspace toggle */}
           <button
-            onClick={() => setShowSaveViewModal(true)}
-            className="flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+            onClick={() => setShowWorkspacePanel(!showWorkspacePanel)}
+            className={`flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium transition ${
+              showWorkspacePanel ? "border-blue-300 bg-blue-50 text-blue-700" : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+            }`}
           >
-            <Save className="h-3.5 w-3.5" />
-            {t.assetMap.saveView}
+            <FolderOpen className="h-3.5 w-3.5" />
+            {t.assetMap.workspace}
           </button>
+
+          {/* Save status indicator */}
+          <div className="flex items-center gap-1.5 text-xs px-2">
+            {saveStatus === "saved" && (
+              <><CheckCircle2 className="h-3.5 w-3.5 text-green-500" /><span className="text-green-600">{t.assetMap.autoSaved}</span></>
+            )}
+            {saveStatus === "saving" && (
+              <><Loader2 className="h-3.5 w-3.5 text-blue-500 animate-spin" /><span className="text-blue-600">{t.assetMap.saving}</span></>
+            )}
+            {saveStatus === "dirty" && (
+              <><AlertCircle className="h-3.5 w-3.5 text-amber-500" /><span className="text-amber-600">{t.assetMap.unsavedChanges}</span></>
+            )}
+          </div>
 
           <button
             onClick={() => setShowSectionModal(true)}
@@ -2829,8 +3156,133 @@ export default function AssetMapContent() {
         </div>
       </div>
 
-      {/* Body: Palette + ReactFlow */}
+      {/* Body: Workspace Panel + Palette + ReactFlow */}
       <div className="flex flex-1 overflow-hidden">
+        {/* Workspace Panel */}
+        {showWorkspacePanel && (
+          <div className="w-56 border-r border-gray-200 bg-gray-50 flex flex-col flex-shrink-0 overflow-hidden">
+            <div className="px-3 py-2.5 border-b border-gray-200 flex items-center justify-between bg-white">
+              <span className="text-xs font-semibold text-gray-700">{t.assetMap.workspace}</span>
+              <button
+                onClick={() => {
+                  const name = prompt(t.assetMap.workspaceName);
+                  if (name?.trim()) createWorkspace(name.trim());
+                }}
+                className="w-6 h-6 rounded flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition"
+                title={t.assetMap.newWorkspace}
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto py-1">
+              {/* My workspaces */}
+              <div className="px-3 py-1">
+                <span className="text-[10px] font-medium uppercase tracking-wider text-gray-400">{t.assetMap.myWorkspaces}</span>
+              </div>
+              {workspaces.filter(w => !w.isShared || w.createdBy === undefined).map((ws) => (
+                <div
+                  key={ws.id}
+                  className={`group flex items-center gap-2 px-3 py-1.5 mx-1 rounded-md cursor-pointer transition text-sm ${
+                    activeWorkspace?.id === ws.id
+                      ? "bg-blue-100 text-blue-800"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                  onClick={() => loadWorkspace(ws)}
+                  onContextMenu={(e) => { e.preventDefault(); setWsContextMenu({ id: ws.id, x: e.clientX, y: e.clientY }); }}
+                >
+                  {ws.isDefault ? (
+                    <Star className="h-3 w-3 text-amber-500 flex-shrink-0" />
+                  ) : (
+                    <FolderOpen className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                  )}
+
+                  {editingWsName === ws.id ? (
+                    <input
+                      autoFocus
+                      defaultValue={ws.name}
+                      className="flex-1 text-xs bg-white border rounded px-1 py-0.5"
+                      onBlur={(e) => { renameWorkspace(ws.id, e.target.value); setEditingWsName(null); }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") { renameWorkspace(ws.id, (e.target as HTMLInputElement).value); setEditingWsName(null); }
+                        if (e.key === "Escape") setEditingWsName(null);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  ) : (
+                    <span className="flex-1 text-xs truncate">{ws.name}</span>
+                  )}
+
+                  {ws.isShared && <Share2 className="h-3 w-3 text-blue-400 flex-shrink-0" />}
+
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setWsContextMenu({ id: ws.id, x: e.clientX, y: e.clientY }); }}
+                    className="w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition"
+                  >
+                    <MoreVertical className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+
+              {/* Shared workspaces from others */}
+              {workspaces.some(w => w.isShared && w.createdBy !== undefined) && (
+                <>
+                  <div className="px-3 py-1 mt-2">
+                    <span className="text-[10px] font-medium uppercase tracking-wider text-gray-400">{t.assetMap.sharedWorkspaces}</span>
+                  </div>
+                  {workspaces.filter(w => w.isShared && w.createdBy !== undefined).map((ws) => (
+                    <div
+                      key={`shared-${ws.id}`}
+                      className={`group flex items-center gap-2 px-3 py-1.5 mx-1 rounded-md cursor-pointer transition text-sm ${
+                        activeWorkspace?.id === ws.id ? "bg-blue-100 text-blue-800" : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                      onClick={() => loadWorkspace(ws)}
+                    >
+                      <Share2 className="h-3 w-3 text-blue-400 flex-shrink-0" />
+                      <span className="flex-1 text-xs truncate">{ws.name}</span>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Workspace Context Menu */}
+        {wsContextMenu && (
+          <>
+            <div className="fixed inset-0 z-50" onClick={() => setWsContextMenu(null)} />
+            <div
+              className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[160px]"
+              style={{ left: wsContextMenu.x, top: wsContextMenu.y }}
+            >
+              <button onClick={() => { setEditingWsName(wsContextMenu.id); setWsContextMenu(null); }}
+                className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                <Pencil className="h-3 w-3" />{t.assetMap.renameWorkspace}
+              </button>
+              <button onClick={() => { duplicateWorkspace(wsContextMenu.id); setWsContextMenu(null); }}
+                className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                <Copy className="h-3 w-3" />{t.assetMap.duplicateWorkspace}
+              </button>
+              <button onClick={() => { toggleShareWorkspace(wsContextMenu.id); setWsContextMenu(null); }}
+                className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                <Share2 className="h-3 w-3" />{t.assetMap.shareWorkspace}
+              </button>
+              <hr className="my-1 border-gray-100" />
+              {workspaces.find(w => w.id === wsContextMenu.id)?.isDefault ? (
+                <div className="px-3 py-1.5 text-xs text-gray-400 flex items-center gap-2">
+                  <Trash2 className="h-3 w-3" />{t.assetMap.cannotDeleteDefault}
+                </div>
+              ) : (
+                <button onClick={() => { if (confirm(t.assetMap.deleteWorkspaceConfirm)) { deleteWorkspace(wsContextMenu.id); } setWsContextMenu(null); }}
+                  className="w-full px-3 py-1.5 text-left text-xs text-red-600 hover:bg-red-50 flex items-center gap-2">
+                  <Trash2 className="h-3 w-3" />{t.assetMap.deleteWorkspace}
+                </button>
+              )}
+            </div>
+          </>
+        )}
+
         {/* Asset Palette */}
         <AssetPalette
           allAssets={allAssets}
@@ -2844,7 +3296,7 @@ export default function AssetMapContent() {
         />
 
       {/* ReactFlow */}
-      <div className={`flex-1 transition-all ${selectedNode ? "pr-80" : ""}`}>
+      <div className={`flex-1 relative transition-all ${selectedNode ? "pr-80" : ""}`}>
         {loading ? (
           <div className="flex h-full items-center justify-center text-gray-400">
             <div className="flex flex-col items-center gap-3">
@@ -2865,6 +3317,7 @@ export default function AssetMapContent() {
             onNodeDoubleClick={onNodeDoubleClick}
             onNodeDragStop={onNodeDragStop}
             onEdgeDoubleClick={(_e, edge) => setSelectedEdge(edge)}
+            onMoveEnd={onMoveEnd}
             nodeTypes={nodeTypes}
             snapToGrid={true}
             snapGrid={[20, 20]}
@@ -2876,7 +3329,7 @@ export default function AssetMapContent() {
             panOnScroll={true}
             minZoom={0.05}
             maxZoom={20}
-            fitView
+            fitView={!activeWorkspace?.viewport}
             attributionPosition="bottom-left"
           >
             <Controls />
@@ -3077,5 +3530,14 @@ export default function AssetMapContent() {
         />
       )}
     </div>
+  );
+}
+
+// ── Wrapper with ReactFlowProvider ──
+export default function AssetMapContent() {
+  return (
+    <ReactFlowProvider>
+      <AssetMapContentInner />
+    </ReactFlowProvider>
   );
 }

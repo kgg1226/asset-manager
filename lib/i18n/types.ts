@@ -520,6 +520,9 @@ export type TranslationDict = {
     created: string;
     updated: string;
     deleted: string;
+    dateRange: string;
+    startDate: string;
+    endDate: string;
   };
 
   // CIA
@@ -1057,6 +1060,26 @@ export type TranslationDict = {
     piiDestruction: string;
     exportPdf: string;
     exporting: string;
+    // Workspace
+    workspace: string;
+    workspaceList: string;
+    newWorkspace: string;
+    defaultWorkspace: string;
+    sharedWorkspaces: string;
+    myWorkspaces: string;
+    duplicateWorkspace: string;
+    deleteWorkspace: string;
+    deleteWorkspaceConfirm: string;
+    cannotDeleteDefault: string;
+    renameWorkspace: string;
+    autoSaved: string;
+    saving: string;
+    unsavedChanges: string;
+    savedManually: string;
+    workspaceName: string;
+    setAsDefault: string;
+    shareWorkspace: string;
+    section: string;
   };
 
   // External Entity
