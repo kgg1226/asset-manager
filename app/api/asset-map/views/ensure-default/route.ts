@@ -19,7 +19,7 @@ export async function POST() {
     if (!defaultView) {
       defaultView = await prisma.assetMapView.create({
         data: {
-          name: "기본 워크스페이스",
+          name: "기본 페이지",
           viewType: "ALL",
           isDefault: true,
           createdBy: user.id,

@@ -453,6 +453,18 @@ model ExternalEntity {
   incomingLinks AssetLink[] @relation("ExternalLinkTarget")
 }
 
+model AssetMapFolder {
+  id          Int      @id @default(autoincrement())
+  name        String
+  color       String   @default("#6B7280")
+  sortOrder   Int      @default(0)
+  createdBy   Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  pages       AssetMapView[]
+}
+
 model AssetMapView {
   id             Int      @id @default(autoincrement())
   name           String
@@ -466,10 +478,13 @@ model AssetMapView {
   isDefault      Boolean  @default(false)
   lastAccessedAt DateTime @default(now())
   sortOrder      Int      @default(0)
+  folderId       Int?
   createdBy      Int?
   isShared       Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+
+  folder         AssetMapFolder? @relation(fields: [folderId], references: [id])
 }
 
 model AssetGroup {

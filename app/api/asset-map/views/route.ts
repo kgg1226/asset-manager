@@ -97,6 +97,7 @@ export async function POST(request: NextRequest) {
           edgeVisibility: toJsonStr(body.edgeVisibility),
           filterConfig: toJsonStr(body.filterConfig),
           isDefault: body.isDefault ?? false,
+          folderId: body.folderId ? Number(body.folderId) : null,
           createdBy: user.id,
           isShared: body.isShared ?? false,
         },

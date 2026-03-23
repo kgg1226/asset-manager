@@ -64,6 +64,11 @@ import {
   CheckCircle2,
   Loader2,
   AlertCircle,
+  Folder,
+  FolderPlus,
+  ChevronRight,
+  FolderOpen,
+  MoveRight,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 
@@ -149,6 +154,14 @@ type SavedView = {
   isShared?: boolean;
   lastAccessedAt?: string;
   createdBy?: number;
+  folderId?: number | null;
+};
+
+type MapFolder = {
+  id: number;
+  name: string;
+  color: string;
+  pages: SavedView[];
 };
 
 type SaveStatus = "saved" | "saving" | "dirty";
@@ -512,8 +525,8 @@ function SectionNodeComponent({ data, selected }: { data: Record<string, unknown
           borderStyle: "solid",
         }}
       >
-        {/* Section header — centered at top */}
-        <div className="flex items-center justify-center gap-2 py-2 px-4 border-b" style={{ borderColor: `${color}20` }}>
+        {/* Section header — left aligned */}
+        <div className="flex items-center gap-2 py-2 px-4 border-b" style={{ borderColor: `${color}20` }}>
           <div
             className="w-2.5 h-2.5 rounded-full flex-shrink-0"
             style={{ backgroundColor: color }}
@@ -2012,6 +2025,13 @@ function AssetMapContentInner() {
   const [editingWsName, setEditingWsName] = useState<number | null>(null);
   const [wsContextMenu, setWsContextMenu] = useState<{ id: number; x: number; y: number } | null>(null);
 
+  // ── Folder state ──
+  const [folders, setFolders] = useState<MapFolder[]>([]);
+  const [showNewFolderModal, setShowNewFolderModal] = useState(false);
+  const [folderContextMenu, setFolderContextMenu] = useState<{ id: number; x: number; y: number } | null>(null);
+  const [editingFolderName, setEditingFolderName] = useState<number | null>(null);
+  const [expandedFolders, setExpandedFolders] = useState<Set<number>>(new Set());
+
   // ── Gallery / Canvas view state ──
   const [currentView, setCurrentView] = useState<"gallery" | "canvas">("gallery");
   const [showNewWsModal, setShowNewWsModal] = useState(false);
@@ -2212,6 +2232,79 @@ function AssetMapContentInner() {
     } catch { /* silent */ }
   }, [workspaces]);
 
+  // ── Folder operations ──
+  const fetchFolders = useCallback(async () => {
+    try {
+      const res = await fetch("/api/asset-map/folders");
+      if (res.ok) {
+        const data = await res.json();
+        setFolders(data.folders || []);
+      }
+    } catch { /* silent */ }
+  }, []);
+
+  const createFolder = useCallback(async (name: string) => {
+    try {
+      const res = await fetch("/api/asset-map/folders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      if (res.ok) {
+        const folder = await res.json();
+        setFolders(prev => [...prev, { ...folder, pages: [] }]);
+      }
+    } catch { /* silent */ }
+  }, []);
+
+  const renameFolder = useCallback(async (id: number, name: string) => {
+    try {
+      await fetch(`/api/asset-map/folders/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      setFolders(prev => prev.map(f => f.id === id ? { ...f, name } : f));
+    } catch { /* silent */ }
+  }, []);
+
+  const deleteFolder = useCallback(async (id: number) => {
+    try {
+      const res = await fetch(`/api/asset-map/folders/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setFolders(prev => prev.filter(f => f.id !== id));
+        // Refresh workspaces to get updated folderId
+        const viewsRes = await fetch("/api/asset-map/views");
+        if (viewsRes.ok) {
+          const data = await viewsRes.json();
+          const views = Array.isArray(data) ? data : data.views ?? [];
+          setWorkspaces(views);
+        }
+      }
+    } catch { /* silent */ }
+  }, []);
+
+  const movePageToFolder = useCallback(async (pageId: number, folderId: number | null) => {
+    try {
+      await fetch(`/api/asset-map/views/${pageId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folderId }),
+      });
+      setWorkspaces(prev => prev.map(w => w.id === pageId ? { ...w, folderId } : w));
+      fetchFolders();
+    } catch { /* silent */ }
+  }, [fetchFolders]);
+
+  const toggleFolder = useCallback((folderId: number) => {
+    setExpandedFolders(prev => {
+      const next = new Set(prev);
+      if (next.has(folderId)) next.delete(folderId);
+      else next.add(folderId);
+      return next;
+    });
+  }, []);
+
   // ── Initial load: ensure-default (gallery stays, no auto-canvas) ──
   useEffect(() => {
     async function init() {
@@ -2238,7 +2331,8 @@ function AssetMapContentInner() {
       }
     }
     init();
-  }, []);
+    fetchFolders();
+  }, [fetchFolders]);
 
   const fetchGraph = useCallback(async () => {
     setLoading(true);
@@ -2255,11 +2349,25 @@ function AssetMapContentInner() {
       // Save all assets for palette
       setAllAssets(fetchedAllAssets);
 
-      // "all" 뷰: 모든 자산을 캔버스에 표시
-      // 필터링 뷰 (pii/network/data_flow): 연결·그룹·수동 배치된 자산만 표시
+      // 워크스페이스에 저장된 nodePositions 기준으로 캔버스에 올릴 자산 결정
+      // - nodePositions가 있으면: 해당 ID의 자산만 배치 (저장된 페이지 복원)
+      // - nodePositions가 비어있으면: 빈 캔버스 (새 페이지)
+      // - isDefault이고 nodePositions가 null이면: 기존처럼 전체 배치 (최초 마이그레이션)
+      const ws = activeWorkspaceRef.current;
+      const savedPositions = ws?.nodePositions;
+      const hasSavedPositions = savedPositions && Object.keys(savedPositions).length > 0;
+      const isNewEmptyPage = ws && !hasSavedPositions && !ws.isDefault;
+
       let fetchedAssets: AssetNode[];
-      if (view === "all") {
-        // 중복 ID 제거
+      if (isNewEmptyPage) {
+        // 새 페이지: 빈 캔버스 — 팔레트에서 수동 추가만 가능
+        fetchedAssets = [];
+      } else if (hasSavedPositions && view === "all") {
+        // 저장된 위치가 있는 페이지: 저장된 ID만 캔버스에 배치
+        const savedIds = new Set(Object.keys(savedPositions).filter(k => !k.startsWith("ext-")).map(Number));
+        fetchedAssets = fetchedAllAssets.filter((a) => savedIds.has(a.id));
+      } else if (view === "all") {
+        // 기본 페이지 (최초 또는 마이그레이션): 전체 배치
         const seen = new Set<number>();
         fetchedAssets = fetchedAllAssets.filter((a) => {
           if (seen.has(a.id)) return false;
@@ -3135,8 +3243,68 @@ function AssetMapContentInner() {
   // ── Gallery View ──
   // ═══════════════════════════════════════════════════════════════════════
   if (currentView === "gallery") {
-    const myWorkspaces = workspaces.filter(w => !w.isShared || w.createdBy === undefined);
+    // Collect folder IDs from server-side folders
+    const folderPageIds = new Set(folders.flatMap(f => f.pages.map(p => p.id)));
+    // Root pages: not shared from others, and not inside any folder
+    const myRootWorkspaces = workspaces.filter(w =>
+      (!w.isShared || w.createdBy === undefined) && !w.folderId && !folderPageIds.has(w.id)
+    );
     const sharedWorkspaces = workspaces.filter(w => w.isShared && w.createdBy !== undefined);
+
+    // Helper: render a page card (reused for root and folder children)
+    const renderPageCard = (ws: SavedView, compact?: boolean) => (
+      <div
+        key={ws.id}
+        className={`group relative bg-white rounded-xl border border-gray-200 cursor-pointer hover:shadow-md hover:border-blue-300 transition-all overflow-hidden${compact ? " scale-[0.97] origin-top" : ""}`}
+        onClick={() => loadWorkspace(ws)}
+        onContextMenu={(e) => { e.preventDefault(); setWsContextMenu({ id: ws.id, x: e.clientX, y: e.clientY }); }}
+      >
+        {/* 도면 미리보기 영역 */}
+        <div className={`${compact ? "h-16" : "h-24"} bg-gradient-to-br from-gray-50 to-gray-100 relative border-b border-gray-100`}>
+          <svg className="absolute inset-0 w-full h-full opacity-20" xmlns="http://www.w3.org/2000/svg">
+            <defs><pattern id={`grid-${ws.id}`} width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="#94a3b8" strokeWidth="0.5"/></pattern></defs>
+            <rect width="100%" height="100%" fill={`url(#grid-${ws.id})`} />
+          </svg>
+          <div className="absolute top-4 left-5 w-8 h-5 rounded border border-blue-200 bg-blue-50/80" />
+          <div className="absolute top-3 right-8 w-10 h-5 rounded border border-emerald-200 bg-emerald-50/80" />
+          {!compact && <div className="absolute bottom-3 left-12 w-7 h-5 rounded border border-purple-200 bg-purple-50/80" />}
+          {!compact && <div className="absolute top-6 left-16 w-12 h-[1px] bg-gray-300" />}
+          {ws.isDefault && (
+            <div className="absolute top-2 left-2 flex items-center gap-1 bg-amber-100 rounded-full px-1.5 py-0.5">
+              <Star className="h-3 w-3 text-amber-500" />
+              <span className="text-[9px] font-semibold text-amber-700">기본</span>
+            </div>
+          )}
+          <button
+            onClick={(e) => { e.stopPropagation(); setWsContextMenu({ id: ws.id, x: e.clientX, y: e.clientY }); }}
+            className="absolute top-2 right-2 w-6 h-6 rounded-md flex items-center justify-center bg-white/70 text-gray-400 opacity-0 group-hover:opacity-100 hover:text-gray-700 hover:bg-white transition"
+          >
+            <MoreVertical className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        <div className="px-3 py-2.5">
+          {editingWsName === ws.id ? (
+            <input
+              autoFocus
+              defaultValue={ws.name}
+              className="w-full text-sm font-medium bg-white border border-blue-300 rounded px-2 py-1 mb-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onBlur={(e) => { renameWorkspace(ws.id, e.target.value); setEditingWsName(null); }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") { renameWorkspace(ws.id, (e.target as HTMLInputElement).value); setEditingWsName(null); }
+                if (e.key === "Escape") setEditingWsName(null);
+              }}
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <h3 className="text-sm font-medium text-gray-900 truncate">{ws.name}</h3>
+          )}
+          <div className="flex items-center gap-2 text-[11px] text-gray-400 mt-0.5">
+            {ws.isShared && <Share2 className="h-3 w-3 text-blue-400" />}
+            <span>{formatRelativeTime(ws.lastAccessedAt)}</span>
+          </div>
+        </div>
+      </div>
+    );
 
     return (
       <div className="h-[calc(100vh-64px)] relative flex flex-col bg-gray-50">
@@ -3152,80 +3320,97 @@ function AssetMapContentInner() {
 
         {/* Gallery Body */}
         <div className="flex-1 overflow-y-auto px-8 py-6">
-          {/* My Workspaces Section */}
+          {/* My Workspaces Section Header */}
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-semibold text-gray-700">{t.assetMap.myWorkspaces}</h2>
-            <button
-              onClick={() => setShowNewWsModal(true)}
-              className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              {t.assetMap.newWorkspace}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowNewFolderModal(true)}
+                className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition"
+              >
+                <FolderPlus className="h-3.5 w-3.5" />
+                {"새 폴더"}
+              </button>
+              <button
+                onClick={() => setShowNewWsModal(true)}
+                className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                {t.assetMap.newWorkspace}
+              </button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-8">
-            {myWorkspaces.map((ws) => (
-              <div
-                key={ws.id}
-                className="group relative bg-white rounded-xl border border-gray-200 cursor-pointer hover:shadow-md hover:border-blue-300 transition-all overflow-hidden"
-                onClick={() => loadWorkspace(ws)}
-                onContextMenu={(e) => { e.preventDefault(); setWsContextMenu({ id: ws.id, x: e.clientX, y: e.clientY }); }}
-              >
-                {/* 도면 미리보기 영역 */}
-                <div className="h-24 bg-gradient-to-br from-gray-50 to-gray-100 relative border-b border-gray-100">
-                  {/* 그리드 패턴 */}
-                  <svg className="absolute inset-0 w-full h-full opacity-20" xmlns="http://www.w3.org/2000/svg">
-                    <defs><pattern id={`grid-${ws.id}`} width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="#94a3b8" strokeWidth="0.5"/></pattern></defs>
-                    <rect width="100%" height="100%" fill={`url(#grid-${ws.id})`} />
-                  </svg>
-                  {/* 미니 노드 장식 (도면 느낌) */}
-                  <div className="absolute top-4 left-5 w-8 h-5 rounded border border-blue-200 bg-blue-50/80" />
-                  <div className="absolute top-3 right-8 w-10 h-5 rounded border border-emerald-200 bg-emerald-50/80" />
-                  <div className="absolute bottom-3 left-12 w-7 h-5 rounded border border-purple-200 bg-purple-50/80" />
-                  <div className="absolute top-6 left-16 w-12 h-[1px] bg-gray-300" />
-                  {/* 기본 뱃지 */}
-                  {ws.isDefault && (
-                    <div className="absolute top-2 left-2 flex items-center gap-1 bg-amber-100 rounded-full px-1.5 py-0.5">
-                      <Star className="h-3 w-3 text-amber-500" />
-                      <span className="text-[9px] font-semibold text-amber-700">기본</span>
-                    </div>
-                  )}
-                  {/* 컨텍스트 메뉴 버튼 */}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setWsContextMenu({ id: ws.id, x: e.clientX, y: e.clientY }); }}
-                    className="absolute top-2 right-2 w-6 h-6 rounded-md flex items-center justify-center bg-white/70 text-gray-400 opacity-0 group-hover:opacity-100 hover:text-gray-700 hover:bg-white transition"
-                  >
-                    <MoreVertical className="h-3.5 w-3.5" />
-                  </button>
-                </div>
+          {/* Grid: Root pages + Folders + New cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-4">
+            {/* Root page cards */}
+            {myRootWorkspaces.map((ws) => renderPageCard(ws))}
 
-                {/* 카드 하단: 이름 + 메타 */}
-                <div className="px-3 py-2.5">
-                  {editingWsName === ws.id ? (
-                    <input
-                      autoFocus
-                      defaultValue={ws.name}
-                      className="w-full text-sm font-medium bg-white border border-blue-300 rounded px-2 py-1 mb-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      onBlur={(e) => { renameWorkspace(ws.id, e.target.value); setEditingWsName(null); }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") { renameWorkspace(ws.id, (e.target as HTMLInputElement).value); setEditingWsName(null); }
-                        if (e.key === "Escape") setEditingWsName(null);
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  ) : (
-                    <h3 className="text-sm font-medium text-gray-900 truncate">{ws.name}</h3>
-                  )}
-                  <div className="flex items-center gap-2 text-[11px] text-gray-400 mt-0.5">
-                    {ws.isShared && <Share2 className="h-3 w-3 text-blue-400" />}
-                    <span>{formatRelativeTime(ws.lastAccessedAt)}</span>
+            {/* Folder cards */}
+            {folders.map((folder) => {
+              const isExpanded = expandedFolders.has(folder.id);
+              return (
+                <div
+                  key={`folder-${folder.id}`}
+                  className="group relative bg-white rounded-xl border border-gray-200 hover:shadow-md hover:border-amber-300 transition-all overflow-hidden cursor-pointer"
+                  onClick={() => toggleFolder(folder.id)}
+                  onContextMenu={(e) => { e.preventDefault(); setFolderContextMenu({ id: folder.id, x: e.clientX, y: e.clientY }); }}
+                >
+                  {/* Folder preview area */}
+                  <div className="h-24 relative border-b border-gray-100" style={{ background: `linear-gradient(135deg, ${folder.color}15, ${folder.color}08)` }}>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      {isExpanded ? (
+                        <FolderOpen className="h-12 w-12 opacity-20" style={{ color: folder.color }} />
+                      ) : (
+                        <Folder className="h-12 w-12 opacity-20" style={{ color: folder.color }} />
+                      )}
+                    </div>
+                    {/* Page count badge */}
+                    <div className="absolute top-2 left-2 flex items-center gap-1 rounded-full px-1.5 py-0.5" style={{ backgroundColor: `${folder.color}20` }}>
+                      <FileText className="h-3 w-3" style={{ color: folder.color }} />
+                      <span className="text-[9px] font-semibold" style={{ color: folder.color }}>{folder.pages.length}</span>
+                    </div>
+                    {/* Expand indicator */}
+                    <div className="absolute bottom-2 right-2">
+                      <ChevronRight className={`h-4 w-4 text-gray-400 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
+                    </div>
+                    {/* Context menu button */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setFolderContextMenu({ id: folder.id, x: e.clientX, y: e.clientY }); }}
+                      className="absolute top-2 right-2 w-6 h-6 rounded-md flex items-center justify-center bg-white/70 text-gray-400 opacity-0 group-hover:opacity-100 hover:text-gray-700 hover:bg-white transition"
+                    >
+                      <MoreVertical className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  {/* Folder name */}
+                  <div className="px-3 py-2.5">
+                    {editingFolderName === folder.id ? (
+                      <input
+                        autoFocus
+                        defaultValue={folder.name}
+                        className="w-full text-sm font-medium bg-white border border-blue-300 rounded px-2 py-1 mb-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        onBlur={(e) => { renameFolder(folder.id, e.target.value); setEditingFolderName(null); }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") { renameFolder(folder.id, (e.target as HTMLInputElement).value); setEditingFolderName(null); }
+                          if (e.key === "Escape") setEditingFolderName(null);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    ) : (
+                      <h3 className="text-sm font-medium text-gray-900 truncate flex items-center gap-1.5">
+                        <Folder className="h-3.5 w-3.5 flex-shrink-0" style={{ color: folder.color }} />
+                        {folder.name}
+                      </h3>
+                    )}
+                    <div className="text-[11px] text-gray-400 mt-0.5">
+                      {folder.pages.length > 0 ? `${folder.pages.length}개 페이지` : "비어있음"}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
-            {/* "+ New" card */}
+            {/* "+ New Page" card */}
             <div
               className="bg-white rounded-xl border-2 border-dashed border-gray-300 cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-all flex flex-col items-center justify-center overflow-hidden"
               onClick={() => setShowNewWsModal(true)}
@@ -3236,7 +3421,40 @@ function AssetMapContentInner() {
               </div>
               <span className="text-xs font-medium text-gray-500">{t.assetMap.newWorkspace}</span>
             </div>
+
+            {/* "+ New Folder" card */}
+            <div
+              className="bg-white rounded-xl border-2 border-dashed border-gray-300 cursor-pointer hover:border-amber-400 hover:bg-amber-50/30 transition-all flex flex-col items-center justify-center overflow-hidden"
+              onClick={() => setShowNewFolderModal(true)}
+              style={{ minHeight: "152px" }}
+            >
+              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-2">
+                <FolderPlus className="h-5 w-5 text-gray-400" />
+              </div>
+              <span className="text-xs font-medium text-gray-500">{"새 폴더"}</span>
+            </div>
           </div>
+
+          {/* Expanded folder children — shown below the grid */}
+          {folders.map((folder) => {
+            if (!expandedFolders.has(folder.id) || folder.pages.length === 0) return null;
+            return (
+              <div key={`folder-children-${folder.id}`} className="mb-6">
+                <div className="flex items-center gap-2 mb-3 pl-2">
+                  <Folder className="h-4 w-4" style={{ color: folder.color }} />
+                  <span className="text-xs font-semibold text-gray-600">{folder.name}</span>
+                  <span className="text-[10px] text-gray-400">({folder.pages.length})</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 pl-4 border-l-2 ml-2" style={{ borderColor: `${folder.color}40` }}>
+                  {folder.pages.map((page) => {
+                    // Use the workspace data if available (has full info), otherwise use folder page data
+                    const fullWs = workspaces.find(w => w.id === page.id) || page;
+                    return renderPageCard(fullWs, true);
+                  })}
+                </div>
+              </div>
+            );
+          })}
 
           {/* Shared Workspaces Section */}
           {sharedWorkspaces.length > 0 && (
@@ -3275,7 +3493,7 @@ function AssetMapContentInner() {
           )}
         </div>
 
-        {/* Workspace Context Menu (shared with canvas) */}
+        {/* Workspace Context Menu (with "Move to folder" submenu) */}
         {wsContextMenu && (
           <>
             <div className="fixed inset-0 z-50" onClick={() => setWsContextMenu(null)} />
@@ -3295,6 +3513,33 @@ function AssetMapContentInner() {
                 className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-100 flex items-center gap-2">
                 <Share2 className="h-3 w-3" />{t.assetMap.shareWorkspace}
               </button>
+              {/* Move to folder submenu */}
+              {folders.length > 0 && (
+                <>
+                  <hr className="my-1 border-gray-100" />
+                  <div className="px-3 py-1 text-[10px] font-semibold text-gray-400 uppercase">{"폴더로 이동"}</div>
+                  {(() => {
+                    const currentWs = workspaces.find(w => w.id === wsContextMenu.id);
+                    const currentFolderId = currentWs?.folderId ?? null;
+                    return (
+                      <>
+                        {currentFolderId !== null && (
+                          <button onClick={() => { movePageToFolder(wsContextMenu.id, null); setWsContextMenu(null); }}
+                            className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                            <MoveRight className="h-3 w-3" />{"루트 (폴더 없음)"}
+                          </button>
+                        )}
+                        {folders.filter(f => f.id !== currentFolderId).map(f => (
+                          <button key={f.id} onClick={() => { movePageToFolder(wsContextMenu.id, f.id); setWsContextMenu(null); }}
+                            className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                            <Folder className="h-3 w-3" style={{ color: f.color }} />{f.name}
+                          </button>
+                        ))}
+                      </>
+                    );
+                  })()}
+                </>
+              )}
               <hr className="my-1 border-gray-100" />
               {workspaces.find(w => w.id === wsContextMenu.id)?.isDefault ? (
                 <div className="px-3 py-1.5 text-xs text-gray-400 flex items-center gap-2">
@@ -3306,6 +3551,27 @@ function AssetMapContentInner() {
                   <Trash2 className="h-3 w-3" />{t.assetMap.deleteWorkspace}
                 </button>
               )}
+            </div>
+          </>
+        )}
+
+        {/* Folder Context Menu */}
+        {folderContextMenu && (
+          <>
+            <div className="fixed inset-0 z-50" onClick={() => setFolderContextMenu(null)} />
+            <div
+              className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[160px]"
+              style={{ left: folderContextMenu.x, top: folderContextMenu.y }}
+            >
+              <button onClick={() => { setEditingFolderName(folderContextMenu.id); setFolderContextMenu(null); }}
+                className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                <Pencil className="h-3 w-3" />{"이름 변경"}
+              </button>
+              <hr className="my-1 border-gray-100" />
+              <button onClick={() => { if (confirm("폴더를 삭제하시겠습니까? 하위 페이지는 루트로 이동됩니다.")) { deleteFolder(folderContextMenu.id); } setFolderContextMenu(null); }}
+                className="w-full px-3 py-1.5 text-left text-xs text-red-600 hover:bg-red-50 flex items-center gap-2">
+                <Trash2 className="h-3 w-3" />{"폴더 삭제"}
+              </button>
             </div>
           </>
         )}
@@ -3344,6 +3610,52 @@ function AssetMapContentInner() {
                   <button
                     type="submit"
                     className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                  >
+                    {t.common.create}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* New Folder Modal */}
+        {showNewFolderModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowNewFolderModal(false)}>
+            <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                <FolderPlus className="h-5 w-5 text-amber-500" />
+                {"새 폴더"}
+              </h3>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const form = e.target as HTMLFormElement;
+                  const input = form.elements.namedItem("folderName") as HTMLInputElement;
+                  const name = input.value.trim();
+                  if (name) {
+                    createFolder(name);
+                    setShowNewFolderModal(false);
+                  }
+                }}
+              >
+                <input
+                  name="folderName"
+                  autoFocus
+                  placeholder={"폴더 이름을 입력하세요"}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 mb-4"
+                />
+                <div className="flex gap-2 justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setShowNewFolderModal(false)}
+                    className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    {t.common.cancel}
+                  </button>
+                  <button
+                    type="submit"
+                    className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:bg-amber-600"
                   >
                     {t.common.create}
                   </button>

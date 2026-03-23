@@ -57,6 +57,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
           ...(body.filterConfig !== undefined && { filterConfig: toJsonStr(body.filterConfig) }),
           ...(body.isShared !== undefined && { isShared: body.isShared }),
           ...(body.isDefault !== undefined && { isDefault: body.isDefault }),
+          ...(body.folderId !== undefined && { folderId: body.folderId === null ? null : Number(body.folderId) }),
           lastAccessedAt: new Date(),
         },
       });
