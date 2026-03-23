@@ -25,6 +25,15 @@ import {
   BookOpen,
   Bell,
   Map,
+  Building2,
+  Shield,
+  Archive,
+  DollarSign,
+  Tags,
+  Layers,
+  ShieldCheck,
+  FileStack,
+  UserCog,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 
@@ -43,19 +52,46 @@ interface NavGroup {
 
 const NAV_GROUPS: NavGroup[] = [
   {
-    titleKey: "",
+    titleKey: "analysis",
+    collapsible: true,
     items: [
       { href: "/dashboard", labelKey: "dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
+      { href: "/reports", labelKey: "reports", icon: <BarChart3 className="h-4 w-4" /> },
+      { href: "/history", labelKey: "changeHistory", icon: <History className="h-4 w-4" /> },
+      { href: "/asset-map", labelKey: "assetMap", icon: <Map className="h-4 w-4" /> },
+    ],
+  },
+  {
+    titleKey: "assetManagement",
+    collapsible: true,
+    items: [
       { href: "/hardware", labelKey: "hardware", icon: <HardDrive className="h-4 w-4" /> },
       { href: "/licenses", labelKey: "licenses", icon: <FileText className="h-4 w-4" /> },
       { href: "/cloud", labelKey: "cloud", icon: <Cloud className="h-4 w-4" /> },
       { href: "/domains", labelKey: "domainSsl", icon: <Globe className="h-4 w-4" /> },
       { href: "/contracts", labelKey: "contracts", icon: <FileSignature className="h-4 w-4" /> },
+      { href: "/external", labelKey: "externalEntities", icon: <Building2 className="h-4 w-4" /> },
+    ],
+  },
+  {
+    titleKey: "organization",
+    collapsible: true,
+    items: [
       { href: "/employees", labelKey: "employees", icon: <Users className="h-4 w-4" /> },
       { href: "/org", labelKey: "orgChart", icon: <Network className="h-4 w-4" /> },
-      { href: "/reports", labelKey: "reports", icon: <BarChart3 className="h-4 w-4" /> },
-      { href: "/history", labelKey: "changeHistory", icon: <History className="h-4 w-4" /> },
-      { href: "/asset-map", labelKey: "assetMap", icon: <Map className="h-4 w-4" /> },
+    ],
+  },
+  {
+    titleKey: "admin",
+    collapsible: true,
+    items: [
+      { href: "/admin/users", labelKey: "userManagement", icon: <UserCog className="h-4 w-4" />, authRequired: true },
+      { href: "/admin/archives", labelKey: "archives", icon: <Archive className="h-4 w-4" />, authRequired: true },
+      { href: "/admin/exchange-rates", labelKey: "exchangeRate", icon: <DollarSign className="h-4 w-4" />, authRequired: true },
+      { href: "/admin/asset-categories", labelKey: "assetCategory", icon: <Tags className="h-4 w-4" />, authRequired: true },
+      { href: "/admin/asset-classifications", labelKey: "assetClassification", icon: <Layers className="h-4 w-4" />, authRequired: true },
+      { href: "/admin/title-cia", labelKey: "titleCiaMapping", icon: <ShieldCheck className="h-4 w-4" />, authRequired: true },
+      { href: "/settings/groups", labelKey: "licenseGroups", icon: <FileStack className="h-4 w-4" />, authRequired: true },
     ],
   },
   {
@@ -63,7 +99,6 @@ const NAV_GROUPS: NavGroup[] = [
     collapsible: true,
     items: [
       { href: "/settings/profile", labelKey: "profile", icon: <UserCircle className="h-4 w-4" />, authRequired: true },
-      { href: "/settings/groups", labelKey: "groupSettings", icon: <Settings className="h-4 w-4" /> },
       { href: "/settings/notifications", labelKey: "notificationSettings", icon: <Bell className="h-4 w-4" /> },
       { href: "/settings/import", labelKey: "dataImport", icon: <Upload className="h-4 w-4" />, authRequired: true },
       { href: "/guide", labelKey: "adminGuide", icon: <BookOpen className="h-4 w-4" /> },

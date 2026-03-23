@@ -79,6 +79,18 @@ export type TranslationDict = {
     notificationSettings: string;
     dataImport: string;
     adminGuide: string;
+    assetManagement: string;
+    organization: string;
+    analysis: string;
+    externalEntities: string;
+    admin: string;
+    licenseGroups: string;
+    userManagement: string;
+    archives: string;
+    exchangeRate: string;
+    assetCategory: string;
+    assetClassification: string;
+    titleCiaMapping: string;
   };
 
   // Top header
@@ -1043,5 +1055,27 @@ export type TranslationDict = {
     piiStorage: string;
     piiUsageProvision: string;
     piiDestruction: string;
+    exportPdf: string;
+    exporting: string;
+  };
+
+  // External Entity
+  externalEntity: {
+    title: string;
+    list: string;
+    create: string;
+    edit: string;
+    detail: string;
+    name: string;
+    type: string;
+    description: string;
+    contactInfo: string;
+    typeTrustee: string;
+    typePartner: string;
+    typeGovernment: string;
+    typeOther: string;
+    connectedAssets: string;
+    noEntities: string;
+    deleteConfirm: string;
   };
 };

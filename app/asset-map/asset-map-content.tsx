@@ -18,8 +18,10 @@ import {
   Position,
   NodeResizer,
   reconnectEdge,
+  SelectionMode,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import { toPng } from "html-to-image";
 import dagre from "dagre";
 import {
   HardDrive,
@@ -33,6 +35,7 @@ import {
   X,
   Building2,
   Save,
+  FileDown,
   ChevronDown,
   ArrowRight,
   ArrowLeftRight,
@@ -2452,6 +2455,202 @@ export default function AssetMapContent() {
     }
   }
 
+  const [exporting, setExporting] = useState(false);
+
+  async function handleExportPdf() {
+    const viewport = document.querySelector(".react-flow__viewport") as HTMLElement | null;
+    if (!viewport) return;
+    setExporting(true);
+    try {
+      // ── 1. 전체 노드 바운드 계산 (섹션 포함) ──
+      const contentNodes = nodes.filter((n) => n.type !== "section");
+      if (contentNodes.length === 0) { setExporting(false); return; }
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      // 모든 노드(섹션 포함)로 바운드 계산 → 섹션 영역이 잘리지 않음
+      for (const n of nodes) {
+        const w = (n.style?.width as number) || (n.measured?.width ?? 200);
+        const h = (n.style?.height as number) || (n.measured?.height ?? 100);
+        minX = Math.min(minX, n.position.x);
+        minY = Math.min(minY, n.position.y);
+        maxX = Math.max(maxX, n.position.x + w);
+        maxY = Math.max(maxY, n.position.y + h);
+      }
+      const padding = 80;
+      const imgW = (maxX - minX) + padding * 2;
+      const imgH = (maxY - minY) + padding * 2;
+      const vpX = (-minX + padding) * 1;
+      const vpY = (-minY + padding) * 1;
+
+      // ── 2. 전체 캔버스를 PNG로 캡처 ──
+      const dataUrl = await toPng(viewport, {
+        width: imgW,
+        height: imgH,
+        style: {
+          width: `${imgW}px`,
+          height: `${imgH}px`,
+          transform: `translate(${vpX}px, ${vpY}px) scale(1)`,
+        },
+        backgroundColor: "#ffffff",
+      });
+
+      // ── 3. 이미지를 canvas에 로드 ──
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const i = new window.Image();
+        i.onload = () => resolve(i);
+        i.onerror = reject;
+        i.src = dataUrl;
+      });
+
+      // A3 가로 비율 기준 타일 크기 (PDF 페이지에 맞게)
+      const A3_RATIO = 297 / 420; // height/width
+      const TILE_W = 1400; // 타일 너비 (px) — 충분한 해상도
+      const TILE_H = Math.round(TILE_W * A3_RATIO);
+
+      // 1페이지에 맞는지 확인
+      const fitsOnOnePage = imgW <= TILE_W * 1.2 && imgH <= TILE_H * 1.2;
+
+      if (fitsOnOnePage) {
+        // ── 단일 페이지: 이미지 그대로 전송 ──
+        const res = await fetch("/api/asset-map/export-pdf", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            overview: dataUrl,
+            tiles: [{ image: dataUrl, col: 0, row: 0, x: 0, y: 0, w: imgW, h: imgH }],
+            title: t.assetMap.title,
+            totalCols: 1,
+            totalRows: 1,
+          }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          alert(err.error || "PDF 생성에 실패했습니다.");
+          return;
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `AssetMap_${new Date().toISOString().slice(0, 10)}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+        return;
+      }
+
+      // ── 4. 다중 페이지: 노드 인식 타일 분할 ──
+      // OVERLAP: 경계에서 노드가 잘리지 않도록 각 타일에 여백 추가
+      const OVERLAP = 250; // px — 가장 큰 노드(~200px) 커버
+      const cols = Math.ceil(imgW / TILE_W);
+      const rows = Math.ceil(imgH / TILE_H);
+
+      // overview 이미지 생성 (축소)
+      const overviewCanvas = document.createElement("canvas");
+      const overviewMaxW = 2400;
+      const overviewScale = Math.min(overviewMaxW / imgW, 1);
+      overviewCanvas.width = Math.round(imgW * overviewScale);
+      overviewCanvas.height = Math.round(imgH * overviewScale);
+      const overviewCtx = overviewCanvas.getContext("2d")!;
+      overviewCtx.fillStyle = "#ffffff";
+      overviewCtx.fillRect(0, 0, overviewCanvas.width, overviewCanvas.height);
+      overviewCtx.drawImage(img, 0, 0, overviewCanvas.width, overviewCanvas.height);
+      const overviewDataUrl = overviewCanvas.toDataURL("image/png");
+
+      // 타일별로 크롭 + 빈 타일 감지
+      interface TilePayload {
+        image: string;
+        col: number;
+        row: number;
+        x: number;
+        y: number;
+        w: number;
+        h: number;
+      }
+      const tiles: TilePayload[] = [];
+      const tileCanvas = document.createElement("canvas");
+      const tileCtx = tileCanvas.getContext("2d")!;
+
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          // overlap을 포함한 확장 영역 계산
+          const sx = Math.max(0, col * TILE_W - OVERLAP);
+          const sy = Math.max(0, row * TILE_H - OVERLAP);
+          const ex = Math.min(imgW, (col + 1) * TILE_W + OVERLAP);
+          const ey = Math.min(imgH, (row + 1) * TILE_H + OVERLAP);
+          const sw = ex - sx;
+          const sh = ey - sy;
+          if (sw <= 0 || sh <= 0) continue;
+
+          tileCanvas.width = sw;
+          tileCanvas.height = sh;
+          tileCtx.fillStyle = "#ffffff";
+          tileCtx.fillRect(0, 0, sw, sh);
+          tileCtx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+
+          // 빈 타일 감지: 픽셀 샘플링 (전수 검사 대신 격자 샘플)
+          const imageData = tileCtx.getImageData(0, 0, sw, sh);
+          const pixels = imageData.data;
+          let hasContent = false;
+          const step = Math.max(4, Math.floor(pixels.length / (4 * 500))); // ~500개 샘플
+          for (let i = 0; i < pixels.length; i += step * 4) {
+            const r = pixels[i], g = pixels[i + 1], b = pixels[i + 2];
+            // 순수 흰색(255,255,255)이 아닌 픽셀이 있으면 콘텐츠 있음
+            if (r < 250 || g < 250 || b < 250) {
+              hasContent = true;
+              break;
+            }
+          }
+          if (!hasContent) continue; // 빈 타일 건너뛰기
+
+          tiles.push({
+            image: tileCanvas.toDataURL("image/png"),
+            col, row, x: sx, y: sy, w: sw, h: sh,
+          });
+        }
+      }
+
+      if (tiles.length === 0) {
+        // 모든 타일이 빈 경우 (있을 수 없지만 안전장치)
+        tiles.push({
+          image: overviewDataUrl,
+          col: 0, row: 0, x: 0, y: 0, w: imgW, h: imgH,
+        });
+      }
+
+      // ── 5. 서버에 전송 ──
+      const res = await fetch("/api/asset-map/export-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          overview: overviewDataUrl,
+          tiles,
+          title: t.assetMap.title,
+          totalCols: cols,
+          totalRows: rows,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || "PDF 생성에 실패했습니다.");
+        return;
+      }
+
+      // ── 6. 다운로드 ──
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `AssetMap_${new Date().toISOString().slice(0, 10)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("PDF export error:", e);
+      alert("PDF 내보내기 중 오류가 발생했습니다.");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   function handleAddSection(name: string, color: string, description: string, width: number, height: number) {
     const id = `section-${Date.now()}-${sectionCounter}`;
     setSectionCounter((c) => c + 1);
@@ -2615,6 +2814,14 @@ export default function AssetMapContent() {
             <LayoutGrid className="inline h-3.5 w-3.5 mr-1" />
             {t.assetMap.autoLayout}
           </button>
+          <button
+            onClick={handleExportPdf}
+            disabled={exporting}
+            className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <FileDown className="inline h-3.5 w-3.5 mr-1" />
+            {exporting ? t.assetMap.exporting : t.assetMap.exportPdf}
+          </button>
           <button onClick={() => setShowModal(true)} className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700">
             <Plus className="inline h-3.5 w-3.5 mr-1" />
             {t.assetMap.addLink}
@@ -2663,6 +2870,12 @@ export default function AssetMapContent() {
             snapGrid={[20, 20]}
             connectionRadius={40}
             connectionMode={"loose" as never}
+            selectionOnDrag={true}
+            selectionMode={SelectionMode.Partial}
+            panOnDrag={[2]}
+            panOnScroll={true}
+            minZoom={0.05}
+            maxZoom={20}
             fitView
             attributionPosition="bottom-left"
           >
@@ -2686,13 +2899,14 @@ export default function AssetMapContent() {
                 const type = (node.data?.assetType as string) || "OTHER";
                 return ASSET_COLORS[type]?.border || "#6B7280";
               }}
-              style={{ height: 100 }}
+              style={{ height: 160 }}
               pannable
               zoomable
+              position="bottom-right"
             />
             <Panel position="bottom-center">
               <div className="rounded-lg border bg-white/90 px-3 py-1.5 text-xs text-gray-500 backdrop-blur">
-                {t.assetMap.addLink}: 노드 핸들 드래그 | 연결 상세: 엣지 더블클릭
+                드래그: 범위 선택 | 우클릭 드래그: 이동 | 핸들 드래그: 연결 추가 | 엣지 더블클릭: 상세
               </div>
             </Panel>
           </ReactFlow>
