@@ -27,7 +27,18 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json({ views });
+    // nodePositions는 DB에서 string으로 저장되므로 JSON 파싱
+    const parsed = views.map((v) => ({
+      ...v,
+      nodePositions: typeof v.nodePositions === "string"
+        ? JSON.parse(v.nodePositions)
+        : v.nodePositions,
+      filterConfig: typeof v.filterConfig === "string"
+        ? JSON.parse(v.filterConfig)
+        : v.filterConfig,
+    }));
+
+    return NextResponse.json({ views: parsed });
   } catch (error) {
     console.error("Failed to fetch asset map views:", error);
     return NextResponse.json(
@@ -72,8 +83,12 @@ export async function POST(request: NextRequest) {
           name: name.trim(),
           description: body.description ?? null,
           viewType,
-          nodePositions: body.nodePositions ?? null,
-          filterConfig: body.filterConfig ?? null,
+          nodePositions: body.nodePositions
+            ? (typeof body.nodePositions === "string" ? body.nodePositions : JSON.stringify(body.nodePositions))
+            : null,
+          filterConfig: body.filterConfig
+            ? (typeof body.filterConfig === "string" ? body.filterConfig : JSON.stringify(body.filterConfig))
+            : null,
           createdBy: user.id,
           isShared: body.isShared ?? false,
         },
@@ -97,7 +112,13 @@ export async function POST(request: NextRequest) {
       return created;
     });
 
-    return NextResponse.json(view, { status: 201 });
+    const parsed = {
+      ...view,
+      nodePositions: typeof view.nodePositions === "string"
+        ? JSON.parse(view.nodePositions)
+        : view.nodePositions,
+    };
+    return NextResponse.json(parsed, { status: 201 });
   } catch (error) {
     console.error("Failed to create asset map view:", error);
     return NextResponse.json(
