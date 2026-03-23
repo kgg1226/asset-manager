@@ -282,13 +282,13 @@ export default function LicensesContent({
                                   assignedEmployeeIds={license.assignedEmployeeIds}
                                   licenseType={license.licenseType}
                                 />
-                              ) : <span className="inline-block w-8" />}
+                              ) : <span className="rounded px-2 py-1 text-xs invisible">{t.common.assign}</span>}
                               {license.maxCapacity > 0 ? (
                                 <UnassignButton
                                   licenseName={license.name}
                                   assignedEmployees={license.assignedEmployees}
                                 />
-                              ) : <span className="inline-block w-8" />}
+                              ) : <span className="rounded px-2 py-1 text-xs invisible">{t.license.unassign}</span>}
                               <DeleteButton id={license.id} name={license.name} />
                             </div>
                           </td>
