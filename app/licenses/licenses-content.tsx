@@ -272,30 +272,24 @@ export default function LicensesContent({
                         </td>
                         {isLoggedIn && (
                           <td className="px-4 py-3 text-center">
-                            <div className="flex items-center justify-center">
-                              <div className="w-10 text-center">
-                                {license.maxCapacity > 0 && (
-                                  <AssignButton
-                                    licenseId={license.id}
-                                    licenseName={license.name}
-                                    remaining={license.remainingCount}
-                                    employees={employees}
-                                    assignedEmployeeIds={license.assignedEmployeeIds}
-                                    licenseType={license.licenseType}
-                                  />
-                                )}
-                              </div>
-                              <div className="w-10 text-center">
-                                {license.maxCapacity > 0 && (
-                                  <UnassignButton
-                                    licenseName={license.name}
-                                    assignedEmployees={license.assignedEmployees}
-                                  />
-                                )}
-                              </div>
-                              <div className="w-10 text-center">
-                                <DeleteButton id={license.id} name={license.name} />
-                              </div>
+                            <div className="flex items-center justify-center gap-2">
+                              {license.maxCapacity > 0 ? (
+                                <AssignButton
+                                  licenseId={license.id}
+                                  licenseName={license.name}
+                                  remaining={license.remainingCount}
+                                  employees={employees}
+                                  assignedEmployeeIds={license.assignedEmployeeIds}
+                                  licenseType={license.licenseType}
+                                />
+                              ) : <span className="inline-block w-8" />}
+                              {license.maxCapacity > 0 ? (
+                                <UnassignButton
+                                  licenseName={license.name}
+                                  assignedEmployees={license.assignedEmployees}
+                                />
+                              ) : <span className="inline-block w-8" />}
+                              <DeleteButton id={license.id} name={license.name} />
                             </div>
                           </td>
                         )}
