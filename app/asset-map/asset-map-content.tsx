@@ -2036,6 +2036,7 @@ function AssetMapContentInner() {
   const [currentView, setCurrentView] = useState<"gallery" | "canvas">("gallery");
   const [showNewWsModal, setShowNewWsModal] = useState(false);
   const [showAssetPalette, setShowAssetPalette] = useState(false);
+  const [showEntityPalette, setShowEntityPalette] = useState(false);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const viewportSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dirtyRef = useRef(false);
@@ -2460,8 +2461,17 @@ function AssetMapContentInner() {
         return baseNode;
       });
 
-      // Create external entity nodes
-      const entityNodes: Node[] = fetchedEntities.map((ent, i) => ({
+      // Create external entity nodes — only for entities with saved positions or on default page
+      const placedExtIds = hasSavedPositions
+        ? new Set(Object.keys(savedPositions!).filter(k => k.startsWith("ext-")).map(k => Number(k.replace("ext-", ""))))
+        : null;
+      const filteredEntities = isNewEmptyPage
+        ? [] // 새 페이지: 빈 캔버스
+        : placedExtIds
+          ? fetchedEntities.filter(e => placedExtIds.has(e.id)) // 저장된 것만
+          : fetchedEntities; // 기본 페이지: 전체
+
+      const entityNodes: Node[] = filteredEntities.map((ent, i) => ({
         id: `ext-${ent.id}`,
         type: "externalEntity",
         position: { x: (fetchedAssets.length % 5 + i) * 260, y: Math.floor((fetchedAssets.length + i) / 5) * 160 },
@@ -3152,6 +3162,38 @@ function AssetMapContentInner() {
     };
     setNodes((prev) => [...prev, newNode]);
     setAssets((prev) => [...prev, asset]);
+    markDirty(2000);
+  }
+
+  function handleAddEntityToCanvas(entity: ExternalEntity) {
+    const nodeId = `ext-${entity.id}`;
+    if (nodes.some((n) => n.id === nodeId)) return;
+
+    const newNode: Node = {
+      id: nodeId,
+      type: "externalEntity",
+      position: { x: 300 + Math.random() * 200, y: 200 + Math.random() * 200 },
+      data: {
+        label: entity.name,
+        entityType: entity.type,
+        description: entity.description,
+        contactInfo: entity.contactInfo,
+        isExternalEntity: true,
+        trusteeLabel: t.assetMap.trustee,
+        partnerLabel: t.assetMap.partner,
+        governmentLabel: t.assetMap.government,
+        otherLabel: t.assetMap.otherEntity,
+      },
+    };
+    setNodes((prev) => [...prev, newNode]);
+    markDirty(2000);
+  }
+
+  function handleRemoveEntityFromCanvas(entityId: number) {
+    const nodeId = `ext-${entityId}`;
+    setNodes((prev) => prev.filter((n) => n.id !== nodeId));
+    setEdges((prev) => prev.filter((e) => e.source !== nodeId && e.target !== nodeId));
+    markDirty(2000);
   }
 
   // Save current view positions
@@ -3777,6 +3819,17 @@ function AssetMapContentInner() {
             자산 팔레트
           </button>
 
+          {/* External Entity Palette toggle */}
+          <button
+            onClick={() => setShowEntityPalette(!showEntityPalette)}
+            className={`flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium transition ${
+              showEntityPalette ? "border-blue-300 bg-blue-50 text-blue-700" : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+            }`}
+          >
+            <Building2 className="h-3.5 w-3.5" />
+            {t.assetMap.externalEntity}
+          </button>
+
           {/* Save status indicator */}
           <div className="flex items-center gap-1.5 text-xs px-2">
             {saveStatus === "saved" && (
@@ -3827,9 +3880,57 @@ function AssetMapContentInner() {
             onRemoveFromCanvas={(assetId: number) => {
               setNodes((prev) => prev.filter((n) => n.id !== String(assetId)));
               setEdges((prev) => prev.filter((e) => e.source !== String(assetId) && e.target !== String(assetId)));
+              markDirty(2000);
             }}
             t={t}
           />
+        )}
+
+        {/* External Entity Palette (toggled from header) */}
+        {showEntityPalette && (
+          <div className="w-56 border-r border-gray-200 bg-white flex flex-col flex-shrink-0 overflow-hidden">
+            <div className="px-3 py-2.5 border-b border-gray-100 bg-gray-50">
+              <div className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-gray-500" />
+                <span className="text-xs font-semibold text-gray-700">{t.assetMap.externalEntity}</span>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              {externalEntities.length === 0 ? (
+                <div className="px-3 py-6 text-center text-xs text-gray-400">외부 조직이 없습니다</div>
+              ) : (
+                externalEntities.map((ent) => {
+                  const isPlaced = nodes.some((n) => n.id === `ext-${ent.id}`);
+                  const typeLabel = { TRUSTEE: t.assetMap.trustee, PARTNER: t.assetMap.partner, GOVERNMENT: t.assetMap.government, OTHER: t.assetMap.otherEntity }[ent.type] || ent.type;
+                  return (
+                    <button
+                      key={ent.id}
+                      onClick={() => isPlaced ? handleRemoveEntityFromCanvas(ent.id) : handleAddEntityToCanvas(ent)}
+                      className={`w-full px-3 py-2 flex items-center gap-2.5 border-b border-gray-50 transition-colors text-left group ${
+                        isPlaced ? "bg-green-50/50 hover:bg-red-50" : "hover:bg-blue-50"
+                      }`}
+                    >
+                      <div className="w-7 h-7 rounded flex items-center justify-center flex-shrink-0 bg-gray-100">
+                        <Building2 className="w-4 h-4 text-gray-500" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-medium text-gray-800 truncate">{ent.name}</div>
+                        <div className="text-[10px] text-gray-400">{typeLabel}</div>
+                      </div>
+                      {isPlaced ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-green-500 flex-shrink-0 group-hover:hidden" />
+                          <X className="w-3.5 h-3.5 text-red-400 flex-shrink-0 hidden group-hover:block" />
+                        </>
+                      ) : (
+                        <Plus className="w-3.5 h-3.5 text-blue-400 flex-shrink-0 opacity-0 group-hover:opacity-100" />
+                      )}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
         )}
 
       {/* ReactFlow */}
