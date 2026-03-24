@@ -346,7 +346,6 @@ function AssetNodeComponent({ data, selected }: { data: Record<string, unknown>;
           />
         );
       })}
-
       {/* Icon centered above name */}
       <div className={`flex flex-col items-center ${isCompact ? "gap-0.5" : "gap-1.5"}`}>
         <div
@@ -617,7 +616,7 @@ function getHandleSide(handleId: string): string {
 
 /**
  * N개 엣지를 한 방향에 균등 분배할 핸들 ID 생성
- * 예: side="left", count=3 → ["left-p17", "left-p50", "left-p83"]
+ * 예: side="left", count=3 → ["left-p25", "left-p50", "left-p75"]
  *     side="right", count=1 → ["right"]
  */
 function generateSlots(side: string, count: number): string[] {
@@ -629,43 +628,39 @@ function generateSlots(side: string, count: number): string[] {
 }
 
 /**
- * 엣지 배열을 받아서 같은 노드+방향에 여러 엣지가 도착/출발하면
- * 핸들을 균등 분산시킨다.
+ * 같은 노드+방향에 여러 엣지가 도착/출발하면 핸들을 균등 분산.
+ * 먼저 모든 핸들을 기본 방향으로 정규화한 뒤 분배한다.
  */
 function distributeEdgeHandles(edges: import("@xyflow/react").Edge[]): import("@xyflow/react").Edge[] {
+  // 0. 기본 방향으로 정규화 (레거시 -pN 핸들 호환)
+  for (const edge of edges) {
+    edge.sourceHandle = getHandleSide(edge.sourceHandle || "right");
+    edge.targetHandle = getHandleSide(edge.targetHandle || "left");
+  }
+
   // 1. 노드+방향별 엣지 그룹화
   const targetGroups: Record<string, import("@xyflow/react").Edge[]> = {};
   const sourceGroups: Record<string, import("@xyflow/react").Edge[]> = {};
 
   for (const edge of edges) {
-    const tSide = getHandleSide(edge.targetHandle || "left");
-    const tKey = `${edge.target}:${tSide}`;
+    const tKey = `${edge.target}:${edge.targetHandle}`;
     (targetGroups[tKey] ??= []).push(edge);
-
-    const sSide = getHandleSide(edge.sourceHandle || "right");
-    const sKey = `${edge.source}:${sSide}`;
+    const sKey = `${edge.source}:${edge.sourceHandle}`;
     (sourceGroups[sKey] ??= []).push(edge);
   }
 
-  // 2. target 핸들 분배 (1개여도 기본 방향으로 정규화)
+  // 2. target 핸들 분배
   for (const [, group] of Object.entries(targetGroups)) {
-    const side = getHandleSide(group[0].targetHandle || "left");
-    if (group.length <= 1) {
-      // 레거시 핸들 ID(top-left 등)를 기본 방향(top)으로 정규화
-      group[0].targetHandle = side;
-      continue;
-    }
+    if (group.length <= 1) continue;
+    const side = group[0].targetHandle!;
     const slots = generateSlots(side, group.length);
     group.forEach((edge, i) => { edge.targetHandle = slots[i]; });
   }
 
-  // 3. source 핸들 분배 (1개여도 기본 방향으로 정규화)
+  // 3. source 핸들 분배
   for (const [, group] of Object.entries(sourceGroups)) {
-    const side = getHandleSide(group[0].sourceHandle || "right");
-    if (group.length <= 1) {
-      group[0].sourceHandle = side;
-      continue;
-    }
+    if (group.length <= 1) continue;
+    const side = group[0].sourceHandle!;
     const slots = generateSlots(side, group.length);
     group.forEach((edge, i) => { edge.sourceHandle = slots[i]; });
   }
@@ -673,7 +668,7 @@ function distributeEdgeHandles(edges: import("@xyflow/react").Edge[]): import("@
   return edges;
 }
 
-/** distributeEdgeHandles가 사용하는 동적 핸들 ID에서 필요한 핸들 세트를 수집 */
+/** 엣지에서 특정 노드가 사용하는 동적 핸들 ID를 수집 */
 function collectDynamicHandles(edges: import("@xyflow/react").Edge[], nodeId: string): string[] {
   const handles = new Set<string>();
   for (const e of edges) {
@@ -688,75 +683,141 @@ function collectDynamicHandles(edges: import("@xyflow/react").Edge[], nodeId: st
 const NODE_WIDTH = 220;
 const NODE_HEIGHT = 130;
 
+/** 자산 유형 표시 순서 */
+const ASSET_TYPE_ORDER = ["HARDWARE", "CLOUD", "DOMAIN_SSL", "CONTRACT", "SOFTWARE", "OTHER"];
+const ASSET_TYPE_LABELS: Record<string, string> = {
+  HARDWARE: "하드웨어", CLOUD: "클라우드", DOMAIN_SSL: "도메인·SSL",
+  CONTRACT: "업체 계약", SOFTWARE: "소프트웨어", OTHER: "기타",
+};
+
 function getLayoutedElements(nodes: Node[], edges: Edge[]) {
   const sectionNodes = nodes.filter((n) => n.type === "section");
   const otherNodes = nodes.filter((n) => n.type === "assetGroup" || n.type === "piiStageLabel");
-
-  // Separate free nodes vs section children
-  const freeNodes = nodes.filter((n) =>
-    n.type !== "assetGroup" && n.type !== "piiStageLabel" && n.type !== "section" && !n.parentId
-  );
   const childNodes = nodes.filter((n) => !!n.parentId);
+  const externalNodes = nodes.filter((n) => n.type === "externalEntity" && !n.parentId);
 
-  // Layout free nodes with dagre
-  const g = new dagre.graphlib.Graph();
-  g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: "LR", nodesep: 80, ranksep: 160 });
+  // Free asset nodes (not in section, not in group, not external)
+  const freeAssetNodes = nodes.filter((n) =>
+    n.type === "asset" && !n.parentId
+  );
 
-  freeNodes.forEach((node) => g.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT }));
-  edges.forEach((edge) => {
-    if (g.hasNode(edge.source) && g.hasNode(edge.target)) {
-      g.setEdge(edge.source, edge.target);
+  // ── 1. 자산 유형별 그룹화 ──
+  const typeGroups: Record<string, Node[]> = {};
+  for (const node of freeAssetNodes) {
+    const assetType = (node.data?.assetType as string) || "OTHER";
+    (typeGroups[assetType] ??= []).push(node);
+  }
+
+  // ── 2. 연결된 노드는 dagre로 배치, 독립 노드는 그리드 ──
+  const connectedNodeIds = new Set<string>();
+  for (const edge of edges) {
+    connectedNodeIds.add(edge.source);
+    connectedNodeIds.add(edge.target);
+  }
+
+  const layoutedFreeNodes: Node[] = [];
+  const GAP_X = 40; // 유형 그룹 간 수평 간격
+  const LABEL_HEIGHT = 36; // 유형 라벨 높이
+  const GRID_COLS = 4; // 그리드 최대 열 수
+  let groupOffsetY = 0;
+
+  for (const assetType of ASSET_TYPE_ORDER) {
+    const groupNodes = typeGroups[assetType];
+    if (!groupNodes || groupNodes.length === 0) continue;
+
+    // 이 그룹의 연결된 노드와 독립 노드 분리
+    const connected = groupNodes.filter((n) => connectedNodeIds.has(n.id));
+    const standalone = groupNodes.filter((n) => !connectedNodeIds.has(n.id));
+
+    // 연결된 노드: dagre 레이아웃
+    let connectedHeight = 0;
+    if (connected.length > 0) {
+      const g = new dagre.graphlib.Graph();
+      g.setDefaultEdgeLabel(() => ({}));
+      g.setGraph({ rankdir: "LR", nodesep: 60, ranksep: 120 });
+      connected.forEach((node) => g.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT }));
+      edges.forEach((edge) => {
+        if (g.hasNode(edge.source) && g.hasNode(edge.target)) {
+          g.setEdge(edge.source, edge.target);
+        }
+      });
+      dagre.layout(g);
+
+      let minX = Infinity, maxY = 0;
+      for (const node of connected) {
+        const pos = g.node(node.id);
+        if (pos) { minX = Math.min(minX, pos.x); maxY = Math.max(maxY, pos.y + NODE_HEIGHT / 2); }
+      }
+      for (const node of connected) {
+        const pos = g.node(node.id);
+        if (pos) {
+          layoutedFreeNodes.push({
+            ...node,
+            position: {
+              x: pos.x - minX + GAP_X,
+              y: groupOffsetY + LABEL_HEIGHT + pos.y - NODE_HEIGHT / 2,
+            },
+          });
+        }
+      }
+      connectedHeight = maxY + NODE_HEIGHT / 2;
     }
-  });
 
-  dagre.layout(g);
-
-  const layoutedFreeNodes = freeNodes.map((node) => {
-    const pos = g.node(node.id);
-    if (pos) {
-      return { ...node, position: { x: pos.x - NODE_WIDTH / 2, y: pos.y - NODE_HEIGHT / 2 } };
+    // 독립 노드: 그리드 레이아웃
+    const gridStartY = groupOffsetY + LABEL_HEIGHT + (connected.length > 0 ? connectedHeight + 20 : 0);
+    const cols = Math.min(standalone.length, GRID_COLS);
+    for (let i = 0; i < standalone.length; i++) {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      layoutedFreeNodes.push({
+        ...standalone[i],
+        position: {
+          x: GAP_X + col * (NODE_WIDTH + 30),
+          y: gridStartY + row * (NODE_HEIGHT + 20),
+        },
+      });
     }
-    return node;
-  });
 
-  // Layout children within each section — centered, evenly spaced
+    const standaloneRows = Math.ceil(standalone.length / Math.max(cols, 1));
+    const standaloneHeight = standalone.length > 0 ? standaloneRows * (NODE_HEIGHT + 20) : 0;
+    const totalGroupHeight = LABEL_HEIGHT + (connected.length > 0 ? connectedHeight + 20 : 0) + standaloneHeight;
+
+    groupOffsetY += totalGroupHeight + 60; // 그룹 간 간격
+  }
+
+  // 외부 조직 노드: 오른쪽에 세로 배치
+  const maxX = layoutedFreeNodes.reduce((max, n) => Math.max(max, n.position.x + NODE_WIDTH), 0);
+  const extStartX = maxX + 120;
+  const layoutedExternalNodes = externalNodes.map((node, i) => ({
+    ...node,
+    position: { x: extStartX, y: 40 + i * (NODE_HEIGHT + 30) },
+  }));
+
+  // 섹션 자식 노드: 기존 로직 유지 (부모 섹션 내 그리드)
   const layoutedChildNodes = childNodes.map((node) => {
     const parentSection = sectionNodes.find((s) => s.id === node.parentId);
     if (!parentSection) return node;
-
     const siblings = childNodes.filter((n) => n.parentId === node.parentId);
     const siblingIdx = siblings.indexOf(node);
-    const siblingCount = siblings.length;
-
     const sw = (parentSection.style?.width as number) || 400;
     const sh = (parentSection.style?.height as number) || 300;
-    const headerHeight = 32; // section header bar height
+    const headerHeight = 32;
     const contentH = sh - headerHeight;
-    const padding = 20;
-
-    // Grid layout: calculate columns and rows
-    const cols = Math.min(siblingCount, Math.max(1, Math.floor((sw - padding * 2) / (NODE_WIDTH + 20))));
-    const rows = Math.ceil(siblingCount / cols);
+    const cols = Math.min(siblings.length, Math.max(1, Math.floor((sw - 40) / (NODE_WIDTH + 20))));
+    const rows = Math.ceil(siblings.length / cols);
     const col = siblingIdx % cols;
     const row = Math.floor(siblingIdx / cols);
-
-    // Center the grid within section
     const totalGridW = cols * (NODE_WIDTH + 20) - 20;
     const totalGridH = rows * (NODE_HEIGHT + 20) - 20;
     const offsetX = (sw - totalGridW) / 2;
     const offsetY = headerHeight + (contentH - totalGridH) / 2;
-
-    return {
-      ...node,
-      position: {
-        x: offsetX + col * (NODE_WIDTH + 20),
-        y: offsetY + row * (NODE_HEIGHT + 20),
-      },
-    };
+    return { ...node, position: { x: offsetX + col * (NODE_WIDTH + 20), y: offsetY + row * (NODE_HEIGHT + 20) } };
   });
 
-  return { nodes: [...sectionNodes, ...otherNodes, ...layoutedFreeNodes, ...layoutedChildNodes], edges };
+  return {
+    nodes: [...sectionNodes, ...otherNodes, ...layoutedFreeNodes, ...layoutedExternalNodes, ...layoutedChildNodes],
+    edges,
+  };
 }
 
 // ─── PII Lifecycle Layout ─────────────────────────────────────────────
@@ -865,17 +926,7 @@ function getPiiLifecycleLayout(
   const START_X = LABEL_WIDTH + 40;
   const START_Y = 40;
 
-  // Create stage label nodes
-  const stageLabelNodes: Node[] = stages.map((stage, idx) => ({
-    id: `pii-stage-${idx}`,
-    type: "piiStageLabel",
-    position: { x: 0, y: START_Y + idx * ROW_HEIGHT + 15 },
-    data: { label: stage.label },
-    draggable: false,
-    selectable: false,
-  }));
-
-  // Position content nodes by stage row
+  // Position content nodes by stage row (라벨 노드 없이 — UI 오버레이로 표시)
   const stageCounters = [0, 0, 0, 0];
   const layoutedContentNodes = contentNodes.map((node) => {
     const stageIdx = stageAssignments.get(node.id) ?? 2;
@@ -889,9 +940,18 @@ function getPiiLifecycleLayout(
     };
   });
 
+  // 스테이지 레인 정보를 반환 (UI 오버레이에서 사용)
+  const piiLanes = stages.map((stage, idx) => ({
+    label: stage.label,
+    y: START_Y + idx * ROW_HEIGHT,
+    height: ROW_HEIGHT,
+    count: stageCounters[idx],
+  }));
+
   return {
-    nodes: [...stageLabelNodes, ...otherNodes, ...layoutedContentNodes],
+    nodes: [...otherNodes, ...layoutedContentNodes],
     edges,
+    piiLanes,
   };
 }
 
@@ -2039,6 +2099,7 @@ function AssetMapContentInner() {
   const [showNewWsModal, setShowNewWsModal] = useState(false);
   const [showAssetPalette, setShowAssetPalette] = useState(false);
   const [showEntityPalette, setShowEntityPalette] = useState(false);
+  const [piiLanes, setPiiLanes] = useState<{ label: string; y: number; height: number; count: number }[]>([]);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const viewportSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dirtyRef = useRef(false);
@@ -2112,43 +2173,52 @@ function AssetMapContentInner() {
     return () => window.removeEventListener("keydown", handler);
   }, [flushSave]);
 
-  // ── beforeunload save ──
-  useEffect(() => {
-    const handler = () => {
-      if (dirtyRef.current && activeWorkspaceRef.current) {
-        const currentNodes = reactFlowInstance.getNodes();
-        const viewport = reactFlowInstance.getViewport();
-        const nodePositions: Record<string, { x: number; y: number }> = {};
-        const sectionData: SectionDataItem[] = [];
-        for (const n of currentNodes) {
-          if (n.type === "piiStageLabel") continue;
-          if (n.type === "section") {
-            sectionData.push({
-              id: n.id, name: (n.data?.sectionName as string) || "",
-              color: (n.data?.sectionColor as string) || "#3B82F6",
-              description: (n.data?.sectionDescription as string) || "",
-              x: n.position.x, y: n.position.y,
-              width: (n.style?.width as number) || 400,
-              height: (n.style?.height as number) || 300,
-              children: currentNodes.filter(c => c.parentId === n.id).map(c => c.id),
-            });
-          } else {
-            nodePositions[n.id] = { x: n.position.x, y: n.position.y };
-          }
+  // ── beforeunload + 컴포넌트 언마운트 시 저장 ──
+  // sendBeacon으로 미저장 상태를 즉시 저장 (SPA 네비게이션 + 탭 닫기 모두 대응)
+  const emergencySave = useCallback(() => {
+    if (!dirtyRef.current || !activeWorkspaceRef.current) return;
+    try {
+      const currentNodes = reactFlowInstance.getNodes();
+      const viewport = reactFlowInstance.getViewport();
+      const nodePositions: Record<string, { x: number; y: number }> = {};
+      const sectionData: SectionDataItem[] = [];
+      for (const n of currentNodes) {
+        if (n.type === "section") {
+          sectionData.push({
+            id: n.id, name: (n.data?.sectionName as string) || "",
+            color: (n.data?.sectionColor as string) || "#3B82F6",
+            description: (n.data?.sectionDescription as string) || "",
+            x: n.position.x, y: n.position.y,
+            width: (n.style?.width as number) || 400,
+            height: (n.style?.height as number) || 300,
+            children: currentNodes.filter(c => c.parentId === n.id).map(c => c.id),
+          });
+        } else if (n.type !== "piiStageLabel") {
+          nodePositions[n.id] = { x: n.position.x, y: n.position.y };
         }
-        navigator.sendBeacon(
-          `/api/asset-map/views/${activeWorkspaceRef.current.id}`,
-          new Blob([JSON.stringify({
-            nodePositions, sectionData,
-            viewport: { x: viewport.x, y: viewport.y, zoom: viewport.zoom },
-            _autoSave: true,
-          })], { type: "application/json" }),
-        );
       }
-    };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
+      navigator.sendBeacon(
+        `/api/asset-map/views/${activeWorkspaceRef.current.id}`,
+        new Blob([JSON.stringify({
+          nodePositions, sectionData,
+          viewport: { x: viewport.x, y: viewport.y, zoom: viewport.zoom },
+          _autoSave: true,
+        })], { type: "application/json" }),
+      );
+      dirtyRef.current = false;
+    } catch {
+      // 언마운트 시점에서 reactFlowInstance가 이미 해제될 수 있으므로 무시
+    }
   }, [reactFlowInstance]);
+
+  useEffect(() => {
+    window.addEventListener("beforeunload", emergencySave);
+    return () => {
+      window.removeEventListener("beforeunload", emergencySave);
+      // SPA 네비게이션으로 컴포넌트가 언마운트될 때도 저장
+      emergencySave();
+    };
+  }, [emergencySave]);
 
   // ── Viewport change auto-save (3s debounce) ──
   const onMoveEnd = useCallback(() => {
@@ -2590,10 +2660,12 @@ function AssetMapContentInner() {
         const piiLayout = getPiiLifecycleLayout(allNodes, flowEdges, t);
         setNodes(piiLayout.nodes);
         setEdges(piiLayout.edges);
+        setPiiLanes(piiLayout.piiLanes);
       } else {
         const layouted = getLayoutedElements(allNodes, flowEdges);
         setNodes(layouted.nodes);
         setEdges(layouted.edges);
+        setPiiLanes([]);
       }
     } catch {
       // silently fail
@@ -2638,9 +2710,11 @@ function AssetMapContentInner() {
                 position: { x: sec.x, y: sec.y },
                 style: { width: sec.width, height: sec.height },
                 data: {
+                  label: sec.name,
                   sectionName: sec.name,
                   sectionColor: sec.color,
                   sectionDescription: sec.description,
+                  description: sec.description,
                 },
                 draggable: true,
               });
@@ -2856,8 +2930,8 @@ function AssetMapContentInner() {
           type: "smoothstep",
           source: newLink.sourceAssetId ? String(newLink.sourceAssetId) : `ext-${newLink.sourceExternalId}`,
           target: newLink.targetAssetId ? String(newLink.targetAssetId) : `ext-${newLink.targetExternalId}`,
-          sourceHandle: newLink.sourceHandle || pendingConnection?.sourceHandle || "right",
-          targetHandle: newLink.targetHandle || pendingConnection?.targetHandle || "left",
+          sourceHandle: getHandleSide(newLink.sourceHandle || pendingConnection?.sourceHandle || "right"),
+          targetHandle: getHandleSide(newLink.targetHandle || pendingConnection?.targetHandle || "left"),
           style: { stroke: linkColor, strokeWidth: 2, strokeDasharray },
           markerEnd: { type: MarkerType.ArrowClosed, color: linkColor, width: 16, height: 16 },
           data: {
@@ -2878,18 +2952,25 @@ function AssetMapContentInner() {
           labelBgPadding: [6, 4] as [number, number],
           labelBgBorderRadius: 6,
         };
-        setEdges((prev) => {
-          const allEdges = [...prev, newEdge];
-          distributeEdgeHandles(allEdges);
-          setNodes((nds) => nds.map((n) => {
-            const handles = collectDynamicHandles(allEdges, n.id);
-            if (handles.length > 0) {
-              return { ...n, data: { ...n.data, _handles: handles } };
-            }
-            return n;
-          }));
-          return allEdges;
+        // 타이밍 문제 해결: 노드 핸들을 먼저 업데이트 → 다음 tick에서 엣지 설정
+        // 이렇게 해야 React Flow가 동적 핸들(-pN)을 DOM에서 찾을 수 있음
+        const allEdges = [...edges, newEdge];
+        distributeEdgeHandles(allEdges);
+
+        // 1. 노드에 동적 핸들 주입 (DOM에 핸들 생성)
+        setNodes((nds) => nds.map((n) => {
+          const handles = collectDynamicHandles(allEdges, n.id);
+          if (handles.length > 0) {
+            return { ...n, data: { ...n.data, _handles: handles } };
+          }
+          return n;
+        }));
+
+        // 2. 다음 렌더 사이클에서 엣지 설정 (핸들이 DOM에 있어야 함)
+        requestAnimationFrame(() => {
+          setEdges(allEdges);
         });
+
         setPendingConnection(null);
     } catch {
       alert(t.assetMap.linkCreateError);
@@ -2912,10 +2993,12 @@ function AssetMapContentInner() {
       const piiLayout = getPiiLifecycleLayout(nodes, edges, t);
       setNodes(piiLayout.nodes);
       setEdges(piiLayout.edges);
+      setPiiLanes(piiLayout.piiLanes);
     } else {
       const layouted = getLayoutedElements(nodes, edges);
       setNodes(layouted.nodes);
       setEdges(layouted.edges);
+      setPiiLanes([]);
     }
   }
 
@@ -3972,6 +4055,24 @@ function AssetMapContentInner() {
             attributionPosition="bottom-left"
           >
             <Controls />
+            {/* PII 수영 레인 오버레이 */}
+            {view === "pii" && piiLanes.length > 0 && (
+              <Panel position="top-left" className="pointer-events-none" style={{ margin: 0, padding: 0, width: "100%", height: "100%" }}>
+                <div className="absolute left-2 top-0 flex flex-col gap-0 z-10 pointer-events-none">
+                  {piiLanes.map((lane, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-start pointer-events-none"
+                      style={{ height: lane.height, paddingTop: idx === 0 ? 48 : 8 }}
+                    >
+                      <div className="rounded-lg bg-indigo-600/90 backdrop-blur-sm px-3 py-1.5 text-white text-xs font-bold shadow-md whitespace-nowrap">
+                        {lane.label}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Panel>
+            )}
             <Background variant={BackgroundVariant.Lines} gap={20} color="#f0f0f0" />
             <MiniMap
               nodeColor={(node) => {
@@ -3981,9 +4082,6 @@ function AssetMapContentInner() {
                 }
                 if (node.type === "assetGroup") {
                   return (node.data?.groupColor as string) || "#E5E7EB";
-                }
-                if (node.type === "piiStageLabel") {
-                  return "#6366F1";
                 }
                 if (node.type === "section") {
                   return (node.data?.sectionColor as string) || "#3B82F6";
