@@ -372,6 +372,59 @@ docker-compose up -d --build
 >
 > SMTP/Slack/Google Drive can also be configured via **Settings > Notifications** or **Archives > Settings** in the UI.
 
+### Google Drive 연동 (Service Account) | Google Drive Integration
+
+월별 보고서(PDF/Excel)를 Google Drive에 자동 업로드하려면 Service Account가 필요합니다.
+
+A Service Account is required to auto-upload monthly reports (PDF/Excel) to Google Drive.
+
+**1단계 — Service Account 생성 | Step 1 — Create Service Account**
+
+1. [Google Cloud Console](https://console.cloud.google.com/) 접속
+2. 프로젝트 선택 또는 새 프로젝트 생성
+3. **IAM & Admin > Service Accounts** 이동
+4. **+ Create Service Account** 클릭
+5. 이름 입력 (예: `asset-manager-gdrive`), 만들기
+6. 역할은 건너뛰기 (Drive API만 사용)
+
+**2단계 — 키 생성 | Step 2 — Generate Key**
+
+1. 생성된 Service Account 클릭 → **Keys** 탭
+2. **Add Key > Create new key > JSON** 선택
+3. 다운로드된 JSON에서 `client_email`과 `private_key` 값 확인
+
+**3단계 — Drive API 활성화 | Step 3 — Enable Drive API**
+
+1. **APIs & Services > Library** 이동
+2. "Google Drive API" 검색 → **Enable** 클릭
+
+**4단계 — 공유 폴더 설정 | Step 4 — Share Folder**
+
+1. Google Drive에서 보고서를 저장할 폴더 생성 (예: `AssetManager Reports`)
+2. 해당 폴더를 **Service Account 이메일**과 공유 (편집자 권한)
+   - `example@project.iam.gserviceaccount.com` → 편집자
+3. 폴더 URL에서 **폴더 ID** 추출:
+   - `https://drive.google.com/drive/folders/XXXXXX` → `XXXXXX`이 폴더 ID
+
+**5단계 — 앱 설정 | Step 5 — Configure App**
+
+방법 A: **UI 설정** (권장)
+- **증적 관리 > Google Drive 설정** 페이지에서 입력:
+  - Service Account Email: `client_email` 값
+  - Private Key: JSON의 `private_key` 값 (BEGIN~END 전체)
+  - Root Folder ID: 4단계에서 추출한 폴더 ID
+
+방법 B: **환경변수**
+```env
+GOOGLE_CLIENT_EMAIL=example@project.iam.gserviceaccount.com
+GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIE...\n-----END PRIVATE KEY-----\n"
+GOOGLE_DRIVE_ROOT=폴더_ID
+```
+
+> DB에 저장된 값이 환경변수보다 우선 적용됩니다. | DB values take precedence over environment variables.
+
+> Private Key는 AES-256으로 암호화되어 DB에 저장됩니다. | Private Keys are stored encrypted (AES-256) in the database.
+
 ---
 
 ## 프로젝트 구조 | Project Structure
