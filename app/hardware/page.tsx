@@ -21,13 +21,13 @@ interface Asset {
   purchaseDate?: string | null; expiryDate?: string | null;
   ciaC?: number | null; ciaI?: number | null; ciaA?: number | null;
   assignee?: { id: number; name: string } | null;
-  hardwareDetail?: { deviceType?: string | null; manufacturer?: string | null; model?: string | null; condition?: string | null } | null;
+  hardwareDetail?: { assetTag?: string | null; deviceType?: string | null; manufacturer?: string | null; model?: string | null; condition?: string | null } | null;
 }
 
 const STATUS_KEYS: Record<AssetStatus, string> = { IN_STOCK: "statusInStock", IN_USE: "statusInUse", INACTIVE: "statusInactive", UNUSABLE: "statusUnusable", PENDING_DISPOSAL: "statusPendingDisposal", DISPOSED: "statusDisposed" };
 const STATUS_COLORS: Record<AssetStatus, string> = { IN_STOCK: "bg-gray-100 text-gray-800", IN_USE: "bg-green-100 text-green-800", INACTIVE: "bg-yellow-100 text-yellow-800", UNUSABLE: "bg-orange-100 text-orange-800", PENDING_DISPOSAL: "bg-red-100 text-red-800", DISPOSED: "bg-gray-800 text-gray-100" };
 
-type SortField = "name" | "deviceType" | "manufacturer" | "status" | "cost" | "assignee" | "purchaseDate";
+type SortField = "assetTag" | "name" | "deviceType" | "manufacturer" | "status" | "cost" | "assignee" | "purchaseDate";
 type SortOrder = "asc" | "desc";
 
 function formatCost(cost: number | null | undefined, currency: string): string {
@@ -44,6 +44,12 @@ function sortAssets(assets: Asset[], field: SortField | null, order: SortOrder):
   return [...assets].sort((a, b) => {
     let cmp = 0;
     switch (field) {
+      case "assetTag": {
+        const at = a.hardwareDetail?.assetTag ?? "";
+        const bt = b.hardwareDetail?.assetTag ?? "";
+        cmp = at.localeCompare(bt, "ko");
+        break;
+      }
       case "name": cmp = a.name.localeCompare(b.name, "ko"); break;
       case "deviceType": {
         const av = a.hardwareDetail?.deviceType ?? "";
@@ -189,6 +195,7 @@ export default function HardwareListPage() {
           <table className="w-full min-w-[900px]">
             <thead className="border-b bg-gray-50">
               <tr>
+                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("assetTag")}>{t.hw.assetTag ?? "자산태그"}<SortIcon field="assetTag" /></th>
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("name")}>{t.asset.assetName}<SortIcon field="name" /></th>
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("deviceType")}>{t.hw.deviceType}<SortIcon field="deviceType" /></th>
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("manufacturer")}>{t.hw.manufacturer} / {t.hw.model}<SortIcon field="manufacturer" /></th>
@@ -202,12 +209,13 @@ export default function HardwareListPage() {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={9} className="px-6 py-8 text-center text-gray-400">{t.common.loading}</td></tr>
+                <tr><td colSpan={10} className="px-6 py-8 text-center text-gray-400">{t.common.loading}</td></tr>
               ) : sortedAssets.length === 0 ? (
-                <tr><td colSpan={9} className="px-6 py-8 text-center text-gray-500">{t.common.noData}</td></tr>
+                <tr><td colSpan={10} className="px-6 py-8 text-center text-gray-500">{t.common.noData}</td></tr>
               ) : (
                 sortedAssets.map((a) => (
                   <tr key={a.id} className="border-b hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm font-mono text-gray-700">{a.hardwareDetail?.assetTag || "—"}</td>
                     <td className="px-6 py-4 font-medium"><Link href={`/hardware/${a.id}`} className="text-blue-600 hover:underline">{a.name}</Link></td>
                     <td className="px-6 py-4 text-sm text-gray-600">{a.hardwareDetail?.deviceType || "—"}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{[a.hardwareDetail?.manufacturer, a.hardwareDetail?.model].filter(Boolean).join(" ") || "—"}</td>
