@@ -7,9 +7,16 @@ set -e
 
 # [1-0] unique 제약 적용 전 중복 assetTag 정리 (idempotent — 중복 없으면 0건 업데이트)
 echo "[entrypoint] 중복 assetTag 정리 중..."
-npx prisma db execute --file ./scripts/dedup-asset-tag.sql 2>&1 \
-  && echo "[entrypoint] 중복 assetTag 정리 완료" \
-  || echo "[entrypoint] 중복 assetTag 정리 스킵 (DB 미연결 또는 최초 실행)"
+DEDUP_SQL="DO \$\$ BEGIN IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema='public' AND table_name='HardwareDetail') THEN UPDATE \"HardwareDetail\" SET \"assetTag\"=NULL WHERE id NOT IN (SELECT MIN(id) FROM \"HardwareDetail\" WHERE \"assetTag\" IS NOT NULL GROUP BY \"assetTag\") AND \"assetTag\" IS NOT NULL; END IF; END \$\$;"
+if [ -f ./scripts/dedup-asset-tag.sql ]; then
+    npx prisma db execute --file ./scripts/dedup-asset-tag.sql 2>&1 \
+      && echo "[entrypoint] 중복 assetTag 정리 완료 (파일)" \
+      || echo "[entrypoint] 중복 assetTag 정리 스킵 (오류 무시)"
+else
+    echo "$DEDUP_SQL" | npx prisma db execute --stdin 2>&1 \
+      && echo "[entrypoint] 중복 assetTag 정리 완료 (inline)" \
+      || echo "[entrypoint] 중복 assetTag 정리 스킵 (오류 무시)"
+fi
 
 echo "[entrypoint] DB 스키마 동기화 중..."
 
