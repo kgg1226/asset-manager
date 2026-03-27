@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Edit, Trash2, Building2, Link2 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
+import { useCurrentUser } from "@/lib/hooks/use-current-user";
 import { toast } from "sonner";
 
 interface ExternalEntityDetail {
@@ -39,6 +40,7 @@ const TYPE_COLORS: Record<string, string> = {
 export default function ExternalEntityDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { t } = useTranslation();
+  const { isAdmin } = useCurrentUser();
   const router = useRouter();
   const [entity, setEntity] = useState<ExternalEntityDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -127,20 +129,22 @@ export default function ExternalEntityDetailPage({ params }: { params: Promise<{
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Link
-                href={`/external/${id}/edit`}
-                className="flex items-center gap-1 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
-              >
-                <Edit className="h-4 w-4" /> {t.externalEntity.edit}
-              </Link>
-              <button
-                onClick={handleDelete}
-                className="flex items-center gap-1 rounded-md border border-red-300 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
+            {isAdmin && (
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/external/${id}/edit`}
+                  className="flex items-center gap-1 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                >
+                  <Edit className="h-4 w-4" /> {t.externalEntity.edit}
+                </Link>
+                <button
+                  onClick={handleDelete}
+                  className="flex items-center gap-1 rounded-md border border-red-300 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

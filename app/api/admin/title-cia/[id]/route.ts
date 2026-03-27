@@ -19,7 +19,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
     const { id } = await params;
     const mappingId = Number(id);
     const body = await request.json();
-    const { title, ciaC, ciaI, ciaA } = body;
+    const { title, ciaC, ciaI, ciaA, description, rationale } = body;
 
     if (!title || typeof title !== "string" || !title.trim()) {
       return NextResponse.json(
@@ -29,10 +29,10 @@ export async function PUT(request: NextRequest, { params }: Params) {
     }
 
     const validCia = (v: unknown) =>
-      typeof v === "number" && [1, 2, 3].includes(v);
+      typeof v === "number" && v >= 1 && v <= 3;
     if (!validCia(ciaC) || !validCia(ciaI) || !validCia(ciaA)) {
       return NextResponse.json(
-        { error: "CIA 등급은 1(하), 2(중), 3(상) 중 하나여야 합니다." },
+        { error: "CIA 점수는 1~3 사이 정수여야 합니다." },
         { status: 400 }
       );
     }
@@ -53,6 +53,8 @@ export async function PUT(request: NextRequest, { params }: Params) {
           ciaC,
           ciaI,
           ciaA,
+          description: description ?? existing.description,
+          rationale: rationale ?? existing.rationale,
         },
       });
 

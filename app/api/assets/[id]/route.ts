@@ -373,8 +373,8 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "자산을 찾을 수 없습니다." }, { status: 404 });
     }
 
-    // 사용 중이거나 재고 상태 자산은 삭제 불가 — DISPOSED로 먼저 변경 필요
-    if (asset.status === "IN_USE" || asset.status === "IN_STOCK") {
+    // 일반 사용자는 사용 중/재고 상태 자산 삭제 불가, 관리자는 모든 상태 삭제 가능
+    if (user.role !== "ADMIN" && (asset.status === "IN_USE" || asset.status === "IN_STOCK")) {
       return NextResponse.json(
         { error: "사용 중이거나 재고 상태 자산은 삭제할 수 없습니다. 먼저 폐기(DISPOSED) 처리해주세요." },
         { status: 409 },

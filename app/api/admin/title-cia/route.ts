@@ -50,8 +50,40 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { title, ciaC, ciaI, ciaA } = body;
+    const { title, ciaC, ciaI, ciaA, description, rationale, bulk } = body;
 
+    // 대량 등록
+    if (Array.isArray(bulk)) {
+      const validCia = (v: unknown) => typeof v === "number" && v >= 1 && v <= 3;
+      const results: { title: string; success: boolean; error?: string }[] = [];
+
+      for (const item of bulk) {
+        if (!item.title?.trim()) { results.push({ title: "", success: false, error: "직책명 필수" }); continue; }
+        if (!validCia(item.ciaC) || !validCia(item.ciaI) || !validCia(item.ciaA)) {
+          results.push({ title: item.title, success: false, error: "CIA 점수 1~3 필수" }); continue;
+        }
+        try {
+          await prisma.$transaction(async (tx) => {
+            const created = await tx.titleCiaMapping.upsert({
+              where: { title: item.title.trim() },
+              create: { title: item.title.trim(), ciaC: item.ciaC, ciaI: item.ciaI, ciaA: item.ciaA, description: item.description || null, rationale: item.rationale || null },
+              update: { ciaC: item.ciaC, ciaI: item.ciaI, ciaA: item.ciaA, description: item.description || null, rationale: item.rationale || null },
+            });
+            const affected = await tx.asset.findMany({ where: { type: "HARDWARE", assignee: { title: item.title.trim() } }, select: { id: true } });
+            if (affected.length > 0) {
+              await tx.asset.updateMany({ where: { id: { in: affected.map(a => a.id) } }, data: { ciaC: item.ciaC, ciaI: item.ciaI, ciaA: item.ciaA } });
+            }
+            await writeAuditLog(tx, { entityType: "SYSTEM_CONFIG", entityId: created.id, action: "CREATED", actor: user.username, actorType: "USER", actorId: user.id, details: { summary: `직책 CIA 대량등록: ${created.title}`, ciaC: item.ciaC, ciaI: item.ciaI, ciaA: item.ciaA } });
+          });
+          results.push({ title: item.title, success: true });
+        } catch (e) {
+          results.push({ title: item.title, success: false, error: e instanceof Error ? e.message : "실패" });
+        }
+      }
+      return NextResponse.json({ results, total: bulk.length, success: results.filter(r => r.success).length });
+    }
+
+    // 단일 등록
     if (!title || typeof title !== "string" || !title.trim()) {
       return NextResponse.json(
         { error: "직책명은 필수입니다." },
@@ -60,10 +92,10 @@ export async function POST(request: NextRequest) {
     }
 
     const validCia = (v: unknown) =>
-      typeof v === "number" && [1, 2, 3].includes(v);
+      typeof v === "number" && v >= 1 && v <= 3;
     if (!validCia(ciaC) || !validCia(ciaI) || !validCia(ciaA)) {
       return NextResponse.json(
-        { error: "CIA 등급은 1(하), 2(중), 3(상) 중 하나여야 합니다." },
+        { error: "CIA 점수는 1~3 사이 정수여야 합니다." },
         { status: 400 }
       );
     }
@@ -75,6 +107,8 @@ export async function POST(request: NextRequest) {
           ciaC,
           ciaI,
           ciaA,
+          description: description || null,
+          rationale: rationale || null,
         },
       });
 

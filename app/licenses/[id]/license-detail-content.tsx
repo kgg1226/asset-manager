@@ -25,6 +25,7 @@ import {
   LicenseOwnersPanel,
 } from "./license-renewal";
 import LifecycleGauge from "@/app/_components/lifecycle-gauge";
+import { useCurrentUser } from "@/lib/hooks/use-current-user";
 
 // Serialized types (dates as ISO strings for client transport)
 type SeatData = {
@@ -152,6 +153,7 @@ export default function LicenseDetailContent({
   orgUnits,
 }: LicenseDetailContentProps) {
   const { t, locale } = useTranslation();
+  const { isAdmin } = useCurrentUser();
 
   function formatDate(dateStr: string | null): string {
     if (!dateStr) return "\u2014";
@@ -215,7 +217,7 @@ export default function LicenseDetailContent({
             )}
           </div>
           <div className="flex items-center gap-3">
-            {isLoggedIn && (
+            {isAdmin && (
               <Link
                 href={`/licenses/${licenseId}/edit`}
                 className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
@@ -537,7 +539,7 @@ export default function LicenseDetailContent({
         )}
 
         {/* Renewal Management */}
-        {isLoggedIn && <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {isAdmin && <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
           <RenewalStatusPanel
             licenseId={licenseId}
             currentStatus={license.renewalStatus as Parameters<typeof RenewalStatusPanel>[0]["currentStatus"] ?? null}
@@ -562,7 +564,7 @@ export default function LicenseDetailContent({
                 ? `Sub-Licenses${children.length > 0 ? ` \u2014 ${children.length}` : ""}`
                 : `\uD558\uC704 \uB77C\uC774\uC120\uC2A4${children.length > 0 ? ` \u2014 ${children.length}\uAC1C` : ""}`}
             </h2>
-            {isLoggedIn && (
+            {isAdmin && (
               <Link
                 href={`/licenses/new?parentId=${licenseId}&parentName=${encodeURIComponent(license.name)}`}
                 className="flex items-center gap-1 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"

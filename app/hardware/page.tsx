@@ -21,13 +21,13 @@ interface Asset {
   purchaseDate?: string | null; expiryDate?: string | null;
   ciaC?: number | null; ciaI?: number | null; ciaA?: number | null;
   assignee?: { id: number; name: string } | null;
-  hardwareDetail?: { deviceType?: string | null; manufacturer?: string | null; model?: string | null; condition?: string | null } | null;
+  hardwareDetail?: { assetTag?: string | null; deviceType?: string | null; manufacturer?: string | null; model?: string | null; condition?: string | null } | null;
 }
 
 const STATUS_KEYS: Record<AssetStatus, string> = { IN_STOCK: "statusInStock", IN_USE: "statusInUse", INACTIVE: "statusInactive", UNUSABLE: "statusUnusable", PENDING_DISPOSAL: "statusPendingDisposal", DISPOSED: "statusDisposed" };
 const STATUS_COLORS: Record<AssetStatus, string> = { IN_STOCK: "bg-gray-100 text-gray-800", IN_USE: "bg-green-100 text-green-800", INACTIVE: "bg-yellow-100 text-yellow-800", UNUSABLE: "bg-orange-100 text-orange-800", PENDING_DISPOSAL: "bg-red-100 text-red-800", DISPOSED: "bg-gray-800 text-gray-100" };
 
-type SortField = "name" | "deviceType" | "manufacturer" | "status" | "cost" | "assignee" | "purchaseDate";
+type SortField = "assetTag" | "name" | "deviceType" | "manufacturer" | "status" | "cost" | "assignee" | "purchaseDate";
 type SortOrder = "asc" | "desc";
 
 function formatCost(cost: number | null | undefined, currency: string): string {
@@ -44,6 +44,12 @@ function sortAssets(assets: Asset[], field: SortField | null, order: SortOrder):
   return [...assets].sort((a, b) => {
     let cmp = 0;
     switch (field) {
+      case "assetTag": {
+        const at = a.hardwareDetail?.assetTag ?? "";
+        const bt = b.hardwareDetail?.assetTag ?? "";
+        cmp = at.localeCompare(bt, "ko");
+        break;
+      }
       case "name": cmp = a.name.localeCompare(b.name, "ko"); break;
       case "deviceType": {
         const av = a.hardwareDetail?.deviceType ?? "";
@@ -95,6 +101,36 @@ export default function HardwareListPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<AssetStatus | "">("");
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const toggleAll = () => {
+    if (selectedIds.size === sortedAssets.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(sortedAssets.map(a => a.id)));
+  };
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`${selectedIds.size}개 자산을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) return;
+    setBulkDeleting(true);
+    let success = 0, fail = 0;
+    for (const id of selectedIds) {
+      try {
+        const res = await fetch(`/api/assets/${id}`, { method: "DELETE" });
+        if (res.ok || res.status === 204) success++; else fail++;
+      } catch { fail++; }
+    }
+    toast.success(`${success}개 삭제 완료${fail > 0 ? `, ${fail}개 실패` : ""}`);
+    setSelectedIds(new Set());
+    setBulkDeleting(false);
+    await loadAssets();
+  };
 
   // Sorting state from URL
   const [sortField, setSortField] = useState<SortField | null>((searchParams.get("sort") as SortField) || null);
@@ -185,10 +221,27 @@ export default function HardwareListPage() {
           </div>
         </div>
 
+        {/* 대량 삭제 바 */}
+        {isAdmin && selectedIds.size > 0 && (
+          <div className="mb-2 flex items-center gap-3 rounded-lg bg-red-50 border border-red-200 px-4 py-2">
+            <span className="text-sm font-medium text-red-700">{selectedIds.size}개 선택</span>
+            <button
+              onClick={handleBulkDelete}
+              disabled={bulkDeleting}
+              className="rounded bg-red-600 px-3 py-1 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+            >
+              {bulkDeleting ? "삭제 중..." : "선택 삭제"}
+            </button>
+            <button onClick={() => setSelectedIds(new Set())} className="text-sm text-gray-500 hover:text-gray-700">선택 해제</button>
+          </div>
+        )}
+
         <div className="overflow-x-auto rounded-lg bg-white shadow-sm" data-tour="hw-table">
           <table className="w-full min-w-[900px]">
             <thead className="border-b bg-gray-50">
               <tr>
+                {isAdmin && <th className="w-10 px-3 py-3"><input type="checkbox" checked={selectedIds.size > 0 && selectedIds.size === sortedAssets.length} onChange={toggleAll} className="h-4 w-4 rounded border-gray-300" /></th>}
+                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("assetTag")}>{t.hw.assetTag ?? "자산태그"}<SortIcon field="assetTag" /></th>
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("name")}>{t.asset.assetName}<SortIcon field="name" /></th>
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("deviceType")}>{t.hw.deviceType}<SortIcon field="deviceType" /></th>
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("manufacturer")}>{t.hw.manufacturer} / {t.hw.model}<SortIcon field="manufacturer" /></th>
@@ -202,12 +255,14 @@ export default function HardwareListPage() {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={9} className="px-6 py-8 text-center text-gray-400">{t.common.loading}</td></tr>
+                <tr><td colSpan={isAdmin ? 11 : 10} className="px-6 py-8 text-center text-gray-400">{t.common.loading}</td></tr>
               ) : sortedAssets.length === 0 ? (
-                <tr><td colSpan={9} className="px-6 py-8 text-center text-gray-500">{t.common.noData}</td></tr>
+                <tr><td colSpan={isAdmin ? 11 : 10} className="px-6 py-8 text-center text-gray-500">{t.common.noData}</td></tr>
               ) : (
                 sortedAssets.map((a) => (
                   <tr key={a.id} className="border-b hover:bg-gray-50">
+                    {isAdmin && <td className="w-10 px-3 py-4"><input type="checkbox" checked={selectedIds.has(a.id)} onChange={() => toggleSelect(a.id)} className="h-4 w-4 rounded border-gray-300" /></td>}
+                    <td className="px-6 py-4 text-sm font-mono text-gray-700">{a.hardwareDetail?.assetTag || "—"}</td>
                     <td className="px-6 py-4 font-medium"><Link href={`/hardware/${a.id}`} className="text-blue-600 hover:underline">{a.name}</Link></td>
                     <td className="px-6 py-4 text-sm text-gray-600">{a.hardwareDetail?.deviceType || "—"}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{[a.hardwareDetail?.manufacturer, a.hardwareDetail?.model].filter(Boolean).join(" ") || "—"}</td>

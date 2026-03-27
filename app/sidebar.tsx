@@ -37,6 +37,7 @@ import {
   ToggleLeft,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
+import { useCurrentUser } from "@/lib/hooks/use-current-user";
 
 interface NavItem {
   href: string;
@@ -49,6 +50,7 @@ interface NavGroup {
   titleKey: string;
   items: NavItem[];
   collapsible?: boolean;
+  adminOnly?: boolean;
 }
 
 const NAV_GROUPS: NavGroup[] = [
@@ -85,25 +87,26 @@ const NAV_GROUPS: NavGroup[] = [
   {
     titleKey: "admin",
     collapsible: true,
+    adminOnly: true,
     items: [
-      { href: "/admin/users", labelKey: "userManagement", icon: <UserCog className="h-4 w-4" />, authRequired: true },
-      { href: "/admin/archives", labelKey: "archives", icon: <Archive className="h-4 w-4" />, authRequired: true },
-      { href: "/admin/exchange-rates", labelKey: "exchangeRate", icon: <DollarSign className="h-4 w-4" />, authRequired: true },
-      { href: "/admin/asset-categories", labelKey: "assetCategory", icon: <Tags className="h-4 w-4" />, authRequired: true },
-      { href: "/admin/asset-classifications", labelKey: "assetClassification", icon: <Layers className="h-4 w-4" />, authRequired: true },
-      { href: "/admin/title-cia", labelKey: "titleCiaMapping", icon: <ShieldCheck className="h-4 w-4" />, authRequired: true },
-      { href: "/settings/groups", labelKey: "licenseGroups", icon: <FileStack className="h-4 w-4" />, authRequired: true },
-      { href: "/admin/feature-flags", labelKey: "featureFlags", icon: <ToggleLeft className="h-4 w-4" />, authRequired: true },
+      { href: "/admin/users", labelKey: "userManagement", icon: <UserCog className="h-4 w-4" /> },
+      { href: "/admin/archives", labelKey: "archives", icon: <Archive className="h-4 w-4" /> },
+      { href: "/admin/exchange-rates", labelKey: "exchangeRate", icon: <DollarSign className="h-4 w-4" /> },
+      { href: "/admin/asset-categories", labelKey: "assetCategory", icon: <Tags className="h-4 w-4" /> },
+      { href: "/admin/asset-classifications", labelKey: "assetClassification", icon: <Layers className="h-4 w-4" /> },
+      { href: "/admin/title-cia", labelKey: "titleCiaMapping", icon: <ShieldCheck className="h-4 w-4" /> },
+      { href: "/settings/groups", labelKey: "licenseGroups", icon: <FileStack className="h-4 w-4" /> },
+      { href: "/admin/feature-flags", labelKey: "featureFlags", icon: <ToggleLeft className="h-4 w-4" /> },
+      { href: "/settings/import", labelKey: "dataImport", icon: <Upload className="h-4 w-4" /> },
+      { href: "/guide", labelKey: "adminGuide", icon: <BookOpen className="h-4 w-4" /> },
     ],
   },
   {
     titleKey: "settings",
     collapsible: true,
     items: [
-      { href: "/settings/profile", labelKey: "profile", icon: <UserCircle className="h-4 w-4" />, authRequired: true },
+      { href: "/settings/profile", labelKey: "profile", icon: <UserCircle className="h-4 w-4" /> },
       { href: "/settings/notifications", labelKey: "notificationSettings", icon: <Bell className="h-4 w-4" /> },
-      { href: "/settings/import", labelKey: "dataImport", icon: <Upload className="h-4 w-4" />, authRequired: true },
-      { href: "/guide", labelKey: "adminGuide", icon: <BookOpen className="h-4 w-4" /> },
     ],
   },
 ];
@@ -113,6 +116,7 @@ export default function Sidebar() {
   const { t } = useTranslation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const { isAdmin } = useCurrentUser();
 
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard";
@@ -139,7 +143,7 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 py-4">
-        {NAV_GROUPS.map((group) => {
+        {NAV_GROUPS.filter(g => !g.adminOnly || isAdmin).map((group) => {
           const groupTitle = group.titleKey ? getLabel(group.titleKey) : "";
           const isCollapsed = group.collapsible && collapsedGroups[group.titleKey];
 

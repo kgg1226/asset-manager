@@ -514,7 +514,7 @@ model AssetGroupMember {
 model HardwareDetail {
   id              Int       @id @default(autoincrement())
   assetId         Int       @unique
-  assetTag        String?                              // 내부 자산 식별번호
+  assetTag        String?   @unique                     // 내부 자산 식별번호 (고유값)
   deviceType      String?                              // Laptop / Desktop / Server / Network / Mobile / Other
   manufacturer    String?                              // 제조사 (Apple, Dell, Lenovo 등)
   model           String?                              // 모델명 (MacBook Pro M4 등)
@@ -772,13 +772,15 @@ enum ArchiveStatus {
 
 // 직책별 CIA 등급 매핑 (관리자 설정)
 model TitleCiaMapping {
-  id        Int      @id @default(autoincrement())
-  title     String   @unique              // 직책명 (예: "대표이사", "팀장", "사원")
-  ciaC      Int      @default(2)          // 기밀성 (1=하, 2=중, 3=상)
-  ciaI      Int      @default(2)          // 무결성
-  ciaA      Int      @default(2)          // 가용성
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            Int      @id @default(autoincrement())
+  title         String   @unique              // 직책명 (예: "대표이사", "팀장", "사원")
+  ciaC          Int      @default(2)          // 기밀성 (1~3, 1=최상)
+  ciaI          Int      @default(2)          // 무결성 (1~3, 1=최상)
+  ciaA          Int      @default(2)          // 가용성 (1~3, 1=최상)
+  description   String?                       // 업무 내용
+  rationale     String?                       // 점수 부여 근거
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model SystemConfig {

@@ -162,6 +162,59 @@ export async function POST(request: NextRequest) {
     }
 
     const asset = await prisma.$transaction(async (tx) => {
+      // ── assetTag 중복 시 upsert (기존 자산 업데이트) ──
+      if (typeVal === "HARDWARE" && body.hardwareDetail?.assetTag) {
+        const tag = vStr(body.hardwareDetail.assetTag, 100);
+        if (tag) {
+          const existing = await tx.hardwareDetail.findUnique({
+            where: { assetTag: tag },
+            include: { asset: true },
+          });
+          if (existing) {
+            // 기존 자산 업데이트
+            const updated = await tx.asset.update({
+              where: { id: existing.assetId },
+              data: {
+                name: nameVal,
+                vendor: vendorVal,
+                description: descriptionVal,
+                cost: costVal,
+                monthlyCost: monthlyCostVal,
+                currency: currencyVal ?? "KRW",
+                billingCycle: finalBillingCycle,
+                purchaseDate: purchaseDateVal,
+                expiryDate: expiryDateVal,
+                renewalDate: renewalDateVal,
+                ...(assigneeIdVal && { assignee: { connect: { id: assigneeIdVal } } }),
+              },
+              include: { hardwareDetail: true, assignee: true },
+            });
+            const hd = body.hardwareDetail;
+            await tx.hardwareDetail.update({
+              where: { assetId: existing.assetId },
+              data: {
+                deviceType: vStr(hd.deviceType, 50),
+                manufacturer: vStr(hd.manufacturer, 255),
+                model: vStr(hd.model, 255),
+                serialNumber: vStr(hd.serialNumber, 255),
+                hostname: vStr(hd.hostname, 255),
+                macAddress: vStr(hd.macAddress, 50),
+                ipAddress: vStr(hd.ipAddress, 50),
+                os: vStr(hd.os, 50),
+                osVersion: vStr(hd.osVersion, 100),
+                location: vStr(hd.location, 500),
+              },
+            });
+            await writeAuditLog(tx, {
+              entityType: "ASSET", entityId: updated.id, action: "UPDATED",
+              actor: user.username, actorType: "USER", actorId: user.id,
+              details: { summary: `assetTag 중복으로 기존 자산 업데이트: ${tag}` },
+            });
+            return updated;
+          }
+        }
+      }
+
       // FK 존재 검증
       if (companyIdVal) {
         const company = await tx.orgCompany.findUnique({ where: { id: companyIdVal }, select: { id: true } });

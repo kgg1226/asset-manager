@@ -38,6 +38,7 @@ export default function DomainsListPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { t } = useTranslation();
+  const isAdmin = user?.role === "ADMIN";
 
   const getStatusLabel = (s: AssetStatus) => (t.asset as Record<string, string>)[STATUS_KEYS[s]] ?? s;
 
@@ -84,7 +85,7 @@ export default function DomainsListPage() {
             <button onClick={loadAssets} disabled={isLoading} className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
               <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             </button>
-            {user && (
+            {isAdmin && (
               <Link href="/domains/new" data-tour="domain-new-btn" className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
                 <Plus className="h-4 w-4" />{t.domain.newDomain}
               </Link>
@@ -116,7 +117,7 @@ export default function DomainsListPage() {
                 <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.lifecycle.heading}</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.asset.assignee}</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.cia.title}</th>
-                <th className="px-6 py-3 text-right text-xs font-semibold whitespace-nowrap">{t.common.actions}</th>
+                {isAdmin && <th className="px-6 py-3 text-right text-xs font-semibold whitespace-nowrap">{t.common.actions}</th>}
               </tr>
             </thead>
             <tbody>
@@ -135,15 +136,15 @@ export default function DomainsListPage() {
                     <td className="px-6 py-4"><LifecycleGaugeInline startDate={a.purchaseDate} endDate={a.expiryDate} /></td>
                     <td className="px-6 py-4 text-sm">{a.assignee?.name || "—"}</td>
                     <td className="px-6 py-4 text-sm"><CiaBadge ciaC={a.ciaC} ciaI={a.ciaI} ciaA={a.ciaA} /></td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => router.push(`/domains/${a.id}`)} className="rounded p-1 hover:bg-gray-200" title={t.common.detail}><Eye className="h-4 w-4" /></button>
-                        {user && (<>
+                    {isAdmin && (
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button onClick={() => router.push(`/domains/${a.id}`)} className="rounded p-1 hover:bg-gray-200" title={t.common.detail}><Eye className="h-4 w-4" /></button>
                           <button onClick={() => router.push(`/domains/${a.id}/edit`)} className="rounded p-1 hover:bg-gray-200" title={t.common.edit}><Edit className="h-4 w-4" /></button>
                           <button onClick={() => handleDelete(a.id, a.name)} className="rounded p-1 hover:bg-gray-200" title={t.common.delete}><Trash2 className="h-4 w-4 text-red-600" /></button>
-                        </>)}
-                      </div>
-                    </td>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
