@@ -1,20 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  LogOut,
-  LogIn,
-  Shield,
-  Archive,
-  DollarSign,
-  Tags,
-  Layers,
-  ChevronDown,
-  Download,
-  ShieldCheck,
-} from "lucide-react";
+import { LogOut, LogIn } from "lucide-react";
 import GlobalSearch from "./global-search";
 import NotificationBell from "./notification-bell";
 import LanguageToggle from "./language-toggle";
@@ -28,18 +17,6 @@ export default function TopHeader({ user }: TopHeaderProps) {
   const router = useRouter();
   const { t } = useTranslation();
   const [loggingOut, setLoggingOut] = useState(false);
-  const [adminOpen, setAdminOpen] = useState(false);
-  const adminRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (adminRef.current && !adminRef.current.contains(e.target as Node)) {
-        setAdminOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -47,15 +24,6 @@ export default function TopHeader({ user }: TopHeaderProps) {
     router.push("/login");
     router.refresh();
   };
-
-  const adminItems = [
-    { href: "/admin/users", label: t.header.userManagement, icon: <Shield className="h-4 w-4" /> },
-    { href: "/admin/archives", label: t.header.archives, icon: <Archive className="h-4 w-4" /> },
-    { href: "/admin/exchange-rates", label: t.header.exchangeRate, icon: <DollarSign className="h-4 w-4" /> },
-    { href: "/admin/asset-categories", label: t.header.assetCategory, icon: <Tags className="h-4 w-4" /> },
-    { href: "/admin/asset-classifications", label: "자산분류체계", icon: <Layers className="h-4 w-4" /> },
-    { href: "/admin/title-cia", label: t.admin.titleCiaMapping, icon: <ShieldCheck className="h-4 w-4" /> },
-  ];
 
   return (
     <header className="fixed top-0 right-0 left-0 z-20 flex h-14 items-center justify-between border-b border-gray-200 bg-white px-4 md:left-60">
@@ -67,55 +35,6 @@ export default function TopHeader({ user }: TopHeaderProps) {
 
         {/* Language Toggle */}
         <LanguageToggle />
-
-        {/* Admin Dropdown */}
-        {user?.role === "ADMIN" && (
-          <div ref={adminRef} className="relative">
-            <button
-              onClick={() => setAdminOpen(!adminOpen)}
-              className="flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100"
-            >
-              <Shield className="h-4 w-4" />
-              {t.header.admin}
-              <ChevronDown className={`h-3 w-3 transition-transform ${adminOpen ? "rotate-180" : ""}`} />
-            </button>
-            {adminOpen && (
-              <div className="absolute right-0 mt-1 w-44 rounded-md border border-gray-200 bg-white py-1 shadow-lg">
-                {adminItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setAdminOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  >
-                    {item.icon}
-                    {item.label}
-                  </Link>
-                ))}
-                <div className="my-1 border-t border-gray-100" />
-                <button
-                  onClick={async () => {
-                    setAdminOpen(false);
-                    const res = await fetch("/api/export/all?format=xlsx");
-                    if (res.ok) {
-                      const blob = await res.blob();
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement("a");
-                      a.href = url;
-                      a.download = `asset-export-${new Date().toISOString().split("T")[0]}.xlsx`;
-                      a.click();
-                      URL.revokeObjectURL(url);
-                    }
-                  }}
-                  className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  <Download className="h-4 w-4" />
-                  {t.header.excelExportAll}
-                </button>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* User / Login */}
         {user ? (

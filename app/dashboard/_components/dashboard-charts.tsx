@@ -156,7 +156,7 @@ export default function DashboardCharts({
                   outerRadius={80}
                   innerRadius={44}
                   paddingAngle={3}
-                  label={(props: Record<string, unknown>) => `${props.name ?? ""} ${(((props.percent as number) ?? 0) * 100).toFixed(0)}%`}
+                  label={({ name, percent }: { name?: string; percent?: number }) => `${name ?? ""} ${((percent ?? 0) * 100).toFixed(0)}%`}
                   labelLine={false}
                 >
                   {typeDistribution.map((d) => (
@@ -165,10 +165,10 @@ export default function DashboardCharts({
                 </Pie>
                 <Legend formatter={(value: string) => <span className="text-xs text-gray-600">{value}</span>} />
                 <Tooltip
-                  formatter={(value: number, _name: string, props: { payload?: TypeDistPoint }) => {
+                  formatter={((value: number, _name: string, props: { payload?: TypeDistPoint }) => {
                     const cost = props.payload?.cost ?? 0;
                     return [`${value}${t.dashboard.items} · ₩${cost.toLocaleString()}`, ""];
-                  }}
+                  }) as never}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -193,7 +193,7 @@ export default function DashboardCharts({
                   outerRadius={80}
                   innerRadius={44}
                   paddingAngle={3}
-                  label={(props: Record<string, unknown>) => `${props.name ?? ""} ${(((props.percent as number) ?? 0) * 100).toFixed(0)}%`}
+                  label={({ name, percent }: { name?: string; percent?: number }) => `${name ?? ""} ${((percent ?? 0) * 100).toFixed(0)}%`}
                   labelLine={false}
                 >
                   {statusDistribution.map((d) => (
@@ -201,7 +201,7 @@ export default function DashboardCharts({
                   ))}
                 </Pie>
                 <Legend formatter={(value: string) => <span className="text-xs text-gray-600">{value}</span>} />
-                <Tooltip formatter={(value: number) => [`${value}${t.dashboard.items}`, t.dashboard.totalAssets]} />
+                <Tooltip formatter={((value: number) => [`${value}${t.dashboard.items}`, t.dashboard.totalAssets]) as never} />
               </PieChart>
             </ResponsiveContainer>
           ) : (

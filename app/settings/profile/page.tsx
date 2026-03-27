@@ -51,14 +51,14 @@ export default function ProfilePage() {
           setProfile(data);
           setUsername(data.username);
         })
-        .catch(() => toast.error("프로필 정보를 불러올 수 없습니다."))
+        .catch(() => toast.error(t.profile.profileLoadFail))
         .finally(() => setProfileLoading(false));
     }
   }, [user]);
 
   const handleUsernameSave = async () => {
     if (!username.trim() || username.length < 2) {
-      toast.error("사용자명은 2자 이상이어야 합니다.");
+      toast.error(t.profile.usernameMinLength);
       return;
     }
     setUsernameSaving(true);
@@ -72,9 +72,9 @@ export default function ProfilePage() {
       if (!res.ok) throw new Error(data.error);
       setProfile(data);
       setUsernameEditing(false);
-      toast.success("사용자명이 변경되었습니다.");
+      toast.success(t.profile.usernameChanged);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "변경 실패");
+      toast.error(err instanceof Error ? err.message : t.profile.changeFail);
     } finally {
       setUsernameSaving(false);
     }
@@ -85,15 +85,15 @@ export default function ProfilePage() {
     const { currentPassword, newPassword, confirmPassword } = passwordForm;
 
     if (!currentPassword) {
-      toast.error("현재 비밀번호를 입력하세요.");
+      toast.error(t.profile.enterCurrentPassword);
       return;
     }
     if (newPassword.length < 8) {
-      toast.error("새 비밀번호는 8자 이상이어야 합니다.");
+      toast.error(t.profile.newPasswordMinLength);
       return;
     }
     if (newPassword !== confirmPassword) {
-      toast.error("새 비밀번호가 일치하지 않습니다.");
+      toast.error(t.profile.newPasswordMismatch);
       return;
     }
 
@@ -106,11 +106,11 @@ export default function ProfilePage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast.success("비밀번호가 변경되었습니다.");
+      toast.success(t.profile.passwordChanged);
       setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
       setShowPasswordForm(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "변경 실패");
+      toast.error(err instanceof Error ? err.message : t.profile.changeFail);
     } finally {
       setPasswordSaving(false);
     }
@@ -202,7 +202,7 @@ export default function ProfilePage() {
             {/* 계정 생성일 */}
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">
-                계정 생성일
+                {t.profile.accountCreatedAt}
               </label>
               <span className="text-gray-600">
                 {profile?.createdAt
@@ -266,7 +266,7 @@ export default function ProfilePage() {
                   minLength={8}
                   required
                 />
-                <p className="mt-1 text-xs text-gray-500">8자 이상</p>
+                <p className="mt-1 text-xs text-gray-500">{t.profile.passwordMinHint}</p>
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
@@ -306,7 +306,7 @@ export default function ProfilePage() {
             </form>
           ) : (
             <p className="text-sm text-gray-500">
-              비밀번호를 변경하려면 위 버튼을 클릭하세요.
+              {t.profile.clickToChangePassword}
             </p>
           )}
         </div>
@@ -315,8 +315,7 @@ export default function ProfilePage() {
         {!isAdmin && (
           <div className="rounded-lg bg-amber-50 p-4 ring-1 ring-amber-200">
             <p className="text-sm text-amber-800">
-              일반 사용자는 비밀번호만 변경할 수 있습니다. 다른 정보 변경이 필요하면
-              관리자에게 문의하세요.
+              {t.profile.userOnlyNotice}
             </p>
           </div>
         )}

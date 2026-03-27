@@ -39,31 +39,45 @@ export async function PUT(request: NextRequest, { params }: Params) {
       });
       if (!existing) throw new Error("NOT_FOUND");
 
+      const toJsonStr = (v: unknown) => {
+        if (v === null) return null;
+        return typeof v === "string" ? v : JSON.stringify(v);
+      };
+
       const updated = await tx.assetMapView.update({
         where: { id: viewId },
         data: {
           ...(body.name !== undefined && { name: body.name.trim() }),
           ...(body.description !== undefined && { description: body.description }),
           ...(body.viewType !== undefined && { viewType: body.viewType }),
-          ...(body.nodePositions !== undefined && { nodePositions: body.nodePositions }),
-          ...(body.filterConfig !== undefined && { filterConfig: body.filterConfig }),
+          ...(body.nodePositions !== undefined && { nodePositions: toJsonStr(body.nodePositions) }),
+          ...(body.sectionData !== undefined && { sectionData: toJsonStr(body.sectionData) }),
+          ...(body.viewport !== undefined && { viewport: toJsonStr(body.viewport) }),
+          ...(body.edgeVisibility !== undefined && { edgeVisibility: toJsonStr(body.edgeVisibility) }),
+          ...(body.filterConfig !== undefined && { filterConfig: toJsonStr(body.filterConfig) }),
           ...(body.isShared !== undefined && { isShared: body.isShared }),
+          ...(body.isDefault !== undefined && { isDefault: body.isDefault }),
+          ...(body.folderId !== undefined && { folderId: body.folderId === null ? null : Number(body.folderId) }),
+          lastAccessedAt: new Date(),
         },
       });
 
-      await writeAuditLog(tx, {
-        entityType: "SYSTEM_CONFIG",
-        entityId: updated.id,
-        action: "UPDATED",
-        actor: user.username,
-        actorType: "USER",
-        actorId: user.id,
-        details: {
-          entityName: "AssetMapView",
-          name: updated.name,
-          changes: Object.keys(body),
-        },
-      });
+      // auto-save 시에는 감사 로그 생략 (자동저장마다 로그가 쌓이는 것 방지)
+      if (!body._autoSave) {
+        await writeAuditLog(tx, {
+          entityType: "SYSTEM_CONFIG",
+          entityId: updated.id,
+          action: "UPDATED",
+          actor: user.username,
+          actorType: "USER",
+          actorId: user.id,
+          details: {
+            entityName: "AssetMapView",
+            name: updated.name,
+            changes: Object.keys(body).filter(k => k !== "_autoSave"),
+          },
+        });
+      }
 
       return updated;
     });

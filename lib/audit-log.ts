@@ -5,7 +5,7 @@ type Tx = Omit<
   "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
 >;
 
-export type AuditEntityType = "LICENSE" | "EMPLOYEE" | "ASSIGNMENT" | "SEAT" | "ORG_UNIT" | "ORG_COMPANY" | "GROUP" | "USER" | "ASSET" | "ARCHIVE" | "ASSET_CATEGORY" | "EXCHANGE_RATE" | "ASSET_MAJOR_CATEGORY" | "ASSET_SUB_CATEGORY" | "SYSTEM_CONFIG" | "ASSET_LINK";
+export type AuditEntityType = "LICENSE" | "EMPLOYEE" | "ASSIGNMENT" | "SEAT" | "ORG_UNIT" | "ORG_COMPANY" | "ORG" | "GROUP" | "USER" | "ASSET" | "ARCHIVE" | "ASSET_CATEGORY" | "EXCHANGE_RATE" | "ASSET_MAJOR_CATEGORY" | "ASSET_SUB_CATEGORY" | "SYSTEM_CONFIG" | "ASSET_LINK";
 
 export type AuditAction =
   | "CREATED"
@@ -29,7 +29,9 @@ export type AuditAction =
   | "ASSET_UNASSIGNED"
   | "STATUS_CHANGED"
   | "AUTO_DISPOSAL_CHECK"
-  | "CONFIG_UPDATED";
+  | "CONFIG_UPDATED"
+  | "LICENSE_LINKED"
+  | "LICENSE_UNLINKED";
 
 export async function writeAuditLog(
   tx: Tx,

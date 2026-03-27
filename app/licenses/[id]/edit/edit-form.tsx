@@ -45,7 +45,7 @@ type OrgOption = { id: number; name: string; companyName: string };
 type Seat = {
   id: number;
   key: string | null;
-  assignedTo: { name: string; department: string } | null;
+  assignedTo: { name: string; department: string | null } | null;
 };
 
 function toDateString(date: Date | null): string {
@@ -697,7 +697,7 @@ function SeatTable({
                 </td>
                 <td className="px-3 py-2 text-center">
                   {editingId === seat.id ? (
-                    <div className="flex items-center justify-center gap-1">
+                    <div className="flex items-center justify-center gap-2">
                       <button
                         type="button"
                         onClick={() => handleSave(seat.id)}

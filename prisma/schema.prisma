@@ -453,17 +453,38 @@ model ExternalEntity {
   incomingLinks AssetLink[] @relation("ExternalLinkTarget")
 }
 
+model AssetMapFolder {
+  id          Int      @id @default(autoincrement())
+  name        String
+  color       String   @default("#6B7280")
+  sortOrder   Int      @default(0)
+  createdBy   Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  pages       AssetMapView[]
+}
+
 model AssetMapView {
   id             Int      @id @default(autoincrement())
   name           String
   description    String?
   viewType       String   @default("ALL") // ALL | PII | NETWORK | DATA_FLOW | CUSTOM
   nodePositions  String?  // JSON: { "asset-1": {x,y}, "ext-2": {x,y} }
+  sectionData    String?  // JSON: [{ id, name, color, description, x, y, width, height, children }]
+  viewport       String?  // JSON: { x, y, zoom }
+  edgeVisibility String?  // JSON: { showLabels, showDataTypes, hiddenEdgeIds }
   filterConfig   String?  // JSON: filter settings
+  isDefault      Boolean  @default(false)
+  lastAccessedAt DateTime @default(now())
+  sortOrder      Int      @default(0)
+  folderId       Int?
   createdBy      Int?
   isShared       Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+
+  folder         AssetMapFolder? @relation(fields: [folderId], references: [id])
 }
 
 model AssetGroup {
@@ -593,7 +614,33 @@ model CloudDetail {
   autoRenew       Boolean?                           // 자동 갱신 여부 (RI, Savings Plan 등)
   notes           String?                            // 비고
 
+  // ── 자동 수집 (Auto-Import) ──
+  importSource    String?                            // 수집 출처: MANUAL(기본) | AWS_API | GCP_API | AZURE_API | TERRAFORM | CSV
+  externalArn     String?                            // 클라우드 고유 식별자 (ARN, selfLink, resourceId 등) — upsert 키
+  lastSyncAt      DateTime?                          // 마지막 동기화 시각
+  syncStatus      String?                            // 동기화 상태: SYNCED | DRIFT | ORPHAN | ERROR
+  rawMetadata     String?                            // 원본 API 응답 JSON (변경 감지용)
+  tags            String?                            // JSON: 클라우드 태그 { "env": "prod", "team": "infra" }
+
   asset       Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  usageMetrics CloudUsageMetric[]
+}
+
+// 클라우드 사용량 시계열 (자동 수집 또는 수동 입력)
+model CloudUsageMetric {
+  id             Int      @id @default(autoincrement())
+  cloudDetailId  Int
+  metricName     String                               // cpu_utilization, memory_usage, storage_used, network_in, network_out, request_count, active_users, cost_actual
+  metricValue    Float                                 // 수치 값
+  metricUnit     String?                               // %, GB, TB, count, USD, KRW 등
+  periodStart    DateTime                              // 측정 시작 시각
+  periodEnd      DateTime?                             // 측정 종료 시각
+  source         String   @default("MANUAL")           // MANUAL | CLOUDWATCH | STACKDRIVER | AZURE_MONITOR | API
+  createdAt      DateTime @default(now())
+
+  cloudDetail    CloudDetail @relation(fields: [cloudDetailId], references: [id], onDelete: Cascade)
+
+  @@index([cloudDetailId, metricName, periodStart])
 }
 
 model ContractDetail {

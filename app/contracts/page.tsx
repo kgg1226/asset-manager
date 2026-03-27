@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
 import CiaBadge from "@/app/_components/cia-badge";
+import { LifecycleGaugeInline } from "@/app/_components/lifecycle-gauge";
 import { TourGuide } from "@/app/_components/tour-guide";
 import { CONTRACTS_TOUR_KEY, getContractsSteps } from "@/app/_components/tours/contracts-tour";
 
@@ -15,7 +16,7 @@ type AssetStatus = "IN_STOCK" | "IN_USE" | "INACTIVE" | "UNUSABLE" | "PENDING_DI
 
 interface Asset {
   id: number; name: string; status: AssetStatus; cost?: number | null; currency: string;
-  vendor?: string | null; expiryDate?: string | null;
+  vendor?: string | null; purchaseDate?: string | null; expiryDate?: string | null;
   ciaC?: number | null; ciaI?: number | null; ciaA?: number | null;
   assignee?: { id: number; name: string } | null;
   orgUnit?: { id: number; name: string } | null;
@@ -177,6 +178,7 @@ export default function ContractListPage() {
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("status")}>{t.common.status}<SortIcon field="status" /></th>
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("cost")}>{t.asset.cost}<SortIcon field="cost" /></th>
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("expiryDate")}>{t.asset.expiryDate}<SortIcon field="expiryDate" /></th>
+                <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.lifecycle.heading}</th>
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("assignee")}>{t.asset.assignee}<SortIcon field="assignee" /></th>
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("orgUnit")}>{t.license.managingOrg}<SortIcon field="orgUnit" /></th>
                 <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.cia.title}</th>
@@ -185,9 +187,9 @@ export default function ContractListPage() {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={10} className="px-6 py-8 text-center text-gray-400">{t.common.loading}</td></tr>
+                <tr><td colSpan={11} className="px-6 py-8 text-center text-gray-400">{t.common.loading}</td></tr>
               ) : sortedAssets.length === 0 ? (
-                <tr><td colSpan={10} className="px-6 py-8 text-center text-gray-500">{t.common.noData}</td></tr>
+                <tr><td colSpan={11} className="px-6 py-8 text-center text-gray-500">{t.common.noData}</td></tr>
               ) : (
                 sortedAssets.map((a) => (
                   <tr key={a.id} className="border-b hover:bg-gray-50">
@@ -197,6 +199,7 @@ export default function ContractListPage() {
                     <td className="px-6 py-4"><span className={`inline-block whitespace-nowrap rounded-full px-2 py-1 text-xs font-medium ${STATUS_COLORS[a.status]}`}>{getStatusLabel(a.status)}</span></td>
                     <td className="px-6 py-4 text-sm">{formatCost(a.cost, a.currency)}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{formatDate(a.expiryDate)}</td>
+                    <td className="px-6 py-4"><LifecycleGaugeInline startDate={a.purchaseDate} endDate={a.expiryDate} /></td>
                     <td className="px-6 py-4 text-sm">{a.assignee ? <Link href={`/employees/${a.assignee.id}`} className="text-blue-600 hover:underline">{a.assignee.name}</Link> : <span className="text-gray-400">{t.license.unassigned}</span>}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{a.orgUnit?.name || "—"}</td>
                     <td className="px-6 py-4 text-sm"><CiaBadge ciaC={a.ciaC} ciaI={a.ciaI} ciaA={a.ciaA} /></td>

@@ -75,7 +75,7 @@ export default function LicenseAssignments({
 
     setIsPending(false);
     if (total > 0) {
-      toast(`${total}건 할당 해제 완료`, "success");
+      toast(`${total}${t.classification.unassignedCount}`, "success");
       setSelected(new Set());
     }
     if (errors.length > 0) {

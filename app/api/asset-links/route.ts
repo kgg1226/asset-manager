@@ -21,6 +21,8 @@ export async function GET() {
       include: {
         sourceAsset: { select: { id: true, name: true, type: true, status: true } },
         targetAsset: { select: { id: true, name: true, type: true, status: true } },
+        sourceExternal: { select: { id: true, name: true, type: true } },
+        targetExternal: { select: { id: true, name: true, type: true } },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -46,26 +48,42 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     // ── 필수 필드 검증 ──
-    const { sourceAssetId, targetAssetId, linkType } = body;
+    const { sourceAssetId, targetAssetId, sourceExternalId, targetExternalId, linkType } = body;
 
-    if (!sourceAssetId || typeof sourceAssetId !== "number") {
+    // Source: either sourceAssetId or sourceExternalId must be provided
+    const hasSourceAsset = sourceAssetId != null && typeof sourceAssetId === "number";
+    const hasSourceExternal = sourceExternalId != null && typeof sourceExternalId === "number";
+    if (!hasSourceAsset && !hasSourceExternal) {
       return NextResponse.json(
-        { error: "sourceAssetId는 필수이며 숫자여야 합니다." },
+        { error: "sourceAssetId 또는 sourceExternalId 중 하나는 필수입니다." },
         { status: 400 },
       );
     }
-    if (!targetAssetId || typeof targetAssetId !== "number") {
+
+    // Target: either targetAssetId or targetExternalId must be provided
+    const hasTargetAsset = targetAssetId != null && typeof targetAssetId === "number";
+    const hasTargetExternal = targetExternalId != null && typeof targetExternalId === "number";
+    if (!hasTargetAsset && !hasTargetExternal) {
       return NextResponse.json(
-        { error: "targetAssetId는 필수이며 숫자여야 합니다." },
+        { error: "targetAssetId 또는 targetExternalId 중 하나는 필수입니다." },
         { status: 400 },
       );
     }
-    if (sourceAssetId === targetAssetId) {
+
+    // Self-link check: same entity type AND same ID
+    if (hasSourceAsset && hasTargetAsset && sourceAssetId === targetAssetId) {
       return NextResponse.json(
         { error: "자기 자신과의 연결은 허용되지 않습니다." },
         { status: 400 },
       );
     }
+    if (hasSourceExternal && hasTargetExternal && sourceExternalId === targetExternalId) {
+      return NextResponse.json(
+        { error: "자기 자신과의 연결은 허용되지 않습니다." },
+        { status: 400 },
+      );
+    }
+
     if (!linkType || !LINK_TYPES.includes(linkType)) {
       return NextResponse.json(
         { error: `linkType은 필수입니다. 허용값: ${LINK_TYPES.join(", ")}` },
@@ -83,28 +101,49 @@ export async function POST(request: NextRequest) {
     }
 
     const link = await prisma.$transaction(async (tx) => {
-      // 소스/타겟 자산 존재 검증
-      const sourceAsset = await tx.asset.findUnique({
-        where: { id: sourceAssetId },
-        select: { id: true, name: true },
-      });
-      if (!sourceAsset) {
-        throw new Error("SOURCE_NOT_FOUND");
+      // 소스 자산/외부조직 존재 검증
+      let sourceName = "";
+      if (hasSourceAsset) {
+        const sourceAsset = await tx.asset.findUnique({
+          where: { id: sourceAssetId },
+          select: { id: true, name: true },
+        });
+        if (!sourceAsset) throw new Error("SOURCE_NOT_FOUND");
+        sourceName = sourceAsset.name;
+      } else {
+        const sourceExternal = await tx.externalEntity.findUnique({
+          where: { id: sourceExternalId },
+          select: { id: true, name: true },
+        });
+        if (!sourceExternal) throw new Error("SOURCE_NOT_FOUND");
+        sourceName = sourceExternal.name;
       }
 
-      const targetAsset = await tx.asset.findUnique({
-        where: { id: targetAssetId },
-        select: { id: true, name: true },
-      });
-      if (!targetAsset) {
-        throw new Error("TARGET_NOT_FOUND");
+      // 타겟 자산/외부조직 존재 검증
+      let targetName = "";
+      if (hasTargetAsset) {
+        const targetAsset = await tx.asset.findUnique({
+          where: { id: targetAssetId },
+          select: { id: true, name: true },
+        });
+        if (!targetAsset) throw new Error("TARGET_NOT_FOUND");
+        targetName = targetAsset.name;
+      } else {
+        const targetExternal = await tx.externalEntity.findUnique({
+          where: { id: targetExternalId },
+          select: { id: true, name: true },
+        });
+        if (!targetExternal) throw new Error("TARGET_NOT_FOUND");
+        targetName = targetExternal.name;
       }
 
       // AssetLink 생성
       const created = await tx.assetLink.create({
         data: {
-          sourceAssetId,
-          targetAssetId,
+          sourceAssetId: hasSourceAsset ? sourceAssetId : null,
+          targetAssetId: hasTargetAsset ? targetAssetId : null,
+          sourceExternalId: hasSourceExternal ? sourceExternalId : null,
+          targetExternalId: hasTargetExternal ? targetExternalId : null,
           linkType,
           direction,
           label: body.label ?? null,
@@ -120,6 +159,8 @@ export async function POST(request: NextRequest) {
         include: {
           sourceAsset: { select: { id: true, name: true, type: true, status: true } },
           targetAsset: { select: { id: true, name: true, type: true, status: true } },
+          sourceExternal: { select: { id: true, name: true, type: true } },
+          targetExternal: { select: { id: true, name: true, type: true } },
         },
       });
 
@@ -131,12 +172,14 @@ export async function POST(request: NextRequest) {
         actorType: "USER",
         actorId: user.id,
         details: {
-          sourceAssetId,
-          targetAssetId,
+          sourceAssetId: hasSourceAsset ? sourceAssetId : null,
+          targetAssetId: hasTargetAsset ? targetAssetId : null,
+          sourceExternalId: hasSourceExternal ? sourceExternalId : null,
+          targetExternalId: hasTargetExternal ? targetExternalId : null,
           linkType,
           direction,
-          sourceName: sourceAsset.name,
-          targetName: targetAsset.name,
+          sourceName,
+          targetName,
         },
       });
 
@@ -148,13 +191,13 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error) {
       if (error.message === "SOURCE_NOT_FOUND") {
         return NextResponse.json(
-          { error: "소스 자산을 찾을 수 없습니다." },
+          { error: "소스 자산/외부조직을 찾을 수 없습니다." },
           { status: 404 },
         );
       }
       if (error.message === "TARGET_NOT_FOUND") {
         return NextResponse.json(
-          { error: "타겟 자산을 찾을 수 없습니다." },
+          { error: "타겟 자산/외부조직을 찾을 수 없습니다." },
           { status: 404 },
         );
       }

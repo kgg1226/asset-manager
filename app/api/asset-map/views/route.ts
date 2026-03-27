@@ -24,18 +24,21 @@ export async function GET() {
           { isShared: true },
         ],
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ lastAccessedAt: "desc" }, { createdAt: "desc" }],
     });
 
-    // nodePositions는 DB에서 string으로 저장되므로 JSON 파싱
+    const parseJson = (v: string | null | undefined) => {
+      if (!v || typeof v !== "string") return v ?? null;
+      try { return JSON.parse(v); } catch { return null; }
+    };
+
     const parsed = views.map((v) => ({
       ...v,
-      nodePositions: typeof v.nodePositions === "string"
-        ? JSON.parse(v.nodePositions)
-        : v.nodePositions,
-      filterConfig: typeof v.filterConfig === "string"
-        ? JSON.parse(v.filterConfig)
-        : v.filterConfig,
+      nodePositions: parseJson(v.nodePositions),
+      sectionData: parseJson(v.sectionData),
+      viewport: parseJson(v.viewport),
+      edgeVisibility: parseJson(v.edgeVisibility),
+      filterConfig: parseJson(v.filterConfig),
     }));
 
     return NextResponse.json({ views: parsed });
@@ -78,17 +81,23 @@ export async function POST(request: NextRequest) {
     }
 
     const view = await prisma.$transaction(async (tx) => {
+      const toJsonStr = (v: unknown) => {
+        if (!v) return null;
+        return typeof v === "string" ? v : JSON.stringify(v);
+      };
+
       const created = await tx.assetMapView.create({
         data: {
           name: name.trim(),
           description: body.description ?? null,
           viewType,
-          nodePositions: body.nodePositions
-            ? (typeof body.nodePositions === "string" ? body.nodePositions : JSON.stringify(body.nodePositions))
-            : null,
-          filterConfig: body.filterConfig
-            ? (typeof body.filterConfig === "string" ? body.filterConfig : JSON.stringify(body.filterConfig))
-            : null,
+          nodePositions: toJsonStr(body.nodePositions),
+          sectionData: toJsonStr(body.sectionData),
+          viewport: toJsonStr(body.viewport),
+          edgeVisibility: toJsonStr(body.edgeVisibility),
+          filterConfig: toJsonStr(body.filterConfig),
+          isDefault: body.isDefault ?? false,
+          folderId: body.folderId ? Number(body.folderId) : null,
           createdBy: user.id,
           isShared: body.isShared ?? false,
         },

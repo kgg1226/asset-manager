@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
 import CiaScoreDisplay from "@/app/_components/cia-score-display";
+import LifecycleGauge from "@/app/_components/lifecycle-gauge";
 
 type AssetStatus = "IN_STOCK" | "IN_USE" | "INACTIVE" | "UNUSABLE" | "PENDING_DISPOSAL" | "DISPOSED";
 
@@ -240,6 +241,14 @@ export default function HardwareDetailPage() {
           <div className="rounded-lg bg-white p-6 shadow-sm"><p className="text-sm text-gray-600">{t.hw.deviceType}</p><p className="mt-2 text-2xl font-bold text-gray-900">{deviceType || "—"}</p></div>
           <div className="rounded-lg bg-white p-6 shadow-sm"><p className="text-sm text-gray-600">{t.hw.manufacturer} / {t.hw.model}</p><p className="mt-2 text-lg font-bold text-gray-900">{[hd?.manufacturer, hd?.model].filter(Boolean).join(" ") || "—"}</p></div>
         </div>
+
+        {/* Lifecycle Gauge */}
+        {asset.purchaseDate && asset.expiryDate && (
+          <div className="mb-8 rounded-lg bg-white p-6 shadow-sm">
+            <h2 className="mb-4 text-lg font-bold text-gray-900">{t.hw.usefulLife}</h2>
+            <LifecycleGauge startDate={asset.purchaseDate} endDate={asset.expiryDate} size="lg" showLabel showDates showThresholds />
+          </div>
+        )}
 
         {/* 상태 관리 (Admin only) */}
         {isAdmin && (canMarkUnusable || canMarkDisposed) && (

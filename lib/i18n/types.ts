@@ -85,6 +85,7 @@ export type TranslationDict = {
     externalEntities: string;
     admin: string;
     licenseGroups: string;
+    featureFlags: string;
     userManagement: string;
     archives: string;
     exchangeRate: string;
@@ -520,6 +521,9 @@ export type TranslationDict = {
     created: string;
     updated: string;
     deleted: string;
+    dateRange: string;
+    startDate: string;
+    endDate: string;
   };
 
   // CIA
@@ -1057,6 +1061,177 @@ export type TranslationDict = {
     piiDestruction: string;
     exportPdf: string;
     exporting: string;
+    // Workspace
+    workspace: string;
+    workspaceList: string;
+    newWorkspace: string;
+    defaultWorkspace: string;
+    sharedWorkspaces: string;
+    myWorkspaces: string;
+    duplicateWorkspace: string;
+    deleteWorkspace: string;
+    deleteWorkspaceConfirm: string;
+    cannotDeleteDefault: string;
+    renameWorkspace: string;
+    autoSaved: string;
+    saving: string;
+    unsavedChanges: string;
+    savedManually: string;
+    workspaceName: string;
+    setAsDefault: string;
+    shareWorkspace: string;
+    section: string;
+    // New i18n keys for hardcoded strings
+    assetOptgroup: string;
+    externalEntityOptgroup: string;
+    reverseDirection: string;
+    conditionalDirection: string;
+    labelPlaceholder: string;
+    piiItemsPlaceholder: string;
+    addSection: string;
+    sectionName: string;
+    descriptionOptional: string;
+    sectionDescPlaceholder: string;
+    color: string;
+    widthPx: string;
+    heightPx: string;
+    linkDetail: string;
+    typeLabel: string;
+    directionLabel: string;
+    labelField: string;
+    protocolField: string;
+    dataTypesField: string;
+    piiItemsField: string;
+    legalBasisField: string;
+    retentionPeriodField: string;
+    destructionMethodField: string;
+    deleteConfirmPrompt: string;
+    deleteConfirmPlaceholder: string;
+    deleteConfirmButton: string;
+    assetPalette: string;
+    openAssetPalette: string;
+    canvasCount: string;
+    unplacedCount: string;
+    addAll: string;
+    removeAll: string;
+    noRegisteredAssets: string;
+    noExternalEntities: string;
+    canvasHelpText: string;
+    editSection: string;
+    // Onboarding
+    onboardingTitle: string;
+    onboardingDesc: string;
+    startWithExample: string;
+    skip: string;
+    examplePageName: string;
+    examplePageDesc: string;
+    // Gallery
+    defaultBadge: string;
+    pagesCount: string;
+    emptyFolder: string;
+    newFolder: string;
+    folderNamePlaceholder: string;
+    moveToFolder: string;
+    rootNoFolder: string;
+    renameFolder: string;
+    deleteFolder: string;
+    deleteFolderConfirm: string;
+    // Relative time
+    justNow: string;
+    minutesAgo: string;
+    hoursAgo: string;
+    daysAgo: string;
+    monthsAgo: string;
+    // Alert messages
+    linkCreateFail: string;
+    linkCreateError: string;
+    pdfCreateFail: string;
+    pdfExportError: string;
+  };
+
+  // Profile
+  profile: {
+    accountCreatedAt: string;
+    passwordMinHint: string;
+    clickToChangePassword: string;
+    userOnlyNotice: string;
+    usernameMinLength: string;
+    usernameChanged: string;
+    changeFail: string;
+    enterCurrentPassword: string;
+    newPasswordMinLength: string;
+    newPasswordMismatch: string;
+    passwordChanged: string;
+    profileLoadFail: string;
+  };
+
+  // Asset Classifications
+  classification: {
+    title: string;
+    majorCategory: string;
+    subCategory: string;
+    addMajor: string;
+    editMajor: string;
+    createMajor: string;
+    addSub: string;
+    editSub: string;
+    majorName: string;
+    subName: string;
+    code: string;
+    abbr: string;
+    saveFail: string;
+    errorOccurred: string;
+    deleteFail: string;
+    confirmDeleteMajor: string;
+    confirmDeleteMajorWithAssets: string;
+    confirmDeleteSub: string;
+    saving: string;
+    noCategories: string;
+    noSubCategories: string;
+    subCount: string;
+    assetCount: string;
+    ismsTarget: string;
+    consultingTarget: string;
+    infoText: string;
+    linkedAssets: string;
+    management: string;
+    refreshRate: string;
+    refreshRateTooltip: string;
+    noDept: string;
+    positionRoleName: string;
+    confirmDeleteNode: string;
+    containerHintDetail: string;
+    subLicenses: string;
+    totalSeatsChildren: string;
+    totalAssigned: string;
+    countItems: string;
+    org: string;
+    company: string;
+    monthlyCostKRW: string;
+    unassignedCount: string;
+    historyLoadFail: string;
+    addOwnerFail: string;
+    statusChangeFail: string;
+    renewalDateFail: string;
+  };
+
+  // Lifecycle gauge
+  lifecycle: {
+    noDate: string;
+    expired: string;
+    expiredShort: string;
+    percentElapsed: string;
+    daysOfTotal: string;
+    heading: string;
+  };
+
+  // Notification bell
+  notificationBell: {
+    title: string;
+    expiryAlert: string;
+    itemCount: string;
+    noExpiring: string;
+    expiringToday: string;
   };
 
   // External Entity
