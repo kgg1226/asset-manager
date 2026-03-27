@@ -5,8 +5,17 @@
  * - 메모리 누수 방지: 만료된 항목 자동 정리
  */
 
-const MAX_ATTEMPTS = 5;
-const LOCK_DURATION_MS = 15 * 60 * 1000; // 15분
+import { getAppSetting } from "@/lib/system-config";
+
+let MAX_ATTEMPTS = 5;
+let LOCK_DURATION_MS = 15 * 60 * 1000; // 15분
+
+/** DB에서 rate-limit 설정을 다시 로드한다 */
+export async function reloadRateLimitSettings() {
+  MAX_ATTEMPTS = (await getAppSetting<number>("LOGIN_MAX_ATTEMPTS")) || 5;
+  const minutes = (await getAppSetting<number>("LOGIN_LOCK_MINUTES")) || 15;
+  LOCK_DURATION_MS = minutes * 60 * 1000;
+}
 const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5분마다 정리
 
 interface AttemptRecord {

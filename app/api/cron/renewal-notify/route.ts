@@ -36,8 +36,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendSlackMessage, sendEmail } from "@/lib/notification";
 import { isCronAuthorized } from "@/lib/cron-auth";
-
-const NOTICE_DAYS = [70, 30, 15, 7] as const;
+import { getAppSetting } from "@/lib/system-config";
 
 type NotifyLogEntry = {
   entityType: "LICENSE" | "ASSET";
@@ -82,6 +81,8 @@ export async function POST(request: NextRequest) {
   if (!isCronAuthorized(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const NOTICE_DAYS = (await getAppSetting<number[]>("RENEWAL_ALERT_DAYS")) || [70, 30, 15, 7];
 
   const now = new Date();
   let notified = 0;
@@ -445,7 +446,7 @@ export async function POST(request: NextRequest) {
 
   // ── 5. 자산 수명 임계치 알림 (50%, 80%, 95%) ─────────────────────────
   // purchaseDate ~ expiryDate 기준으로 경과율 계산
-  const LIFECYCLE_THRESHOLDS = [50, 80, 95] as const;
+  const LIFECYCLE_THRESHOLDS = (await getAppSetting<number[]>("LIFECYCLE_THRESHOLDS")) || [50, 80, 95];
 
   try {
     const lifecycleAssets = await prisma.asset.findMany({

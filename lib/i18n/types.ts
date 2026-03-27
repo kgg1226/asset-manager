@@ -85,6 +85,7 @@ export type TranslationDict = {
     externalEntities: string;
     admin: string;
     licenseGroups: string;
+    featureFlags: string;
     userManagement: string;
     archives: string;
     exchangeRate: string;

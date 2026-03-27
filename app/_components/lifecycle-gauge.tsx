@@ -1,6 +1,37 @@
 "use client";
 
+import { useState, useEffect, createContext, useContext } from "react";
 import { useTranslation } from "@/lib/i18n";
+
+// ── Lifecycle 공개 여부 Context ──
+
+const LifecycleVisibilityContext = createContext<boolean | null>(null);
+
+/** 앱 최상위에서 감싸면 모든 게이지가 자동으로 visibility 체크 */
+export function LifecycleVisibilityProvider({ children }: { children: React.ReactNode }) {
+  const [visible, setVisible] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    fetch("/api/feature-flags")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => setVisible(data?.lifecycleVisible ?? true))
+      .catch(() => setVisible(true)); // 에러 시 기본 표시
+  }, []);
+
+  return (
+    <LifecycleVisibilityContext.Provider value={visible}>
+      {children}
+    </LifecycleVisibilityContext.Provider>
+  );
+}
+
+/** 게이지가 보여야 하는지 여부. null = 로딩 중 (표시 안 함) */
+function useLifecycleVisible(): boolean {
+  const ctx = useContext(LifecycleVisibilityContext);
+  // Context가 없으면 (Provider 미사용 시) 기본 표시
+  if (ctx === null) return true;
+  return ctx;
+}
 
 type LifecycleGaugeLabels = {
   noDate?: string;
@@ -94,11 +125,14 @@ export default function LifecycleGauge({
   showThresholds = false,
   labels: labelsProp,
 }: LifecycleGaugeProps) {
+  const visible = useLifecycleVisible();
   const defaultLabels = useDefaultLabels();
   const labels = { ...defaultLabels, ...labelsProp };
   const { percent, daysLeft, totalDays } = calcLifecyclePercent(startDate, endDate);
   const start = parseDate(startDate);
   const end = parseDate(endDate);
+
+  if (!visible) return null;
 
   if (!start || !end) {
     return (
@@ -173,12 +207,14 @@ export function LifecycleGaugeInline({
   endDate?: string | Date | null;
   labels?: LifecycleGaugeLabels;
 }) {
+  const visible = useLifecycleVisible();
   const defaultLabels = useDefaultLabels();
   const labels = { ...defaultLabels, ...labelsProp };
   const { percent, daysLeft } = calcLifecyclePercent(startDate, endDate);
   const start = parseDate(startDate);
   const end = parseDate(endDate);
 
+  if (!visible) return null;
   if (!start || !end) return <span className="text-xs text-gray-300">—</span>;
 
   const color = getGaugeColor(percent);

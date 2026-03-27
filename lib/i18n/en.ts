@@ -83,6 +83,7 @@ export const en: TranslationDict = {
     externalEntities: "External Entities",
     admin: "Admin",
     licenseGroups: "License Groups",
+    featureFlags: "Feature Settings",
     userManagement: "User Management",
     archives: "Archives",
     exchangeRate: "Exchange Rates",

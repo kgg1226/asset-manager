@@ -455,6 +455,21 @@ export default function GuidePage() {
           ],
           link: { href: "/admin/exchange-rates", label: t.guide.exchangeRateLink },
         },
+        {
+          id: "a6",
+          title: t.nav?.featureFlags ?? "기능 설정",
+          description: "시스템 전체 동작을 좌우하는 설정을 한 곳에서 관리합니다.",
+          details: [
+            "기능 공개: 수명 게이지 표시 여부 (일반 사용자 대상 ON/OFF)",
+            "보안: 세션 유효기간, 로그인 잠금 횟수/지속시간, 비밀번호 최소 길이",
+            "알림: 만료 알림 D-day (D-70/30/15/7), 수명 임계치 알림 (50%/80%/95%)",
+            "자산: 폐기 자동 전환 기준일 (기본 365일)",
+            "재무: 부가세율 (기본 10%)",
+            "표시: 목록 페이지당 항목 수 (기본 50개)",
+            "변경 사항은 저장 즉시 적용됩니다",
+          ],
+          link: { href: "/admin/feature-flags", label: t.nav?.featureFlags ?? "기능 설정" },
+        },
       ],
     },
   ], [t]);

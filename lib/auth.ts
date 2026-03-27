@@ -1,11 +1,18 @@
 import { prisma } from "@/lib/prisma";
+import { getAppSetting } from "@/lib/system-config";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import crypto from "crypto";
 
 export const SESSION_COOKIE = "session_token";
-export const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+export const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days (fallback for non-async contexts)
+
+/** DB 설정에서 세션 유효기간을 가져온다 (async context용) */
+export async function getSessionDurationMs(): Promise<number> {
+  const days = await getAppSetting<number>("SESSION_DURATION_DAYS");
+  return (days || 7) * 24 * 60 * 60 * 1000;
+}
 
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10);
@@ -20,7 +27,8 @@ export async function verifyPassword(
 
 export async function createSession(userId: number): Promise<string> {
   const id = crypto.randomUUID();
-  const expiresAt = new Date(Date.now() + SESSION_DURATION_MS);
+  const durationMs = await getSessionDurationMs();
+  const expiresAt = new Date(Date.now() + durationMs);
 
   await prisma.session.create({
     data: { id, userId, expiresAt },
