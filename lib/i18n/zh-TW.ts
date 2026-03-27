@@ -83,6 +83,7 @@ export const zhTW: TranslationDict = {
     externalEntities: "外部組織",
     admin: "管理員設定",
     licenseGroups: "授權群組",
+    featureFlags: "功能設定",
     userManagement: "使用者管理",
     archives: "憑證",
     exchangeRate: "匯率",

@@ -34,6 +34,7 @@ import {
   ShieldCheck,
   FileStack,
   UserCog,
+  ToggleLeft,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 
@@ -92,6 +93,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/admin/asset-classifications", labelKey: "assetClassification", icon: <Layers className="h-4 w-4" />, authRequired: true },
       { href: "/admin/title-cia", labelKey: "titleCiaMapping", icon: <ShieldCheck className="h-4 w-4" />, authRequired: true },
       { href: "/settings/groups", labelKey: "licenseGroups", icon: <FileStack className="h-4 w-4" />, authRequired: true },
+      { href: "/admin/feature-flags", labelKey: "featureFlags", icon: <ToggleLeft className="h-4 w-4" />, authRequired: true },
     ],
   },
   {

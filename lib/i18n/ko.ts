@@ -83,6 +83,7 @@ export const ko: TranslationDict = {
     externalEntities: "외부 조직",
     admin: "관리자 설정",
     licenseGroups: "라이선스 그룹",
+    featureFlags: "기능 설정",
     userManagement: "사용자 관리",
     archives: "증적",
     exchangeRate: "환율",

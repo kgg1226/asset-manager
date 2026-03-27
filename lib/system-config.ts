@@ -312,3 +312,59 @@ export async function getGDriveConfigStatus(): Promise<
     return { key, source: "none" as const, maskedValue: null, updatedAt: null };
   });
 }
+
+
+// ── 기능 플래그 (비암호화 key-value) ──
+
+/** 기능 플래그 키 목록 */
+export const FEATURE_FLAG_KEYS = [
+  "LIFECYCLE_VISIBLE_TO_USER", // 일반 사용자에게 수명 게이지 표시 여부
+] as const;
+
+export type FeatureFlagKey = (typeof FEATURE_FLAG_KEYS)[number];
+
+const FEATURE_FLAG_DEFAULTS: Record<FeatureFlagKey, boolean> = {
+  LIFECYCLE_VISIBLE_TO_USER: false, // 기본: 관리자만 보임
+};
+
+/** 기능 플래그 조회 (DB 우선, 기본값 폴백) */
+export async function getFeatureFlag(key: FeatureFlagKey): Promise<boolean> {
+  try {
+    const row = await prisma.systemConfig.findUnique({ where: { key } });
+    if (row) return row.value === "true";
+  } catch {
+    // DB 실패 시 기본값
+  }
+  return FEATURE_FLAG_DEFAULTS[key];
+}
+
+/** 기능 플래그 설정 */
+export async function setFeatureFlag(
+  key: FeatureFlagKey,
+  enabled: boolean,
+  userId?: number
+): Promise<void> {
+  const value = enabled ? "true" : "false";
+  await prisma.systemConfig.upsert({
+    where: { key },
+    create: { key, value, iv: "", tag: "", updatedBy: userId ?? null },
+    update: { value, updatedBy: userId ?? null },
+  });
+}
+
+/** 모든 기능 플래그 조회 */
+export async function getAllFeatureFlags(): Promise<Record<FeatureFlagKey, boolean>> {
+  const result = { ...FEATURE_FLAG_DEFAULTS };
+  try {
+    const rows = await prisma.systemConfig.findMany({
+      where: { key: { in: [...FEATURE_FLAG_KEYS] } },
+    });
+    for (const row of rows) {
+      const k = row.key as FeatureFlagKey;
+      if (k in result) result[k] = row.value === "true";
+    }
+  } catch {
+    // 기본값 유지
+  }
+  return result;
+}

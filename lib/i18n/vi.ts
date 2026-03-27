@@ -83,6 +83,7 @@ export const vi: TranslationDict = {
     externalEntities: "Tổ chức bên ngoài",
     admin: "Quản trị",
     licenseGroups: "Nhóm giấy phép",
+    featureFlags: "Cài đặt tính năng",
     userManagement: "Quản lý người dùng",
     archives: "Lưu trữ",
     exchangeRate: "Tỷ giá",

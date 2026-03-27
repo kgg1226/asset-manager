@@ -83,6 +83,7 @@ export const ja: TranslationDict = {
     externalEntities: "外部組織",
     admin: "管理者設定",
     licenseGroups: "ライセンスグループ",
+    featureFlags: "機能設定",
     userManagement: "ユーザー管理",
     archives: "証跡",
     exchangeRate: "為替レート",

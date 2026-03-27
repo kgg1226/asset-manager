@@ -83,6 +83,7 @@ export const zh: TranslationDict = {
     externalEntities: "外部组织",
     admin: "管理员设置",
     licenseGroups: "许可证分组",
+    featureFlags: "功能设置",
     userManagement: "用户管理",
     archives: "凭证",
     exchangeRate: "汇率",
