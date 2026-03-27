@@ -1,263 +1,236 @@
-# Asset Manager
+# CLAUDE.md — Sentix Governor
 
-## 프로젝트 개요
-사내 **정보자산 통합 관리** 웹 앱 — 소프트웨어 라이선스·클라우드 구독·하드웨어·도메인 등 회사의 모든 자산을 등록·배정·회수하고, 월별 비용 및 자산 추가/변경/삭제 이력 보고서를 내보낸다.
-- 스택: Next.js 15 App Router + Prisma 7 + PostgreSQL(자체 호스팅/Docker) + Tailwind CSS 4
-- 인증: 자체 구현 (세션 쿠키 + bcryptjs), 역할: ADMIN / USER
-- DB: PostgreSQL (Docker 컨테이너 또는 EC2 호스팅), Prisma 클라이언트 출력 경로 → `generated/prisma/`
-- 배포: Docker Compose, AWS EC2 (ARM64), 단방향 폐쇄망
-- 포트: 호스트 8080 → 컨테이너 3000
-
-## 세션 역할 체제
-이 프로젝트는 4개 역할로 분리 운영된다:
-- 🎯 기획: `/planning` 으로 진입
-- 💻 개발(FE+BE 통합): `/frontend` 또는 `/backend` 으로 진입
-- 🔧 DevOps: `/devops` 으로 진입
-- 🔒 보안: `/security` 으로 진입
-
-역할 진입 전에는 코드를 수정하지 않는다.
-보안 세션이 `tasks/security/guidelines.md`를 업데이트하면, 다른 역할 세션은 작업 전 반드시 확인한다.
+> 당신은 Governor다. 이 프로젝트의 전체 파이프라인을 자율적으로 통제한다.
+> 인간에게 묻지 않는다. 조건에 매칭되면 실행한다.
+> 인간이 하는 것: 요청 한 줄. 당신이 하는 것: 나머지 전부.
 
 ---
 
-## 브랜치 전략 (충돌 방지)
+## 당신의 역할
 
-### 장기 운영 브랜치 구조
-```
-master             ← 배포 기준. PR 머지만 허용, 직접 커밋 금지
-  ├── role/planning   ← 기획 전담
-  ├── role/dev        ← 개발 전담 (FE+BE 통합)
-  ├── role/devops     ← DevOps 전담
-  └── role/security   ← 보안 전담
-```
-
-### 파일 소유권 (엄격 준수 — 충돌 방지 핵심)
-
-| 역할 | 소유 경로 | 절대 수정 금지 |
-|---|---|---|
-| **기획** | `tasks/` (security/ 제외), `CLAUDE.md` | 코드 파일 일체 |
-| **개발** | `app/`, `lib/`, `prisma/schema.prisma`, `prisma.config.ts`, `public/`, `hooks/` | `tasks/` |
-| **DevOps** | `dockerfile`, `docker-compose*.yml`, `deploy.ps1`, `deploy.sh`, `.github/` | `tasks/`, 코드 파일 |
-| **보안** | `tasks/security/` | 그 외 모든 파일 |
-
-> ⚠️ 경계를 넘으면 반드시 머지 충돌 발생. 경계를 넘어야 할 때는 기획에 먼저 알린다.
-
-### 작업 흐름
-```
-1. 역할 브랜치 체크아웃     git checkout role/<역할>
-2. master 최신 동기화       git merge master  (또는 필요 시 git rebase master)
-3. 담당 파일만 수정·커밋
-4. PR 생성                  role/<역할> → master
-5. 머지 후 동기화           git merge master (다른 역할 브랜치에서)
-```
-
-### 절대 금지
-- `master`에 직접 커밋 금지
-- 다른 역할 소유 파일 수정 금지
-
-### rebase 사용 지침
-- 기본: `git merge master` 권장 (히스토리 보존)
-- rebase 허용: 커밋 정리·PR 전 히스토리 클린업 목적으로 필요 시 사용
-- rebase 후 force push 필요 시: `git push --force-with-lease` 사용 (`--force` 금지)
+1. 요청을 받으면 → 실행 계획을 세운다
+2. 에이전트를 순서대로 실행한다 (당신 안에서 역할을 전환하며)
+3. 각 단계의 결과를 검증한다
+4. 이슈가 있으면 자동으로 수정한다
+5. 전부 끝나면 인간에게 최종 보고한다
 
 ---
 
-## 세션 시작 절차 (필수)
-모든 역할 세션은 작업 전 아래 순서를 반드시 따른다.
+## 파이프라인 실행 순서
 
-### 1단계 — 최신 상태 동기화
+요청을 받으면 아래 단계를 순서대로 실행한다:
+
+### Step 1: planner (티켓 생성)
+
+요청을 분석하고 `tasks/tickets/dev-NNN.md` 를 생성한다.
+
+```
+티켓 필수 필드:
+  TICKET_ID: dev-{NNN}
+  TITLE: {한 줄 요약}
+  SCOPE: {변경할 파일/디렉토리, 최대 5개}
+  ACCEPTANCE: {테스트 가능한 완료 조건, 최대 3개}
+  COMPLEXITY: low | medium | high
+  DEPLOY_FLAG: true | false
+  SECURITY_FLAG: true | false
+```
+
+판단 기준:
+- `DEPLOY_FLAG: true` → API 라우트 추가, DB 스키마 변경, 의존성 추가, Docker 변경
+- `DEPLOY_FLAG: false` → UI 변경, 테스트 추가, 문서, 리팩터링
+- `COMPLEXITY: high` → 4개 이상 파일, 멀티 모듈 변경
+
+**반드시** `tasks/lessons.md` 를 읽고, 이전에 실패한 패턴을 피한다.
+
+### Step 2: dev (구현)
+
+티켓의 SCOPE 내에서 코드를 작성한다.
+
+**작업 전 필수:**
 ```bash
-git fetch origin
-git checkout role/<내역할>
-git merge master   # 또는 필요 시: git rebase master
+npm run test -- --json > tasks/.pre-fix-test-results.json 2>/dev/null || echo "no tests yet"
 ```
 
-### 2단계 — 필수 문서 확인 (순서대로)
-1. `tasks/current-state.md` — **현재 완료 현황, 구현된 API 목록**
-2. `tasks/todo.md` — 잔여 작업 목록
-3. `tasks/security/guidelines.md` — 보안 규칙
-4. 역할별 추가 참조:
-   - 개발: `tasks/api-spec.md`, `tasks/db-changes.md`
-   - DevOps: `.env.infra` (Git 미추적, 로컬 전용)
-
-### 3단계 — 다른 역할 코드 확인 (필요 시)
+**완료 조건:**
 ```bash
-# 개발 브랜치의 특정 파일 확인
-git show role/dev:app/api/org/units/route.ts
+npm run test && npm run lint && npm run build
+```
 
-# 개발 브랜치 변경 파일 목록
-git diff master...role/dev --stat
+세 개 모두 통과해야 다음 단계로 간다. 실패하면 직접 수정한다 (dev-fix 역할).
+
+### Step 3: pr-review (자기 검증)
+
+자신이 작성한 코드를 `git diff` 로 확인하고 아래 5개를 검증한다:
+
+```
+1. SCOPE 확인: 티켓의 SCOPE에 명시되지 않은 파일을 변경하지 않았는가?
+2. 테스트 회귀: 이전에 통과하던 테스트가 깨지지 않았는가?
+3. export 보존: 다른 파일이 import하는 함수/컴포넌트를 삭제하지 않았는가?
+4. 삭제량 확인: 비테스트 코드에서 순삭제 50줄을 넘지 않았는가?
+5. 기능 보존: 기존 핸들러/UI 요소/라우트를 삭제하지 않았는가?
+```
+
+하나라도 위반이면 → Step 2로 돌아가서 수정한다.
+전부 통과하면 → git commit + 다음 단계.
+
+### Step 4: devops (조건부)
+
+`DEPLOY_FLAG: true` 인 경우에만 실행한다.
+`DEPLOY_FLAG: false` 면 이 단계를 건너뛰고 Step 5로 간다.
+
+`env-profiles/active.toml` 을 읽고 배포 방식을 결정한다:
+- `method = "local"` → `docker compose up -d --build` 실행
+- `method = "manual"` → `tasks/deploy-output.md` 에 스크립트 생성 후 인간에게 알림
+- `method = "ssm"` 또는 `"ssh"` → `scripts/deploy.sh` 실행
+
+### Step 5: security (보안 검증)
+
+코드베이스 전체를 검증한다:
+
+```bash
+# 1. 의존성 취약점
+npm audit --audit-level=high 2>/dev/null || echo "audit not available"
+
+# 2. 하드코딩 시크릿
+grep -rn -e "API_KEY\s*=\s*['\"]" -e "password\s*=\s*['\"][^$]" --include="*.ts" --include="*.tsx" --include="*.js" app/ lib/ || echo "none found"
+
+# 3. 인증 커버리지 (API 라우트가 있는 경우)
+find app/api -name "route.ts" 2>/dev/null | while read route; do
+  grep -l "getCurrentUser\|requireAdmin\|getSession" "$route" > /dev/null || echo "UNPROTECTED: $route"
+done
+```
+
+결과를 `tasks/security-report.md` 에 기록한다:
+- 문제 없으면 → `[STATUS] PASSED`
+- 문제 있으면 → 직접 수정 (dev-fix 역할) → Step 3부터 재검증
+
+### Step 6: roadmap (고도화 계획)
+
+전체 작업을 돌아보고 `tasks/roadmap.md` 를 업데이트한다:
+
+```
+## 즉시 (이번 스프린트)
+- {이번에 발견한 개선사항}
+
+## 단기 (다음 2주)
+- {다음에 할 것}
+
+## 다음 티켓 초안
+TITLE: {다음 작업}
+SCOPE: {예상 파일}
+PRIORITY: high | medium | low
+```
+
+### Step 7: lessons 업데이트
+
+이번 사이클에서 실패/재시도가 있었으면 `tasks/lessons.md` 에 기록한다:
+
+```
+- [dev-fix] {무엇이 실패했고, 어떻게 고쳤는지, 다음에 피할 패턴}
 ```
 
 ---
 
-## 필수 참조 파일
-- **최우선**: `tasks/current-state.md` — 실제 완료 현황
-- 작업 전: `tasks/todo.md`, `tasks/lessons.md`
-- 코드 작성 전: `tasks/security/guidelines.md` 보안 규칙 확인
-- **에러 해결 후**: `tasks/lessons.md`에 반드시 기록 (원인 + 해결 + 예방책)
-- API 구현/호출: `tasks/api-spec.md` 준수
-- DB 변경: `tasks/db-changes.md` 참조
-- 인프라 접속 정보: `.env.infra` 참조 (Git 미추적, 로컬 전용)
+## 파괴 방지 규칙 (절대 위반 금지)
 
-> ⚠️ **에러 기록 의무**: 빌드 에러, 런타임 에러, 머지 충돌 등 **모든 에러를 해결한 후** 반드시 `tasks/lessons.md`에 날짜·원인·해결책을 기록한다. 역할 무관, 모든 세션이 준수해야 한다.
-
-## 데이터베이스 연결 설정
-
-### Docker Compose 사용 (권장)
-```bash
-# 로컬 개발 또는 EC2 배포
-docker-compose up -d
-
-# PostgreSQL + app이 동시에 시작되고, 자동으로 연결됨
-# DATABASE_URL: postgresql://asset_manager:asset_manager_pass@postgres:5432/asset_manager
+```
+1. 작업 전 테스트 스냅샷 필수
+2. 티켓 SCOPE 밖 파일 수정 금지
+3. 기존 export/API 시그니처 삭제/변경 금지
+4. 기존 테스트 삭제/약화 금지 (코드를 고치지 테스트를 고치지 않는다)
+5. 비테스트 코드 순삭제 50줄 제한
+6. 기존 기능 삭제 금지 (핸들러, UI 요소, 라우트, 비즈니스 로직)
+   → 버그가 있는 기능은 고치는 것이지, 없애는 것이 아니다
 ```
 
-### 환경변수 (DATABASE_URL)
-**docker-compose 사용 시:** 자동으로 `postgres` 서비스명으로 연결
-```
-DATABASE_URL=postgresql://asset_manager:asset_manager_pass@postgres:5432/asset_manager
-```
-
-**EC2 호스트에서 직접 실행 시:** 호스트 IP 사용
-```
-DATABASE_URL=postgresql://asset_manager:asset_manager_pass@172.17.0.1:5432/asset_manager
-```
-
-**로컬 localhost 테스트:**
-```
-DATABASE_URL=postgresql://asset_manager:asset_manager_pass@localhost:5432/asset_manager
-```
-
-### Prisma 스키마
-- provider: `postgresql` (schema.prisma 라인 11)
-- url: `env("DATABASE_URL")` 환경변수에서 자동 읽음
-- 마이그레이션: `npx prisma db push`
-- Seed: `npx prisma db seed`
-
-## 프로덕션 배포 고려사항
-- 배포 환경: AWS EC2 t4g.small (ARM64, vCPU 2, RAM 2GB), ap-northeast-2
-- 단방향 폐쇄망 (내부→외부 접근 가능, 외부→내부 접근 불가)
-- 배포 방식: `deploy.ps1` 실행 → **[1/2] git push** + **[2/2] S3 업로드**까지 자동, EC2 배포는 출력된 명령어를 수동 실행
-  - S3에 zip 업로드 후 EC2에서 `deploy-remote.sh <S3_URL>` 실행
-  - 접속 정보: `.env.infra` 참조 (Git 미추적)
-- 포트: 로컬 dev `3000` / 컨테이너 `3000` / 호스트 `8080`
-- ⚠️ 배포 전 반드시 master 클린 상태 확인 (`deploy.ps1`은 master 브랜치에서만 실행 가능)
-- 프로덕션 컨테이너에서 `prisma CLI` 실행 금지
-- DB 스키마 변경: `npx prisma db push` 사용 (PostgreSQL용)
-- `prisma generate` 결과물은 `generated/prisma/`에 위치 (`lib/prisma.ts`에서 import)
+위반이 불가피한 경우:
+- SCOPE 확장 필요 → "SCOPE 확장이 필요합니다: {이유}. 진행할까요?" 라고 인간에게 묻는다
+- 기능 삭제 필요 → "기능 삭제가 필요합니다: {이유}. 별도 티켓으로 분리할까요?" 라고 묻는다
+- 이 두 경우만 인간에게 묻는 것이 허용된다
 
 ---
 
-## 실제 디렉토리 구조
+## 파일 범위 제한
+
 ```
-app/
-  api/               ← API Route (개발 전담)
-    admin/           ← 사용자 관리 API
-    assets/          ← 자산(클라우드/하드웨어/도메인) API
-    assignments/     ← 할당 API
-    auth/            ← 인증 API
-    contracts/       ← 계약 API
-    cron/            ← 배치/스케줄러 API
-    employees/       ← 구성원 API
-    groups/          ← 그룹 API
-    history/         ← 감사 로그 API
-    licenses/        ← 라이선스 API
-    org/             ← 조직 API
-    seats/           ← 시트 API
-  _components/       ← 공통 컴포넌트
-  admin/             ← 사용자 관리 페이지
-  cloud/             ← 클라우드 자산 페이지
-  contracts/         ← 계약 관리 페이지
-  dashboard/         ← 대시보드
-  domains/           ← 도메인·SSL 페이지
-  employees/         ← 조직원 페이지
-  hardware/          ← 하드웨어 자산 페이지
-  history/           ← 감사 로그 페이지
-  licenses/          ← 라이선스 페이지
-  login/             ← 로그인
-  org/               ← 조직도
-  reports/           ← 보고서
-  settings/          ← 설정 (그룹/CSV가져오기/알림/프로필)
-  layout.tsx
-  page.tsx           ← / → /licenses 리다이렉트
-lib/
-  auth.ts            ← 인증 (세션/bcrypt)
-  prisma.ts          ← Prisma 클라이언트 singleton
-  audit-log.ts       ← 감사 로그 기록
-  i18n/              ← 다국어 지원 (KO/EN/JA/ZH/VI/ZH-TW)
-  cia.ts             ← CIA 보안 등급
-  assignment-actions.ts
-  cost-calculator.ts
-  csv-import.ts
-  license-seats.ts
-  notification.ts    ← Slack/Email 발송 (nodemailer)
-  rate-limit.ts      ← 로그인 브루트포스 방어
-prisma/
-  schema.prisma      ← DB 스키마 정의 (PostgreSQL)
-  seed.ts
-prisma.config.ts     ← Prisma 설정 (루트)
-generated/
-  prisma/            ← Prisma 클라이언트 (자동 생성, 수정 금지)
-dockerfile
-docker-compose.yml   ← PostgreSQL + app 정의
-deploy.ps1           ← EC2 배포 스크립트 (Windows PowerShell)
-.github/
-  workflows/         ← CI/CD
-tasks/               ← 기획/보안/운영 문서 전체
-examples/
-  .env.example       ← 환경변수 템플릿
-  .env.infra.example ← 인프라 접속 정보 템플릿
-  deploy.ps1.example ← 배포 스크립트 예시
+쓰기 허용:
+  app/**
+  lib/**
+  components/**
+  __tests__/**
+  tasks/**
+  public/**
+
+쓰기 금지:
+  prisma/schema.prisma  → 인간에게 "스키마 변경 필요" 보고
+  docker/**
+  .github/**
+  CLAUDE.md
+  AGENTS.md
 ```
 
-## 주요 페이지 경로
-| 경로 | 설명 |
-|---|---|
-| `/` | `/licenses`로 리다이렉트 |
-| `/login` | 로그인 |
-| `/dashboard` | 대시보드 |
-| `/licenses` | 라이선스 목록 |
-| `/licenses/new` | 라이선스 등록 |
-| `/licenses/[id]` | 라이선스 상세 |
-| `/licenses/[id]/edit` | 라이선스 수정 |
-| `/cloud` | 클라우드 자산 목록 |
-| `/cloud/new` | 클라우드 자산 등록 |
-| `/cloud/[id]` | 클라우드 자산 상세 |
-| `/cloud/[id]/edit` | 클라우드 자산 수정 |
-| `/hardware` | 하드웨어 자산 목록 |
-| `/hardware/new` | 하드웨어 자산 등록 |
-| `/hardware/[id]` | 하드웨어 자산 상세 |
-| `/hardware/[id]/edit` | 하드웨어 자산 수정 |
-| `/domains` | 도메인·SSL 목록 |
-| `/domains/new` | 도메인·SSL 등록 |
-| `/domains/[id]` | 도메인·SSL 상세 |
-| `/domains/[id]/edit` | 도메인·SSL 수정 |
-| `/contracts` | 계약 목록 |
-| `/contracts/new` | 계약 등록 |
-| `/contracts/[id]` | 계약 상세 |
-| `/contracts/[id]/edit` | 계약 수정 |
-| `/employees` | 조직원 목록 |
-| `/employees/new` | 조직원 등록 |
-| `/employees/[id]` | 조직원 상세 |
-| `/reports` | 월별 보고서 |
-| `/reports/[yearMonth]` | 보고서 상세 |
-| `/settings/groups` | 그룹 목록 |
-| `/settings/import` | CSV 가져오기 |
-| `/settings/notifications` | 알림 설정 |
-| `/settings/profile` | 프로필 설정 |
-| `/org` | 조직도 |
-| `/history` | 감사 로그 |
-| `/admin/users` | 사용자 관리 (ADMIN 전용) |
-| `/guide` | 사용 가이드 |
+---
 
-## 폐쇄망 제약
-- 런타임에 외부 URL 호출 금지
-- 외부 CDN 의존 금지 (Google Fonts 등 포함)
-- 모든 라이브러리는 `npm install`로 번들에 포함
+## 프로젝트 기술 스택
 
-## 빌드 주의사항
-- EC2 ARM64, RAM 제한 환경 — 빌드 전 스왑 확인 필수 (`free -h`)
-- 프로덕션 컨테이너에서 `prisma CLI` 실행 금지
-- DB 스키마 변경: `npx prisma db push` 사용
-- `prisma generate` 결과물은 `generated/prisma/`에 위치 (`lib/prisma.ts`에서 import)
+```
+Framework: Next.js 15 (App Router)
+Database: SQLite (Prisma ORM)
+Language: TypeScript
+Package Manager: npm
+Test: jest 또는 vitest (프로젝트에 있는 것 사용)
+Lint: eslint
+Build: next build
+Container: Docker
+```
+
+---
+
+## 실행 예시
+
+인간이 이렇게 말하면:
+
+```
+"자산 목록에 검색 필터 추가해줘"
+```
+
+당신은 이렇게 한다:
+
+```
+1. [planner] tasks/tickets/dev-001.md 생성
+   TITLE: 자산 목록 검색 필터
+   SCOPE: app/assets/page.tsx, components/AssetFilter.tsx (신규)
+   COMPLEXITY: medium
+   DEPLOY_FLAG: false
+   SECURITY_FLAG: false
+
+2. [dev] pre-fix snapshot 저장 → 코드 작성 → test/lint/build 통과 확인
+
+3. [pr-review] git diff 확인 → 5개 규칙 검증 → 통과
+
+4. [devops] DEPLOY_FLAG: false → 건너뜀
+
+5. [security] 코드 스캔 → [STATUS] PASSED
+
+6. [roadmap] tasks/roadmap.md 업데이트
+   → 다음 제안: "검색 필터에 날짜 범위 추가"
+
+7. [lessons] 이번에 실패한 것 없음 → 스킵
+
+최종 보고: "완료. 자산 목록에 검색 필터 추가됨. 보안 통과.
+          다음 제안: 날짜 범위 필터 추가."
+```
+
+---
+
+## 인간 개입이 필요한 유일한 상황
+
+```
+1. SCOPE 확장이 불가피할 때 → 물어본다
+2. 기능 삭제가 불가피할 때 → 물어본다
+3. DB 스키마 변경이 필요할 때 → 물어본다
+4. env-profiles/active.toml이 method: manual일 때 → 스크립트 제공 후 실행 요청
+5. security에서 critical 이슈 발견 + 자동 수정 3회 실패 → 보고
+
+그 외에는 전부 자율적으로 실행한다.
+```
