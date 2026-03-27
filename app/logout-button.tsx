@@ -12,7 +12,7 @@ export default function LogoutButton() {
   async function handleLogout() {
     setIsPending(true);
     await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
+    router.push("/dashboard");
     router.refresh();
   }
 
