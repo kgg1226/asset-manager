@@ -35,6 +35,7 @@ export default function DomainDetailPage() {
   const assetId = params.id as string;
   const { user } = useAuth();
   const { t } = useTranslation();
+  const isAdmin = user?.role === "ADMIN";
 
   const [asset, setAsset] = useState<Asset | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -159,7 +160,7 @@ export default function DomainDetailPage() {
 
         <CiaScoreDisplay ciaC={asset.ciaC} ciaI={asset.ciaI} ciaA={asset.ciaA} />
 
-        {user && (
+        {isAdmin && (
           <div className="flex gap-3">
             <Link href={`/domains/${asset.id}/edit`} className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"><Edit className="h-4 w-4" />{t.common.edit}</Link>
             <button onClick={() => setShowStatusModal(true)} className="flex-1 rounded-md border border-blue-300 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50">{t.common.status}</button>

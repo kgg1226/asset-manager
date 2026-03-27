@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Plus, Search, Eye, Edit, Trash2, Building2, RefreshCw } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
+import { useCurrentUser } from "@/lib/hooks/use-current-user";
 import { toast } from "sonner";
 
 interface ExternalEntity {
@@ -26,6 +27,7 @@ const TYPE_COLORS: Record<string, string> = {
 
 export default function ExternalEntityListPage() {
   const { t } = useTranslation();
+  const { isAdmin } = useCurrentUser();
   const router = useRouter();
   const [entities, setEntities] = useState<ExternalEntity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -91,12 +93,14 @@ export default function ExternalEntityListPage() {
             <button onClick={loadEntities} className="rounded-md border border-gray-300 bg-white p-2 hover:bg-gray-50">
               <RefreshCw className="h-4 w-4 text-gray-500" />
             </button>
-            <Link
-              href="/external/new"
-              className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-            >
-              <Plus className="h-4 w-4" /> {t.externalEntity.create}
-            </Link>
+            {isAdmin && (
+              <Link
+                href="/external/new"
+                className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                <Plus className="h-4 w-4" /> {t.externalEntity.create}
+              </Link>
+            )}
           </div>
         </div>
 
@@ -173,12 +177,16 @@ export default function ExternalEntityListPage() {
                         <Link href={`/external/${entity.id}`} className="rounded p-1 hover:bg-gray-100">
                           <Eye className="h-4 w-4 text-gray-500" />
                         </Link>
-                        <Link href={`/external/${entity.id}/edit`} className="rounded p-1 hover:bg-gray-100">
-                          <Edit className="h-4 w-4 text-gray-500" />
-                        </Link>
-                        <button onClick={() => handleDelete(entity.id, entity.name)} className="rounded p-1 hover:bg-red-50">
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </button>
+                        {isAdmin && (
+                          <>
+                            <Link href={`/external/${entity.id}/edit`} className="rounded p-1 hover:bg-gray-100">
+                              <Edit className="h-4 w-4 text-gray-500" />
+                            </Link>
+                            <button onClick={() => handleDelete(entity.id, entity.name)} className="rounded p-1 hover:bg-red-50">
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>

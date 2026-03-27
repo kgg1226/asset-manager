@@ -8,6 +8,7 @@ import AssignButton from "./assign-button";
 import UnassignButton from "./unassign-button";
 import LicenseRow from "./license-row";
 import { LifecycleGaugeInline } from "@/app/_components/lifecycle-gauge";
+import { useCurrentUser } from "@/lib/hooks/use-current-user";
 
 type SortField = "name" | "totalQuantity" | "assigned" | "expiryDate";
 type SortOrder = "asc" | "desc";
@@ -74,6 +75,7 @@ export default function LicensesContent({
   isLoggedIn,
 }: LicensesContentProps) {
   const { t, locale } = useTranslation();
+  const { isAdmin } = useCurrentUser();
 
   const SORTABLE_COLUMNS: { key: SortField; label: string }[] = [
     { key: "name", label: t.license.licenseName },
@@ -134,7 +136,7 @@ export default function LicensesContent({
           <h1 className="text-2xl font-bold text-gray-900">
             {t.license.title} {t.common.list}
           </h1>
-          {isLoggedIn && (
+          {isAdmin && (
             <Link
               href="/licenses/new"
               className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
@@ -183,7 +185,7 @@ export default function LicensesContent({
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 whitespace-nowrap">
                       {t.lifecycle.heading}
                     </th>
-                    {isLoggedIn && (
+                    {isAdmin && (
                       <th className="px-4 py-3 text-center text-xs font-medium uppercase text-gray-500 whitespace-nowrap">
                         {t.common.actions}
                       </th>
@@ -270,7 +272,7 @@ export default function LicensesContent({
                             endDate={license.expiryDate}
                           />
                         </td>
-                        {isLoggedIn && (
+                        {isAdmin && (
                           <td className="px-4 py-3 text-center">
                             <div className="flex items-center justify-center gap-2">
                               {license.maxCapacity > 0 ? (

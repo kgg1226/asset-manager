@@ -4,6 +4,7 @@ import Link from "next/link";
 import DeleteEmployeeButton from "./delete-button";
 import EmployeeSearch from "./employee-search";
 import { useTranslation } from "@/lib/i18n";
+import { useCurrentUser } from "@/lib/hooks/use-current-user";
 
 type EmployeeItem = {
   id: number;
@@ -32,13 +33,14 @@ export default function EmployeesContent({
   isLoggedIn: boolean;
 }) {
   const { t } = useTranslation();
+  const { isAdmin } = useCurrentUser();
 
   return (
     <div className="min-h-screen bg-gray-50 py-10">
       <div className="mx-auto max-w-5xl px-4">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900">{t.employee.title} {t.common.list}</h1>
-          {isLoggedIn && (
+          {isAdmin && (
             <Link
               href="/employees/new"
               className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
@@ -57,7 +59,7 @@ export default function EmployeesContent({
             <p className="text-gray-500">
               {employees.length === 0 ? t.common.noData : t.common.noData}
             </p>
-            {employees.length === 0 && isLoggedIn && (
+            {employees.length === 0 && isAdmin && (
               <Link
                 href="/employees/new"
                 className="mt-3 inline-block text-sm text-blue-600 hover:underline"
@@ -76,7 +78,7 @@ export default function EmployeesContent({
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">{t.employee.email}</th>
                   <th className="px-4 py-3 text-center text-xs font-medium uppercase text-gray-500">{t.employee.assignedLicenses}</th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">{t.common.status}</th>
-                  {isLoggedIn && <th className="px-4 py-3 text-center text-xs font-medium uppercase text-gray-500">{t.common.actions}</th>}
+                  {isAdmin && <th className="px-4 py-3 text-center text-xs font-medium uppercase text-gray-500">{t.common.actions}</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -101,7 +103,7 @@ export default function EmployeesContent({
                         </span>
                       )}
                     </td>
-                    {isLoggedIn && (
+                    {isAdmin && (
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-2">
                           <Link
