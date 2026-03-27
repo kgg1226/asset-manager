@@ -9,6 +9,7 @@ set -e
 echo "[entrypoint] 중복 assetTag 정리 중..."
 node scripts/dedup-asset-tag.mjs || echo "[entrypoint] dedup 스킵 (오류 무시)"
 
+
 echo "[entrypoint] DB 스키마 동기화 중..."
 
 if npx prisma db push 2>&1; then
