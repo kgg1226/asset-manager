@@ -514,7 +514,7 @@ model AssetGroupMember {
 model HardwareDetail {
   id              Int       @id @default(autoincrement())
   assetId         Int       @unique
-  assetTag        String?                               // 내부 자산 식별번호 (앱 레벨에서 중복 체크)
+  assetTag        String?   @unique                     // 내부 자산 식별번호 (고유값)
   deviceType      String?                              // Laptop / Desktop / Server / Network / Mobile / Other
   manufacturer    String?                              // 제조사 (Apple, Dell, Lenovo 등)
   model           String?                              // 모델명 (MacBook Pro M4 등)
