@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { syncSeats } from "@/lib/license-seats";
 import { writeAuditLog } from "@/lib/audit-log";
+import { getAppSetting } from "@/lib/system-config";
 import {
   computeCost,
   VALID_PAYMENT_CYCLES,
@@ -152,6 +153,7 @@ export async function POST(request: NextRequest) {
     let totalAmountForeign: number | null = null;
     let totalAmountKRW: number | null = null;
     if (paymentCycle && billingQty != null && unitPriceVal != null) {
+      const vatPct = await getAppSetting<number>("VAT_RATE_PERCENT");
       const result = computeCost({
         paymentCycle,
         quantity: billingQty,
@@ -159,6 +161,7 @@ export async function POST(request: NextRequest) {
         currency,
         exchangeRate,
         isVatIncluded: vBool(body.isVatIncluded),
+        vatRatePercent: vatPct || 10,
       });
       totalAmountForeign = result.totalAmountForeign;
       totalAmountKRW = result.totalAmountKRW;

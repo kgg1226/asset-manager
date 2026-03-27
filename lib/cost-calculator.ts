@@ -1,4 +1,4 @@
-import { getAppSetting } from "@/lib/system-config";
+// ⚠️ 이 파일은 Client Component에서 import하므로 서버 전용 모듈(prisma, system-config) import 금지
 
 export type PaymentCycle = "MONTHLY" | "YEARLY";
 export type Currency = "KRW" | "USD" | "EUR" | "JPY" | "GBP" | "CNY";
@@ -10,6 +10,7 @@ export type CostInputs = {
   currency: Currency;
   exchangeRate: number;
   isVatIncluded: boolean;
+  vatRatePercent?: number; // 기본 10, 기능 설정에서 변경 가능
 };
 
 export type CostResult = {
@@ -21,18 +22,13 @@ export type CostResult = {
   monthlyKRW: number;
 };
 
-let VAT_RATE = 0.1; // 10% 기본값
-
-/** DB에서 부가세율을 다시 로드한다 */
-export async function reloadVatRate() {
-  const pct = await getAppSetting<number>("VAT_RATE_PERCENT");
-  VAT_RATE = (pct || 10) / 100;
-}
+const DEFAULT_VAT_RATE = 0.1; // 10%
 
 export function computeCost(inputs: CostInputs): CostResult {
-  const { paymentCycle, quantity, unitPrice, exchangeRate, isVatIncluded } = inputs;
+  const { paymentCycle, quantity, unitPrice, exchangeRate, isVatIncluded, vatRatePercent } = inputs;
+  const vatRate = vatRatePercent !== undefined ? vatRatePercent / 100 : DEFAULT_VAT_RATE;
   const subtotal = unitPrice * quantity;
-  const vatAmount = isVatIncluded ? 0 : Math.floor(subtotal * VAT_RATE);
+  const vatAmount = isVatIncluded ? 0 : Math.floor(subtotal * vatRate);
   const totalAmountForeign = Math.floor(subtotal + vatAmount);
   const rate = exchangeRate > 0 ? exchangeRate : 1;
   const totalAmountKRW = Math.floor(totalAmountForeign * rate);
