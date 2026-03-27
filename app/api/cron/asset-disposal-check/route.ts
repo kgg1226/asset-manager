@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { writeAuditLog } from "@/lib/audit-log";
 import { isCronAuthorized } from "@/lib/cron-auth";
+import { getAppSetting } from "@/lib/system-config";
 
 export async function POST(request: NextRequest) {
   if (!isCronAuthorized(request)) {
@@ -16,6 +17,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const now = new Date();
+    const disposalDays = (await getAppSetting<number>("AUTO_DISPOSAL_DAYS")) || 365;
 
     // PC 자산 (deviceType = Laptop/Desktop) 중 활성 상태인 자산 조회
     const pcAssets = await prisma.asset.findMany({
@@ -54,8 +56,8 @@ export async function POST(request: NextRequest) {
       const remainingMs = endOfLifeDate.getTime() - now.getTime();
       const remainingDays = Math.floor(remainingMs / (24 * 60 * 60 * 1000));
 
-      // 남은 일수 < 365일 → PENDING_DISPOSAL
-      if (remainingDays < 365) {
+      // 남은 일수 < disposalDays → PENDING_DISPOSAL
+      if (remainingDays < disposalDays) {
         await prisma.$transaction(async (tx) => {
           await tx.asset.update({
             where: { id: asset.id },

@@ -1,3 +1,5 @@
+import { getAppSetting } from "@/lib/system-config";
+
 export type PaymentCycle = "MONTHLY" | "YEARLY";
 export type Currency = "KRW" | "USD" | "EUR" | "JPY" | "GBP" | "CNY";
 
@@ -19,10 +21,18 @@ export type CostResult = {
   monthlyKRW: number;
 };
 
+let VAT_RATE = 0.1; // 10% 기본값
+
+/** DB에서 부가세율을 다시 로드한다 */
+export async function reloadVatRate() {
+  const pct = await getAppSetting<number>("VAT_RATE_PERCENT");
+  VAT_RATE = (pct || 10) / 100;
+}
+
 export function computeCost(inputs: CostInputs): CostResult {
   const { paymentCycle, quantity, unitPrice, exchangeRate, isVatIncluded } = inputs;
   const subtotal = unitPrice * quantity;
-  const vatAmount = isVatIncluded ? 0 : Math.floor(subtotal * 0.1);
+  const vatAmount = isVatIncluded ? 0 : Math.floor(subtotal * VAT_RATE);
   const totalAmountForeign = Math.floor(subtotal + vatAmount);
   const rate = exchangeRate > 0 ? exchangeRate : 1;
   const totalAmountKRW = Math.floor(totalAmountForeign * rate);

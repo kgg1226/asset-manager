@@ -314,37 +314,72 @@ export async function getGDriveConfigStatus(): Promise<
 }
 
 
-// ── 기능 플래그 (비암호화 key-value) ──
+// ── 앱 설정 (비암호화 key-value, 통합 관리) ──
 
-/** 기능 플래그 키 목록 */
-export const FEATURE_FLAG_KEYS = [
-  "LIFECYCLE_VISIBLE_TO_USER", // 일반 사용자에게 수명 게이지 표시 여부
-] as const;
+/** 앱 설정 정의: 카테고리별 키, 타입, 기본값, 설명 */
+export interface AppSettingDef {
+  key: string;
+  category: "feature" | "security" | "notification" | "asset" | "display" | "finance";
+  type: "boolean" | "number" | "string" | "numberArray";
+  defaultValue: string; // JSON 직렬화된 기본값
+  label: string;        // 한국어 설명
+  min?: number;
+  max?: number;
+}
 
+export const APP_SETTINGS: AppSettingDef[] = [
+  // ── 기능 공개 ──
+  { key: "LIFECYCLE_VISIBLE_TO_USER", category: "feature", type: "boolean", defaultValue: "false", label: "일반 사용자에게 수명 게이지 표시" },
+
+  // ── 보안 ──
+  { key: "SESSION_DURATION_DAYS", category: "security", type: "number", defaultValue: "7", label: "세션 유효기간 (일)", min: 1, max: 90 },
+  { key: "LOGIN_MAX_ATTEMPTS", category: "security", type: "number", defaultValue: "5", label: "로그인 실패 잠금 횟수", min: 3, max: 20 },
+  { key: "LOGIN_LOCK_MINUTES", category: "security", type: "number", defaultValue: "15", label: "잠금 지속시간 (분)", min: 1, max: 120 },
+  { key: "PASSWORD_MIN_LENGTH", category: "security", type: "number", defaultValue: "8", label: "비밀번호 최소 길이", min: 6, max: 32 },
+
+  // ── 알림 ──
+  { key: "RENEWAL_ALERT_DAYS", category: "notification", type: "numberArray", defaultValue: "[70,30,15,7]", label: "만료 알림 D-day (쉼표 구분)" },
+  { key: "LIFECYCLE_THRESHOLDS", category: "notification", type: "numberArray", defaultValue: "[50,80,95]", label: "수명 임계치 알림 (%)" },
+
+  // ── 자산 ──
+  { key: "AUTO_DISPOSAL_DAYS", category: "asset", type: "number", defaultValue: "365", label: "폐기 자동 전환 기준 (일)", min: 30, max: 3650 },
+
+  // ── 재무 ──
+  { key: "VAT_RATE_PERCENT", category: "finance", type: "number", defaultValue: "10", label: "부가세율 (%)", min: 0, max: 50 },
+
+  // ── 표시 ──
+  { key: "LIST_PAGE_SIZE", category: "display", type: "number", defaultValue: "50", label: "목록 페이지당 항목 수", min: 10, max: 200 },
+];
+
+export const APP_SETTING_KEYS = APP_SETTINGS.map(s => s.key);
+export type AppSettingKey = string;
+
+// 레거시 호환
+export const FEATURE_FLAG_KEYS = ["LIFECYCLE_VISIBLE_TO_USER"] as const;
 export type FeatureFlagKey = (typeof FEATURE_FLAG_KEYS)[number];
 
-const FEATURE_FLAG_DEFAULTS: Record<FeatureFlagKey, boolean> = {
-  LIFECYCLE_VISIBLE_TO_USER: false, // 기본: 관리자만 보임
-};
+/** 앱 설정값 조회 (타입별 파싱) */
+export async function getAppSetting<T = string>(key: string): Promise<T> {
+  const def = APP_SETTINGS.find(s => s.key === key);
+  const defaultValue = def?.defaultValue ?? "";
 
-/** 기능 플래그 조회 (DB 우선, 기본값 폴백) */
-export async function getFeatureFlag(key: FeatureFlagKey): Promise<boolean> {
   try {
     const row = await prisma.systemConfig.findUnique({ where: { key } });
-    if (row) return row.value === "true";
+    if (row) {
+      return parseSetting(row.value, def?.type ?? "string") as T;
+    }
   } catch {
     // DB 실패 시 기본값
   }
-  return FEATURE_FLAG_DEFAULTS[key];
+  return parseSetting(defaultValue, def?.type ?? "string") as T;
 }
 
-/** 기능 플래그 설정 */
-export async function setFeatureFlag(
-  key: FeatureFlagKey,
-  enabled: boolean,
+/** 앱 설정값 저장 */
+export async function setAppSetting(
+  key: string,
+  value: string,
   userId?: number
 ): Promise<void> {
-  const value = enabled ? "true" : "false";
   await prisma.systemConfig.upsert({
     where: { key },
     create: { key, value, iv: "", tag: "", updatedBy: userId ?? null },
@@ -352,19 +387,55 @@ export async function setFeatureFlag(
   });
 }
 
-/** 모든 기능 플래그 조회 */
-export async function getAllFeatureFlags(): Promise<Record<FeatureFlagKey, boolean>> {
-  const result = { ...FEATURE_FLAG_DEFAULTS };
+/** 모든 앱 설정 조회 (UI 표시용) */
+export async function getAllAppSettings(): Promise<Record<string, string>> {
+  const result: Record<string, string> = {};
+  for (const def of APP_SETTINGS) {
+    result[def.key] = def.defaultValue;
+  }
+
   try {
     const rows = await prisma.systemConfig.findMany({
-      where: { key: { in: [...FEATURE_FLAG_KEYS] } },
+      where: { key: { in: APP_SETTING_KEYS } },
     });
     for (const row of rows) {
-      const k = row.key as FeatureFlagKey;
-      if (k in result) result[k] = row.value === "true";
+      if (row.key in result) result[row.key] = row.value;
     }
   } catch {
     // 기본값 유지
   }
   return result;
+}
+
+function parseSetting(value: string, type: string): unknown {
+  switch (type) {
+    case "boolean": return value === "true";
+    case "number": return Number(value) || 0;
+    case "numberArray": try { return JSON.parse(value); } catch { return []; }
+    default: return value;
+  }
+}
+
+// ── 레거시 호환 함수 ──
+
+/** 기능 플래그 조회 (레거시 호환) */
+export async function getFeatureFlag(key: FeatureFlagKey): Promise<boolean> {
+  return getAppSetting<boolean>(key);
+}
+
+/** 기능 플래그 설정 (레거시 호환) */
+export async function setFeatureFlag(
+  key: FeatureFlagKey,
+  enabled: boolean,
+  userId?: number
+): Promise<void> {
+  await setAppSetting(key, String(enabled), userId);
+}
+
+/** 모든 기능 플래그 조회 (레거시 호환) */
+export async function getAllFeatureFlags(): Promise<Record<FeatureFlagKey, boolean>> {
+  const settings = await getAllAppSettings();
+  return {
+    LIFECYCLE_VISIBLE_TO_USER: settings.LIFECYCLE_VISIBLE_TO_USER === "true",
+  };
 }

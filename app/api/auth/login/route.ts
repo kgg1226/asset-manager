@@ -4,18 +4,22 @@ import {
   verifyPassword,
   createSession,
   SESSION_COOKIE,
-  SESSION_DURATION_MS,
+  getSessionDurationMs,
 } from "@/lib/auth";
 import {
   isRateLimited,
   recordFailure,
   clearAttempts,
   getRemainingLockSeconds,
+  reloadRateLimitSettings,
 } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
   try {
+    // DB에서 rate-limit 설정을 동적으로 로드
+    await reloadRateLimitSettings();
+
     const { username, password } = await request.json();
 
     if (!username || !password) {
@@ -100,12 +104,13 @@ export async function POST(request: NextRequest) {
       mustChangePassword: user.mustChangePassword,
     });
 
+    const durationMs = await getSessionDurationMs();
     response.cookies.set(SESSION_COOKIE, sessionId, {
       httpOnly: true,
       secure: process.env.SECURE_COOKIE === "true",
       sameSite: "lax",
       path: "/",
-      maxAge: SESSION_DURATION_MS / 1000,
+      maxAge: durationMs / 1000,
     });
 
     return response;
