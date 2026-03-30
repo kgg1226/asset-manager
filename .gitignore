@@ -85,3 +85,13 @@ deploy.ps1
 
 !.env.infra.example
 .claire/
+
+# Sentix security (NEVER commit — treat like PEM keys)
+.sentix/safety.toml
+
+# Sentix runtime files
+tasks/.pre-fix-test-results.json
+tasks/pattern-log.jsonl
+tasks/agent-metrics.jsonl
+tasks/strategies.jsonl
+tasks/governor-state.json
