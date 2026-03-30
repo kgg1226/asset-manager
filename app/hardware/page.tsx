@@ -119,14 +119,22 @@ export default function HardwareListPage() {
     if (selectedIds.size === 0) return;
     if (!confirm(`${selectedIds.size}개 자산을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) return;
     setBulkDeleting(true);
-    let success = 0, fail = 0;
-    for (const id of selectedIds) {
-      try {
-        const res = await fetch(`/api/assets/${id}`, { method: "DELETE" });
-        if (res.ok || res.status === 204) success++; else fail++;
-      } catch { fail++; }
+    try {
+      const res = await fetch("/api/assets/bulk-delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: Array.from(selectedIds) }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(`${data.deleted}개 삭제 완료${data.notFound > 0 ? ` (${data.notFound}개 미발견)` : ""}`);
+      } else {
+        const err = await res.json().catch(() => ({ error: "삭제 실패" }));
+        toast.error(err.error || "삭제에 실패했습니다.");
+      }
+    } catch {
+      toast.error("네트워크 오류로 삭제에 실패했습니다.");
     }
-    toast.success(`${success}개 삭제 완료${fail > 0 ? `, ${fail}개 실패` : ""}`);
     setSelectedIds(new Set());
     setBulkDeleting(false);
     await loadAssets();

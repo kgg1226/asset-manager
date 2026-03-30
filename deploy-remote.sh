@@ -8,21 +8,39 @@
 #   bash deploy-remote.sh s3://my-bucket/my-path/asset-manager.zip
 #
 # 핵심: 이미지를 먼저 빌드한 뒤, 컨테이너 교체만 수행 → 중단 ~3초
+#
+# ── 환경별 설정 ──────────────────────────────────────────────────────
+# 아래 변수를 각자 환경에 맞게 수정하세요.
+#   DIR       : EC2에서 앱 소스코드가 위치하는 디렉토리
+#   APP       : 프로젝트 디렉토리명 (docker-compose.yml이 있는 폴더)
+#   ZIP_NAME  : S3에서 다운로드 받을 zip 파일명
+#   NEW_TAG   : 빌드 중 임시 Docker 이미지 태그
+#   LIVE_TAG  : 실제 운영 Docker 이미지 태그
+#   HEALTH_URL: 헬스체크 엔드포인트 (포트 포함)
+# ─────────────────────────────────────────────────────────────────────
 set -e
+
+DIR="${DEPLOY_DIR:-/home/ssm-user/app}"
+APP="${DEPLOY_APP:-asset-manager}"
+ZIP_NAME="${DEPLOY_ZIP:-asset-manager.zip}"
+NEW_TAG="${DEPLOY_NEW_TAG:-asset-manager:new}"
+LIVE_TAG="${DEPLOY_LIVE_TAG:-asset-manager:latest}"
+HEALTH_URL="${DEPLOY_HEALTH_URL:-http://localhost:8080/api/health}"
 
 # ── 인자 검증 ──
 if [ -z "$1" ]; then
     echo "사용법: bash deploy-remote.sh <S3_ZIP_URL>"
+    echo ""
     echo "예시:   bash deploy-remote.sh s3://my-bucket/my-path/asset-manager.zip"
+    echo ""
+    echo "환경변수로 커스터마이즈 가능:"
+    echo "  DEPLOY_DIR        앱 디렉토리 (기본: /home/ssm-user/app)"
+    echo "  DEPLOY_APP        프로젝트명 (기본: asset-manager)"
+    echo "  DEPLOY_HEALTH_URL 헬스체크 URL (기본: http://localhost:8080/api/health)"
     exit 1
 fi
 
 S3_URL="$1"
-DIR="/home/ssm-user/app"
-APP="asset-manager"
-ZIP_NAME="asset-manager.zip"
-NEW_TAG="asset-manager:new"
-LIVE_TAG="asset-manager:latest"
 
 # ── 실패 시 자동 롤백 + 정리 ──
 rollback() {
@@ -127,7 +145,7 @@ sudo docker-compose ps
 
 echo '--- 앱 헬스체크 ---'
 for i in 1 2 3 4 5 6; do
-    STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/api/health || echo '000')
+    STATUS=$(curl -s -o /dev/null -w '%{http_code}' "$HEALTH_URL" || echo '000')
     if [ "$STATUS" = '200' ]; then echo "앱 정상 응답 (HTTP $STATUS)"; break; fi
     echo "[$i/6] 앱 응답 대기... (HTTP $STATUS)"; sleep 5
 done

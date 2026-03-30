@@ -5,6 +5,11 @@ set -e
 # prisma db push: 테이블 없으면 생성, 새 필드 추가, 삭제된 필드 제거
 # Prisma v7: --skip-generate 플래그 제거됨 (db push가 자동 generate 하지 않음)
 
+# [1-0] unique 제약 적용 전 중복 assetTag 정리 (pg 드라이버 직접 사용)
+echo "[entrypoint] 중복 assetTag 정리 중..."
+node scripts/dedup-asset-tag.mjs || echo "[entrypoint] dedup 스킵 (오류 무시)"
+
+
 echo "[entrypoint] DB 스키마 동기화 중..."
 
 if npx prisma db push 2>&1; then
