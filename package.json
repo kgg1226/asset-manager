@@ -1,6 +1,6 @@
 {
   "name": "asset-manager",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "scripts": {
     "dev": "npm run prisma:generate && next dev",
@@ -34,10 +34,11 @@
     "nodemailer": "^8.0.1",
     "papaparse": "^5.5.3",
     "pg": "^8.20.0",
-    "prisma": "^7.5.0",
+    "prisma": "^6.19.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "recharts": "^3.7.0",
+    "sentix": "^2.42.0",
     "sonner": "^2.0.7",
     "tailwindcss": "^4.1.18"
   },
