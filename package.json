@@ -1,13 +1,14 @@
 {
   "name": "asset-manager",
-  "version": "0.1.1",
+  "version": "0.3.0",
   "private": true,
   "scripts": {
     "dev": "npm run prisma:generate && next dev",
     "prisma:generate": "prisma generate",
     "build": "prisma generate && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "echo 'no unit tests configured' && exit 0"
   },
   "engines": {
     "node": "20.x"
@@ -34,7 +35,6 @@
     "nodemailer": "^8.0.1",
     "papaparse": "^5.5.3",
     "pg": "^8.20.0",
-    "prisma": "^6.19.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "recharts": "^3.7.0",
@@ -49,6 +49,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.5",
+    "prisma": "^7.7.0",
     "tsx": "^4.21.0",
     "typescript": "^5"
   }
