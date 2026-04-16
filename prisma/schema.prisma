@@ -106,6 +106,52 @@ model OrgCompany {
   id        Int        @id @default(autoincrement())
   name      String     @unique
   createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  // ── 인력 현황 ──
+  totalEmployees    Int?   // 전체 인력
+  itEmployees       Int?   // IT 인력
+  securityEmployees Int?   // 정보보호 전담인력
+  privacyEmployees  Int?   // 개인정보보호 전담인력
+
+  // ── Q5: 예산 비율 ──
+  budgetItPercent       Float? // 전체예산 대비 IT 예산 (%)
+  budgetSecurityPercent Float? // IT예산 대비 정보보호 예산 (%)
+  budgetPrivacyPercent  Float? // IT예산 대비 개인정보보호 예산 (%)
+
+  // ── Q6: 인증 수행 인력/기간 ──
+  certStaffCount   Int? // 인증·점검·평가 소요 인력 (명)
+  certDurationDays Int? // 소요 기간 (일)
+
+  // ── Q7: 관리체계 인력구성 ──
+  ismsStaffType String? // INTERNAL_ONLY | EXTERNAL_ONLY | MIXED
+
+  // ── Q8: 관리체계 구축 비용 ──
+  consultingCostRange String? // NONE | UNDER_30M | 30M_50M | 50M_100M | 100M_200M | OVER_200M
+  systemPurchaseCost  Float?  // 정보시스템/정보보호시스템 구매 비용 (백만원)
+
+  // ── Q9: 정보보호 활동 공개 ──
+  disclosesSecurityActivity Boolean?
+
+  // ── Q10: 타 인증 보유 ──
+  hasPiaDiagnosis     Boolean @default(false) // 개인정보보호 수준진단
+  hasPia              Boolean @default(false) // 개인정보 영향평가
+  hasIso27001         Boolean @default(false) // ISO27001
+  hasCriticalInfra    Boolean @default(false) // 주요 정보통신 기반시설
+  otherCertifications String?                 // 기타 인증
+
+  // ── Q11: ISMS 최대 개선사항 ──
+  ismsBiggestImprovement      String? // BUDGET | EXEC_AWARENESS | NEW_ORG | EMPLOYEE_AWARENESS | LOWER_RISK | CUSTOMER_TRUST | OTHER
+  ismsBiggestImprovementOther String?
+
+  // ── Q12: ISMS 기대효과 ──
+  ismsExpectedBenefit      String? // COMPLIANCE | SECURITY_LEVEL | ORG_AUTHORITY | CUSTOMER_TRUST | OTHER
+  ismsExpectedBenefitOther String?
+
+  // ── Q13: ISMS 제도 의견 ──
+  ismsOpinion String?
+
+  // ── Relations ──
   orgs      OrgUnit[]
   employees Employee[]
   assets    Asset[]

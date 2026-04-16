@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, List, GitBranch, Shield } from "lucide-react";
+import { Plus, List, GitBranch, Shield, Building2 } from "lucide-react";
 import OrgTree from "./org-tree";
 import OrgChartVisual from "./org-chart-visual";
 import SecurityOrgChart from "./security-org-chart";
+import CompanyInfoTab from "./company-info-tab";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
@@ -14,7 +15,7 @@ import { ORG_TOUR_KEY, getOrgSteps } from "@/app/_components/tours/org-tour";
 type OrgUnit = { id: number; name: string; parentId: number | null };
 type Company = { id: number; name: string; orgs: OrgUnit[] };
 
-type Tab = "manage" | "visual" | "security";
+type Tab = "manage" | "visual" | "security" | "companyInfo";
 
 export default function OrgPage() {
   const { t } = useTranslation();
@@ -80,6 +81,7 @@ export default function OrgPage() {
     { key: "manage", label: t.org.manage, icon: List },
     { key: "visual", label: t.org.visual, icon: GitBranch },
     { key: "security", label: t.org.securityOrgChart, icon: Shield },
+    { key: "companyInfo", label: t.org.companyInfo, icon: Building2 },
   ];
 
   if (isLoading) {
@@ -188,6 +190,10 @@ export default function OrgPage() {
 
         {activeTab === "security" && (
           <SecurityOrgChart />
+        )}
+
+        {activeTab === "companyInfo" && (
+          <CompanyInfoTab companies={companies.map((c) => ({ id: c.id, name: c.name }))} />
         )}
         </div>
       </div>
