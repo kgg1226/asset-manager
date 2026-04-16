@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Plus, Eye, Edit, Trash2, RefreshCw, ChevronUp, ChevronDown } from "lucide-react";
+import { Plus, Eye, Edit, Trash2, RefreshCw, ChevronUp, ChevronDown, Keyboard } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
@@ -103,6 +103,8 @@ export default function HardwareListPage() {
   const [selectedStatus, setSelectedStatus] = useState<AssetStatus | "">("");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [showShortcutHint, setShowShortcutHint] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const toggleSelect = (id: number) => {
     setSelectedIds(prev => {
@@ -162,6 +164,45 @@ export default function HardwareListPage() {
 
   useEffect(() => { const t = setTimeout(() => loadAssets(), 300); return () => clearTimeout(t); }, [loadAssets]);
 
+  // ── 키보드 단축키 ──────────────────────────────────────────────────────
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      // 입력 필드 포커스 시 무시
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+
+      // N — 신규 자산 등록 (ADMIN 전용)
+      if (e.key === "n" || e.key === "N") {
+        if (isAdmin) router.push("/hardware/new");
+      }
+
+      // E — 첫 번째 선택 항목 편집 (ADMIN 전용)
+      if ((e.key === "e" || e.key === "E") && isAdmin) {
+        const firstSelected = Array.from(selectedIds)[0];
+        if (firstSelected) router.push(`/hardware/${firstSelected}/edit`);
+      }
+
+      // Esc — 선택 해제
+      if (e.key === "Escape") {
+        setSelectedIds(new Set());
+        setShowShortcutHint(false);
+      }
+
+      // / — 검색 포커스
+      if (e.key === "/") {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+
+      // ? — 단축키 힌트 토글
+      if (e.key === "?") {
+        setShowShortcutHint((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [isAdmin, selectedIds, router]);
+
   // Update URL when sort changes
   const handleSort = (field: SortField) => {
     let newField: SortField | null = field;
@@ -206,6 +247,26 @@ export default function HardwareListPage() {
           <h1 className="text-3xl font-bold text-gray-900">{t.hw.title}</h1>
           <div className="flex gap-2">
             <TourGuide tourKey={HARDWARE_TOUR_KEY} steps={getHardwareSteps(t)} />
+            {/* 단축키 힌트 */}
+            <div className="relative">
+              <button
+                onClick={() => setShowShortcutHint((v) => !v)}
+                className="flex items-center gap-1 rounded-md border border-gray-300 px-2 py-2 text-sm text-gray-500 hover:bg-gray-50"
+                title="키보드 단축키 (? 키)"
+              >
+                <Keyboard className="h-4 w-4" />
+              </button>
+              {showShortcutHint && (
+                <div className="absolute right-0 top-full z-10 mt-1 w-52 rounded-lg border border-gray-200 bg-white p-3 shadow-lg text-xs text-gray-600 space-y-1">
+                  <p className="font-semibold text-gray-800 mb-2">키보드 단축키</p>
+                  {isAdmin && <p><kbd className="rounded border border-gray-300 bg-gray-100 px-1">N</kbd> — 신규 자산 등록</p>}
+                  {isAdmin && <p><kbd className="rounded border border-gray-300 bg-gray-100 px-1">E</kbd> — 선택 항목 편집</p>}
+                  <p><kbd className="rounded border border-gray-300 bg-gray-100 px-1">Esc</kbd> — 선택 해제</p>
+                  <p><kbd className="rounded border border-gray-300 bg-gray-100 px-1">/</kbd> — 검색 포커스</p>
+                  <p><kbd className="rounded border border-gray-300 bg-gray-100 px-1">?</kbd> — 이 도움말</p>
+                </div>
+              )}
+            </div>
             <button onClick={loadAssets} disabled={isLoading} className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
               <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             </button>
@@ -219,7 +280,7 @@ export default function HardwareListPage() {
 
         <div className="mb-6 rounded-lg bg-white p-4 shadow-sm">
           <div className="mb-4" data-tour="hw-search">
-            <input type="text" placeholder={`${t.asset.assetName} ${t.common.search}...`} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
+            <input ref={searchInputRef} type="text" placeholder={`${t.asset.assetName} ${t.common.search}... (/ 단축키)`} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
           </div>
           <div className="flex flex-wrap gap-2" data-tour="hw-status-filter">
             <button onClick={() => setSelectedStatus("")} className={`rounded-full px-3 py-1 text-sm ${selectedStatus === "" ? "bg-blue-600 text-white" : "bg-gray-100"}`}>{t.common.all} {t.common.status}</button>
