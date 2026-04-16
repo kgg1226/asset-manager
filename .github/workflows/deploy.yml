@@ -1,317 +1,206 @@
-name: Deploy to AWS EC2
+name: deploy
+# ── 공급망 보안 정책 ──────────────────────────────────────────
+# 1. 모든 GitHub Action은 커밋 SHA로 고정 (태그 오염 공격 방어)
+# 2. ${{ }} 표현식은 env로 분리 (expression injection 방어)
 
 on:
-  workflow_dispatch:  # 수동 트리거 (GitHub Actions 탭에서 버튼 클릭)
-    inputs:
-      confirm:
-        description: '배포를 진행하시겠습니까? (yes 입력)'
-        required: true
-        default: 'no'
-
-env:
-  EC2_INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
-  S3_PATH: ${{ secrets.S3_PATH }}
-  APP_NAME: asset-manager
-  ZIP_NAME: asset-manager.zip
-  REMOTE_DIR: /home/ssm-user/app
-  HAS_SLACK: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+  push:
+    branches: [master]
+  repository_dispatch:
+    types: [interface-updated]
 
 jobs:
-  deploy:
-    name: 🚀 Build & Deploy
+  # ── 배포 필요 여부 판단 ──────────────────────────────────
+  check-deploy:
     runs-on: ubuntu-latest
-    if: github.event.inputs.confirm == 'yes'
-
+    outputs:
+      needs_deploy: ${{ steps.check.outputs.needs_deploy }}
+      access_method: ${{ steps.profile.outputs.access_method }}
     steps:
-      # ─── 1. 소스코드 체크아웃 ────────────────────────────────────────
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      # ─── 2. zip 압축 및 S3 업로드 ────────────────────────────────────
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Zip source & upload to S3
+      - name: Check DEPLOY_FLAG from recent ticket
+        id: check
         run: |
-          zip -r $ZIP_NAME . \
-            --exclude "*.git*" \
-            --exclude "node_modules/*" \
-            --exclude ".next/*" \
-            --exclude "*.env*"
-
-          aws s3 cp $ZIP_NAME "$S3_PATH/$ZIP_NAME"
-
-          echo "✅ S3 업로드 완료"
-
-      # ─── 3. SSM Agent 연결 확인 ─────────────────────────────────────
-      - name: Check SSM Agent connectivity
-        id: ssm_check
-        run: |
-          echo "SSM Agent 연결 상태 확인 중..."
-
-          # 간단한 테스트 명령으로 SSM RunCommand 동작 확인
-          TEST_CMD_ID=$(aws ssm send-command \
-            --instance-ids "$EC2_INSTANCE_ID" \
-            --document-name "AWS-RunShellScript" \
-            --parameters '{"commands":["echo ssm-ok"]}' \
-            --timeout-seconds 30 \
-            --query 'Command.CommandId' \
-            --output text 2>&1)
-
-          if [ $? -ne 0 ]; then
-            echo "❌ SSM send-command 실패: $TEST_CMD_ID"
-            echo "SSM_OK=false" >> $GITHUB_OUTPUT
-            exit 1
+          # 최신 티켓에서 DEPLOY_FLAG 확인
+          LATEST_TICKET=$(ls -t tasks/tickets/dev-*.md 2>/dev/null | head -1)
+          if [[ -n "$LATEST_TICKET" ]]; then
+            DEPLOY_FLAG=$(grep -i "DEPLOY_FLAG:" "$LATEST_TICKET" | head -1 | awk '{print $2}')
+            echo "Ticket: $LATEST_TICKET → DEPLOY_FLAG: $DEPLOY_FLAG"
           fi
 
-          echo "테스트 명령 전송됨: $TEST_CMD_ID"
-          echo "응답 대기 중 (최대 60초)..."
-
-          for i in $(seq 1 6); do
-            sleep 10
-            # stderr를 캡처하여 권한 에러 감지
-            RESULT=$(aws ssm get-command-invocation \
-              --command-id "$TEST_CMD_ID" \
-              --instance-id "$EC2_INSTANCE_ID" \
-              --query 'Status' --output text 2>&1)
-            EXIT_CODE=$?
-
-            if [ $EXIT_CODE -ne 0 ]; then
-              echo "⚠️ get-command-invocation 실패: $RESULT"
-              if echo "$RESULT" | grep -q "AccessDeniedException"; then
-                echo "❌ IAM 권한 부족: ssm:GetCommandInvocation 권한 필요"
-                echo "   GitHub Secrets의 AWS IAM 사용자에 다음 권한 추가 필요:"
-                echo "   - ssm:GetCommandInvocation"
-                echo "   - ssm:ListCommands"
-                echo "SSM_OK=false" >> $GITHUB_OUTPUT
-                exit 1
-              fi
-              continue
+          # diff 기반 자동 감지 (티켓 없거나 플래그 없을 때 폴백)
+          if [[ -z "$DEPLOY_FLAG" ]]; then
+            CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
+            if echo "$CHANGED" | grep -qE "^(app/api/|prisma/|Dockerfile|docker-compose|package\.json)"; then
+              DEPLOY_FLAG="true"
+              echo "Auto-detected: runtime-affecting changes found"
+            else
+              DEPLOY_FLAG="false"
+              echo "Auto-detected: no deploy-requiring changes"
             fi
+          fi
 
-            echo "[$i/6] 상태: $RESULT"
-            if [ "$RESULT" = "Success" ]; then
-              echo "✅ SSM Agent 정상 작동"
-              echo "SSM_OK=true" >> $GITHUB_OUTPUT
-              exit 0
-            elif [ "$RESULT" = "Failed" ] || [ "$RESULT" = "TimedOut" ]; then
-              echo "❌ SSM 테스트 명령 실패: $RESULT"
-              echo "SSM_OK=false" >> $GITHUB_OUTPUT
-              exit 1
-            fi
-          done
+          echo "needs_deploy=$DEPLOY_FLAG" >> $GITHUB_OUTPUT
 
-          echo "❌ SSM Agent RunCommand 미응답 (60초 타임아웃)"
-          echo "   EC2에서 SSM Agent를 재시작하세요:"
-          echo "   1. SSM 세션 접속: aws ssm start-session --target $EC2_INSTANCE_ID"
-          echo "   2. Agent 재시작: sudo systemctl restart amazon-ssm-agent"
-          echo "SSM_OK=false" >> $GITHUB_OUTPUT
-          exit 1
-
-      # ─── 4. EC2에서 배포 실행 ────────────────────────────────────────
-      - name: Deploy on EC2 via SSM
-        id: deploy
+      - name: Read environment profile
+        id: profile
         run: |
-          PARAMS=$(jq -nc \
-            --arg s3 "$S3_PATH/$ZIP_NAME" \
-            --arg dir "$REMOTE_DIR" \
-            --arg app "$APP_NAME" \
-            --arg zip "$ZIP_NAME" \
-            '{commands: [
-              "set -e",
-              ("echo === [1/4] S3에서 소스코드 다운로드 ==="),
-              ("cd " + $dir),
-              ("aws s3 cp " + $s3 + " ."),
-              ("sudo rm -rf " + $app),
-              ("sudo mkdir -p " + $app + " && sudo chown -R ssm-user:ssm-user " + $app),
-              ("unzip -q " + $zip + " -d " + $app + " && rm " + $zip),
-              ("cd " + $app),
-              "echo === [2/4] 스왑 확인 ===",
-              "free -h",
-              "if [ ! -f /swapfile ]; then sudo dd if=/dev/zero of=/swapfile bs=128M count=16 && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile && echo 스왑 설정 완료; fi",
-              "echo === [3/4] 기존 컨테이너 정지 + 정리 ===",
-              "sudo docker-compose down || true",
-              "sudo docker image prune -a -f",
-              "sudo docker builder prune -f",
-              "echo === [4/4] Docker Compose 빌드 + 시작 ===",
-              "sudo docker-compose build",
-              "sudo docker-compose up -d",
-              "echo 배포 완료"
-            ]}')
+          PROFILE="env-profiles/active.toml"
+          if [[ -f "$PROFILE" ]]; then
+            METHOD=$(grep "^method" "$PROFILE" | head -1 | sed 's/.*=\s*//; s/"//g')
+            echo "access_method=$METHOD" >> $GITHUB_OUTPUT
+            echo "Profile loaded: $(grep '^name' "$PROFILE" | head -1)"
+          else
+            echo "access_method=manual" >> $GITHUB_OUTPUT
+            echo "No active profile — defaulting to manual"
+          fi
 
-          COMMAND_ID=$(aws ssm send-command \
-            --instance-ids "$EC2_INSTANCE_ID" \
-            --document-name "AWS-RunShellScript" \
-            --parameters "$PARAMS" \
-            --timeout-seconds 600 \
-            --query 'Command.CommandId' \
-            --output text)
+  # ── 배포 실행 (필요할 때만) ──────────────────────────────
+  deploy:
+    needs: check-deploy
+    if: needs.check-deploy.outputs.needs_deploy == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
 
-          echo "COMMAND_ID=$COMMAND_ID" >> $GITHUB_OUTPUT
-          echo "SSM 명령 ID: $COMMAND_ID"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Wait for deployment to complete
+      # ── CI 자동 배포 (ssm/ssh) ─────────────────────────
+      - name: Configure AWS (SSM mode)
+        if: needs.check-deploy.outputs.access_method == 'ssm'
+        uses: aws-actions/configure-aws-credentials@ececac1a45f3b08a01d2dd070d28d111c5fe6722 # v4.1.0
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ap-northeast-2
+
+      - name: Execute deploy script
+        if: needs.check-deploy.outputs.access_method == 'ssm' || needs.check-deploy.outputs.access_method == 'ssh'
+        id: deploy-auto
         run: |
-          COMMAND_ID="${{ steps.deploy.outputs.COMMAND_ID }}"
-          echo "배포 완료 대기 중... (최대 10분)"
+          chmod +x scripts/deploy.sh
+          bash scripts/deploy.sh 2>&1 | tee /tmp/deploy-output.txt
+          # STATUS 추출
+          if grep -q "\[STATUS\] PASSED" /tmp/deploy-output.txt; then
+            echo "deploy_status=success" >> $GITHUB_OUTPUT
+          else
+            echo "deploy_status=failed" >> $GITHUB_OUTPUT
+          fi
 
-          for i in $(seq 1 40); do
-            sleep 15
-            RESULT=$(aws ssm get-command-invocation \
-              --command-id "$COMMAND_ID" \
-              --instance-id "$EC2_INSTANCE_ID" \
-              --query 'Status' --output text 2>&1)
-            EXIT_CODE=$?
-
-            if [ $EXIT_CODE -ne 0 ]; then
-              echo "[$i/40] ⚠️ 상태 조회 실패: $RESULT"
-              continue
-            fi
-
-            echo "[$i/40] 상태: $RESULT"
-
-            if [ "$RESULT" = "Success" ]; then
-              echo "✅ 배포 성공"
-              aws ssm get-command-invocation \
-                --command-id "$COMMAND_ID" \
-                --instance-id "$EC2_INSTANCE_ID" \
-                --query 'StandardOutputContent' --output text 2>/dev/null || true
-              exit 0
-            elif [ "$RESULT" = "Failed" ] || [ "$RESULT" = "TimedOut" ] || [ "$RESULT" = "Cancelled" ]; then
-              echo "❌ 배포 실패: $RESULT"
-              aws ssm get-command-invocation \
-                --command-id "$COMMAND_ID" \
-                --instance-id "$EC2_INSTANCE_ID" \
-                --query 'StandardErrorContent' --output text 2>/dev/null || true
-              exit 1
-            fi
-          done
-
-          echo "❌ 배포 타임아웃 (10분 초과)"
-          exit 1
-
-      # ─── 5. QA 자동화 (EC2 내부 localhost로 실행, 폐쇄망 대응) ────────
-      - name: Run QA checks via SSM
-        id: qa
+      # ── 수동 배포 (manual mode) ────────────────────────
+      - name: Generate deploy script (manual mode)
+        if: needs.check-deploy.outputs.access_method == 'manual'
+        id: deploy-manual
         run: |
-          QA_PARAMS=$(jq -nc '{commands: [
-            "BASE_URL=http://localhost:8080",
-            "FAIL=0",
-            "echo === QA 시작 ===",
-            "for i in 1 2 3 4 5 6; do STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" $BASE_URL/login || echo 000); if [ \"$STATUS\" = \"200\" ]; then echo 앱 준비됨; break; fi; echo \"[$i/6] 대기... ($STATUS)\"; sleep 5; done",
-            "STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" $BASE_URL/login); if [ \"$STATUS\" = \"200\" ]; then echo PASS_login; else echo FAIL_login_$STATUS; FAIL=1; fi",
-            "for API in /api/licenses /api/employees; do STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" $BASE_URL$API); if [ \"$STATUS\" != \"000\" ]; then echo PASS_$API; else echo FAIL_$API; FAIL=1; fi; done",
-            "echo === QA 완료 ===",
-            "if [ \"$FAIL\" = \"1\" ]; then echo QA_RESULT=FAIL; exit 1; else echo QA_RESULT=PASS; fi"
-          ]}')
+          chmod +x scripts/deploy.sh
+          bash scripts/deploy.sh --generate-only
+          echo "deploy_status=manual_pending" >> $GITHUB_OUTPUT
+          echo "::warning::Manual deployment required — check tasks/deploy-output.md"
 
-          QA_COMMAND_ID=$(aws ssm send-command \
-            --instance-ids "$EC2_INSTANCE_ID" \
-            --document-name "AWS-RunShellScript" \
-            --parameters "$QA_PARAMS" \
-            --timeout-seconds 120 \
-            --query 'Command.CommandId' \
-            --output text)
+      - name: Commit deploy output
+        if: always()
+        run: |
+          if [[ -f tasks/deploy-output.md ]]; then
+            git config user.name  "devops-agent"
+            git config user.email "devops@noreply"
+            git add tasks/deploy-output.md
+            git diff --staged --quiet || git commit -m "chore: deploy output $(date +%Y-%m-%d)"
+            git push origin master || true
+          fi
 
-          echo "QA 명령 ID: $QA_COMMAND_ID"
+      # ── security 에이전트 트리거 ───────────────────────
+      - name: Dispatch security scan (auto deploy succeeded)
+        if: steps.deploy-auto.outputs.deploy_status == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          curl -X POST \
+            -H "Authorization: token ${GH_TOKEN}" \
+            -H "Content-Type: application/json" \
+            "https://api.github.com/repos/${REPO}/dispatches" \
+            -d "$(jq -n --arg sha "$SHA" '{
+              event_type: "security-scan",
+              client_payload: { sha: $sha }
+            }')"
 
-          for i in $(seq 1 12); do
-            sleep 10
-            RESULT=$(aws ssm get-command-invocation \
-              --command-id "$QA_COMMAND_ID" \
-              --instance-id "$EC2_INSTANCE_ID" \
-              --query 'Status' --output text 2>&1)
-            EXIT_CODE=$?
-
-            if [ $EXIT_CODE -ne 0 ]; then
-              echo "[$i/12] ⚠️ QA 상태 조회 실패: $RESULT"
-              continue
-            fi
-
-            echo "[$i/12] QA 상태: $RESULT"
-
-            if [ "$RESULT" = "Success" ]; then
-              aws ssm get-command-invocation \
-                --command-id "$QA_COMMAND_ID" \
-                --instance-id "$EC2_INSTANCE_ID" \
-                --query 'StandardOutputContent' --output text 2>/dev/null || true
-              echo "✅ QA 전체 통과"
-              exit 0
-            elif [ "$RESULT" = "Failed" ]; then
-              aws ssm get-command-invocation \
-                --command-id "$QA_COMMAND_ID" \
-                --instance-id "$EC2_INSTANCE_ID" \
-                --query 'StandardOutputContent' --output text 2>/dev/null || true
-              echo "❌ QA 실패"
-              exit 1
-            fi
-          done
-
-          echo "❌ QA 타임아웃"
-          exit 1
-
-      # ─── 6. 롤백 (QA 또는 배포 실패 시) ────────────────────────────
-      - name: Rollback on failure
+      # ── 실패 시 dev-fix 트리거 ─────────────────────────
+      - name: Trigger dev-fix on failure
         if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
         run: |
-          echo "⚠️ 실패 감지 — 롤백 시도 중..."
+          curl -X POST \
+            -H "Authorization: token ${GH_TOKEN}" \
+            -H "Content-Type: application/json" \
+            "https://api.github.com/repos/${REPO}/dispatches" \
+            -d "$(jq -n --arg sha "$SHA" --arg run_id "$RUN_ID" '{
+              event_type: "devops-failed",
+              client_payload: {
+                sha: $sha,
+                run_id: $run_id,
+                issue: "Deploy failed — check deploy output"
+              }
+            }')"
 
-          ROLLBACK_PARAMS=$(jq -nc \
-            --arg dir "$REMOTE_DIR/$APP_NAME" \
-            '{commands: [
-              ("cd " + $dir),
-              "if sudo docker images | grep -q asset-manager.*backup; then sudo docker-compose down || true && sudo docker tag asset-manager:backup asset-manager:latest && sudo docker-compose up -d && echo 롤백 완료; else echo 백업 이미지 없음 — 롤백 불가; fi"
-            ]}')
-
-          aws ssm send-command \
-            --instance-ids "$EC2_INSTANCE_ID" \
-            --document-name "AWS-RunShellScript" \
-            --parameters "$ROLLBACK_PARAMS" \
-            --timeout-seconds 60 || true
-
-      # ─── 7. Slack 알림 ───────────────────────────────────────────────
-      - name: Slack 성공 알림
-        if: success() && env.HAS_SLACK == 'true'
-        uses: slackapi/slack-github-action@v1.26.0
-        with:
-          payload: |
-            {
-              "text": "✅ *asset-manager 배포 성공*",
-              "attachments": [{
-                "color": "good",
-                "fields": [
-                  { "title": "브랜치", "value": "${{ github.ref_name }}", "short": true },
-                  { "title": "배포자", "value": "${{ github.actor }}", "short": true },
-                  { "title": "커밋", "value": "${{ github.sha }}", "short": false },
-                  { "title": "QA", "value": "전체 통과 ✅", "short": true }
-                ]
-              }]
-            }
+  # ── 배포 건너뜀 → security 직행 ─────────────────────────
+  skip-deploy:
+    needs: check-deploy
+    if: needs.check-deploy.outputs.needs_deploy == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip deploy — trigger security directly
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          echo "Deploy skipped (DEPLOY_FLAG: false)"
+          curl -X POST \
+            -H "Authorization: token ${GH_TOKEN}" \
+            -H "Content-Type: application/json" \
+            "https://api.github.com/repos/${REPO}/dispatches" \
+            -d "$(jq -n --arg sha "$SHA" '{
+              event_type: "security-scan",
+              client_payload: { sha: $sha, deploy_skipped: true }
+            }')"
 
-      - name: Slack 실패 알림
-        if: failure() && env.HAS_SLACK == 'true'
-        uses: slackapi/slack-github-action@v1.26.0
-        with:
-          payload: |
-            {
-              "text": "❌ *asset-manager 배포 실패 — 롤백됨*",
-              "attachments": [{
-                "color": "danger",
-                "fields": [
-                  { "title": "브랜치", "value": "${{ github.ref_name }}", "short": true },
-                  { "title": "배포자", "value": "${{ github.actor }}", "short": true },
-                  { "title": "커밋", "value": "${{ github.sha }}", "short": false },
-                  { "title": "Actions 로그", "value": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}", "short": false }
-                ]
-              }]
-            }
+  # ── 멀티 프로젝트 cascade ──────────────────────────────
+  cascade:
+    needs: [check-deploy]
+    if: contains(github.event.commits.*.modified, 'INTERFACE.md') || github.event_name == 'repository_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Cascade to dependent projects
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          SOURCE_REPO: ${{ github.event.repository.name }}
+          SHA: ${{ github.sha }}
+        run: |
+          if [[ ! -f registry.md ]]; then
+            echo "No registry.md — skipping cascade"
+            exit 0
+          fi
+          DEPENDENTS=$(grep '^\|' registry.md | grep -v 'header\|---\|프로젝트' | awk -F'|' '{print $3}' | tr -d ' ')
+          for repo in $DEPENDENTS; do
+            PROJECT=$(basename "$repo")
+            echo "Dispatching to $PROJECT..."
+            curl -s -X POST \
+              -H "Authorization: token ${GH_TOKEN}" \
+              -H "Content-Type: application/json" \
+              "https://api.github.com/repos/kgg1226/${PROJECT}/dispatches" \
+              -d "$(jq -n --arg source "$SOURCE_REPO" --arg sha "$SHA" '{
+                event_type: "interface-updated",
+                client_payload: { source: $source, sha: $sha }
+              }')"
+          done

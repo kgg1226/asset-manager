@@ -64,9 +64,10 @@ export async function GET(_request: NextRequest, { params }: Params) {
         ],
       },
       include: {
-        assignee: { select: { id: true, name: true, department: true } },
+        assignee: { select: { id: true, name: true, department: true, email: true } },
         orgUnit: { select: { id: true, name: true } },
         company: { select: { id: true, name: true } },
+        hardwareDetail: true,
       },
       orderBy: { name: "asc" },
     });
@@ -199,6 +200,68 @@ export async function GET(_request: NextRequest, { params }: Params) {
         department: a.orgUnit?.name ?? a.assignee?.department ?? "-",
         expiryDate: formatDate(a.expiryDate),
         purchaseDate: formatDate(a.purchaseDate),
+      });
+    }
+
+    // ── Sheet 6: Hardware Detail ──
+    const hwAssets = assets.filter((a) => a.type === "HARDWARE");
+    const wsHw = wb.addWorksheet("Hardware Detail");
+    wsHw.columns = [
+      { header: "자산번호 (Asset Tag)", key: "assetTag", width: 18 },
+      { header: "자산명 (Name)", key: "name", width: 30 },
+      { header: "호스트네임 (Hostname)", key: "hostname", width: 20 },
+      { header: "시리얼 (Serial Number)", key: "serialNumber", width: 20 },
+      { header: "제조사 (Manufacturer)", key: "manufacturer", width: 18 },
+      { header: "모델 (Model)", key: "model", width: 22 },
+      { header: "유형 (Device Type)", key: "deviceType", width: 14 },
+      { header: "CPU", key: "cpu", width: 22 },
+      { header: "RAM", key: "ram", width: 12 },
+      { header: "Storage", key: "storage", width: 14 },
+      { header: "OS", key: "os", width: 12 },
+      { header: "OS Version", key: "osVersion", width: 12 },
+      { header: "구매일 (Purchase Date)", key: "purchaseDate", width: 14 },
+      { header: "보증만료 (Warranty End)", key: "warrantyEndDate", width: 14 },
+      { header: "사용자 (Assignee)", key: "assignee", width: 14 },
+      { header: "이메일 (Email)", key: "assigneeEmail", width: 22 },
+      { header: "부서 (Department)", key: "department", width: 16 },
+      { header: "위치 (Location)", key: "location", width: 18 },
+      { header: "상태 (Status)", key: "status", width: 14 },
+      { header: "등급 (Condition)", key: "condition", width: 10 },
+      { header: "월 비용 (Monthly Cost)", key: "monthlyCost", width: 16 },
+      { header: "구매비용 (Purchase Cost)", key: "cost", width: 16 },
+      { header: "통화 (Currency)", key: "currency", width: 8 },
+      { header: "비고 (Notes)", key: "notes", width: 30 },
+      { header: "설명 (Description)", key: "description", width: 30 },
+    ];
+    styleHeader(wsHw, 25);
+    for (const a of hwAssets) {
+      const hw = a.hardwareDetail;
+      wsHw.addRow({
+        assetTag: hw?.assetTag ?? "-",
+        name: a.name,
+        hostname: hw?.hostname ?? "-",
+        serialNumber: hw?.serialNumber ?? "-",
+        manufacturer: hw?.manufacturer ?? "-",
+        model: hw?.model ?? "-",
+        deviceType: hw?.deviceType ?? "-",
+        cpu: hw?.cpu ?? "-",
+        ram: hw?.ram ?? "-",
+        storage: hw?.storage ?? "-",
+        os: hw?.os ?? "-",
+        osVersion: hw?.osVersion ?? "-",
+        purchaseDate: formatDate(a.purchaseDate),
+        warrantyEndDate: formatDate(hw?.warrantyEndDate ?? null),
+        assignee: a.assignee?.name ?? "-",
+        assigneeEmail: a.assignee?.email ?? "-",
+        department: a.orgUnit?.name ?? a.assignee?.department ?? "-",
+        location: hw?.location ?? "-",
+        status: STATUS_LABELS[a.status] ?? a.status,
+        condition: hw?.condition ?? "-",
+        monthlyCost: a.monthlyCost ? formatCurrency(Number(a.monthlyCost)) : "-",
+        cost: a.cost ? formatCurrency(Number(a.cost)) : "-",
+        currency: a.currency ?? "KRW",
+        notes: hw?.notes ?? "-",
+        description: a.description ?? "-",
       });
     }
 

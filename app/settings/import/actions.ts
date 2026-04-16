@@ -1191,6 +1191,12 @@ async function importHardwareAssets(rows: Record<string, string>[], actor: strin
     const warrantyEndDate = parseDate(row.warrantyEndDate, rowNum, "warrantyEndDate", errors);
     const condition = row.condition?.trim() || null;
     const description = row.description?.trim() || null;
+    const notes = row.notes?.trim() || null;
+    // status: IN_STOCK | IN_USE | INACTIVE | UNUSABLE | PENDING_DISPOSAL | DISPOSED (기본: assignee 기반 자동)
+    const VALID_STATUSES = ["IN_STOCK", "IN_USE", "INACTIVE", "UNUSABLE", "PENDING_DISPOSAL", "DISPOSED"] as const;
+    type HwStatus = typeof VALID_STATUSES[number];
+    const rawStatus = row.status?.trim().toUpperCase();
+    const statusOverride: HwStatus | null = (VALID_STATUSES as readonly string[]).includes(rawStatus) ? rawStatus as HwStatus : null;
     const assigneeName = row.assigneeName?.trim() || null;
     const companyName = row.companyName?.trim() || null;
     const orgUnitName = row.orgUnitName?.trim() || null;
@@ -1201,7 +1207,7 @@ async function importHardwareAssets(rows: Record<string, string>[], actor: strin
       rowNum, name, deviceType, manufacturer, model, serialNumber,
       assetTag, hostname, os, osVersion, cpu, ram, storage, location,
       cost, currency, purchaseDate, warrantyEndDate, condition,
-      description, assigneeName, companyName, orgUnitName,
+      description, notes, statusOverride, assigneeName, companyName, orgUnitName,
       ciaC, ciaI, ciaA,
     };
   });
@@ -1251,7 +1257,8 @@ async function importHardwareAssets(rows: Record<string, string>[], actor: strin
           companyId,
           orgUnitId,
           assigneeId,
-          status: assigneeId ? "IN_USE" : "IN_STOCK",
+          // status: CSV 명시값 우선, 없으면 assignee 기반 자동 결정
+          status: row.statusOverride ?? (assigneeId ? "IN_USE" : "IN_STOCK"),
           ciaC: finalCiaC,
           ciaI: finalCiaI,
           ciaA: finalCiaA,
@@ -1271,6 +1278,7 @@ async function importHardwareAssets(rows: Record<string, string>[], actor: strin
               location: row.location,
               warrantyEndDate: row.warrantyEndDate,
               condition: row.condition,
+              notes: row.notes,
             },
           },
         },

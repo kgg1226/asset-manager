@@ -762,8 +762,8 @@ export default function NotificationSettingsPage() {
             <Filter className="h-4 w-4 text-gray-400" />
             <select value={logFilter.status} onChange={(e) => setLogFilter((p) => ({ ...p, status: e.target.value }))} className="rounded-md border border-gray-300 px-2 py-1 text-sm">
               <option value="">{t.common.all} {t.common.status}</option>
-              <option value="OK">{t.common.success}</option>
-              <option value="FAIL">{t.common.failure}</option>
+              <option value="SUCCESS">{t.common.success}</option>
+              <option value="FAILED">{t.common.failure}</option>
             </select>
             <select value={logFilter.channel} onChange={(e) => setLogFilter((p) => ({ ...p, channel: e.target.value }))} className="rounded-md border border-gray-300 px-2 py-1 text-sm">
               <option value="">{t.common.all}</option>
@@ -809,7 +809,7 @@ export default function NotificationSettingsPage() {
                         {!log.license && !log.asset && "—"}
                       </td>
                       <td className="px-3 py-2">
-                        {log.status === "OK" ? (
+                        {log.status === "SUCCESS" ? (
                           <span className="inline-flex items-center gap-1 text-xs text-green-600"><CheckCircle2 className="h-3.5 w-3.5" />{t.common.success}</span>
                         ) : (
                           <span className="inline-flex items-center gap-1 text-xs text-red-600"><XCircle className="h-3.5 w-3.5" />{t.common.failure}</span>
