@@ -19,19 +19,20 @@ interface SettingDef {
   max?: number;
 }
 
-const CATEGORY_META: Record<string, { icon: React.ReactNode; label: string; description: string }> = {
-  feature: { icon: <Activity className="h-5 w-5" />, label: "기능 공개", description: "일반 사용자에게 표시할 기능을 제어합니다" },
-  security: { icon: <Shield className="h-5 w-5" />, label: "보안", description: "인증, 세션, 비밀번호 정책을 관리합니다" },
-  notification: { icon: <Bell className="h-5 w-5" />, label: "알림 기준", description: "만료/수명 알림의 기준값을 설정합니다" },
-  asset: { icon: <Package className="h-5 w-5" />, label: "자산 관리", description: "자산 자동 처리 기준을 설정합니다" },
-  finance: { icon: <DollarSign className="h-5 w-5" />, label: "재무", description: "세금 및 비용 계산 기준을 설정합니다" },
-  display: { icon: <Monitor className="h-5 w-5" />, label: "화면 표시", description: "목록 페이지 표시 설정을 관리합니다" },
-};
+type CategoryMeta = Record<string, { icon: React.ReactNode; label: string; description: string }>;
 
 const CATEGORY_ORDER = ["feature", "security", "notification", "asset", "finance", "display"];
 
 export default function FeatureFlagsPage() {
   const { t } = useTranslation();
+  const CATEGORY_META: CategoryMeta = {
+    feature: { icon: <Activity className="h-5 w-5" />, label: t.featureFlag.categoryFeatureLabel, description: t.featureFlag.categoryFeatureDesc },
+    security: { icon: <Shield className="h-5 w-5" />, label: t.featureFlag.categorySecurityLabel, description: t.featureFlag.categorySecurityDesc },
+    notification: { icon: <Bell className="h-5 w-5" />, label: t.featureFlag.categoryNotificationLabel, description: t.featureFlag.categoryNotificationDesc },
+    asset: { icon: <Package className="h-5 w-5" />, label: t.featureFlag.categoryAssetLabel, description: t.featureFlag.categoryAssetDesc },
+    finance: { icon: <DollarSign className="h-5 w-5" />, label: t.featureFlag.categoryFinanceLabel, description: t.featureFlag.categoryFinanceDesc },
+    display: { icon: <Monitor className="h-5 w-5" />, label: t.featureFlag.categoryDisplayLabel, description: t.featureFlag.categoryDisplayDesc },
+  };
   const [definitions, setDefinitions] = useState<SettingDef[]>([]);
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [edited, setEdited] = useState<Record<string, string>>({});
@@ -46,7 +47,7 @@ export default function FeatureFlagsPage() {
         setSettings(data.settings || {});
         setEdited(data.settings || {});
       })
-      .catch(() => toast.error("설정을 불러올 수 없습니다."))
+      .catch(() => toast.error(t.featureFlag.loadFail))
       .finally(() => setLoading(false));
   }, []);
 
@@ -62,9 +63,9 @@ export default function FeatureFlagsPage() {
       if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
       setSettings(prev => ({ ...prev, [key]: newVal }));
       setEdited(prev => ({ ...prev, [key]: newVal }));
-      toast.success("저장됨");
+      toast.success(t.toast.saveSuccess);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "저장 실패");
+      toast.error(e instanceof Error ? e.message : t.toast.saveFail);
     } finally {
       setSaving(null);
     }
@@ -82,9 +83,9 @@ export default function FeatureFlagsPage() {
       });
       if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
       setSettings(prev => ({ ...prev, [key]: val }));
-      toast.success("저장됨");
+      toast.success(t.toast.saveSuccess);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "저장 실패");
+      toast.error(e instanceof Error ? e.message : t.toast.saveFail);
     } finally {
       setSaving(null);
     }
@@ -111,7 +112,7 @@ export default function FeatureFlagsPage() {
         </Link>
         <h1 className="text-2xl font-bold text-gray-900">{t.nav?.featureFlags ?? "기능 설정"}</h1>
         <p className="mt-1 text-sm text-gray-500">
-          시스템 전체 동작을 제어하는 설정을 한 곳에서 관리합니다. 변경 사항은 즉시 적용됩니다.
+          {t.featureFlag.pageDesc}
         </p>
       </div>
 
@@ -152,7 +153,7 @@ export default function FeatureFlagsPage() {
                           <span className="text-sm font-medium text-gray-900">{def.label}</span>
                           {isModified && (
                             <span className="text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full">
-                              미저장
+                              {t.featureFlag.unsaved}
                             </span>
                           )}
                         </div>
@@ -186,7 +187,7 @@ export default function FeatureFlagsPage() {
                               className="w-36 rounded border px-2 py-1 text-sm text-right"
                               placeholder="70, 30, 15, 7"
                             />
-                            <button onClick={() => handleReset(def.key)} className="p-1 text-gray-400 hover:text-gray-600" title="기본값 복원">
+                            <button onClick={() => handleReset(def.key)} className="p-1 text-gray-400 hover:text-gray-600" title={t.featureFlag.resetToDefault}>
                               <RotateCcw className="h-3.5 w-3.5" />
                             </button>
                             <button
@@ -209,7 +210,7 @@ export default function FeatureFlagsPage() {
                               max={def.max}
                               className="w-20 rounded border px-2 py-1 text-sm text-right"
                             />
-                            <button onClick={() => handleReset(def.key)} className="p-1 text-gray-400 hover:text-gray-600" title="기본값 복원">
+                            <button onClick={() => handleReset(def.key)} className="p-1 text-gray-400 hover:text-gray-600" title={t.featureFlag.resetToDefault}>
                               <RotateCcw className="h-3.5 w-3.5" />
                             </button>
                             <button
@@ -234,7 +235,7 @@ export default function FeatureFlagsPage() {
       )}
 
       <div className="mt-8 rounded-lg bg-blue-50 p-4 text-sm text-blue-700">
-        <strong>안내:</strong> 보안/알림 설정 변경은 즉시 적용됩니다. 세션 유효기간 변경은 새 로그인부터 적용됩니다. 기본값 복원 버튼(<RotateCcw className="inline h-3 w-3" />)을 눌러 원래 값으로 되돌릴 수 있습니다.
+        <strong>{t.featureFlag.noticeTitle}:</strong> {t.featureFlag.noticeBody}
       </div>
     </div>
   );

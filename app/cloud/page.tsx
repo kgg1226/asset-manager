@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, Eye, Edit, Trash2, RefreshCw } from "lucide-react";
+import { Plus, Eye, Edit, Trash2, RefreshCw, FileDown, AlertTriangle, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
@@ -19,6 +19,7 @@ interface Asset {
   name: string;
   status: AssetStatus;
   cost?: number | null;
+  monthlyCost?: number | string | null;
   currency: string;
   purchaseDate?: string | null;
   expiryDate?: string | null;
@@ -70,6 +71,7 @@ export default function CloudListPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<AssetStatus | "">("");
+  const [showExpiryBanner, setShowExpiryBanner] = useState(true);
 
   const loadAssets = useCallback(async () => {
     setIsLoading(true);
@@ -96,6 +98,28 @@ export default function CloudListPage() {
     const timer = setTimeout(() => loadAssets(), 300);
     return () => clearTimeout(timer);
   }, [loadAssets]);
+
+  const costForecast = useMemo(() => {
+    const ACTIVE = new Set(["IN_USE", "IN_STOCK"]);
+    const activeAssets = assets.filter((a) => ACTIVE.has(a.status));
+    const toNum = (v: number | string | null | undefined) => {
+      if (v == null) return 0;
+      return typeof v === "number" ? v : parseFloat(String(v)) || 0;
+    };
+    const currentMonthly = activeAssets.reduce((s, a) => s + toNum(a.monthlyCost), 0);
+    const nextMonth = new Date();
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    const nextMonthly = activeAssets
+      .filter((a) => !a.expiryDate || new Date(a.expiryDate) >= nextMonth)
+      .reduce((s, a) => s + toNum(a.monthlyCost), 0);
+    const expiringNextMonth = activeAssets.filter((a) => {
+      if (!a.expiryDate) return false;
+      const exp = new Date(a.expiryDate);
+      const now = new Date();
+      return exp >= now && exp < nextMonth;
+    });
+    return { currentMonthly: Math.round(currentMonthly), nextMonthly: Math.round(nextMonthly), expiringNextMonth };
+  }, [assets]);
 
   const handleDelete = async (id: number, name: string) => {
     if (!confirm(t.toast.confirmDelete)) return;
@@ -124,6 +148,11 @@ export default function CloudListPage() {
               <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             </button>
             {isAdmin && (
+              <a href="/api/export/all?type=CLOUD&format=xlsx" className="flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-600 hover:bg-gray-50" title={t.common.excelExport}>
+                <FileDown className="h-4 w-4" />Excel
+              </a>
+            )}
+            {isAdmin && (
               <Link href="/cloud/new" data-tour="cloud-new-btn" className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
                 <Plus className="h-4 w-4" />
                 {t.cloud.newCloud}
@@ -147,6 +176,69 @@ export default function CloudListPage() {
             ))}
           </div>
         </div>
+
+        {/* 비용 예측 카드 */}
+        {!isLoading && assets.length > 0 && (
+          <div className="mb-4 grid grid-cols-3 gap-3">
+            <div className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-200">
+              <p className="text-xs font-medium text-gray-500 uppercase">{t.cloud.currentMonthEstimate}</p>
+              <p className="mt-1 text-xl font-bold text-gray-900">₩{costForecast.currentMonthly.toLocaleString()}</p>
+              <p className="mt-0.5 text-xs text-gray-400">{t.cloud.activeSubscriptionBasis}</p>
+            </div>
+            <div className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-200">
+              <p className="text-xs font-medium text-gray-500 uppercase">{t.cloud.nextMonthForecast}</p>
+              <p className={`mt-1 text-xl font-bold ${costForecast.nextMonthly < costForecast.currentMonthly ? "text-green-600" : "text-gray-900"}`}>
+                ₩{costForecast.nextMonthly.toLocaleString()}
+              </p>
+              {costForecast.currentMonthly > 0 && (
+                <p className={`mt-0.5 text-xs ${costForecast.nextMonthly < costForecast.currentMonthly ? "text-green-600" : "text-gray-400"}`}>
+                  {costForecast.nextMonthly < costForecast.currentMonthly
+                    ? `▼ ₩${(costForecast.currentMonthly - costForecast.nextMonthly).toLocaleString()} ${t.cloud.decreaseForecast}`
+                    : t.cloud.noChange}
+                </p>
+              )}
+            </div>
+            <div className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-200">
+              <p className="text-xs font-medium text-gray-500 uppercase">{t.cloud.expiringNextMonthSub}</p>
+              <p className="mt-1 text-xl font-bold text-amber-600">{costForecast.expiringNextMonth.length}{t.common.countSuffix}</p>
+              {costForecast.expiringNextMonth.length > 0 && (
+                <p className="mt-0.5 text-xs text-amber-500 truncate">
+                  {costForecast.expiringNextMonth.map((a) => a.name).join(", ")}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* 만료 임박 배너 */}
+        {showExpiryBanner && !isLoading && (() => {
+          const now = new Date();
+          const in30 = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+          const expiring = assets.filter((a) => a.expiryDate && a.status !== "DISPOSED" && new Date(a.expiryDate) >= now && new Date(a.expiryDate) <= in30);
+          if (expiring.length === 0) return null;
+          return (
+            <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-red-800">{t.cloud.expiryBanner} {expiring.length}{t.common.countSuffix}</p>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  {expiring.map((a) => {
+                    const daysLeft = Math.ceil((new Date(a.expiryDate!).getTime() - now.getTime()) / 86400000);
+                    return (
+                      <Link key={a.id} href={`/cloud/${a.id}`} className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700 hover:bg-red-200">
+                        {a.name}
+                        <span className="rounded bg-red-600 px-1 py-0.5 text-[10px] text-white">D-{daysLeft}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+              <button onClick={() => setShowExpiryBanner(false)} className="shrink-0 rounded p-1 text-red-400 hover:bg-red-100">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          );
+        })()}
 
         <div className="overflow-x-auto rounded-lg bg-white shadow-sm">
           <table className="w-full min-w-[800px]">

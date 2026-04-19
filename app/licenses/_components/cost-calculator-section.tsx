@@ -176,11 +176,11 @@ export default function CostCalculatorSection({
           </label>
           {rateSource === "auto" && rateDate && (
             <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-              자동 ({rateDate})
+              {t.classification.autoRateLabel} ({rateDate})
             </span>
           )}
           {rateLoading && (
-            <span className="text-xs text-gray-400">조회 중...</span>
+            <span className="text-xs text-gray-400">{t.classification.loadingRate}</span>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -216,7 +216,7 @@ export default function CostCalculatorSection({
             )}
             {rateSource === null && !rateLoading && (
               <p className="mt-1 text-xs text-gray-400">
-                환율 관리 탭의 데이터를 자동으로 가져옵니다. 직접 입력도 가능합니다.
+                {t.classification.rateHint}
               </p>
             )}
           </>

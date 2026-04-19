@@ -23,7 +23,20 @@ export async function GET(request: NextRequest, { params }: Params) {
       orderBy: { changedAt: "desc" },
     });
 
-    return NextResponse.json(histories);
+    const actorIds = [...new Set(histories.map((h) => h.actorId).filter((id): id is number => id !== null))];
+    const actors = actorIds.length
+      ? await prisma.user.findMany({ where: { id: { in: actorIds } }, select: { id: true, username: true } })
+      : [];
+    const actorMap = Object.fromEntries(actors.map((u) => [u.id, u.username]));
+
+    const result = histories.map((h) => ({
+      ...h,
+      fromStatus: h.fromStatus ?? null,
+      createdAt: h.changedAt.toISOString(),
+      actorName: h.actorId ? (actorMap[h.actorId] ?? null) : null,
+    }));
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error("Failed to fetch renewal history:", error);
     return NextResponse.json({ error: "갱신 이력 조회에 실패했습니다." }, { status: 500 });

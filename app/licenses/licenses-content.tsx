@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { FileDown, AlertTriangle } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { CURRENCY_SYMBOLS } from "@/lib/cost-calculator";
 import DeleteButton from "./delete-button";
@@ -9,6 +10,7 @@ import UnassignButton from "./unassign-button";
 import LicenseRow from "./license-row";
 import { LifecycleGaugeInline } from "@/app/_components/lifecycle-gauge";
 import { useCurrentUser } from "@/lib/hooks/use-current-user";
+import { useEffect, useState } from "react";
 
 type SortField = "name" | "totalQuantity" | "assigned" | "expiryDate";
 type SortOrder = "asc" | "desc";
@@ -77,6 +79,17 @@ export default function LicensesContent({
   const { t, locale } = useTranslation();
   const { isAdmin } = useCurrentUser();
 
+  type RenewalQueueItem = { id: number; name: string; expiryDate: string; renewalStatus: string | null; adminName: string | null };
+  const [renewalQueue, setRenewalQueue] = useState<RenewalQueueItem[]>([]);
+  const [showRenewalQueue, setShowRenewalQueue] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/licenses/renewal-queue?days=60")
+      .then((r) => r.json())
+      .then((data) => setRenewalQueue(data.licenses ?? []))
+      .catch(() => {});
+  }, []);
+
   const SORTABLE_COLUMNS: { key: SortField; label: string }[] = [
     { key: "name", label: t.license.licenseName },
     { key: "totalQuantity", label: t.license.quantity },
@@ -136,15 +149,73 @@ export default function LicensesContent({
           <h1 className="text-2xl font-bold text-gray-900">
             {t.license.title} {t.common.list}
           </h1>
-          {isAdmin && (
-            <Link
-              href="/licenses/new"
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-            >
-              + {t.license.newLicense}
-            </Link>
-          )}
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <a href="/api/export/all?format=xlsx" className="flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-600 hover:bg-gray-50" title={t.header.excelExportAll}>
+                <FileDown className="h-4 w-4" />Excel
+              </a>
+            )}
+            {isAdmin && (
+              <Link
+                href="/licenses/new"
+                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                + {t.license.newLicense}
+              </Link>
+            )}
+          </div>
         </div>
+
+        {/* 갱신 대기 배너 */}
+        {renewalQueue.length > 0 && (
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50">
+            <button
+              type="button"
+              onClick={() => setShowRenewalQueue((v) => !v)}
+              className="flex w-full items-center gap-2 px-4 py-3 text-left"
+            >
+              <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
+              <span className="text-sm font-medium text-amber-800">
+                {t.license.renewalBanner.replace("{N}", String(renewalQueue.length))}
+              </span>
+              <span className="ml-auto text-xs text-amber-600">{showRenewalQueue ? t.common.collapse : t.common.expand}</span>
+            </button>
+            {showRenewalQueue && (
+              <div className="border-t border-amber-200 px-4 pb-3">
+                <table className="mt-2 w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-amber-100">
+                      <th className="pb-1 text-left text-xs font-medium text-amber-700">{t.license.licenseName}</th>
+                      <th className="pb-1 text-left text-xs font-medium text-amber-700">{t.license.expiryDate}</th>
+                      <th className="pb-1 text-left text-xs font-medium text-amber-700">{t.license.adminName}</th>
+                      <th className="pb-1 text-right text-xs font-medium text-amber-700">{t.license.statusChangeCol}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-amber-50">
+                    {renewalQueue.map((lic) => {
+                      const daysLeft = Math.ceil((new Date(lic.expiryDate).getTime() - Date.now()) / 86400000);
+                      return (
+                        <tr key={lic.id}>
+                          <td className="py-1.5">
+                            <Link href={`/licenses/${lic.id}`} className="font-medium text-blue-600 hover:underline">{lic.name}</Link>
+                          </td>
+                          <td className="py-1.5 text-gray-700">
+                            {new Date(lic.expiryDate).toLocaleDateString()}
+                            <span className={`ml-1.5 rounded px-1.5 py-0.5 text-[10px] font-medium ${daysLeft <= 14 ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>D-{daysLeft}</span>
+                          </td>
+                          <td className="py-1.5 text-gray-600">{lic.adminName ?? "—"}</td>
+                          <td className="py-1.5 text-right">
+                            <Link href={`/licenses/${lic.id}#renewal`} className="rounded bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700">{t.license.renewProcess}</Link>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
 
         {licenses.length === 0 ? (
           <div className="rounded-lg bg-white p-12 text-center shadow-sm ring-1 ring-gray-200">

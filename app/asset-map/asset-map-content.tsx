@@ -356,7 +356,8 @@ function AssetNodeComponent({ data, selected }: { data: Record<string, unknown>;
           <AssetIcon type={type} color={colors.icon} size={iconSize} deviceType={deviceType} />
         </div>
 
-        {/* Name — always shown, font scales */}
+        {/* Name — hidden when showLabels=false */}
+        {(data.showLabels !== false) && (
         <div
           className={`font-semibold text-gray-900 truncate text-center w-full ${
             isCompact ? "text-[10px]" : "text-sm"
@@ -364,9 +365,10 @@ function AssetNodeComponent({ data, selected }: { data: Record<string, unknown>;
         >
           {data.label as string}
         </div>
+        )}
 
-        {/* Status + Type row — hidden when tiny */}
-        {!isTiny && (
+        {/* Status + Type row — hidden when tiny or labels off */}
+        {!isTiny && (data.showLabels !== false) && (
           <div className="flex items-center gap-1.5">
             <StatusDot status={status} />
             <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">
@@ -375,16 +377,16 @@ function AssetNodeComponent({ data, selected }: { data: Record<string, unknown>;
           </div>
         )}
 
-        {/* Assignee — hidden when compact */}
-        {!isCompact && assignee && (
+        {/* Assignee — hidden when compact or labels off */}
+        {!isCompact && assignee && (data.showLabels !== false) && (
           <div className="flex items-center gap-1 text-xs text-gray-600">
             <User className="w-3 h-3" />
             <span className="truncate max-w-[140px]">{assignee}</span>
           </div>
         )}
 
-        {/* Cost — hidden when compact */}
-        {!isCompact && costStr && (
+        {/* Cost — hidden when compact or labels off */}
+        {!isCompact && costStr && (data.showLabels !== false) && (
           <div
             className="text-xs font-semibold rounded-md px-2 py-0.5"
             style={{ color: colors.icon, backgroundColor: colors.light }}
@@ -1183,7 +1185,7 @@ function SectionModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-              placeholder="예: Production, DMZ, Internal..."
+              placeholder={`${t.common.examplePrefix}Production, DMZ, Internal...`}
               autoFocus
               required
             />
@@ -2039,6 +2041,8 @@ function AssetMapContentInner() {
   const [showNewWsModal, setShowNewWsModal] = useState(false);
   const [showAssetPalette, setShowAssetPalette] = useState(false);
   const [showEntityPalette, setShowEntityPalette] = useState(false);
+  const [multiSelectedIds, setMultiSelectedIds] = useState<string[]>([]);
+  const [showNodeLabels, setShowNodeLabels] = useState(true);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const viewportSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dirtyRef = useRef(false);
@@ -2906,6 +2910,60 @@ function AssetMapContentInner() {
       // silently fail
     }
   }
+
+  // ── Label visibility toggle ──────────────────────────────────────────
+
+  const handleToggleLabels = useCallback(() => {
+    setShowNodeLabels((prev) => {
+      const next = !prev;
+      setNodes((nds) => nds.map((n) => ({ ...n, data: { ...n.data, showLabels: next } })));
+      return next;
+    });
+  }, [setNodes]);
+
+  // ── Multi-node alignment ──────────────────────────────────────────────
+
+  const onSelectionChange = useCallback(({ nodes: sel }: { nodes: Node[] }) => {
+    setMultiSelectedIds(sel.map((n) => n.id));
+  }, []);
+
+  type AlignDir = "left" | "centerH" | "right" | "top" | "centerV" | "bottom";
+
+  const handleAlignNodes = useCallback((dir: AlignDir) => {
+    const selIds = new Set(multiSelectedIds);
+    const selNodes = nodes.filter((n) => selIds.has(n.id));
+    if (selNodes.length < 2) return;
+
+    const xs = selNodes.map((n) => n.position.x);
+    const ys = selNodes.map((n) => n.position.y);
+    const widths = selNodes.map((n) => (n.measured?.width ?? n.width ?? 160));
+    const heights = selNodes.map((n) => (n.measured?.height ?? n.height ?? 60));
+
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs.map((x, i) => x + widths[i]));
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys.map((y, i) => y + heights[i]));
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+
+    setNodes((nds) =>
+      nds.map((n, idx) => {
+        if (!selIds.has(n.id)) return n;
+        const si = selNodes.findIndex((s) => s.id === n.id);
+        const w = widths[si];
+        const h = heights[si];
+        let x = n.position.x, y = n.position.y;
+        if (dir === "left") x = minX;
+        else if (dir === "right") x = maxX - w;
+        else if (dir === "centerH") x = centerX - w / 2;
+        else if (dir === "top") y = minY;
+        else if (dir === "bottom") y = maxY - h;
+        else if (dir === "centerV") y = centerY - h / 2;
+        return { ...n, position: { x, y } };
+      })
+    );
+    markDirty(500);
+  }, [multiSelectedIds, nodes, setNodes]);
 
   function handleAutoLayout() {
     if (view === "pii") {
@@ -3851,10 +3909,54 @@ function AssetMapContentInner() {
             <Plus className="inline h-3.5 w-3.5 mr-1" />
             {t.assetMap.section}
           </button>
+          <button
+            onClick={handleToggleLabels}
+            title={showNodeLabels ? t.assetMap.hideLabels : t.assetMap.showLabels}
+            className={`rounded-md border px-3 py-1.5 text-xs font-medium ${showNodeLabels ? "border-gray-300 bg-white text-gray-700 hover:bg-gray-50" : "border-gray-400 bg-gray-100 text-gray-500"}`}
+          >
+            {showNodeLabels ? t.assetMap.labelsShowing : t.assetMap.labelsHidden}
+          </button>
           <button onClick={handleAutoLayout} className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">
             <LayoutGrid className="inline h-3.5 w-3.5 mr-1" />
             {t.assetMap.autoLayout}
           </button>
+          {multiSelectedIds.length >= 2 && (
+            <div className="flex items-center gap-0.5 rounded-md border border-indigo-300 bg-indigo-50 px-1.5 py-1">
+              <span className="text-xs text-indigo-500 mr-1">{t.assetMap.align}</span>
+              <button
+                onClick={() => {
+                  const selIds = new Set(multiSelectedIds);
+                  const selNodes = nodes.filter((n) => selIds.has(n.id));
+                  if (selNodes.length < 2) return;
+                  const avgW = Math.round(selNodes.reduce((s, n) => s + (n.measured?.width ?? n.width ?? 160), 0) / selNodes.length);
+                  const avgH = Math.round(selNodes.reduce((s, n) => s + (n.measured?.height ?? n.height ?? 60), 0) / selNodes.length);
+                  setNodes((nds) => nds.map((n) => selIds.has(n.id) ? { ...n, style: { ...n.style, width: avgW, height: avgH } } : n));
+                  markDirty(500);
+                }}
+                title={t.assetMap.alignSize}
+                className="rounded px-2 py-0.5 text-xs text-indigo-700 hover:bg-indigo-100 border-l border-indigo-200 ml-1 pl-2"
+              >
+                {t.assetMap.alignSizeLabel}
+              </button>
+              {([
+                { dir: "left" as const, label: "⇤", title: t.assetMap.alignLeft },
+                { dir: "centerH" as const, label: "↔", title: t.assetMap.alignCenterH },
+                { dir: "right" as const, label: "⇥", title: t.assetMap.alignRight },
+                { dir: "top" as const, label: "⇡", title: t.assetMap.alignTop },
+                { dir: "centerV" as const, label: "↕", title: t.assetMap.alignCenterV },
+                { dir: "bottom" as const, label: "⇣", title: t.assetMap.alignBottom },
+              ] as { dir: "left"|"centerH"|"right"|"top"|"centerV"|"bottom"; label: string; title: string }[]).map(({ dir, label, title }) => (
+                <button
+                  key={dir}
+                  onClick={() => handleAlignNodes(dir)}
+                  title={title}
+                  className="rounded px-2 py-0.5 text-sm text-indigo-700 hover:bg-indigo-100 font-mono"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
           <button
             onClick={handleExportPdf}
             disabled={exporting}
@@ -3955,6 +4057,7 @@ function AssetMapContentInner() {
             onNodeClick={onNodeClick}
             onNodeDoubleClick={onNodeDoubleClick}
             onNodeDragStop={onNodeDragStop}
+            onSelectionChange={onSelectionChange}
             onEdgeDoubleClick={(_e, edge) => setSelectedEdge(edge)}
             onMoveEnd={onMoveEnd}
             nodeTypes={nodeTypes}

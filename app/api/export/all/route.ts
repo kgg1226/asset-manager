@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const format = request.nextUrl.searchParams.get("format") ?? "xlsx";
+    const typeFilter = request.nextUrl.searchParams.get("type"); // HARDWARE | CLOUD | DOMAIN_SSL | SOFTWARE | null
 
     const [licenses, assets, employees] = await Promise.all([
       prisma.license.findMany({
@@ -38,6 +39,7 @@ export async function GET(request: NextRequest) {
         orderBy: { name: "asc" },
       }),
       prisma.asset.findMany({
+        where: typeFilter ? { type: typeFilter as never } : undefined,
         include: {
           assignee: { select: { name: true } },
           orgUnit: { select: { name: true } },

@@ -52,7 +52,7 @@ function ExpiringItemRow({
     e.preventDefault();
     e.stopPropagation();
     if (item.source === "LICENSE") {
-      toast.info("라이선스 알림은 라이선스 상세 페이지에서 발송하세요.");
+      toast.info(t.notification.licenseAlertHint);
       return;
     }
     setNotifying(true);
@@ -60,12 +60,12 @@ function ExpiringItemRow({
       const res = await fetch(`/api/assets/${item.sourceId}/notify`, { method: "POST" });
       const data = await res.json();
       if (res.ok && data.ok) {
-        toast.success(data.message ?? "알림을 발송했습니다.");
+        toast.success(data.message ?? t.notification.alertSentSuccess);
       } else {
-        toast.error(data.message ?? data.error ?? "알림 발송에 실패했습니다.");
+        toast.error(data.message ?? data.error ?? t.notification.alertSentFail);
       }
     } catch {
-      toast.error("네트워크 오류로 알림 발송에 실패했습니다.");
+      toast.error(t.notification.networkFail);
     } finally {
       setNotifying(false);
     }
@@ -77,9 +77,9 @@ function ExpiringItemRow({
     // Navigate to detail page for actual renewal form
     // Just show toast and mark locally as "visited"
     setRenewed(true);
-    toast.success(`${item.name} 갱신 페이지로 이동합니다.`, {
+    toast.success(`${item.name}`, {
       action: {
-        label: "이동",
+        label: t.common.navigate,
         onClick: () => window.location.assign(getLink(item)),
       },
     });
@@ -120,7 +120,7 @@ function ExpiringItemRow({
         <button
           onClick={handleNotify}
           disabled={notifying}
-          title="알림 발송"
+          title={t.notification.sendAlert}
           className="rounded p-1.5 text-gray-400 hover:bg-orange-50 hover:text-orange-600 disabled:opacity-50"
         >
           {notifying ? (
@@ -134,7 +134,7 @@ function ExpiringItemRow({
         <button
           onClick={handleRenewed}
           disabled={renewed}
-          title={renewed ? "갱신 처리됨" : "갱신 완료로 표시"}
+          title={renewed ? t.notification.alreadyRenewed : t.notification.markRenewed}
           className={`rounded p-1.5 disabled:opacity-50 ${
             renewed
               ? "text-green-600"
@@ -164,8 +164,8 @@ export default function ExpiringWidget({ items }: { items: ExpiringItem[] }) {
           {items.length}{t.dashboard.items}
         </span>
         <span className="ml-auto text-xs text-gray-400">
-          <Bell className="mr-1 inline h-3 w-3" />알림발송 &nbsp;
-          <CheckCircle className="mr-1 inline h-3 w-3" />갱신완료
+          <Bell className="mr-1 inline h-3 w-3" />{t.dashboard.legendAlert} &nbsp;
+          <CheckCircle className="mr-1 inline h-3 w-3" />{t.dashboard.legendRenewed}
         </span>
       </div>
       <div className="space-y-2">

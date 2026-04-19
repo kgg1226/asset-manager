@@ -86,7 +86,7 @@ export default function ExternalEntityListPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{t.externalEntity.title}</h1>
             <p className="mt-1 text-sm text-gray-500">
-              {filtered.length}건
+              {filtered.length}{t.common.countSuffix}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -170,7 +170,7 @@ export default function ExternalEntityListPage() {
                     </td>
                     <td className="px-4 py-3 text-gray-600">{entity.description || "-"}</td>
                     <td className="px-4 py-3 text-gray-600">
-                      {entity._count.outgoingLinks + entity._count.incomingLinks}건
+                      {entity._count.outgoingLinks + entity._count.incomingLinks}{t.common.countSuffix}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>

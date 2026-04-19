@@ -1,17 +1,222 @@
 "use client";
 
-import { useState } from "react";
-import { BarChart3, Download, FileSpreadsheet, FileText, Send } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { BarChart3, Download, FileSpreadsheet, FileText, Send, SlidersHorizontal, X, Save, Trash2, Archive, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { useTranslation } from "@/lib/i18n";
 import { TourGuide } from "@/app/_components/tour-guide";
 import { REPORTS_TOUR_KEY, getReportsSteps } from "@/app/_components/tours/reports-tour";
 
+// ── Field / Sheet definitions ──────────────────────────────────────────────
+
+const DETAIL_FIELDS = [
+  { key: "name", label: "Asset Name" },
+  { key: "type", label: "Type" },
+  { key: "status", label: "Status" },
+  { key: "vendor", label: "Vendor" },
+  { key: "monthlyCost", label: "Monthly Cost" },
+  { key: "currency", label: "Currency" },
+  { key: "assignee", label: "Assignee" },
+  { key: "department", label: "Department" },
+  { key: "expiryDate", label: "Expiry Date" },
+  { key: "purchaseDate", label: "Purchase Date" },
+] as const;
+
+const SHEET_OPTIONS = [
+  { key: "Summary", label: "Summary" },
+  { key: "ByType", label: "By Type" },
+  { key: "ByStatus", label: "By Status" },
+  { key: "ByDepartment", label: "By Department" },
+  { key: "Detail", label: "Detail" },
+  { key: "HardwareDetail", label: "Hardware Detail" },
+] as const;
+
+type FieldKey = typeof DETAIL_FIELDS[number]["key"];
+type SheetKey = typeof SHEET_OPTIONS[number]["key"];
+
+const PRESET_STORAGE_KEY = "report-export-presets";
+
+type Preset = { name: string; fields: FieldKey[]; sheets: SheetKey[] };
+
+function loadPresets(): Preset[] {
+  try { return JSON.parse(localStorage.getItem(PRESET_STORAGE_KEY) ?? "[]"); } catch { return []; }
+}
+function savePresets(presets: Preset[]) {
+  localStorage.setItem(PRESET_STORAGE_KEY, JSON.stringify(presets));
+}
+
+// ── Field Picker Modal ─────────────────────────────────────────────────────
+
+function FieldPickerModal({
+  yearMonth,
+  onClose,
+}: {
+  yearMonth: string;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const [fields, setFields] = useState<Set<FieldKey>>(new Set(DETAIL_FIELDS.map((f) => f.key)));
+  const [sheets, setSheets] = useState<Set<SheetKey>>(new Set(SHEET_OPTIONS.map((s) => s.key)));
+  const [presets, setPresets] = useState<Preset[]>([]);
+  const [presetName, setPresetName] = useState("");
+
+  useEffect(() => { setPresets(loadPresets()); }, []);
+
+  function toggleField(key: FieldKey) {
+    setFields((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  }
+
+  function toggleSheet(key: SheetKey) {
+    setSheets((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  }
+
+  function applyPreset(preset: Preset) {
+    setFields(new Set(preset.fields));
+    setSheets(new Set(preset.sheets));
+  }
+
+  function handleSavePreset() {
+    const name = presetName.trim();
+    if (!name) return;
+    const next = [...presets.filter((p) => p.name !== name), { name, fields: [...fields], sheets: [...sheets] }];
+    setPresets(next);
+    savePresets(next);
+    setPresetName("");
+  }
+
+  function handleDeletePreset(name: string) {
+    const next = presets.filter((p) => p.name !== name);
+    setPresets(next);
+    savePresets(next);
+  }
+
+  function buildUrl() {
+    const params = new URLSearchParams();
+    if (fields.size < DETAIL_FIELDS.length) params.set("fields", [...fields].join(","));
+    if (sheets.size < SHEET_OPTIONS.length) params.set("sheets", [...sheets].join(","));
+    const qs = params.toString();
+    return `/api/reports/monthly/${yearMonth}/excel${qs ? `?${qs}` : ""}`;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-lg rounded-xl bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal className="h-4 w-4 text-blue-600" />
+            <span className="font-semibold text-gray-900">{t.report.customExport}</span>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="h-4 w-4" /></button>
+        </div>
+
+        <div className="px-5 py-4 space-y-5 max-h-[70vh] overflow-y-auto">
+          {/* Presets */}
+          {presets.length > 0 && (
+            <div>
+              <p className="text-xs font-medium uppercase text-gray-500 mb-2">{t.report.savedPresets}</p>
+              <div className="flex flex-wrap gap-2">
+                {presets.map((p) => (
+                  <div key={p.name} className="flex items-center gap-1 rounded-full border border-gray-300 px-2.5 py-1 text-xs">
+                    <button onClick={() => applyPreset(p)} className="text-gray-700 hover:text-blue-600">{p.name}</button>
+                    <button onClick={() => handleDeletePreset(p.name)} className="text-gray-300 hover:text-red-400"><Trash2 className="h-3 w-3" /></button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Sheets */}
+          <div>
+            <p className="text-xs font-medium uppercase text-gray-500 mb-2">{t.report.includeSheets}</p>
+            <div className="grid grid-cols-2 gap-2">
+              {SHEET_OPTIONS.map((s) => (
+                <label key={s.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={sheets.has(s.key)}
+                    onChange={() => toggleSheet(s.key)}
+                    className="rounded border-gray-300"
+                  />
+                  {s.label}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Detail Fields */}
+          {sheets.has("Detail") && (
+            <div>
+              <p className="text-xs font-medium uppercase text-gray-500 mb-2">{t.report.detailSheetColumns}</p>
+              <div className="grid grid-cols-2 gap-2">
+                {DETAIL_FIELDS.map((f) => (
+                  <label key={f.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={fields.has(f.key)}
+                      onChange={() => toggleField(f.key)}
+                      className="rounded border-gray-300"
+                    />
+                    {f.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Save preset */}
+          <div>
+            <p className="text-xs font-medium uppercase text-gray-500 mb-2">{t.report.savedPresets}</p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={presetName}
+                onChange={(e) => setPresetName(e.target.value)}
+                placeholder={t.report.presetNamePlaceholder}
+                className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
+              />
+              <button
+                onClick={handleSavePreset}
+                disabled={!presetName.trim()}
+                className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+              >
+                <Save className="h-3.5 w-3.5" />
+                {t.common.save}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t border-gray-200 px-5 py-4 flex justify-end gap-2">
+          <button onClick={onClose} className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">
+            {t.common.cancel}
+          </button>
+          <a
+            href={buildUrl()}
+            onClick={onClose}
+            className="inline-flex items-center gap-1.5 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            {t.report.excelDownload}
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 type ReportData = {
   period: string;
   startDate: string;
   endDate: string;
-  summary: { totalMonthlyCost: number; assetCount: number; currency: string };
+  summary: { totalMonthlyCost: number; assetCount: number; currency: string; prevMonthlyCost?: number };
   byType: { type: string; count: number; cost: number }[];
   byDepartment: { department: string; count: number; cost: number }[];
   expiringCount: number;
@@ -31,6 +236,7 @@ export default function ReportsPage() {
     CLOUD: t.cloud.title,
     HARDWARE: t.hw.title,
     DOMAIN_SSL: t.domain.title,
+    CONTRACT: t.contract.title,
     OTHER: t.hw.other,
   };
   const [yearMonth, setYearMonth] = useState(getCurrentYearMonth());
@@ -40,6 +246,26 @@ export default function ReportsPage() {
   const [emailInput, setEmailInput] = useState("");
   const [emailSending, setEmailSending] = useState(false);
   const [emailResult, setEmailResult] = useState<string | null>(null);
+  const [showFieldPicker, setShowFieldPicker] = useState(false);
+
+  type ArchiveItem = {
+    id: number; yearMonth: string; status: string; trigger: string;
+    createdAt: string; completedAt: string | null;
+    data: { dataType: string; recordCount: number }[];
+  };
+  const [archives, setArchives] = useState<ArchiveItem[]>([]);
+
+  const fetchArchives = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/archives?yearMonth=${yearMonth}&limit=5`);
+      if (res.ok) {
+        const json = await res.json();
+        setArchives(json.items ?? []);
+      }
+    } catch { /* ignore */ }
+  }, [yearMonth]);
+
+  useEffect(() => { fetchArchives(); }, [fetchArchives]);
 
   async function fetchReport() {
     setLoading(true);
@@ -88,6 +314,14 @@ export default function ReportsPage() {
             <h1 className="text-2xl font-bold text-gray-900">{t.report.monthlyReport}</h1>
             <TourGuide tourKey={REPORTS_TOUR_KEY} steps={getReportsSteps(t)} />
           </div>
+          <a
+            href="/api/reports/asset-register"
+            className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100"
+            title={t.report.assetRegisterTooltip}
+          >
+            <Download className="h-4 w-4" />
+            {t.report.assetRegisterTitle}
+          </a>
         </div>
 
         {/* 월 선택 */}
@@ -118,6 +352,14 @@ export default function ReportsPage() {
                 <FileSpreadsheet className="h-4 w-4" />
                 Excel
               </a>
+              <button
+                onClick={() => setShowFieldPicker(true)}
+                className="inline-flex items-center gap-1.5 rounded-md border border-green-600 bg-green-50 px-3 py-2 text-sm font-medium text-green-700 hover:bg-green-100"
+                title={t.report.customExport}
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                {t.report.customExport}
+              </button>
               <a
                 href={`/api/reports/monthly/${yearMonth}/pdf`}
                 className="inline-flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
@@ -150,6 +392,7 @@ export default function ReportsPage() {
                 label={t.report.totalMonthlyCost}
                 value={`₩${data.summary.totalMonthlyCost.toLocaleString()}`}
                 highlight
+                prevValue={data.summary.prevMonthlyCost}
               />
               <SummaryCard label={t.report.assetCount} value={`${data.summary.assetCount}${t.dashboard.items}`} />
             </div>
@@ -252,6 +495,40 @@ export default function ReportsPage() {
           </>
         )}
 
+        {/* 증적 이력 */}
+        {archives.length > 0 && (
+          <div className="mt-6 rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-base font-semibold text-gray-900">
+                <Archive className="h-4 w-4 text-purple-500" />
+                {t.report.evidenceHistory} ({yearMonth})
+              </h2>
+              <a href="/admin/archives" className="text-xs text-purple-600 hover:underline">{t.report.viewAll}</a>
+            </div>
+            <div className="space-y-2">
+              {archives.map((a) => (
+                <div key={a.id} className="flex items-center gap-3 rounded-md border border-gray-100 px-4 py-2.5 text-sm">
+                  {a.status === "COMPLETED" ? (
+                    <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                  ) : a.status === "FAILED" ? (
+                    <AlertCircle className="h-4 w-4 text-red-500 shrink-0" />
+                  ) : (
+                    <Clock className="h-4 w-4 text-yellow-500 shrink-0" />
+                  )}
+                  <span className="font-medium text-gray-900">{a.yearMonth}</span>
+                  <span className="text-gray-400">·</span>
+                  <span className="text-gray-600">{a.data.find((d) => d.dataType === "assets")?.recordCount ?? 0}{t.report.countSuffix}</span>
+                  <span className="text-gray-400">·</span>
+                  <span className="text-gray-500">{a.trigger === "manual" ? t.common.manual : t.common.auto}</span>
+                  <span className="ml-auto text-xs text-gray-400">
+                    {new Date(a.createdAt).toLocaleString("ko-KR")}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {!data && !loading && !error && (
           <div className="rounded-lg bg-white p-12 text-center shadow-sm ring-1 ring-gray-200">
             <BarChart3 className="mx-auto h-12 w-12 text-gray-300" />
@@ -259,15 +536,38 @@ export default function ReportsPage() {
           </div>
         )}
       </div>
+
+      {showFieldPicker && (
+        <FieldPickerModal yearMonth={yearMonth} onClose={() => setShowFieldPicker(false)} />
+      )}
     </div>
   );
 }
 
-function SummaryCard({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+function SummaryCard({ label, value, highlight, prevValue }: { label: string; value: string; highlight?: boolean; prevValue?: number }) {
+  const { t } = useTranslation();
+  let changeLine: React.ReactNode = null;
+  if (prevValue !== undefined) {
+    const curr = parseFloat(value.replace(/[₩,]/g, "")) || 0;
+    const diff = curr - prevValue;
+    const pct = prevValue > 0 ? ((diff / prevValue) * 100).toFixed(1) : null;
+    if (Math.abs(diff) > 0) {
+      const up = diff > 0;
+      changeLine = (
+        <p className={`mt-1 text-xs font-medium ${up ? "text-red-500" : "text-green-600"}`}>
+          {up ? "▲" : "▼"} ₩{Math.abs(diff).toLocaleString()}{pct ? ` (${up ? "+" : ""}${pct}%)` : ""}
+          <span className="ml-1 text-gray-400 font-normal">{t.report.vsLastMonth}</span>
+        </p>
+      );
+    } else {
+      changeLine = <p className="mt-1 text-xs text-gray-400">{t.report.sameAsLastMonth}</p>;
+    }
+  }
   return (
     <div className={`rounded-lg p-4 shadow-sm ring-1 ${highlight ? "bg-blue-50 ring-blue-200" : "bg-white ring-gray-200"}`}>
       <p className="text-xs font-medium uppercase text-gray-500">{label}</p>
       <p className={`mt-1 text-xl font-bold ${highlight ? "text-blue-700" : "text-gray-900"}`}>{value}</p>
+      {changeLine}
     </div>
   );
 }

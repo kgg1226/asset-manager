@@ -261,7 +261,7 @@ export default function AssetClassificationsPage() {
                 <input
                   type="text" value={majorForm.name}
                   onChange={(e) => setMajorForm((p) => ({ ...p, name: e.target.value }))}
-                  placeholder="예: 클라우드"
+                  placeholder={`${t.common.examplePrefix}Cloud`}
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
                 />
               </div>
@@ -272,7 +272,7 @@ export default function AssetClassificationsPage() {
                 <input
                   type="text" value={majorForm.code}
                   onChange={(e) => setMajorForm((p) => ({ ...p, code: e.target.value.toUpperCase() }))}
-                  placeholder="예: CL" maxLength={10}
+                  placeholder={`${t.common.examplePrefix}CL`} maxLength={10}
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm font-mono focus:border-indigo-500 focus:outline-none"
                 />
               </div>
@@ -281,7 +281,7 @@ export default function AssetClassificationsPage() {
                 <input
                   type="text" value={majorForm.abbr}
                   onChange={(e) => setMajorForm((p) => ({ ...p, abbr: e.target.value }))}
-                  placeholder="예: CLoud"
+                  placeholder={`${t.common.examplePrefix}CLoud`}
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
                 />
               </div>
@@ -376,7 +376,7 @@ export default function AssetClassificationsPage() {
                               </label>
                               <input type="text" value={subForm.name}
                                 onChange={(e) => setSubForm((p) => ({ ...p, name: e.target.value }))}
-                                placeholder="예: Security Group"
+                                placeholder={`${t.common.examplePrefix}Security Group`}
                                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none" />
                             </div>
                             <div>
@@ -385,7 +385,7 @@ export default function AssetClassificationsPage() {
                               </label>
                               <input type="text" value={subForm.code}
                                 onChange={(e) => setSubForm((p) => ({ ...p, code: e.target.value.toUpperCase() }))}
-                                placeholder="예: SG" maxLength={10}
+                                placeholder={`${t.common.examplePrefix}SG`} maxLength={10}
                                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm font-mono focus:border-indigo-500 focus:outline-none" />
                             </div>
                             <div className="sm:col-span-2">

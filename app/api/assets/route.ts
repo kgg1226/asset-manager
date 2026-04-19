@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
       if (typeVal === "HARDWARE" && body.hardwareDetail?.assetTag) {
         const tag = vStr(body.hardwareDetail.assetTag, 100);
         if (tag) {
-          const existing = await tx.hardwareDetail.findUnique({
+          const existing = await tx.hardwareDetail.findFirst({
             where: { assetTag: tag },
             include: { asset: true },
           });

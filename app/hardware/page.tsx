@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Plus, Eye, Edit, Trash2, RefreshCw, ChevronUp, ChevronDown, Keyboard } from "lucide-react";
+import { Plus, Eye, Edit, Trash2, RefreshCw, ChevronUp, ChevronDown, Keyboard, FileDown, Tag, Printer, AlertTriangle, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
@@ -21,7 +21,7 @@ interface Asset {
   purchaseDate?: string | null; expiryDate?: string | null;
   ciaC?: number | null; ciaI?: number | null; ciaA?: number | null;
   assignee?: { id: number; name: string } | null;
-  hardwareDetail?: { assetTag?: string | null; deviceType?: string | null; manufacturer?: string | null; model?: string | null; condition?: string | null } | null;
+  hardwareDetail?: { assetTag?: string | null; deviceType?: string | null; manufacturer?: string | null; model?: string | null; condition?: string | null; usefulLifeYears?: number | null } | null;
 }
 
 const STATUS_KEYS: Record<AssetStatus, string> = { IN_STOCK: "statusInStock", IN_USE: "statusInUse", INACTIVE: "statusInactive", UNUSABLE: "statusUnusable", PENDING_DISPOSAL: "statusPendingDisposal", DISPOSED: "statusDisposed" };
@@ -104,6 +104,13 @@ export default function HardwareListPage() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [showShortcutHint, setShowShortcutHint] = useState(false);
+  const [showBulkTagModal, setShowBulkTagModal] = useState(false);
+  const [bulkTagDraft, setBulkTagDraft] = useState<Record<number, string>>({});
+  const [bulkTagSaving, setBulkTagSaving] = useState(false);
+  const [showBulkStatusModal, setShowBulkStatusModal] = useState(false);
+  const [showExpiryBanner, setShowExpiryBanner] = useState(true);
+  const [bulkStatusTarget, setBulkStatusTarget] = useState<AssetStatus>("IN_STOCK");
+  const [bulkStatusSaving, setBulkStatusSaving] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const toggleSelect = (id: number) => {
@@ -117,9 +124,68 @@ export default function HardwareListPage() {
     if (selectedIds.size === sortedAssets.length) setSelectedIds(new Set());
     else setSelectedIds(new Set(sortedAssets.map(a => a.id)));
   };
+  const openBulkTagModal = () => {
+    const draft: Record<number, string> = {};
+    for (const id of selectedIds) {
+      const asset = sortedAssets.find((a) => a.id === id);
+      draft[id] = asset?.hardwareDetail?.assetTag ?? "";
+    }
+    setBulkTagDraft(draft);
+    setShowBulkTagModal(true);
+  };
+
+  const handleBulkTagSave = async () => {
+    setBulkTagSaving(true);
+    try {
+      const entries = Object.entries(bulkTagDraft).map(([id, assetTag]) => ({ id: Number(id), assetTag }));
+      const res = await fetch("/api/assets/bulk-tag", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ entries }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(`${data.updated}${t.hw.bulkTagSuccess}`);
+        setShowBulkTagModal(false);
+        setSelectedIds(new Set());
+        await loadAssets();
+      } else {
+        const err = await res.json().catch(() => ({ error: t.toast.updateFail }));
+        toast.error(err.error || t.toast.updateFail);
+      }
+    } catch {
+      toast.error(t.toast.networkError);
+    }
+    setBulkTagSaving(false);
+  };
+
+  const handleBulkStatusSave = async () => {
+    setBulkStatusSaving(true);
+    try {
+      const res = await fetch("/api/assets/bulk-status", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: Array.from(selectedIds), status: bulkStatusTarget }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(`${data.updated}${t.hw.bulkStatusSuccess}`);
+        setShowBulkStatusModal(false);
+        setSelectedIds(new Set());
+        await loadAssets();
+      } else {
+        const err = await res.json().catch(() => ({ error: t.toast.updateFail }));
+        toast.error(err.error || t.toast.updateFail);
+      }
+    } catch {
+      toast.error(t.toast.networkError);
+    }
+    setBulkStatusSaving(false);
+  };
+
   const handleBulkDelete = async () => {
     if (selectedIds.size === 0) return;
-    if (!confirm(`${selectedIds.size}개 자산을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) return;
+    if (!confirm(`${selectedIds.size}${t.hw.bulkDeleteConfirm}`)) return;
     setBulkDeleting(true);
     try {
       const res = await fetch("/api/assets/bulk-delete", {
@@ -129,13 +195,13 @@ export default function HardwareListPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        toast.success(`${data.deleted}개 삭제 완료${data.notFound > 0 ? ` (${data.notFound}개 미발견)` : ""}`);
+        toast.success(`${data.deleted}${t.hw.bulkDeleteSuccess}${data.notFound > 0 ? ` (${data.notFound}${t.hw.bulkDeleteNotFound})` : ""}`);
       } else {
-        const err = await res.json().catch(() => ({ error: "삭제 실패" }));
-        toast.error(err.error || "삭제에 실패했습니다.");
+        const err = await res.json().catch(() => ({ error: t.toast.deleteFail }));
+        toast.error(err.error || t.toast.deleteFail);
       }
     } catch {
-      toast.error("네트워크 오류로 삭제에 실패했습니다.");
+      toast.error(t.toast.networkError);
     }
     setSelectedIds(new Set());
     setBulkDeleting(false);
@@ -226,6 +292,26 @@ export default function HardwareListPage() {
 
   const sortedAssets = useMemo(() => sortAssets(assets, sortField, sortOrder), [assets, sortField, sortOrder]);
 
+  const depreciationSummary = useMemo(() => {
+    const now = Date.now();
+    let totalCost = 0, totalBookValue = 0, fullyDepreciated = 0, overHalf = 0, underHalf = 0, noData = 0;
+    for (const a of assets) {
+      if (!a.cost || !a.purchaseDate) { noData++; continue; }
+      const cost = a.cost;
+      const lifeMo = (a.hardwareDetail?.usefulLifeYears ?? 5) * 12;
+      const elapsedMo = Math.max(0, (now - new Date(a.purchaseDate).getTime()) / (1000 * 60 * 60 * 24 * 30.44));
+      const depr = Math.min(cost, (cost / lifeMo) * elapsedMo);
+      const bv = Math.max(0, cost - depr);
+      const pct = cost > 0 ? depr / cost : 0;
+      totalCost += cost;
+      totalBookValue += bv;
+      if (pct >= 1) fullyDepreciated++;
+      else if (pct >= 0.5) overHalf++;
+      else underHalf++;
+    }
+    return { totalCost: Math.round(totalCost), totalBookValue: Math.round(totalBookValue), fullyDepreciated, overHalf, underHalf, noData };
+  }, [assets]);
+
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return <span className="ml-1 text-gray-300">⇅</span>;
     return sortOrder === "asc" ? <ChevronUp className="ml-0.5 inline h-3 w-3 text-blue-600" /> : <ChevronDown className="ml-0.5 inline h-3 w-3 text-blue-600" />;
@@ -252,24 +338,30 @@ export default function HardwareListPage() {
               <button
                 onClick={() => setShowShortcutHint((v) => !v)}
                 className="flex items-center gap-1 rounded-md border border-gray-300 px-2 py-2 text-sm text-gray-500 hover:bg-gray-50"
-                title="키보드 단축키 (? 키)"
+                title={t.hw.keyboardShortcuts}
               >
                 <Keyboard className="h-4 w-4" />
               </button>
               {showShortcutHint && (
                 <div className="absolute right-0 top-full z-10 mt-1 w-52 rounded-lg border border-gray-200 bg-white p-3 shadow-lg text-xs text-gray-600 space-y-1">
-                  <p className="font-semibold text-gray-800 mb-2">키보드 단축키</p>
-                  {isAdmin && <p><kbd className="rounded border border-gray-300 bg-gray-100 px-1">N</kbd> — 신규 자산 등록</p>}
-                  {isAdmin && <p><kbd className="rounded border border-gray-300 bg-gray-100 px-1">E</kbd> — 선택 항목 편집</p>}
-                  <p><kbd className="rounded border border-gray-300 bg-gray-100 px-1">Esc</kbd> — 선택 해제</p>
-                  <p><kbd className="rounded border border-gray-300 bg-gray-100 px-1">/</kbd> — 검색 포커스</p>
-                  <p><kbd className="rounded border border-gray-300 bg-gray-100 px-1">?</kbd> — 이 도움말</p>
+                  <p className="font-semibold text-gray-800 mb-2">{t.hw.shortcutTitle}</p>
+                  {isAdmin && <p><kbd className="rounded border border-gray-300 bg-gray-100 px-1">N</kbd> — {t.hw.shortcutNew}</p>}
+                  {isAdmin && <p><kbd className="rounded border border-gray-300 bg-gray-100 px-1">E</kbd> — {t.hw.shortcutEdit}</p>}
+                  <p><kbd className="rounded border border-gray-300 bg-gray-100 px-1">Esc</kbd> — {t.hw.shortcutDeselect}</p>
+                  <p><kbd className="rounded border border-gray-300 bg-gray-100 px-1">/</kbd> — {t.hw.shortcutSearch}</p>
+                  <p><kbd className="rounded border border-gray-300 bg-gray-100 px-1">?</kbd> — {t.hw.shortcutHelp}</p>
                 </div>
               )}
             </div>
             <button onClick={loadAssets} disabled={isLoading} className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
               <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             </button>
+            {isAdmin && (
+              <a href="/api/export/all?type=HARDWARE&format=xlsx" className="flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-600 hover:bg-gray-50" title={t.common.excelExport}>
+                <FileDown className="h-4 w-4" />
+                Excel
+              </a>
+            )}
             {isAdmin && (
               <Link href="/hardware/new" data-tour="hw-new-btn" className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
                 <Plus className="h-4 w-4" />{t.hw.newHardware}
@@ -280,7 +372,7 @@ export default function HardwareListPage() {
 
         <div className="mb-6 rounded-lg bg-white p-4 shadow-sm">
           <div className="mb-4" data-tour="hw-search">
-            <input ref={searchInputRef} type="text" placeholder={`${t.asset.assetName} ${t.common.search}... (/ 단축키)`} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
+            <input ref={searchInputRef} type="text" placeholder={`${t.asset.assetName} ${t.common.search}...${t.hw.shortcutKeySuffix}`} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
           </div>
           <div className="flex flex-wrap gap-2" data-tour="hw-status-filter">
             <button onClick={() => setSelectedStatus("")} className={`rounded-full px-3 py-1 text-sm ${selectedStatus === "" ? "bg-blue-600 text-white" : "bg-gray-100"}`}>{t.common.all} {t.common.status}</button>
@@ -290,27 +382,210 @@ export default function HardwareListPage() {
           </div>
         </div>
 
-        {/* 대량 삭제 바 */}
+        {/* 일괄 작업 바 */}
         {isAdmin && selectedIds.size > 0 && (
-          <div className="mb-2 flex items-center gap-3 rounded-lg bg-red-50 border border-red-200 px-4 py-2">
-            <span className="text-sm font-medium text-red-700">{selectedIds.size}개 선택</span>
+          <div className="mb-2 flex items-center gap-3 rounded-lg bg-blue-50 border border-blue-200 px-4 py-2">
+            <span className="text-sm font-medium text-blue-700">{selectedIds.size}{t.hw.selectedCount}</span>
+            <button
+              onClick={openBulkTagModal}
+              className="flex items-center gap-1.5 rounded bg-blue-600 px-3 py-1 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              <Tag className="h-3.5 w-3.5" />{t.hw.bulkTagEdit}
+            </button>
+            <button
+              onClick={() => setShowBulkStatusModal(true)}
+              className="flex items-center gap-1.5 rounded border border-gray-300 bg-white px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
+            >
+              {t.hw.bulkStatusChangeTitle}
+            </button>
+            <button
+              onClick={() => window.open(`/hardware/print-labels?ids=${[...selectedIds].join(",")}`, "_blank")}
+              className="flex items-center gap-1.5 rounded border border-gray-300 bg-white px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
+            >
+              <Printer className="h-3.5 w-3.5" />{t.hw.labelPrint}
+            </button>
             <button
               onClick={handleBulkDelete}
               disabled={bulkDeleting}
               className="rounded bg-red-600 px-3 py-1 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
             >
-              {bulkDeleting ? "삭제 중..." : "선택 삭제"}
+              {bulkDeleting ? t.common.deleting : t.hw.bulkDelete}
             </button>
-            <button onClick={() => setSelectedIds(new Set())} className="text-sm text-gray-500 hover:text-gray-700">선택 해제</button>
+            <button onClick={() => setSelectedIds(new Set())} className="text-sm text-gray-500 hover:text-gray-700">{t.hw.deselectAll}</button>
           </div>
         )}
+
+        {/* 태그 일괄 편집 모달 */}
+        {showBulkTagModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="w-full max-w-lg rounded-xl bg-white shadow-2xl">
+              <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+                <div className="flex items-center gap-2">
+                  <Tag className="h-4 w-4 text-blue-600" />
+                  <h2 className="text-base font-semibold text-gray-900">{t.hw.bulkTagEditTitle}</h2>
+                  <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">{selectedIds.size}</span>
+                </div>
+                <button onClick={() => setShowBulkTagModal(false)} className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600">✕</button>
+              </div>
+              <div className="max-h-80 overflow-y-auto px-6 py-3">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100">
+                      <th className="pb-2 text-left text-xs font-medium text-gray-500">{t.asset.assetName}</th>
+                      <th className="pb-2 text-left text-xs font-medium text-gray-500">{t.hw.assetTag}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {[...selectedIds].map((id) => {
+                      const asset = sortedAssets.find((a) => a.id === id);
+                      return (
+                        <tr key={id}>
+                          <td className="py-2 pr-3 text-gray-700 max-w-[180px] truncate">{asset?.name ?? `#${id}`}</td>
+                          <td className="py-2">
+                            <input
+                              type="text"
+                              value={bulkTagDraft[id] ?? ""}
+                              onChange={(e) => setBulkTagDraft((prev) => ({ ...prev, [id]: e.target.value }))}
+                              placeholder={t.hw.noTags}
+                              className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex justify-end gap-2 border-t border-gray-200 px-6 py-4">
+                <button onClick={() => setShowBulkTagModal(false)} className="rounded px-4 py-2 text-sm text-gray-600 hover:bg-gray-100">{t.common.cancel}</button>
+                <button
+                  onClick={handleBulkTagSave}
+                  disabled={bulkTagSaving}
+                  className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {bulkTagSaving ? t.hw.bulkTagSaving : t.hw.bulkTagSave}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 감가상각 현황 요약 */}
+        {!isLoading && assets.length > 0 && depreciationSummary.totalCost > 0 && (
+          <div className="mb-4 rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-200">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-sm font-semibold text-gray-700">{t.hw.depreciationStatus}</p>
+              <p className="text-xs text-gray-400">{t.hw.straight5Year}</p>
+            </div>
+            <div className="grid grid-cols-4 gap-3">
+              <div>
+                <p className="text-[10px] text-gray-400 uppercase font-medium">{t.hw.totalAcquisitionCost}</p>
+                <p className="text-base font-bold text-gray-900">₩{depreciationSummary.totalCost.toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-gray-400 uppercase font-medium">{t.hw.currentBookValue}</p>
+                <p className="text-base font-bold text-blue-600">₩{depreciationSummary.totalBookValue.toLocaleString()}</p>
+                <p className="text-[10px] text-gray-400">
+                  {depreciationSummary.totalCost > 0 ? Math.round((depreciationSummary.totalBookValue / depreciationSummary.totalCost) * 100) : 0}% {t.hw.remainingSuffix}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] text-gray-400 uppercase font-medium">{t.hw.accumulatedDep}</p>
+                <p className="text-base font-bold text-amber-600">₩{(depreciationSummary.totalCost - depreciationSummary.totalBookValue).toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-gray-400 uppercase font-medium">{t.hw.countByStatus}</p>
+                <div className="flex gap-2 text-xs mt-0.5">
+                  <span className="rounded bg-green-100 px-1.5 py-0.5 text-green-700">{depreciationSummary.underHalf}{t.common.countSuffix} {t.hw.depGood}</span>
+                  <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-700">{depreciationSummary.overHalf}{t.common.countSuffix} {t.hw.depOver50}</span>
+                  <span className="rounded bg-red-100 px-1.5 py-0.5 text-red-700">{depreciationSummary.fullyDepreciated}{t.common.countSuffix} {t.hw.depComplete}</span>
+                </div>
+              </div>
+            </div>
+            {/* Depreciation bar */}
+            <div className="mt-3">
+              <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                <div className="h-2 rounded-full bg-blue-500 transition-all" style={{ width: `${Math.round((depreciationSummary.totalBookValue / depreciationSummary.totalCost) * 100)}%` }} />
+              </div>
+              <p className="mt-1 text-[10px] text-gray-400 text-right">{t.hw.bookValueRatio}</p>
+            </div>
+          </div>
+        )}
+
+        {/* 상태 일괄 변경 모달 */}
+        {showBulkStatusModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="w-80 rounded-xl bg-white shadow-2xl">
+              <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-semibold text-gray-900">{t.hw.bulkStatusChangeTitle}</h2>
+                  <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">{selectedIds.size}</span>
+                </div>
+                <button onClick={() => setShowBulkStatusModal(false)} className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600">✕</button>
+              </div>
+              <div className="px-6 py-4">
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">{t.hw.changeStatusLabel}</label>
+                <select
+                  value={bulkStatusTarget}
+                  onChange={(e) => setBulkStatusTarget(e.target.value as AssetStatus)}
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {(Object.keys(STATUS_KEYS) as AssetStatus[]).map((s) => (
+                    <option key={s} value={s}>{getStatusLabel(s)}</option>
+                  ))}
+                </select>
+                <p className="mt-2 text-xs text-gray-500">{selectedIds.size}{t.hw.statusChangeDesc}</p>
+              </div>
+              <div className="flex justify-end gap-2 border-t border-gray-200 px-6 py-4">
+                <button onClick={() => setShowBulkStatusModal(false)} className="rounded px-4 py-2 text-sm text-gray-600 hover:bg-gray-100">{t.common.cancel}</button>
+                <button
+                  onClick={handleBulkStatusSave}
+                  disabled={bulkStatusSaving}
+                  className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {bulkStatusSaving ? t.hw.bulkStatusChanging : t.hw.bulkStatusChange}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 보증 만료 임박 배너 */}
+        {showExpiryBanner && !isLoading && (() => {
+          const now = new Date();
+          const in30 = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+          const expiring = assets.filter((a) => a.expiryDate && a.status !== "DISPOSED" && new Date(a.expiryDate) >= now && new Date(a.expiryDate) <= in30);
+          if (expiring.length === 0) return null;
+          return (
+            <div className="mb-4 flex items-start gap-3 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-orange-500" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-orange-800">{t.hw.warrantyExpiryBanner} {expiring.length}{t.common.countSuffix}</p>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  {expiring.map((a) => {
+                    const daysLeft = Math.ceil((new Date(a.expiryDate!).getTime() - now.getTime()) / 86400000);
+                    return (
+                      <Link key={a.id} href={`/hardware/${a.id}`} className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-700 hover:bg-orange-200">
+                        {a.name}
+                        <span className="rounded bg-orange-600 px-1 py-0.5 text-[10px] text-white">D-{daysLeft}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+              <button onClick={() => setShowExpiryBanner(false)} className="shrink-0 rounded p-1 text-orange-400 hover:bg-orange-100">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          );
+        })()}
 
         <div className="overflow-x-auto rounded-lg bg-white shadow-sm" data-tour="hw-table">
           <table className="w-full min-w-[900px]">
             <thead className="border-b bg-gray-50">
               <tr>
                 {isAdmin && <th className="w-10 px-3 py-3"><input type="checkbox" checked={selectedIds.size > 0 && selectedIds.size === sortedAssets.length} onChange={toggleAll} className="h-4 w-4 rounded border-gray-300" /></th>}
-                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("assetTag")}>{t.hw.assetTag ?? "자산태그"}<SortIcon field="assetTag" /></th>
+                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("assetTag")}>{t.hw.assetTag}<SortIcon field="assetTag" /></th>
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("name")}>{t.asset.assetName}<SortIcon field="name" /></th>
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("deviceType")}>{t.hw.deviceType}<SortIcon field="deviceType" /></th>
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("manufacturer")}>{t.hw.manufacturer} / {t.hw.model}<SortIcon field="manufacturer" /></th>

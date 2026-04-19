@@ -14,6 +14,7 @@ import {
   Legend,
   AreaChart,
   Area,
+  ReferenceLine,
 } from "recharts";
 import { useTranslation } from "@/lib/i18n";
 import type {
@@ -22,6 +23,7 @@ import type {
   StatusDistPoint,
   GrowthPoint,
 } from "@/lib/dashboard-aggregator";
+import { useState } from "react";
 
 // ── Colors ──
 
@@ -53,18 +55,25 @@ function CostTooltip({
   active,
   payload,
   label,
+  mode,
 }: {
   active?: boolean;
-  payload?: { value: number }[];
+  payload?: { value: number; payload?: { delta?: number } }[];
   label?: string;
+  mode?: "monthly" | "cumulative";
 }) {
   if (!active || !payload?.length) return null;
+  const val = payload[0].value;
+  const delta = payload[0].payload?.delta;
   return (
     <div className="rounded-lg bg-white p-3 shadow-lg ring-1 ring-gray-200 text-sm">
       <p className="mb-1 font-medium text-gray-700">{label}</p>
-      <p className="text-blue-600 font-semibold">
-        ₩{payload[0].value.toLocaleString()}
-      </p>
+      <p className="text-blue-600 font-semibold">₩{val.toLocaleString()}</p>
+      {mode === "monthly" && delta !== undefined && delta !== 0 && (
+        <p className={`mt-0.5 text-xs font-medium ${delta > 0 ? "text-red-500" : "text-green-500"}`}>
+          {delta > 0 ? "▲" : "▼"} ₩{Math.abs(delta).toLocaleString()} MoM
+        </p>
+      )}
     </div>
   );
 }
@@ -111,26 +120,60 @@ export default function DashboardCharts({
   growthTrend: GrowthPoint[];
 }) {
   const { t } = useTranslation();
+  const [trendMode, setTrendMode] = useState<"monthly" | "cumulative">("monthly");
 
   const hasMonthlyData = monthlyTrend.some((d) => d.cost > 0);
   const hasTypeData = typeDistribution.length > 0;
   const hasStatusData = statusDistribution.length > 0;
   const hasGrowthData = growthTrend.some((d) => d.count > 0);
 
+  // Enrich monthly trend with MoM delta
+  const enrichedTrend = monthlyTrend.map((d, i) => ({
+    ...d,
+    delta: i > 0 ? d.cost - monthlyTrend[i - 1].cost : 0,
+  }));
+
+  // Cumulative trend
+  const cumulativeTrend = monthlyTrend.reduce<{ month: string; cost: number }[]>((acc, d) => {
+    const prev = acc[acc.length - 1]?.cost ?? 0;
+    return [...acc, { month: d.month, cost: prev + d.cost }];
+  }, []);
+
+  const chartData = trendMode === "monthly" ? enrichedTrend : cumulativeTrend;
+  const avgCost = monthlyTrend.length > 0 ? Math.round(monthlyTrend.reduce((s, d) => s + d.cost, 0) / monthlyTrend.length) : 0;
+
   return (
     <div className="space-y-6">
       {/* Row 1: Monthly cost trend */}
       <div className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
-        <h2 className="mb-1 text-base font-semibold text-gray-900">{t.dashboard.monthlyExpenses}</h2>
-        <p className="mb-4 text-xs text-gray-500">{t.dashboard.assetsByType}</p>
+        <div className="mb-4 flex items-start justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">{t.dashboard.monthlyExpenses}</h2>
+            <p className="text-xs text-gray-500">{t.dashboard.assetsByType}</p>
+          </div>
+          <div className="flex gap-1">
+            {(["monthly", "cumulative"] as const).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => setTrendMode(mode)}
+                className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${trendMode === mode ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+              >
+                {mode === "monthly" ? t.dashboard.monthly : t.dashboard.cumulative}
+              </button>
+            ))}
+          </div>
+        </div>
         {hasMonthlyData ? (
           <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={monthlyTrend} margin={{ top: 4, right: 8, bottom: 0, left: 8 }}>
+            <BarChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: 8 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#6b7280" }} tickLine={false} axisLine={false} />
               <YAxis tickFormatter={formatCostAxis} tick={{ fontSize: 11, fill: "#6b7280" }} tickLine={false} axisLine={false} width={56} />
-              <Tooltip content={<CostTooltip />} cursor={{ fill: "#eff6ff" }} />
-              <Bar dataKey="cost" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={40} />
+              <Tooltip content={<CostTooltip mode={trendMode} />} cursor={{ fill: "#eff6ff" }} />
+              {trendMode === "monthly" && avgCost > 0 && (
+                <ReferenceLine y={avgCost} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: t.dashboard.average, position: "right", fontSize: 10, fill: "#f59e0b" }} />
+              )}
+              <Bar dataKey="cost" fill={trendMode === "cumulative" ? "#6366f1" : "#3b82f6"} radius={[4, 4, 0, 0]} maxBarSize={40} />
             </BarChart>
           </ResponsiveContainer>
         ) : (

@@ -1,8 +1,10 @@
 // BE-031: GET /api/reports/monthly/{yearMonth}/excel — Excel 보고서 다운로드
+// BE-078: 다운로드 시 Archive 증적 자동 생성
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ValidationError, handleValidationError } from "@/lib/validation";
+import { getCurrentUser } from "@/lib/auth";
 import ExcelJS from "exceljs";
 
 type Params = { params: Promise<{ yearMonth: string }> };
@@ -25,6 +27,7 @@ const TYPE_LABELS: Record<string, string> = {
   CLOUD: "Cloud",
   HARDWARE: "Hardware",
   DOMAIN_SSL: "Domain/SSL",
+  CONTRACT: "Contract",
   OTHER: "Other",
 };
 
@@ -48,11 +51,30 @@ function formatDate(val: Date | null): string {
   return new Date(val).toISOString().split("T")[0];
 }
 
-export async function GET(_request: NextRequest, { params }: Params) {
+const ALL_DETAIL_FIELDS = ["name","type","status","vendor","monthlyCost","currency","assignee","department","expiryDate","purchaseDate"] as const;
+type DetailField = typeof ALL_DETAIL_FIELDS[number];
+const ALL_SHEETS = ["Summary","ByType","ByStatus","ByDepartment","Detail","HardwareDetail"] as const;
+type SheetKey = typeof ALL_SHEETS[number];
+
+export async function GET(request: NextRequest, { params }: Params) {
 
   try {
     const { yearMonth } = await params;
     const { startDate, endDate, period } = parsePeriod(yearMonth);
+
+    const url = new URL(request.url);
+    const fieldsParam = url.searchParams.get("fields");
+    const sheetsParam = url.searchParams.get("sheets");
+    const selectedFields = new Set<DetailField>(
+      fieldsParam
+        ? (fieldsParam.split(",").filter((f) => (ALL_DETAIL_FIELDS as readonly string[]).includes(f)) as DetailField[])
+        : [...ALL_DETAIL_FIELDS]
+    );
+    const selectedSheets = new Set<SheetKey>(
+      sheetsParam
+        ? (sheetsParam.split(",").filter((s) => (ALL_SHEETS as readonly string[]).includes(s)) as SheetKey[])
+        : [...ALL_SHEETS]
+    );
 
     // 데이터 조회
     const assets = await prisma.asset.findMany({
@@ -124,6 +146,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
     }
 
     // ── Sheet 1: Summary ──
+    if (!selectedSheets.has("Summary")) { /* skip */ } else {
     const wsSummary = wb.addWorksheet("Summary");
     wsSummary.columns = [
       { header: "Item", key: "label", width: 25 },
@@ -136,8 +159,10 @@ export async function GET(_request: NextRequest, { params }: Params) {
     wsSummary.addRow({ label: "Total Assets", value: assets.length });
     wsSummary.addRow({ label: "Monthly Cost Total (KRW)", value: formatCurrency(Math.round(totalMonthlyCost)) });
     wsSummary.addRow({ label: "Report Generated", value: formatDate(new Date()) });
+    } // end Summary
 
     // ── Sheet 2: By Type ──
+    if (selectedSheets.has("ByType")) {
     const wsType = wb.addWorksheet("By Type");
     wsType.columns = [
       { header: "Type", key: "type", width: 20 },
@@ -148,8 +173,10 @@ export async function GET(_request: NextRequest, { params }: Params) {
     for (const [type, data] of typeMap) {
       wsType.addRow({ type: TYPE_LABELS[type] ?? type, count: data.count, cost: formatCurrency(Math.round(data.cost)) });
     }
+    } // end ByType
 
     // ── Sheet 3: By Status ──
+    if (selectedSheets.has("ByStatus")) {
     const wsStatus = wb.addWorksheet("By Status");
     wsStatus.columns = [
       { header: "Status", key: "status", width: 15 },
@@ -160,8 +187,10 @@ export async function GET(_request: NextRequest, { params }: Params) {
     for (const [status, data] of statusMap) {
       wsStatus.addRow({ status: STATUS_LABELS[status] ?? status, count: data.count, cost: formatCurrency(Math.round(data.cost)) });
     }
+    } // end ByStatus
 
     // ── Sheet 4: By Department ──
+    if (selectedSheets.has("ByDepartment")) {
     const wsDept = wb.addWorksheet("By Department");
     wsDept.columns = [
       { header: "Department", key: "department", width: 25 },
@@ -172,10 +201,11 @@ export async function GET(_request: NextRequest, { params }: Params) {
     for (const [dept, data] of deptMap) {
       wsDept.addRow({ department: dept, count: data.count, cost: formatCurrency(Math.round(data.cost)) });
     }
+    } // end ByDepartment
 
     // ── Sheet 5: Detail ──
-    const wsDetail = wb.addWorksheet("Detail");
-    wsDetail.columns = [
+    if (selectedSheets.has("Detail")) {
+    const allDetailCols: { header: string; key: DetailField; width: number }[] = [
       { header: "Asset Name", key: "name", width: 30 },
       { header: "Type", key: "type", width: 15 },
       { header: "Status", key: "status", width: 12 },
@@ -187,23 +217,32 @@ export async function GET(_request: NextRequest, { params }: Params) {
       { header: "Expiry Date", key: "expiryDate", width: 14 },
       { header: "Purchase Date", key: "purchaseDate", width: 14 },
     ];
-    styleHeader(wsDetail, 10);
+    const wsDetail = wb.addWorksheet("Detail");
+    wsDetail.columns = allDetailCols.filter((c) => selectedFields.has(c.key));
+    styleHeader(wsDetail, wsDetail.columns.length);
+    const allDetailData = (a: (typeof assets)[0]) => ({
+      name: a.name,
+      type: TYPE_LABELS[a.type] ?? a.type,
+      status: STATUS_LABELS[a.status] ?? a.status,
+      vendor: a.vendor ?? "-",
+      monthlyCost: a.monthlyCost ? formatCurrency(Number(a.monthlyCost)) : "-",
+      currency: a.currency ?? "KRW",
+      assignee: a.assignee?.name ?? "-",
+      department: a.orgUnit?.name ?? a.assignee?.department ?? "-",
+      expiryDate: formatDate(a.expiryDate),
+      purchaseDate: formatDate(a.purchaseDate),
+    });
     for (const a of assets) {
-      wsDetail.addRow({
-        name: a.name,
-        type: TYPE_LABELS[a.type] ?? a.type,
-        status: STATUS_LABELS[a.status] ?? a.status,
-        vendor: a.vendor ?? "-",
-        monthlyCost: a.monthlyCost ? formatCurrency(Number(a.monthlyCost)) : "-",
-        currency: a.currency ?? "KRW",
-        assignee: a.assignee?.name ?? "-",
-        department: a.orgUnit?.name ?? a.assignee?.department ?? "-",
-        expiryDate: formatDate(a.expiryDate),
-        purchaseDate: formatDate(a.purchaseDate),
-      });
+      const row = allDetailData(a);
+      const filtered = Object.fromEntries(
+        Object.entries(row).filter(([k]) => selectedFields.has(k as DetailField))
+      );
+      wsDetail.addRow(filtered);
     }
+    } // end Detail
 
     // ── Sheet 6: Hardware Detail ──
+    if (selectedSheets.has("HardwareDetail")) {
     const hwAssets = assets.filter((a) => a.type === "HARDWARE");
     const wsHw = wb.addWorksheet("Hardware Detail");
     wsHw.columns = [
@@ -264,10 +303,46 @@ export async function GET(_request: NextRequest, { params }: Params) {
         description: a.description ?? "-",
       });
     }
+    } // end HardwareDetail
 
     // ── Buffer 변환 및 응답 ──
     const buffer = await wb.xlsx.writeBuffer();
     const fileName = `Asset_Report_${period}.xlsx`;
+
+    // BE-078: 증적 Archive 자동 생성 (비동기, 실패해도 다운로드 응답에 영향 없음)
+    getCurrentUser().then((user) => {
+      return prisma.archive.create({
+        data: {
+          yearMonth: period,
+          status: "COMPLETED",
+          trigger: "manual",
+          startDate: startDate,
+          endDate: endDate,
+          createdBy: user?.id ?? null,
+          completedAt: new Date(),
+          data: {
+            create: {
+              dataType: "assets",
+              payload: assets.map((a) => ({
+                id: a.id, name: a.name, type: a.type, status: a.status,
+                vendor: a.vendor, monthlyCost: a.monthlyCost ? Number(a.monthlyCost) : null,
+                currency: a.currency, assignee: a.assignee?.name ?? null,
+                department: a.orgUnit?.name ?? a.assignee?.department ?? null,
+                expiryDate: a.expiryDate?.toISOString() ?? null,
+                purchaseDate: a.purchaseDate?.toISOString() ?? null,
+              })),
+              recordCount: assets.length,
+            },
+          },
+          logs: {
+            create: {
+              level: "info",
+              message: `Excel 보고서 생성 완료 — ${assets.length}건 (${period})`,
+            },
+          },
+        },
+      });
+    }).catch((e) => console.error("[archive] auto-create failed:", e));
 
     return new NextResponse(buffer as ArrayBuffer, {
       status: 200,

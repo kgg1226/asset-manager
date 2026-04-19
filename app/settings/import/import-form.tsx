@@ -25,6 +25,7 @@ export default function ImportForm() {
     { value: "cloud", label: t.cloud?.title ?? "클라우드" },
     { value: "domains", label: t.domain?.title ?? "도메인·SSL" },
     { value: "hardware", label: t.hw?.title ?? "하드웨어" },
+    { value: "contracts", label: t.contract.title },
   ];
 
   async function handleDownloadTemplate() {
@@ -179,47 +180,68 @@ export default function ImportForm() {
 
       {/* Results */}
       {result && (
-        <div
-          className={`rounded-lg border p-4 ${
-            result.success ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"
-          }`}
-        >
-          {result.success ? (
+        <div className={`rounded-lg border p-4 ${result.success && result.errors.length === 0 ? "border-green-200 bg-green-50" : result.errors.length > 0 ? "border-amber-200 bg-amber-50" : "border-red-200 bg-red-50"}`}>
+          {/* Summary row */}
+          <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-sm font-medium text-green-800">{t.common.success}</p>
-              <p className="mt-1 text-sm text-green-700">
-                {result.created > 0 && `${result.created} ${t.common.create}`}
-                {result.created > 0 && result.updated > 0 && ", "}
-                {result.updated > 0 && `${result.updated} ${t.common.edit}`}
-              </p>
-            </div>
-          ) : (
-            <div>
-              <p className="text-sm font-medium text-red-800">
-                {result.message || `${result.errors.length} ${t.common.error}`}
-              </p>
-              {result.errors.length > 0 && (
-                <div className="mt-3 max-h-64 overflow-auto rounded border border-red-200 bg-white">
-                  <table className="min-w-full text-xs">
-                    <thead className="bg-red-50">
-                      <tr>
-                        <th className="px-3 py-2 text-left font-medium text-red-700">#</th>
-                        <th className="px-3 py-2 text-left font-medium text-red-700">{t.common.name}</th>
-                        <th className="px-3 py-2 text-left font-medium text-red-700">{t.common.error}</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-red-100">
-                      {result.errors.map((err, i) => (
-                        <tr key={i}>
-                          <td className="px-3 py-1.5 text-red-600">{err.row}</td>
-                          <td className="px-3 py-1.5 font-mono text-red-600">{err.column}</td>
-                          <td className="px-3 py-1.5 text-red-800">{err.message}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+              {(result.created > 0 || result.updated > 0) && (
+                <p className="text-sm font-medium text-green-800">
+                  {[result.created > 0 && `${result.created}${t.common.countSuffix} ${t.common.create}`, result.updated > 0 && `${result.updated}${t.common.countSuffix} ${t.common.edit}`].filter(Boolean).join(", ")} {t.common.done}
+                </p>
               )}
+              {result.errors.length > 0 && (
+                <p className="text-sm font-medium text-red-700 mt-0.5">
+                  {result.errors.length}{t.common.errorsSuffix} {result.created > 0 || result.updated > 0 ? t.common.restProcessed : ""}
+                </p>
+              )}
+              {result.message && !result.success && result.errors.length === 0 && (
+                <p className="text-sm font-medium text-red-800">{result.message}</p>
+              )}
+            </div>
+            {result.errors.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  const header = t.common.csvErrorHeader + "\n";
+                  const rows = result.errors.map((e) => `${e.row},"${e.column}","${e.message.replace(/"/g, '""')}"`).join("\n");
+                  const blob = new Blob(["\uFEFF" + header + rows], { type: "text/csv;charset=utf-8" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `import_errors_${new Date().toISOString().slice(0, 10)}.csv`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                }}
+                className="flex shrink-0 items-center gap-1 rounded border border-amber-300 bg-white px-2.5 py-1 text-xs font-medium text-amber-700 hover:bg-amber-50"
+              >
+                {t.common.errorReportDownload}
+              </button>
+            )}
+          </div>
+
+          {/* Error table */}
+          {result.errors.length > 0 && (
+            <div className="mt-3 max-h-64 overflow-auto rounded border border-red-200 bg-white">
+              <table className="min-w-full text-xs">
+                <thead className="sticky top-0 bg-red-50">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-medium text-red-700 w-12">{t.common.csvRowNum}</th>
+                    <th className="px-3 py-2 text-left font-medium text-red-700 w-28">{t.common.csvField}</th>
+                    <th className="px-3 py-2 text-left font-medium text-red-700">{t.common.csvErrorMsg}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-red-50">
+                  {result.errors.map((err, i) => (
+                    <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-red-50/30"}>
+                      <td className="px-3 py-1.5 font-mono font-bold text-red-600">{err.row}</td>
+                      <td className="px-3 py-1.5 font-mono text-amber-700">{err.column || "—"}</td>
+                      <td className="px-3 py-1.5 text-red-800">{err.message}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
@@ -238,5 +260,6 @@ function getRequiredHeaders(type: ImportType): string[] {
     case "cloud": return ["name"];
     case "domains": return ["name"];
     case "hardware": return ["name"];
+    case "contracts": return ["name"];
   }
 }

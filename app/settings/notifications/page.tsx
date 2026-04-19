@@ -80,6 +80,10 @@ interface NotificationPreferences {
   events: Record<string, boolean>;
   renewalDaysBefore: number;
   cancellationDaysBefore: number;
+  renewalDaysBeforeList?: number[];
+  cancellationDaysBeforeList?: number[];
+  minCostThresholdKRW?: number | null;
+  eventChannelOverrides?: Record<string, "SLACK" | "EMAIL" | "BOTH" | "DEFAULT">;
 }
 
 // ── Channel Config Modal ──
@@ -378,13 +382,39 @@ function PreferencesSection({ isAdmin }: { isAdmin: boolean }) {
 
   if (!isAdmin || isLoading || !prefs) return null;
 
-  const EVENT_CONFIG: Array<{ key: string; icon: React.ReactNode; label: string; desc: string; hasDays?: boolean; daysKey?: "renewalDaysBefore" | "cancellationDaysBefore" }> = [
+  const [daysInput, setDaysInput] = useState<Record<string, string>>({});
+
+  const getDaysList = (key: "renewalDaysBeforeList" | "cancellationDaysBeforeList", fallbackKey: "renewalDaysBefore" | "cancellationDaysBefore"): number[] => {
+    if (!prefs) return [];
+    const list = prefs[key];
+    if (list && list.length > 0) return list;
+    return [prefs[fallbackKey]];
+  };
+
+  const addDayThreshold = (listKey: "renewalDaysBeforeList" | "cancellationDaysBeforeList", fallbackKey: "renewalDaysBefore" | "cancellationDaysBefore", inputKey: string) => {
+    const v = parseInt(daysInput[inputKey] || "");
+    if (!v || v < 1 || v > 365) return;
+    const current = getDaysList(listKey, fallbackKey);
+    if (current.includes(v)) return;
+    const next = [...current, v].sort((a, b) => b - a);
+    updatePrefs((p) => ({ ...p, [listKey]: next, [fallbackKey]: next[next.length - 1] }));
+    setDaysInput((prev) => ({ ...prev, [inputKey]: "" }));
+  };
+
+  const removeDayThreshold = (listKey: "renewalDaysBeforeList" | "cancellationDaysBeforeList", fallbackKey: "renewalDaysBefore" | "cancellationDaysBefore", day: number) => {
+    const current = getDaysList(listKey, fallbackKey);
+    const next = current.filter((d) => d !== day);
+    if (next.length === 0) return;
+    updatePrefs((p) => ({ ...p, [listKey]: next, [fallbackKey]: next[next.length - 1] }));
+  };
+
+  const EVENT_CONFIG: Array<{ key: string; icon: React.ReactNode; label: string; desc: string; daysListKey?: "renewalDaysBeforeList" | "cancellationDaysBeforeList"; daysFallbackKey?: "renewalDaysBefore" | "cancellationDaysBefore" }> = [
     { key: "ASSET_CREATED", icon: <BellRing className="h-4 w-4 text-blue-500" />, label: t.notification.eventAssetCreated, desc: t.notification.eventAssetCreatedDesc },
     { key: "ASSET_UPDATED", icon: <BellRing className="h-4 w-4 text-amber-500" />, label: t.notification.eventAssetUpdated, desc: t.notification.eventAssetUpdatedDesc },
     { key: "ASSET_DELETED", icon: <BellRing className="h-4 w-4 text-red-500" />, label: t.notification.eventAssetDeleted, desc: t.notification.eventAssetDeletedDesc },
     { key: "DATA_IMPORT", icon: <FileDown className="h-4 w-4 text-green-500" />, label: t.notification.eventDataImport, desc: t.notification.eventDataImportDesc },
-    { key: "RENEWAL_APPROACHING", icon: <CalendarClock className="h-4 w-4 text-orange-500" />, label: t.notification.eventRenewal, desc: t.notification.eventRenewalDesc, hasDays: true, daysKey: "renewalDaysBefore" },
-    { key: "CANCELLATION_APPROACHING", icon: <AlertTriangle className="h-4 w-4 text-red-500" />, label: t.notification.eventCancellation, desc: t.notification.eventCancellationDesc, hasDays: true, daysKey: "cancellationDaysBefore" },
+    { key: "RENEWAL_APPROACHING", icon: <CalendarClock className="h-4 w-4 text-orange-500" />, label: t.notification.eventRenewal, desc: t.notification.eventRenewalDesc, daysListKey: "renewalDaysBeforeList", daysFallbackKey: "renewalDaysBefore" },
+    { key: "CANCELLATION_APPROACHING", icon: <AlertTriangle className="h-4 w-4 text-red-500" />, label: t.notification.eventCancellation, desc: t.notification.eventCancellationDesc, daysListKey: "cancellationDaysBeforeList", daysFallbackKey: "cancellationDaysBefore" },
     { key: "ASSIGNMENT_CHANGE", icon: <ArrowLeftRight className="h-4 w-4 text-purple-500" />, label: t.notification.eventAssignment, desc: t.notification.eventAssignmentDesc },
     { key: "USER_MANAGEMENT", icon: <UserCog className="h-4 w-4 text-gray-500" />, label: t.notification.eventUserMgmt, desc: t.notification.eventUserMgmtDesc },
   ];
@@ -435,52 +465,115 @@ function PreferencesSection({ isAdmin }: { isAdmin: boolean }) {
         )}
       </div>
 
+      {/* Cost threshold */}
+      {prefs.enabled && (
+        <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-sm font-medium text-gray-700">{t.notification.minCostThreshold}:</span>
+            <input
+              type="number"
+              min={0}
+              step={10000}
+              placeholder="0"
+              value={prefs.minCostThresholdKRW ?? ""}
+              onChange={(e) => {
+                const v = e.target.value === "" ? null : Math.max(0, parseInt(e.target.value) || 0);
+                updatePrefs((p) => ({ ...p, minCostThresholdKRW: v }));
+              }}
+              className="w-40 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+            />
+            <span className="text-xs text-gray-400">{t.notification.minCostThresholdDesc}</span>
+          </div>
+        </div>
+      )}
+
       {/* Event toggles */}
       {prefs.enabled && (
         <div className="space-y-2">
           <h3 className="mb-2 text-sm font-semibold text-gray-700">{t.notification.eventTypes}</h3>
-          {EVENT_CONFIG.map((evt) => (
-            <div key={evt.key} className="flex items-center justify-between rounded-lg border border-gray-100 px-4 py-3 hover:bg-gray-50">
-              <div className="flex items-center gap-3">
-                {evt.icon}
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{evt.label}</p>
-                  <p className="text-xs text-gray-500">{evt.desc}</p>
+          {EVENT_CONFIG.map((evt) => {
+            const channelOverride = prefs.eventChannelOverrides?.[evt.key] ?? "DEFAULT";
+            return (
+              <div key={evt.key} className="rounded-lg border border-gray-100 px-4 py-3 hover:bg-gray-50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {evt.icon}
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{evt.label}</p>
+                      <p className="text-xs text-gray-500">{evt.desc}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {/* Per-event channel override */}
+                    {prefs.events[evt.key] && (
+                      <select
+                        value={channelOverride}
+                        onChange={(e) => {
+                          const val = e.target.value as "SLACK" | "EMAIL" | "BOTH" | "DEFAULT";
+                          updatePrefs((p) => ({
+                            ...p,
+                            eventChannelOverrides: { ...p.eventChannelOverrides, [evt.key]: val },
+                          }));
+                        }}
+                        className="rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-600"
+                      >
+                        <option value="DEFAULT">{t.notification.channelDefault}</option>
+                        <option value="SLACK">{t.notification.channelSlackOnly}</option>
+                        <option value="EMAIL">{t.notification.channelEmailOnly}</option>
+                        <option value="BOTH">{t.notification.channelBoth}</option>
+                      </select>
+                    )}
+                    <button
+                      onClick={() =>
+                        updatePrefs((p) => ({
+                          ...p,
+                          events: { ...p.events, [evt.key]: !p.events[evt.key] },
+                        }))
+                      }
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                        prefs.events[evt.key] ? "bg-blue-600" : "bg-gray-300"
+                      }`}
+                    >
+                      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${prefs.events[evt.key] ? "translate-x-4.5" : "translate-x-0.5"}`} />
+                    </button>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-3">
-                {evt.hasDays && evt.daysKey && prefs.events[evt.key] && (
-                  <div className="flex items-center gap-1">
-                    <input
-                      type="number"
-                      min={1}
-                      max={365}
-                      value={prefs[evt.daysKey]}
-                      onChange={(e) => {
-                        const v = parseInt(e.target.value) || 30;
-                        updatePrefs((p) => ({ ...p, [evt.daysKey!]: Math.max(1, Math.min(365, v)) }));
-                      }}
-                      className="w-16 rounded-md border border-gray-300 px-2 py-1 text-center text-sm"
-                    />
-                    <span className="text-xs text-gray-500 whitespace-nowrap">{t.notification.daysBefore}</span>
+                {/* Multi-threshold chips for time-based events */}
+                {evt.daysListKey && evt.daysFallbackKey && prefs.events[evt.key] && (
+                  <div className="mt-2 flex flex-wrap items-center gap-2 pl-7">
+                    <span className="text-xs text-gray-500 whitespace-nowrap">{t.notification.notifyDaysLabel}:</span>
+                    {getDaysList(evt.daysListKey, evt.daysFallbackKey).map((d) => (
+                      <span key={d} className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-700">
+                        D-{d}
+                        <button
+                          type="button"
+                          onClick={() => removeDayThreshold(evt.daysListKey!, evt.daysFallbackKey!, d)}
+                          className="ml-0.5 rounded-full hover:text-red-600"
+                        >×</button>
+                      </span>
+                    ))}
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        min={1}
+                        max={365}
+                        value={daysInput[evt.key] ?? ""}
+                        onChange={(e) => setDaysInput((prev) => ({ ...prev, [evt.key]: e.target.value }))}
+                        onKeyDown={(e) => { if (e.key === "Enter") addDayThreshold(evt.daysListKey!, evt.daysFallbackKey!, evt.key); }}
+                        placeholder="1-365"
+                        className="w-16 rounded-md border border-gray-300 px-2 py-0.5 text-xs text-center"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => addDayThreshold(evt.daysListKey!, evt.daysFallbackKey!, evt.key)}
+                        className="rounded-md bg-orange-50 px-2 py-0.5 text-xs text-orange-600 hover:bg-orange-100"
+                      >{t.notification.addThreshold}</button>
+                    </div>
                   </div>
                 )}
-                <button
-                  onClick={() =>
-                    updatePrefs((p) => ({
-                      ...p,
-                      events: { ...p.events, [evt.key]: !p.events[evt.key] },
-                    }))
-                  }
-                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                    prefs.events[evt.key] ? "bg-blue-600" : "bg-gray-300"
-                  }`}
-                >
-                  <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${prefs.events[evt.key] ? "translate-x-4.5" : "translate-x-0.5"}`} />
-                </button>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -503,6 +596,8 @@ function PreferencesSection({ isAdmin }: { isAdmin: boolean }) {
 
 // ── Main Component ──
 
+const LOG_PAGE_SIZE = 20;
+
 export default function NotificationSettingsPage() {
   const { t, locale } = useTranslation();
   // Test state
@@ -515,7 +610,10 @@ export default function NotificationSettingsPage() {
   const [logs, setLogs] = useState<NotifLog[]>([]);
   const [stats, setStats] = useState<LogStats | null>(null);
   const [isLoadingLogs, setIsLoadingLogs] = useState(true);
-  const [logFilter, setLogFilter] = useState<{ status: string; channel: string }>({ status: "", channel: "" });
+  const [logFilter, setLogFilter] = useState<{ status: string; channel: string; from: string; to: string }>({ status: "", channel: "", from: "", to: "" });
+  const [logPage, setLogPage] = useState(1);
+  const [logTotalPages, setLogTotalPages] = useState(1);
+  const [resendingId, setResendingId] = useState<number | null>(null);
 
   // User role
   const [isAdmin, setIsAdmin] = useState(false);
@@ -536,22 +634,52 @@ export default function NotificationSettingsPage() {
       const params = new URLSearchParams();
       if (logFilter.status) params.set("status", logFilter.status);
       if (logFilter.channel) params.set("channel", logFilter.channel);
-      params.set("limit", "100");
+      if (logFilter.from) params.set("from", logFilter.from);
+      if (logFilter.to) params.set("to", logFilter.to);
+      params.set("limit", String(LOG_PAGE_SIZE));
+      params.set("page", String(logPage));
       const res = await fetch(`/api/notifications/history?${params}`);
       if (!res.ok) throw new Error();
       const data = await res.json();
       setLogs(data.logs ?? []);
       setStats(data.stats ?? null);
+      setLogTotalPages(data.totalPages ?? 1);
     } catch {
       toast.error(t.notification.loadFail);
     } finally {
       setIsLoadingLogs(false);
     }
+  }, [logFilter, logPage]);
+
+  useEffect(() => {
+    setLogPage(1);
   }, [logFilter]);
 
   useEffect(() => {
     loadLogs();
   }, [loadLogs]);
+
+  const handleResend = async (logId: number) => {
+    setResendingId(logId);
+    try {
+      const res = await fetch("/api/notifications/resend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ logId }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        toast.success(t.notification.resendSuccess);
+        setTimeout(() => loadLogs(), 800);
+      } else {
+        toast.error(`${t.notification.resendFail}: ${data.error ?? t.notification.unknownError}`);
+      }
+    } catch {
+      toast.error(t.notification.resendNetworkFail);
+    } finally {
+      setResendingId(null);
+    }
+  };
 
   // ── Test send ──
   const handleTest = async () => {
@@ -770,6 +898,28 @@ export default function NotificationSettingsPage() {
               <option value="EMAIL">{t.notification.emailChannel}</option>
               <option value="SLACK">{t.notification.slackChannel}</option>
             </select>
+            <span className="text-xs text-gray-400">{t.common.startDate}</span>
+            <input
+              type="date"
+              value={logFilter.from}
+              onChange={(e) => setLogFilter((p) => ({ ...p, from: e.target.value }))}
+              className="rounded-md border border-gray-300 px-2 py-1 text-sm"
+            />
+            <span className="text-xs text-gray-400">{t.common.endDate}</span>
+            <input
+              type="date"
+              value={logFilter.to}
+              onChange={(e) => setLogFilter((p) => ({ ...p, to: e.target.value }))}
+              className="rounded-md border border-gray-300 px-2 py-1 text-sm"
+            />
+            {(logFilter.from || logFilter.to) && (
+              <button
+                onClick={() => setLogFilter((p) => ({ ...p, from: "", to: "" }))}
+                className="text-xs text-gray-400 hover:text-gray-600"
+              >
+                {t.common.dateReset}
+              </button>
+            )}
           </div>
 
           <div className="overflow-x-auto">
@@ -782,13 +932,14 @@ export default function NotificationSettingsPage() {
                   <th className="px-3 py-2 text-left text-xs font-semibold">{t.notification.target}</th>
                   <th className="px-3 py-2 text-left text-xs font-semibold">{t.common.status}</th>
                   <th className="px-3 py-2 text-left text-xs font-semibold">{t.notification.errorCol}</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold"></th>
                 </tr>
               </thead>
               <tbody>
                 {isLoadingLogs ? (
-                  <tr><td colSpan={6} className="px-3 py-6 text-center text-gray-400">{t.common.loading}</td></tr>
+                  <tr><td colSpan={7} className="px-3 py-6 text-center text-gray-400">{t.common.loading}</td></tr>
                 ) : logs.length === 0 ? (
-                  <tr><td colSpan={6} className="px-3 py-6 text-center text-gray-500">{t.common.noData}</td></tr>
+                  <tr><td colSpan={7} className="px-3 py-6 text-center text-gray-500">{t.common.noData}</td></tr>
                 ) : (
                   logs.map((log) => (
                     <tr key={log.id} className="border-b hover:bg-gray-50">
@@ -816,12 +967,64 @@ export default function NotificationSettingsPage() {
                         )}
                       </td>
                       <td className="px-3 py-2 text-xs text-red-600 max-w-[200px] truncate" title={log.errorMsg ?? ""}>{log.errorMsg || "—"}</td>
+                      <td className="px-3 py-2">
+                        {log.status === "FAILED" && (
+                          <button
+                            onClick={() => handleResend(log.id)}
+                            disabled={resendingId === log.id}
+                            className="flex items-center gap-1 rounded px-2 py-1 text-xs text-orange-600 hover:bg-orange-50 disabled:opacity-40"
+                            title={t.notification.resend}
+                          >
+                            <RefreshCw className={`h-3 w-3 ${resendingId === log.id ? "animate-spin" : ""}`} />
+                            {t.notification.resend}
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))
                 )}
               </tbody>
             </table>
           </div>
+
+          {/* Pagination */}
+          {logTotalPages > 1 && (
+            <div className="flex items-center justify-between border-t px-4 py-3">
+              <span className="text-xs text-gray-500">
+                {logPage} / {logTotalPages} {t.common.pageSuffix}
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setLogPage((p) => Math.max(1, p - 1))}
+                  disabled={logPage <= 1 || isLoadingLogs}
+                  className="rounded px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+                >
+                  ‹
+                </button>
+                {Array.from({ length: Math.min(5, logTotalPages) }, (_, i) => {
+                  const start = Math.max(1, Math.min(logPage - 2, logTotalPages - 4));
+                  const p = start + i;
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => setLogPage(p)}
+                      disabled={isLoadingLogs}
+                      className={`rounded px-2.5 py-1 text-sm ${p === logPage ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100"} disabled:opacity-40`}
+                    >
+                      {p}
+                    </button>
+                  );
+                })}
+                <button
+                  onClick={() => setLogPage((p) => Math.min(logTotalPages, p + 1))}
+                  disabled={logPage >= logTotalPages || isLoadingLogs}
+                  className="rounded px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+                >
+                  ›
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

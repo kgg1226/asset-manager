@@ -24,7 +24,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
 
   try {
     const { yearMonth } = await params;
-    const { startDate, endDate, period } = parsePeriod(yearMonth);
+    const { year, month, startDate, endDate, period } = parsePeriod(yearMonth);
 
     // 해당 기간에 활성 상태인 자산 조회 (DISPOSED가 아닌 자산)
     // 기준: createdAt <= endDate AND (status != DISPOSED OR updatedAt >= startDate)
@@ -102,6 +102,25 @@ export async function GET(_request: NextRequest, { params }: Params) {
       cost: Math.round(data.cost * 100) / 100,
     }));
 
+    // ── 이전 월 비용 (MoM 비교) ──
+    const prevMonth = month === 1 ? 12 : month - 1;
+    const prevYear = month === 1 ? year - 1 : year;
+    const prevStart = new Date(prevYear, prevMonth - 1, 1);
+    const prevEnd = new Date(prevYear, prevMonth, 0, 23, 59, 59, 999);
+    const prevAssets = await prisma.asset.findMany({
+      where: {
+        createdAt: { lte: prevEnd },
+        OR: [
+          { status: { not: "DISPOSED" } },
+          { status: "DISPOSED", updatedAt: { gte: prevStart } },
+        ],
+      },
+      select: { monthlyCost: true },
+    });
+    const prevMonthlyCost = Math.round(
+      prevAssets.reduce((s, a) => s + (a.monthlyCost ? Number(a.monthlyCost) : 0), 0) * 100
+    ) / 100;
+
     // ── 만료 임박 자산 (30일 이내) ──
     const expiringWithin30 = assets.filter((a) => {
       if (!a.expiryDate || a.status === "DISPOSED") return false;
@@ -133,7 +152,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
       period,
       startDate: startDate.toISOString().split("T")[0],
       endDate: endDate.toISOString().split("T")[0],
-      summary,
+      summary: { ...summary, prevMonthlyCost },
       byType,
       byStatus,
       byDepartment,

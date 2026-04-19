@@ -23,6 +23,7 @@ type RenewalHistoryItem = {
   memo: string | null;
   createdAt: string;
   actorId: number | null;
+  actorName: string | null;
 };
 
 type LicenseOwner = {
@@ -48,6 +49,13 @@ const STATUS_COLORS: Record<RenewalStatus, string> = {
   IN_PROGRESS: "bg-blue-100 text-blue-700",
   NOT_RENEWING: "bg-red-100 text-red-700",
   RENEWED: "bg-green-100 text-green-700",
+};
+
+const STATUS_DOT_COLORS: Record<string, string> = {
+  BEFORE_RENEWAL: "bg-gray-400",
+  IN_PROGRESS: "bg-blue-500",
+  NOT_RENEWING: "bg-red-500",
+  RENEWED: "bg-green-500",
 };
 
 // ── 갱신 상태 변경 패널 ───────────────────────────────────────────────────────
@@ -280,55 +288,75 @@ function RenewalHistoryPanel({ licenseId }: { licenseId: number }) {
       .finally(() => setLoading(false));
   }, [licenseId]);
 
-  if (loading) return null;
-  if (error || history.length === 0) return null;
-
-  const displayed = expanded ? history : history.slice(0, 3);
+  const displayed = expanded ? history : history.slice(0, 5);
 
   return (
     <div className="rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
       <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-3">
         <Clock className="h-4 w-4 text-gray-500" />
         <h3 className="text-sm font-semibold text-gray-900">{t.history.title}</h3>
-        <span className="ml-auto text-xs text-gray-400">{history.length}건</span>
+        {!loading && history.length > 0 && (
+          <span className="ml-auto rounded-full bg-gray-100 px-2 py-0.5 text-[10px] text-gray-500">{history.length}</span>
+        )}
       </div>
-      <div className="divide-y divide-gray-50 px-4 py-2">
-        {displayed.map((item) => (
-          <div key={item.id} className="flex items-start gap-3 py-2.5">
-            <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-blue-400" />
-            <div className="min-w-0 flex-1">
-              <p className="text-xs text-gray-700">
-                {item.fromStatus ? (
-                  <>
-                    <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${STATUS_COLORS[(item.fromStatus as RenewalStatus)] ?? "bg-gray-100 text-gray-600"}`}>
-                      {(t.license as Record<string, string>)[RENEWAL_STATUS_KEYS[(item.fromStatus as RenewalStatus)]] ?? item.fromStatus}
-                    </span>
-                    {" → "}
-                  </>
-                ) : null}
-                <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${STATUS_COLORS[(item.toStatus as RenewalStatus)] ?? "bg-gray-100 text-gray-600"}`}>
-                  {(t.license as Record<string, string>)[RENEWAL_STATUS_KEYS[(item.toStatus as RenewalStatus)]] ?? item.toStatus}
-                </span>
-              </p>
-              {item.memo && (
-                <p className="mt-0.5 text-xs text-gray-500">{item.memo}</p>
-              )}
+
+      {loading ? (
+        <p className="px-4 py-4 text-xs text-gray-400">{t.common.loading}</p>
+      ) : error ? (
+        <p className="px-4 py-4 text-xs text-red-500">{error}</p>
+      ) : history.length === 0 ? (
+        <p className="px-4 py-4 text-xs text-gray-400">{t.common.noData}</p>
+      ) : (
+        <>
+          <div className="relative px-4 py-2">
+            {/* vertical connector line */}
+            <div className="absolute left-[27px] top-4 bottom-4 w-px bg-gray-100" />
+            <div className="space-y-0">
+              {displayed.map((item) => (
+                <div key={item.id} className="flex items-start gap-3 py-2.5">
+                  <div className={`relative z-10 mt-1 h-2.5 w-2.5 shrink-0 rounded-full border-2 border-white ring-1 ring-gray-200 ${STATUS_DOT_COLORS[item.toStatus] ?? "bg-gray-400"}`} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1">
+                      {item.fromStatus && (
+                        <>
+                          <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${STATUS_COLORS[(item.fromStatus as RenewalStatus)] ?? "bg-gray-100 text-gray-600"}`}>
+                            {(t.license as Record<string, string>)[RENEWAL_STATUS_KEYS[(item.fromStatus as RenewalStatus)]] ?? item.fromStatus}
+                          </span>
+                          <span className="text-[10px] text-gray-400">→</span>
+                        </>
+                      )}
+                      <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${STATUS_COLORS[(item.toStatus as RenewalStatus)] ?? "bg-gray-100 text-gray-600"}`}>
+                        {(t.license as Record<string, string>)[RENEWAL_STATUS_KEYS[(item.toStatus as RenewalStatus)]] ?? item.toStatus}
+                      </span>
+                    </div>
+                    {item.memo && (
+                      <p className="mt-0.5 text-xs text-gray-500 italic">&ldquo;{item.memo}&rdquo;</p>
+                    )}
+                    <div className="mt-0.5 flex items-center gap-1.5">
+                      {item.actorName && (
+                        <span className="text-[10px] text-gray-500 font-medium">{item.actorName}</span>
+                      )}
+                      {item.actorName && <span className="text-[10px] text-gray-300">·</span>}
+                      <time className="text-[10px] text-gray-400">
+                        {new Date(item.createdAt).toLocaleString()}
+                      </time>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-            <time className="shrink-0 text-[10px] text-gray-400">
-              {new Date(item.createdAt).toLocaleDateString()}
-            </time>
           </div>
-        ))}
-      </div>
-      {history.length > 3 && (
-        <div className="border-t border-gray-100 px-4 py-2 text-center">
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="text-xs text-blue-600 hover:underline"
-          >
-            {expanded ? t.common.close : `${t.common.all} (${history.length})`}
-          </button>
-        </div>
+          {history.length > 5 && (
+            <div className="border-t border-gray-100 px-4 py-2 text-center">
+              <button
+                onClick={() => setExpanded(!expanded)}
+                className="text-xs text-blue-600 hover:underline"
+              >
+                {expanded ? t.common.close : `${t.common.all} ${t.common.detail} (${history.length})`}
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
 import CiaScoreInput from "@/app/_components/cia-score-input";
 import type { CiaLevel } from "@/lib/cia";
+import LifecycleGauge from "@/app/_components/lifecycle-gauge";
 
 const CURRENCIES = ["USD", "KRW", "EUR", "JPY", "GBP", "CNY"];
 const BILLING_CYCLE_VALUES = ["MONTHLY", "ANNUAL", "ONE_TIME"] as const;
@@ -175,6 +176,11 @@ export default function ContractEditPage() {
               <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.asset.purchaseDate}</label><input type="date" name="purchaseDate" value={form.purchaseDate} onChange={onChange} className={inputCls} /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.asset.expiryDate}</label><input type="date" name="expiryDate" value={form.expiryDate} onChange={onChange} className={inputCls} /></div>
             </div>
+            {form.purchaseDate && form.expiryDate && (
+              <div className="mb-6">
+                <LifecycleGauge startDate={form.purchaseDate} endDate={form.expiryDate} size="sm" showLabel showDates />
+              </div>
+            )}
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">{t.license.managingOrg}</label>
               <select value={selectedOrgUnitId} onChange={(e) => setSelectedOrgUnitId(e.target.value)} className={inputCls}>

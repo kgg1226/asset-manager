@@ -108,6 +108,17 @@ export default function NotificationBell() {
   };
 
   const urgentCount = items.filter((i) => i.daysLeft <= 30).length;
+  const [proxyCount, setProxyCount] = useState<number | null>(null);
+
+  // 마운트 시 가벼운 카운트 API로 뱃지 미리 표시
+  useEffect(() => {
+    fetch("/api/dashboard/expiry-count")
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d?.count !== undefined) setProxyCount(d.count); })
+      .catch(() => {});
+  }, []);
+
+  const displayCount = open ? urgentCount : (proxyCount ?? urgentCount);
 
   return (
     <div ref={containerRef} className="relative">
@@ -117,9 +128,9 @@ export default function NotificationBell() {
         title={t.notificationBell.title}
       >
         <Bell className="h-5 w-5" />
-        {urgentCount > 0 && (
+        {displayCount > 0 && (
           <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-            {urgentCount > 99 ? "99+" : urgentCount}
+            {displayCount > 99 ? "99+" : displayCount}
           </span>
         )}
       </button>

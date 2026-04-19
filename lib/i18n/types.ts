@@ -58,6 +58,36 @@ export type TranslationDict = {
     updatedAt: string;
     reason: string;
     reasonOptional: string;
+    manual: string;
+    auto: string;
+    apply: string;
+    hide: string;
+    show: string;
+    today: string;
+    dSuffix: string;
+    navigate: string;
+    returned: string;
+    csvErrorHeader: string;
+    countSuffix: string;
+    csvRowNum: string;
+    csvField: string;
+    csvErrorMsg: string;
+    startDate: string;
+    endDate: string;
+    examplePrefix: string;
+    selectNone: string;
+    collapse: string;
+    expand: string;
+    moreItems: string;
+    done: string;
+    errorsSuffix: string;
+    restProcessed: string;
+    errorReportDownload: string;
+    pageSuffix: string;
+    searchTypeHint: string;
+    searchKeyboardHint: string;
+    dateReset: string;
+    itemCountSuffix: string;
   };
 
   // Navigation / Sidebar
@@ -126,6 +156,17 @@ export type TranslationDict = {
     active: string;
     orgUsage: string;
     orgUsageDesc: string;
+    monthly: string;
+    cumulative: string;
+    average: string;
+    widgetConfig: string;
+    widgetConfigDesc: string;
+    widgetMetrics: string;
+    widgetCharts: string;
+    widgetOrgUsage: string;
+    widgetExpiring: string;
+    legendAlert: string;
+    legendRenewed: string;
   };
 
   // License
@@ -188,6 +229,13 @@ export type TranslationDict = {
     uploadFile: string;
     downloadFile: string;
     contractInfo: string;
+    renewProcess: string;
+    statusChangeCol: string;
+    bulkKeyAddTitle: string;
+    bulkKeyAddHint: string;
+    renewalBanner: string;
+    bulkKeyError: string;
+    bulkKeySuccess: string;
   };
 
   // Employee
@@ -214,6 +262,12 @@ export type TranslationDict = {
     offboardWarning2: string;
     offboardWarning3: string;
     offboardFail: string;
+    onboardEmail: string;
+    onboardDept: string;
+    onboardLicense: string;
+    onboardHardware: string;
+    onboardIncompleteTitle: string;
+    onboardCompleteCount: string;
   };
 
   // Assets (common for hardware/cloud/domain/contract)
@@ -345,6 +399,52 @@ export type TranslationDict = {
     deleteConfirmTitle: string;
     deleteConfirmMessage: string;
     unusableAutoNote: string;
+    bulkDelete: string;
+    deselectAll: string;
+    noTags: string;
+    bulkTagSave: string;
+    bulkTagSaving: string;
+    bulkStatusChange: string;
+    bulkStatusChanging: string;
+    keyboardShortcuts: string;
+    labelCount: string;
+    sizeSmall: string;
+    sizeMedium: string;
+    sizeLarge: string;
+    shortcutTitle: string;
+    shortcutNew: string;
+    shortcutEdit: string;
+    shortcutDeselect: string;
+    shortcutSearch: string;
+    shortcutHelp: string;
+    bulkTagEdit: string;
+    labelPrint: string;
+    bulkTagEditTitle: string;
+    depreciationStatus: string;
+    straight5Year: string;
+    totalAcquisitionCost: string;
+    currentBookValue: string;
+    remainingSuffix: string;
+    accumulatedDep: string;
+    countByStatus: string;
+    depGood: string;
+    depOver50: string;
+    depComplete: string;
+    bookValueRatio: string;
+    bulkStatusChangeTitle: string;
+    changeStatusLabel: string;
+    statusChangeDesc: string;
+    selectedCount: string;
+    printLabel: string;
+    loadingAssets: string;
+    noAssetsForPrint: string;
+    warrantyExpiryBanner: string;
+    bulkTagSuccess: string;
+    bulkStatusSuccess: string;
+    bulkDeleteConfirm: string;
+    bulkDeleteSuccess: string;
+    bulkDeleteNotFound: string;
+    shortcutKeySuffix: string;
   };
 
   // Cloud
@@ -406,6 +506,13 @@ export type TranslationDict = {
     admin: string;
     units: string;
     monthsUnit: string;
+    noChange: string;
+    decreaseForecast: string;
+    currentMonthEstimate: string;
+    activeSubscriptionBasis: string;
+    nextMonthForecast: string;
+    expiringNextMonthSub: string;
+    expiryBanner: string;
   };
 
   // Domain / SSL
@@ -423,6 +530,7 @@ export type TranslationDict = {
     years10: string;
     monthlyCost: string;
     perMonth: string;
+    expiryBanner: string;
   };
 
   // Contract
@@ -441,6 +549,8 @@ export type TranslationDict = {
     typeService: string;
     typeLease: string;
     typeOther: string;
+    expiryBanner: string;
+    moreExpiring: string;
   };
 
   // Org Chart
@@ -544,6 +654,12 @@ export type TranslationDict = {
     persons: string;
     days: string;
     millionWon: string;
+    pngExport: string;
+    unitCountSuffix: string;
+    memberCountSuffix: string;
+    unassigned: string;
+    treeView: string;
+    visualization: string;
   };
 
   // Reports
@@ -564,6 +680,20 @@ export type TranslationDict = {
     costByDept: string;
     monthlyCost: string;
     emailPlaceholder: string;
+    customExport: string;
+    savedPresets: string;
+    selectFields: string;
+    presetNamePlaceholder: string;
+    includeSheets: string;
+    detailSheetColumns: string;
+    excelDownload: string;
+    assetRegisterTitle: string;
+    assetRegisterTooltip: string;
+    evidenceHistory: string;
+    viewAll: string;
+    countSuffix: string;
+    vsLastMonth: string;
+    sameAsLastMonth: string;
   };
 
   // History / Audit
@@ -580,6 +710,7 @@ export type TranslationDict = {
     dateRange: string;
     startDate: string;
     endDate: string;
+    quickFilter: string;
   };
 
   // CIA
@@ -748,6 +879,16 @@ export type TranslationDict = {
     exchangeRateDetail1: string;
     exchangeRateDetail2: string;
     exchangeRateLink: string;
+    // Feature Flags (admin)
+    featureFlagsGuide: string;
+    featureFlagsGuideDesc: string;
+    featureFlagsDetail1: string;
+    featureFlagsDetail2: string;
+    featureFlagsDetail3: string;
+    featureFlagsDetail4: string;
+    featureFlagsDetail5: string;
+    featureFlagsDetail6: string;
+    featureFlagsDetail7: string;
   };
 
   // Notifications
@@ -837,6 +978,26 @@ export type TranslationDict = {
     prefsSaveFail: string;
     on: string;
     off: string;
+    resend: string;
+    minCostThreshold: string;
+    minCostThresholdDesc: string;
+    notifyDaysLabel: string;
+    channelDefault: string;
+    channelSlackOnly: string;
+    channelEmailOnly: string;
+    channelBoth: string;
+    addThreshold: string;
+    sendAlert: string;
+    alertSentSuccess: string;
+    alertSentFail: string;
+    networkFail: string;
+    licenseAlertHint: string;
+    markRenewed: string;
+    alreadyRenewed: string;
+    resendSuccess: string;
+    resendFail: string;
+    resendNetworkFail: string;
+    unknownError: string;
   };
 
   // Auth / Login
@@ -867,6 +1028,27 @@ export type TranslationDict = {
   };
 
   // Admin
+  featureFlag: {
+    categoryFeatureLabel: string;
+    categoryFeatureDesc: string;
+    categorySecurityLabel: string;
+    categorySecurityDesc: string;
+    categoryNotificationLabel: string;
+    categoryNotificationDesc: string;
+    categoryAssetLabel: string;
+    categoryAssetDesc: string;
+    categoryFinanceLabel: string;
+    categoryFinanceDesc: string;
+    categoryDisplayLabel: string;
+    categoryDisplayDesc: string;
+    pageDesc: string;
+    resetToDefault: string;
+    loadFail: string;
+    noticeTitle: string;
+    noticeBody: string;
+    unsaved: string;
+  };
+
   admin: {
     accountList: string;
     newAccount: string;
@@ -892,6 +1074,32 @@ export type TranslationDict = {
     autoApplied: string;
     manualOverride: string;
     ciaMappingHint: string;
+    titleRequired: string;
+    dataRequired: string;
+    bulkImportFail: string;
+    assetCategoryDesc: string;
+    titleCiaDesc: string;
+    bulkRegister: string;
+    ciaHint1: string;
+    ciaAutoApply: string;
+    bulkCiaHint: string;
+    bulkCiaFormat: string;
+    jobTitleLabel: string;
+    derivedGrade: string;
+    avgScore: string;
+    jobDescription: string;
+    ciaRationale: string;
+    jobTitleCol: string;
+    assetCountCol: string;
+    rationalePrefix: string;
+    bulkRegistered: string;
+    jobTitleExamples: string;
+    jobDescPlaceholder: string;
+    ciaRationalePlaceholder: string;
+    bulkCiaExample: string;
+    bulkCiaRow1: string;
+    bulkCiaRow2: string;
+    bulkCiaRow3: string;
   };
 
   // Toast messages
@@ -909,6 +1117,7 @@ export type TranslationDict = {
     confirmDelete: string;
     confirmUnassign: string;
     loadFail: string;
+    networkError: string;
   };
 
   // Tour guide
@@ -1203,6 +1412,20 @@ export type TranslationDict = {
     linkCreateError: string;
     pdfCreateFail: string;
     pdfExportError: string;
+    // Label and alignment
+    align: string;
+    showLabels: string;
+    hideLabels: string;
+    labelsShowing: string;
+    labelsHidden: string;
+    alignSize: string;
+    alignSizeLabel: string;
+    alignLeft: string;
+    alignCenterH: string;
+    alignRight: string;
+    alignTop: string;
+    alignCenterV: string;
+    alignBottom: string;
   };
 
   // Profile
@@ -1269,6 +1492,9 @@ export type TranslationDict = {
     addOwnerFail: string;
     statusChangeFail: string;
     renewalDateFail: string;
+    autoRateLabel: string;
+    loadingRate: string;
+    rateHint: string;
   };
 
   // Lifecycle gauge
@@ -1308,5 +1534,7 @@ export type TranslationDict = {
     connectedAssets: string;
     noEntities: string;
     deleteConfirm: string;
+    linkTarget: string;
+    linkSource: string;
   };
 };

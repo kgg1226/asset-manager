@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
 
 const PAGE_SIZE = 50;
@@ -110,8 +111,22 @@ export default function HistoryContent({
   entityId,
 }: HistoryContentProps) {
   const { t, locale } = useTranslation();
+  const router = useRouter();
   const entityLabel = useEntityLabels();
   const actionLabel = useActionLabels();
+
+  function quickDateFilter(days: number) {
+    const now = new Date();
+    const fromDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+    const fmt = (d: Date) => d.toISOString().split("T")[0];
+    const p = new URLSearchParams();
+    if (entityType) p.set("entityType", entityType);
+    if (action) p.set("action", action);
+    if (q) p.set("q", q);
+    p.set("from", fmt(fromDate));
+    p.set("to", fmt(now));
+    router.push(`/history?${p.toString()}`);
+  }
 
   function buildUrl(overrides: Partial<Record<string, string>>): string {
     const p = new URLSearchParams();
@@ -137,6 +152,21 @@ export default function HistoryContent({
     <div className="min-h-screen bg-gray-50 py-10">
       <div className="mx-auto max-w-7xl px-4">
         <h1 className="mb-6 text-2xl font-bold text-gray-900">{t.history.title}</h1>
+
+        {/* Quick date filters */}
+        <div className="mb-3 flex items-center gap-2">
+          <span className="text-xs text-gray-500 font-medium">{t.history.quickFilter}:</span>
+          {[{ label: t.common.today, days: 0 }, { label: `7${t.common.dSuffix}`, days: 7 }, { label: `30${t.common.dSuffix}`, days: 30 }, { label: `90${t.common.dSuffix}`, days: 90 }].map(({ label, days }) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => days === 0 ? quickDateFilter(1) : quickDateFilter(days)}
+              className="rounded-full border border-gray-300 bg-white px-3 py-0.5 text-xs text-gray-600 hover:bg-gray-50"
+            >
+              {label}
+            </button>
+          ))}
+        </div>
 
         {/* Filters */}
         <form className="mb-6 flex flex-wrap items-end gap-3 rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-200">
@@ -165,8 +195,8 @@ export default function HistoryContent({
             <input type="date" name="to" defaultValue={to} className="input text-sm" />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">{t.common.search}</label>
-            <input type="text" name="q" defaultValue={q} placeholder={`${t.common.search}...`} className="input text-sm" />
+            <label className="mb-1 block text-xs font-medium text-gray-500">{t.history.actor}</label>
+            <input type="text" name="q" defaultValue={q} placeholder={`${t.history.actor}/${t.common.search}...`} className="input text-sm" />
           </div>
           <button
             type="submit"

@@ -11,7 +11,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
   const { id } = await params;
   const employeeId = Number(id);
 
-  const [employee, companies, sameName] = await Promise.all([
+  const [employee, companies, sameName, hardwareCount] = await Promise.all([
     prisma.employee.findUnique({
       where: { id: employeeId },
       include: {
@@ -36,6 +36,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
       where: {},
       select: { id: true, name: true, email: true },
     }),
+    prisma.asset.count({ where: { assigneeId: employeeId, type: "HARDWARE" } }),
   ]);
 
   if (!employee) notFound();
@@ -105,11 +106,10 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
 
   const history: HistoryEntry[] = assignmentHistory.map((h) => {
     const licenseName = h.assignment?.license?.name ?? `License #${h.licenseId}`;
-    const actionLabel = h.action === "ASSIGNED" ? "할당" : h.action === "RETURNED" ? "반납" : "해제";
     return {
       id: `ah-${h.id}`,
       action: h.action,
-      description: `${licenseName} — ${actionLabel}${h.reason ? ` (${h.reason})` : ""}`,
+      description: `${licenseName}${h.reason ? ` (${h.reason})` : ""}`,
       createdAt: h.createdAt.toLocaleDateString(),
     };
   });
@@ -153,6 +153,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
       pastAssignments={pastAssignmentsData}
       displayHistory={displayHistory}
       isLoggedIn={!!user}
+      hardwareCount={hardwareCount}
     />
   );
 }

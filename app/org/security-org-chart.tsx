@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Shield, Plus, Edit2, Trash2, User, ChevronDown, ChevronRight, UserPlus } from "lucide-react";
+import { Shield, Plus, Edit2, Trash2, User, ChevronDown, ChevronRight, UserPlus, GitBranch, List } from "lucide-react";
+import dynamic from "next/dynamic";
+const SecurityFlowVisual = dynamic(() => import("./security-flow-visual"), { ssr: false });
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
@@ -231,6 +233,7 @@ export default function SecurityOrgChart() {
   const [showCreateRoot, setShowCreateRoot] = useState(false);
   const [newRootTitle, setNewRootTitle] = useState("");
   const [creating, setCreating] = useState(false);
+  const [viewMode, setViewMode] = useState<"tree" | "flow">("tree");
 
   const fetchData = useCallback(async () => {
     try {
@@ -278,8 +281,17 @@ export default function SecurityOrgChart() {
         <div className="flex items-center gap-2">
           <Shield className="h-5 w-5 text-red-600" />
           <h2 className="text-lg font-bold text-gray-900">{t.org.securityOrgChart}</h2>
+          {/* View toggle */}
+          <div className="flex rounded-md border border-gray-200 overflow-hidden">
+            <button onClick={() => setViewMode("tree")} className={`flex items-center gap-1 px-2.5 py-1 text-xs ${viewMode === "tree" ? "bg-gray-100 font-medium" : "text-gray-500 hover:bg-gray-50"}`}>
+              <List className="h-3.5 w-3.5" /> {t.org.treeView}
+            </button>
+            <button onClick={() => setViewMode("flow")} className={`flex items-center gap-1 px-2.5 py-1 text-xs border-l border-gray-200 ${viewMode === "flow" ? "bg-gray-100 font-medium" : "text-gray-500 hover:bg-gray-50"}`}>
+              <GitBranch className="h-3.5 w-3.5" /> {t.org.visualization}
+            </button>
+          </div>
         </div>
-        {isAdmin && (
+        {isAdmin && viewMode === "tree" && (
           <button
             onClick={() => setShowCreateRoot(true)}
             className="inline-flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700"
@@ -313,7 +325,9 @@ export default function SecurityOrgChart() {
         </div>
       )}
 
-      {roots.length === 0 ? (
+      {viewMode === "flow" ? (
+        <SecurityFlowVisual securityNodes={nodes} />
+      ) : roots.length === 0 ? (
         <div className="rounded-lg bg-white p-12 text-center shadow-sm ring-1 ring-gray-200">
           <Shield className="mx-auto h-12 w-12 text-gray-300" />
           <p className="mt-3 text-sm text-gray-500">{t.common.noData}</p>

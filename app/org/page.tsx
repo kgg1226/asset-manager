@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Plus, List, GitBranch, Shield, Building2 } from "lucide-react";
 import OrgTree from "./org-tree";
-import OrgChartVisual from "./org-chart-visual";
+import OrgFlowVisual from "./org-flow-visual";
 import SecurityOrgChart from "./security-org-chart";
 import CompanyInfoTab from "./company-info-tab";
 import { toast } from "sonner";
@@ -185,7 +185,7 @@ export default function OrgPage() {
         )}
 
         {activeTab === "visual" && (
-          <OrgChartVisual />
+          <OrgFlowVisual companies={companies} />
         )}
 
         {activeTab === "security" && (

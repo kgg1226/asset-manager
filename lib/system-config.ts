@@ -183,10 +183,18 @@ export interface NotificationPreferences {
   channel: "SLACK" | "EMAIL" | "BOTH";
   /** 각 이벤트 유형별 ON/OFF */
   events: Record<NotificationEventType, boolean>;
-  /** 갱신일 임박 — 며칠 전부터 알림 */
+  /** 갱신일 임박 — 며칠 전부터 알림 (단일, 레거시 호환) */
   renewalDaysBefore: number;
-  /** 해지 통보일 임박 — 며칠 전부터 알림 */
+  /** 해지 통보일 임박 — 며칠 전부터 알림 (단일, 레거시 호환) */
   cancellationDaysBefore: number;
+  /** 갱신 알림 다중 D-day 목록 (예: [60, 30, 7]) */
+  renewalDaysBeforeList?: number[];
+  /** 해지 알림 다중 D-day 목록 */
+  cancellationDaysBeforeList?: number[];
+  /** 알림 최소 월 비용 임계치 (KRW, null=모두) */
+  minCostThresholdKRW?: number | null;
+  /** 이벤트별 채널 오버라이드 ("DEFAULT"=전역 채널 사용) */
+  eventChannelOverrides?: Partial<Record<NotificationEventType, "SLACK" | "EMAIL" | "BOTH" | "DEFAULT">>;
 }
 
 const PREFS_KEY = "NOTIFICATION_PREFERENCES";

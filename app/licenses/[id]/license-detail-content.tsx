@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useTranslation } from "@/lib/i18n";
 import {
   KeyRound,
@@ -15,6 +16,7 @@ import {
   Calculator,
   Building2,
   Download,
+  Upload,
 } from "lucide-react";
 import LicenseAssignments from "./license-assignments";
 import type { Currency, PaymentCycle } from "@/lib/cost-calculator";
@@ -154,6 +156,37 @@ export default function LicenseDetailContent({
 }: LicenseDetailContentProps) {
   const { t, locale } = useTranslation();
   const { isAdmin } = useCurrentUser();
+
+  const [showBulkKeyModal, setShowBulkKeyModal] = useState(false);
+  const [bulkKeyText, setBulkKeyText] = useState("");
+  const [bulkKeySaving, setBulkKeySaving] = useState(false);
+  const [bulkKeyResult, setBulkKeyResult] = useState<{ created?: number; error?: string } | null>(null);
+
+  async function handleBulkKeySubmit() {
+    const keys = bulkKeyText.split("\n").map((k) => k.trim()).filter(Boolean);
+    if (keys.length === 0) return;
+    setBulkKeySaving(true);
+    setBulkKeyResult(null);
+    try {
+      const res = await fetch(`/api/licenses/${licenseId}/seats/bulk`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keys }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setBulkKeyResult({ error: data.error ?? t.common.error });
+      } else {
+        setBulkKeyResult({ created: data.created });
+        setBulkKeyText("");
+        setTimeout(() => { setShowBulkKeyModal(false); setBulkKeyResult(null); window.location.reload(); }, 1200);
+      }
+    } catch {
+      setBulkKeyResult({ error: t.toast.networkError });
+    } finally {
+      setBulkKeySaving(false);
+    }
+  }
 
   function formatDate(dateStr: string | null): string {
     if (!dateStr) return "\u2014";
@@ -462,12 +495,62 @@ export default function LicenseDetailContent({
           </div>
         )}
 
+        {/* Bulk Key Modal */}
+        {showBulkKeyModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+              <h3 className="mb-1 text-lg font-semibold text-gray-900">{t.license.bulkKeyAddTitle}</h3>
+              <p className="mb-3 text-xs text-gray-500">{t.license.bulkKeyAddHint}</p>
+              <textarea
+                className="h-48 w-full rounded border border-gray-300 p-2 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder={"XXXX-XXXX-XXXX\nYYYY-YYYY-YYYY\n..."}
+                value={bulkKeyText}
+                onChange={(e) => setBulkKeyText(e.target.value)}
+              />
+              {bulkKeyResult && (
+                <p className={`mt-2 text-sm ${bulkKeyResult.error ? "text-red-600" : "text-green-700"}`}>
+                  {bulkKeyResult.error ? `${t.license.bulkKeyError} ${bulkKeyResult.error}` : `${bulkKeyResult.created}${t.license.bulkKeySuccess}`}
+                </p>
+              )}
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowBulkKeyModal(false); setBulkKeyText(""); setBulkKeyResult(null); }}
+                  className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  {t.common.cancel}
+                </button>
+                <button
+                  type="button"
+                  disabled={bulkKeySaving || !bulkKeyText.trim()}
+                  onClick={handleBulkKeySubmit}
+                  className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {bulkKeySaving ? t.common.loading : t.common.add}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Seat Table (KEY_BASED only) */}
         {isKeyBased && seats.length > 0 && (
           <div className="mb-6">
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">
-              {t.license.seat} {t.common.status} ({seats.length}{locale === "en" ? "" : "\uAC1C"})
-            </h2>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">
+                {t.license.seat} {t.common.status} ({seats.length}{locale === "en" ? "" : "\uAC1C"})
+              </h2>
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => setShowBulkKeyModal(true)}
+                  className="flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
+                >
+                  <Upload className="h-3.5 w-3.5" />
+                  {t.license.bulkKeyAddTitle}
+                </button>
+              )}
+            </div>
             <div className="overflow-x-auto rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -539,7 +622,7 @@ export default function LicenseDetailContent({
         )}
 
         {/* Renewal Management */}
-        {isAdmin && <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {isAdmin && <div id="renewal" className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
           <RenewalStatusPanel
             licenseId={licenseId}
             currentStatus={license.renewalStatus as Parameters<typeof RenewalStatusPanel>[0]["currentStatus"] ?? null}

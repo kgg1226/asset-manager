@@ -15,6 +15,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { ChevronUp, ChevronDown, Search, X } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 
 export type ColumnDef<T> = {
   key: keyof T | string;
@@ -84,18 +85,22 @@ export function DataTable<T extends Record<string, unknown>>({
   data,
   filterKeys = [],
   urlState = false,
-  searchPlaceholder = "검색...",
+  searchPlaceholder,
   rowKey = "id" as keyof T,
   toolbar,
-  emptyText = "데이터가 없습니다.",
+  emptyText,
   loading = false,
-  loadingText = "불러오는 중...",
+  loadingText,
   onSortChange,
   onFilterChange,
 }: DataTableProps<T>) {
+  const { t } = useTranslation();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const resolvedSearchPlaceholder = searchPlaceholder ?? t.common.search;
+  const resolvedEmptyText = emptyText ?? t.common.noData;
+  const resolvedLoadingText = loadingText ?? t.common.loading;
 
   const initSort = urlState ? (searchParams.get("sort") ?? null) : null;
   const initOrder = urlState ? ((searchParams.get("order") as SortOrder) ?? "asc") : "asc";
@@ -183,7 +188,7 @@ export function DataTable<T extends Record<string, unknown>>({
               type="text"
               value={filterValue}
               onChange={(e) => handleFilter(e.target.value)}
-              placeholder={searchPlaceholder}
+              placeholder={resolvedSearchPlaceholder}
               className="w-full rounded-md border border-gray-300 py-2 pl-8 pr-8 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
             {filterValue && (
@@ -222,13 +227,13 @@ export function DataTable<T extends Record<string, unknown>>({
             {loading ? (
               <tr>
                 <td colSpan={columns.length} className="px-4 py-8 text-center text-sm text-gray-400">
-                  {loadingText}
+                  {resolvedLoadingText}
                 </td>
               </tr>
             ) : sortedData.length === 0 ? (
               <tr>
                 <td colSpan={columns.length} className="px-4 py-8 text-center text-sm text-gray-500">
-                  {emptyText}
+                  {resolvedEmptyText}
                 </td>
               </tr>
             ) : (
@@ -259,8 +264,8 @@ export function DataTable<T extends Record<string, unknown>>({
       {!loading && (
         <p className="mt-2 text-xs text-gray-500">
           {sortedData.length !== data.length
-            ? `${sortedData.length} / ${data.length}건`
-            : `${data.length}건`}
+            ? `${sortedData.length} / ${data.length}${t.common.countSuffix}`
+            : `${data.length}${t.common.countSuffix}`}
         </p>
       )}
     </div>

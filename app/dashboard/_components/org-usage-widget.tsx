@@ -27,7 +27,7 @@ function CostTooltip({
     <div className="rounded-lg bg-white p-3 shadow-lg ring-1 ring-gray-200 text-sm">
       {payload.map((p, i) => (
         <p key={i} className="font-medium" style={{ color: p.color }}>
-          {p.name}: {p.value.toLocaleString()}{p.name.includes("비용") || p.name.includes("Cost") ? " ₩" : ""}
+          {p.name}: {p.value.toLocaleString()}
         </p>
       ))}
     </div>
