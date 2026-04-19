@@ -65,6 +65,7 @@ export const ja: TranslationDict = {
     today: "今日",
     dSuffix: "日",
     navigate: "移動",
+    returned: "返却",
   },
 
   nav: {
@@ -1219,6 +1220,18 @@ export const ja: TranslationDict = {
     linkCreateError: "接続の作成中にエラーが発生しました。",
     pdfCreateFail: "PDF生成に失敗しました。",
     pdfExportError: "PDFエクスポート中にエラーが発生しました。",
+    align: "整列",
+    showLabels: "ラベル表示",
+    hideLabels: "ラベル非表示",
+    labelsShowing: "ラベル表示中",
+    labelsHidden: "ラベル非表示",
+    alignSize: "サイズを揃える（平均）",
+    alignLeft: "左揃え",
+    alignCenterH: "水平中央",
+    alignRight: "右揃え",
+    alignTop: "上揃え",
+    alignCenterV: "垂直中央",
+    alignBottom: "下揃え",
   },
 
   profile: {

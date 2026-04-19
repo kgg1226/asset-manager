@@ -65,6 +65,7 @@ export const vi: TranslationDict = {
     today: "Hôm nay",
     dSuffix: "N",
     navigate: "Đến",
+    returned: "Đã trả",
   },
 
   nav: {
@@ -1219,6 +1220,18 @@ export const vi: TranslationDict = {
     linkCreateError: "Lỗi khi tạo kết nối.",
     pdfCreateFail: "Tạo PDF thất bại.",
     pdfExportError: "Lỗi khi xuất PDF.",
+    align: "Căn chỉnh",
+    showLabels: "Hiện nhãn",
+    hideLabels: "Ẩn nhãn",
+    labelsShowing: "Đang hiện nhãn",
+    labelsHidden: "Nhãn đã ẩn",
+    alignSize: "Khớp kích thước (trung bình)",
+    alignLeft: "Căn trái",
+    alignCenterH: "Căn giữa ngang",
+    alignRight: "Căn phải",
+    alignTop: "Căn trên",
+    alignCenterV: "Căn giữa dọc",
+    alignBottom: "Căn dưới",
   },
 
   profile: {

@@ -65,6 +65,7 @@ export const zh: TranslationDict = {
     today: "今天",
     dSuffix: "天",
     navigate: "前往",
+    returned: "归还",
   },
 
   nav: {
@@ -1218,6 +1219,18 @@ export const zh: TranslationDict = {
     linkCreateError: "创建连接时出错。",
     pdfCreateFail: "生成PDF失败。",
     pdfExportError: "导出PDF时出错。",
+    align: "对齐",
+    showLabels: "显示标签",
+    hideLabels: "隐藏标签",
+    labelsShowing: "标签显示中",
+    labelsHidden: "标签已隐藏",
+    alignSize: "统一大小（平均）",
+    alignLeft: "左对齐",
+    alignCenterH: "水平居中",
+    alignRight: "右对齐",
+    alignTop: "顶部对齐",
+    alignCenterV: "垂直居中",
+    alignBottom: "底部对齐",
   },
 
   profile: {

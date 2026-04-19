@@ -65,6 +65,7 @@ export const ko: TranslationDict = {
     today: "오늘",
     dSuffix: "일",
     navigate: "이동",
+    returned: "반납",
   },
 
   nav: {
@@ -1225,6 +1226,18 @@ export const ko: TranslationDict = {
     linkCreateError: "연결 생성 중 오류가 발생했습니다.",
     pdfCreateFail: "PDF 생성에 실패했습니다.",
     pdfExportError: "PDF 내보내기 중 오류가 발생했습니다.",
+    align: "정렬",
+    showLabels: "레이블 표시",
+    hideLabels: "레이블 숨기기",
+    labelsShowing: "레이블 표시 중",
+    labelsHidden: "레이블 숨김",
+    alignSize: "크기 일괄 맞추기 (평균)",
+    alignLeft: "왼쪽 정렬",
+    alignCenterH: "가로 중앙",
+    alignRight: "오른쪽 정렬",
+    alignTop: "위쪽 정렬",
+    alignCenterV: "세로 중앙",
+    alignBottom: "아래쪽 정렬",
   },
 
   // Profile

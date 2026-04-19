@@ -66,6 +66,7 @@ export type TranslationDict = {
     today: string;
     dSuffix: string;
     navigate: string;
+    returned: string;
   };
 
   // Navigation / Sidebar
@@ -1275,6 +1276,19 @@ export type TranslationDict = {
     linkCreateError: string;
     pdfCreateFail: string;
     pdfExportError: string;
+    // Label and alignment
+    align: string;
+    showLabels: string;
+    hideLabels: string;
+    labelsShowing: string;
+    labelsHidden: string;
+    alignSize: string;
+    alignLeft: string;
+    alignCenterH: string;
+    alignRight: string;
+    alignTop: string;
+    alignCenterV: string;
+    alignBottom: string;
   };
 
   // Profile

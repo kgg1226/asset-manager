@@ -3911,10 +3911,10 @@ function AssetMapContentInner() {
           </button>
           <button
             onClick={handleToggleLabels}
-            title={showNodeLabels ? "레이블 숨기기" : "레이블 표시"}
+            title={showNodeLabels ? t.assetMap.hideLabels : t.assetMap.showLabels}
             className={`rounded-md border px-3 py-1.5 text-xs font-medium ${showNodeLabels ? "border-gray-300 bg-white text-gray-700 hover:bg-gray-50" : "border-gray-400 bg-gray-100 text-gray-500"}`}
           >
-            {showNodeLabels ? "레이블 표시 중" : "레이블 숨김"}
+            {showNodeLabels ? t.assetMap.labelsShowing : t.assetMap.labelsHidden}
           </button>
           <button onClick={handleAutoLayout} className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">
             <LayoutGrid className="inline h-3.5 w-3.5 mr-1" />
@@ -3922,7 +3922,7 @@ function AssetMapContentInner() {
           </button>
           {multiSelectedIds.length >= 2 && (
             <div className="flex items-center gap-0.5 rounded-md border border-indigo-300 bg-indigo-50 px-1.5 py-1">
-              <span className="text-xs text-indigo-500 mr-1">정렬</span>
+              <span className="text-xs text-indigo-500 mr-1">{t.assetMap.align}</span>
               <button
                 onClick={() => {
                   const selIds = new Set(multiSelectedIds);
@@ -3933,18 +3933,18 @@ function AssetMapContentInner() {
                   setNodes((nds) => nds.map((n) => selIds.has(n.id) ? { ...n, style: { ...n.style, width: avgW, height: avgH } } : n));
                   markDirty(500);
                 }}
-                title="크기 일괄 맞추기 (평균)"
+                title={t.assetMap.alignSize}
                 className="rounded px-2 py-0.5 text-xs text-indigo-700 hover:bg-indigo-100 border-l border-indigo-200 ml-1 pl-2"
               >
                 크기↔
               </button>
               {([
-                { dir: "left" as const, label: "⇤", title: "왼쪽 정렬" },
-                { dir: "centerH" as const, label: "↔", title: "가로 중앙" },
-                { dir: "right" as const, label: "⇥", title: "오른쪽 정렬" },
-                { dir: "top" as const, label: "⇡", title: "위쪽 정렬" },
-                { dir: "centerV" as const, label: "↕", title: "세로 중앙" },
-                { dir: "bottom" as const, label: "⇣", title: "아래쪽 정렬" },
+                { dir: "left" as const, label: "⇤", title: t.assetMap.alignLeft },
+                { dir: "centerH" as const, label: "↔", title: t.assetMap.alignCenterH },
+                { dir: "right" as const, label: "⇥", title: t.assetMap.alignRight },
+                { dir: "top" as const, label: "⇡", title: t.assetMap.alignTop },
+                { dir: "centerV" as const, label: "↕", title: t.assetMap.alignCenterV },
+                { dir: "bottom" as const, label: "⇣", title: t.assetMap.alignBottom },
               ] as { dir: "left"|"centerH"|"right"|"top"|"centerV"|"bottom"; label: string; title: string }[]).map(({ dir, label, title }) => (
                 <button
                   key={dir}

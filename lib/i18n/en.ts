@@ -65,6 +65,7 @@ export const en: TranslationDict = {
     today: "Today",
     dSuffix: "d",
     navigate: "Go",
+    returned: "Returned",
   },
 
   nav: {
@@ -1219,6 +1220,18 @@ export const en: TranslationDict = {
     linkCreateError: "Error creating link.",
     pdfCreateFail: "Failed to generate PDF.",
     pdfExportError: "Error exporting PDF.",
+    align: "Align",
+    showLabels: "Show Labels",
+    hideLabels: "Hide Labels",
+    labelsShowing: "Labels Visible",
+    labelsHidden: "Labels Hidden",
+    alignSize: "Fit Size (Average)",
+    alignLeft: "Align Left",
+    alignCenterH: "Center Horizontal",
+    alignRight: "Align Right",
+    alignTop: "Align Top",
+    alignCenterV: "Center Vertical",
+    alignBottom: "Align Bottom",
   },
 
   profile: {
