@@ -215,7 +215,7 @@ type ReportData = {
   period: string;
   startDate: string;
   endDate: string;
-  summary: { totalMonthlyCost: number; assetCount: number; currency: string };
+  summary: { totalMonthlyCost: number; assetCount: number; currency: string; prevMonthlyCost?: number };
   byType: { type: string; count: number; cost: number }[];
   byDepartment: { department: string; count: number; cost: number }[];
   expiringCount: number;
@@ -390,6 +390,7 @@ export default function ReportsPage() {
                 label={t.report.totalMonthlyCost}
                 value={`₩${data.summary.totalMonthlyCost.toLocaleString()}`}
                 highlight
+                prevValue={data.summary.prevMonthlyCost}
               />
               <SummaryCard label={t.report.assetCount} value={`${data.summary.assetCount}${t.dashboard.items}`} />
             </div>
@@ -541,11 +542,29 @@ export default function ReportsPage() {
   );
 }
 
-function SummaryCard({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+function SummaryCard({ label, value, highlight, prevValue }: { label: string; value: string; highlight?: boolean; prevValue?: number }) {
+  let changeLine: React.ReactNode = null;
+  if (prevValue !== undefined) {
+    const curr = parseFloat(value.replace(/[₩,]/g, "")) || 0;
+    const diff = curr - prevValue;
+    const pct = prevValue > 0 ? ((diff / prevValue) * 100).toFixed(1) : null;
+    if (Math.abs(diff) > 0) {
+      const up = diff > 0;
+      changeLine = (
+        <p className={`mt-1 text-xs font-medium ${up ? "text-red-500" : "text-green-600"}`}>
+          {up ? "▲" : "▼"} ₩{Math.abs(diff).toLocaleString()}{pct ? ` (${up ? "+" : ""}${pct}%)` : ""}
+          <span className="ml-1 text-gray-400 font-normal">전월 대비</span>
+        </p>
+      );
+    } else {
+      changeLine = <p className="mt-1 text-xs text-gray-400">전월 동일</p>;
+    }
+  }
   return (
     <div className={`rounded-lg p-4 shadow-sm ring-1 ${highlight ? "bg-blue-50 ring-blue-200" : "bg-white ring-gray-200"}`}>
       <p className="text-xs font-medium uppercase text-gray-500">{label}</p>
       <p className={`mt-1 text-xl font-bold ${highlight ? "text-blue-700" : "text-gray-900"}`}>{value}</p>
+      {changeLine}
     </div>
   );
 }
