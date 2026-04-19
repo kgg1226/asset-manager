@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
 import CiaScoreInput from "@/app/_components/cia-score-input";
 import type { CiaLevel } from "@/lib/cia";
+import LifecycleGauge from "@/app/_components/lifecycle-gauge";
 
 const CURRENCIES = ["USD", "KRW", "EUR", "JPY", "GBP", "CNY"];
 const BILLING_CYCLE_VALUES = ["MONTHLY", "ANNUAL", "ONE_TIME", "USAGE_BASED"] as const;
@@ -176,6 +177,11 @@ export default function CloudNewPage() {
                 <input type="date" name="expiryDate" value={form.expiryDate} onChange={onChange} className={inputCls} />
               </div>
             </div>
+            {form.purchaseDate && form.expiryDate && (
+              <div className="mb-6">
+                <LifecycleGauge startDate={form.purchaseDate} endDate={form.expiryDate} size="sm" showLabel showDates />
+              </div>
+            )}
           </div>
 
           <div className="rounded-lg bg-white p-6 shadow-sm">
