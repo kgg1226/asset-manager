@@ -122,6 +122,9 @@ export const zhTW: TranslationDict = {
     active: "啟用中",
     orgUsage: "各組織資產使用情況",
     orgUsageDesc: "各組織授權·資產數量及月度費用",
+    monthly: "月度",
+    cumulative: "累計",
+    average: "平均",
   },
 
   license: {
@@ -393,6 +396,8 @@ export const zhTW: TranslationDict = {
     admin: "管理員",
     units: "個",
     monthsUnit: "個月",
+    noChange: "無變動",
+    decreaseForecast: "預計減少",
   },
 
   domain: {

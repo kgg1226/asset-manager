@@ -122,6 +122,9 @@ export const ja: TranslationDict = {
     active: "アクティブ",
     orgUsage: "組織別資産状況",
     orgUsageDesc: "組織別ライセンス・資産数と月間コスト",
+    monthly: "月別",
+    cumulative: "累積",
+    average: "平均",
   },
 
   license: {
@@ -393,6 +396,8 @@ export const ja: TranslationDict = {
     admin: "管理者",
     units: "個",
     monthsUnit: "ヶ月",
+    noChange: "変動なし",
+    decreaseForecast: "減少予定",
   },
 
   domain: {

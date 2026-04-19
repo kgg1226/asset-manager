@@ -122,6 +122,9 @@ export const en: TranslationDict = {
     active: "Active",
     orgUsage: "Asset Usage by Organization",
     orgUsageDesc: "License & asset count and monthly cost per org",
+    monthly: "Monthly",
+    cumulative: "Cumulative",
+    average: "Avg",
   },
 
   license: {
@@ -393,6 +396,8 @@ export const en: TranslationDict = {
     admin: "Admin",
     units: "",
     monthsUnit: " months",
+    noChange: "No change",
+    decreaseForecast: "decrease forecasted",
   },
 
   domain: {

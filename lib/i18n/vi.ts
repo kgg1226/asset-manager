@@ -122,6 +122,9 @@ export const vi: TranslationDict = {
     active: "Đang hoạt động",
     orgUsage: "Tình hình tài sản theo tổ chức",
     orgUsageDesc: "Số lượng giấy phép·tài sản và chi phí hàng tháng theo tổ chức",
+    monthly: "Hàng tháng",
+    cumulative: "Lũy kế",
+    average: "TB",
   },
 
   license: {
@@ -393,6 +396,8 @@ export const vi: TranslationDict = {
     admin: "Quản trị viên",
     units: "",
     monthsUnit: " tháng",
+    noChange: "Không thay đổi",
+    decreaseForecast: "dự kiến giảm",
   },
 
   domain: {

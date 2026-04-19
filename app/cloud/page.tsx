@@ -193,8 +193,8 @@ export default function CloudListPage() {
               {costForecast.currentMonthly > 0 && (
                 <p className={`mt-0.5 text-xs ${costForecast.nextMonthly < costForecast.currentMonthly ? "text-green-600" : "text-gray-400"}`}>
                   {costForecast.nextMonthly < costForecast.currentMonthly
-                    ? `▼ ₩${(costForecast.currentMonthly - costForecast.nextMonthly).toLocaleString()} 감소 예정`
-                    : "변동 없음"}
+                    ? `▼ ₩${(costForecast.currentMonthly - costForecast.nextMonthly).toLocaleString()} ${t.cloud.decreaseForecast}`
+                    : t.cloud.noChange}
                 </p>
               )}
             </div>

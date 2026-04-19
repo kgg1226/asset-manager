@@ -560,7 +560,7 @@ function PreferencesSection({ isAdmin }: { isAdmin: boolean }) {
                         value={daysInput[evt.key] ?? ""}
                         onChange={(e) => setDaysInput((prev) => ({ ...prev, [evt.key]: e.target.value }))}
                         onKeyDown={(e) => { if (e.key === "Enter") addDayThreshold(evt.daysListKey!, evt.daysFallbackKey!, evt.key); }}
-                        placeholder="추가"
+                        placeholder="1-365"
                         className="w-16 rounded-md border border-gray-300 px-2 py-0.5 text-xs text-center"
                       />
                       <button

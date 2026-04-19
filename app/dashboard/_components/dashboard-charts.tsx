@@ -158,7 +158,7 @@ export default function DashboardCharts({
                 onClick={() => setTrendMode(mode)}
                 className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${trendMode === mode ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
               >
-                {mode === "monthly" ? "월별" : "누적"}
+                {mode === "monthly" ? t.dashboard.monthly : t.dashboard.cumulative}
               </button>
             ))}
           </div>
@@ -171,7 +171,7 @@ export default function DashboardCharts({
               <YAxis tickFormatter={formatCostAxis} tick={{ fontSize: 11, fill: "#6b7280" }} tickLine={false} axisLine={false} width={56} />
               <Tooltip content={<CostTooltip mode={trendMode} />} cursor={{ fill: "#eff6ff" }} />
               {trendMode === "monthly" && avgCost > 0 && (
-                <ReferenceLine y={avgCost} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: "평균", position: "right", fontSize: 10, fill: "#f59e0b" }} />
+                <ReferenceLine y={avgCost} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: t.dashboard.average, position: "right", fontSize: 10, fill: "#f59e0b" }} />
               )}
               <Bar dataKey="cost" fill={trendMode === "cumulative" ? "#6366f1" : "#3b82f6"} radius={[4, 4, 0, 0]} maxBarSize={40} />
             </BarChart>

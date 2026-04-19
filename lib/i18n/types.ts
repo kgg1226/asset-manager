@@ -126,6 +126,9 @@ export type TranslationDict = {
     active: string;
     orgUsage: string;
     orgUsageDesc: string;
+    monthly: string;
+    cumulative: string;
+    average: string;
   };
 
   // License
@@ -406,6 +409,8 @@ export type TranslationDict = {
     admin: string;
     units: string;
     monthsUnit: string;
+    noChange: string;
+    decreaseForecast: string;
   };
 
   // Domain / SSL

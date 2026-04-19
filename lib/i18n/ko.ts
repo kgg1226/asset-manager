@@ -122,6 +122,9 @@ export const ko: TranslationDict = {
     active: "활성",
     orgUsage: "조직별 자산 현황",
     orgUsageDesc: "조직별 라이선스·자산 수 및 월간 비용",
+    monthly: "월별",
+    cumulative: "누적",
+    average: "평균",
   },
 
   license: {
@@ -393,6 +396,8 @@ export const ko: TranslationDict = {
     admin: "관리자",
     units: "개",
     monthsUnit: "개월",
+    noChange: "변동 없음",
+    decreaseForecast: "감소 예정",
   },
 
   domain: {
