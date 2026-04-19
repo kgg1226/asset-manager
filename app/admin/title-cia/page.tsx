@@ -93,7 +93,7 @@ export default function TitleCiaMappingPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.title.trim()) { toast.error("직책명은 필수입니다."); return; }
+    if (!form.title.trim()) { toast.error(t.admin.titleRequired); return; }
 
     try {
       const url = editingId ? `/api/admin/title-cia/${editingId}` : "/api/admin/title-cia";
@@ -126,7 +126,7 @@ export default function TitleCiaMappingPage() {
   };
 
   const handleBulkImport = async () => {
-    if (!bulkText.trim()) { toast.error("데이터를 입력해주세요."); return; }
+    if (!bulkText.trim()) { toast.error(t.admin.dataRequired); return; }
     setBulkSaving(true);
     try {
       const lines = bulkText.trim().split("\n").filter(l => l.trim());
@@ -153,7 +153,7 @@ export default function TitleCiaMappingPage() {
       setBulkText("");
       await loadMappings();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "대량 등록 실패");
+      toast.error(err instanceof Error ? err.message : t.admin.bulkImportFail);
     } finally {
       setBulkSaving(false);
     }

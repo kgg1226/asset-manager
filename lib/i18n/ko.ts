@@ -945,6 +945,9 @@ export const ko: TranslationDict = {
     autoApplied: "자동 적용",
     manualOverride: "관리자가 직접 수정 가능",
     ciaMappingHint: "하드웨어 자산 할당 시 담당자의 직책에 따라 CIA 등급이 자동 설정됩니다. 네트워크/보안 장비 등은 관리자가 직접 수정할 수 있습니다.",
+    titleRequired: "직책명은 필수입니다.",
+    dataRequired: "데이터를 입력해주세요.",
+    bulkImportFail: "대량 등록 실패",
   },
 
   toast: {
@@ -961,6 +964,7 @@ export const ko: TranslationDict = {
     confirmDelete: "삭제하시겠습니까?",
     confirmUnassign: "해제하시겠습니까?",
     loadFail: "로드에 실패했습니다.",
+    networkError: "네트워크 오류가 발생했습니다.",
   },
 
   tour: {

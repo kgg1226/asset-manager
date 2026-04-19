@@ -943,6 +943,9 @@ export const zh: TranslationDict = {
     autoApplied: "自动应用",
     manualOverride: "管理员可手动修改",
     ciaMappingHint: "硬件分配时根据负责人的职责自动设置CIA等级。网络/安全设备等可由管理员手动修改。",
+    titleRequired: "职称名称为必填项。",
+    dataRequired: "请输入数据。",
+    bulkImportFail: "批量导入失败",
   },
 
   toast: {
@@ -959,6 +962,7 @@ export const zh: TranslationDict = {
     confirmDelete: "确定要删除吗？",
     confirmUnassign: "确定要解除吗？",
     loadFail: "加载失败。",
+    networkError: "发生网络错误。",
   },
 
   tour: {

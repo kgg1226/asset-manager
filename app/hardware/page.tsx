@@ -150,11 +150,11 @@ export default function HardwareListPage() {
         setSelectedIds(new Set());
         await loadAssets();
       } else {
-        const err = await res.json().catch(() => ({ error: "수정 실패" }));
-        toast.error(err.error || "태그 수정에 실패했습니다.");
+        const err = await res.json().catch(() => ({ error: t.toast.updateFail }));
+        toast.error(err.error || t.toast.updateFail);
       }
     } catch {
-      toast.error("네트워크 오류로 수정에 실패했습니다.");
+      toast.error(t.toast.networkError);
     }
     setBulkTagSaving(false);
   };
@@ -174,11 +174,11 @@ export default function HardwareListPage() {
         setSelectedIds(new Set());
         await loadAssets();
       } else {
-        const err = await res.json().catch(() => ({ error: "변경 실패" }));
-        toast.error(err.error || "상태 변경에 실패했습니다.");
+        const err = await res.json().catch(() => ({ error: t.toast.updateFail }));
+        toast.error(err.error || t.toast.updateFail);
       }
     } catch {
-      toast.error("네트워크 오류로 변경에 실패했습니다.");
+      toast.error(t.toast.networkError);
     }
     setBulkStatusSaving(false);
   };
@@ -197,11 +197,11 @@ export default function HardwareListPage() {
         const data = await res.json();
         toast.success(`${data.deleted}개 삭제 완료${data.notFound > 0 ? ` (${data.notFound}개 미발견)` : ""}`);
       } else {
-        const err = await res.json().catch(() => ({ error: "삭제 실패" }));
-        toast.error(err.error || "삭제에 실패했습니다.");
+        const err = await res.json().catch(() => ({ error: t.toast.deleteFail }));
+        toast.error(err.error || t.toast.deleteFail);
       }
     } catch {
-      toast.error("네트워크 오류로 삭제에 실패했습니다.");
+      toast.error(t.toast.networkError);
     }
     setSelectedIds(new Set());
     setBulkDeleting(false);

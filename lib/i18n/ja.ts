@@ -944,6 +944,9 @@ export const ja: TranslationDict = {
     autoApplied: "自動適用",
     manualOverride: "管理者が手動で変更可能",
     ciaMappingHint: "ハードウェア割当時に担当者の職責に基づいてCIA等級が自動設定されます。ネットワーク機器等は管理者が直接変更できます。",
+    titleRequired: "職責名は必須です。",
+    dataRequired: "データを入力してください。",
+    bulkImportFail: "一括登録失敗",
   },
 
   toast: {
@@ -960,6 +963,7 @@ export const ja: TranslationDict = {
     confirmDelete: "削除してよろしいですか？",
     confirmUnassign: "解除してよろしいですか？",
     loadFail: "読み込みに失敗しました。",
+    networkError: "ネットワークエラーが発生しました。",
   },
 
   tour: {

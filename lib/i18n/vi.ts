@@ -944,6 +944,9 @@ export const vi: TranslationDict = {
     autoApplied: "Tự động áp dụng",
     manualOverride: "Quản trị viên có thể ghi đè",
     ciaMappingHint: "Cấp độ CIA được tự động đặt dựa trên chức vụ của người được phân công. Thiết bị mạng/bảo mật có thể được quản trị viên thay đổi thủ công.",
+    titleRequired: "Tên chức danh là bắt buộc.",
+    dataRequired: "Vui lòng nhập dữ liệu.",
+    bulkImportFail: "Nhập hàng loạt thất bại",
   },
 
   toast: {
@@ -960,6 +963,7 @@ export const vi: TranslationDict = {
     confirmDelete: "Bạn có chắc chắn muốn xóa?",
     confirmUnassign: "Bạn có chắc chắn muốn giải phóng?",
     loadFail: "Tải dữ liệu thất bại.",
+    networkError: "Đã xảy ra lỗi mạng.",
   },
 
   tour: {

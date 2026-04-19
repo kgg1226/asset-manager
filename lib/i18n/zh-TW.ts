@@ -943,6 +943,9 @@ export const zhTW: TranslationDict = {
     autoApplied: "自動套用",
     manualOverride: "管理員可手動修改",
     ciaMappingHint: "硬體指派時根據負責人的職責自動設定CIA等級。網路/安全設備等可由管理員手動修改。",
+    titleRequired: "職稱名稱為必填項。",
+    dataRequired: "請輸入資料。",
+    bulkImportFail: "批量匯入失敗",
   },
 
   toast: {
@@ -959,6 +962,7 @@ export const zhTW: TranslationDict = {
     confirmDelete: "確定要刪除嗎？",
     confirmUnassign: "確定要解除嗎？",
     loadFail: "載入失敗。",
+    networkError: "發生網路錯誤。",
   },
 
   tour: {

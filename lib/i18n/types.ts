@@ -973,6 +973,9 @@ export type TranslationDict = {
     autoApplied: string;
     manualOverride: string;
     ciaMappingHint: string;
+    titleRequired: string;
+    dataRequired: string;
+    bulkImportFail: string;
   };
 
   // Toast messages
@@ -990,6 +993,7 @@ export type TranslationDict = {
     confirmDelete: string;
     confirmUnassign: string;
     loadFail: string;
+    networkError: string;
   };
 
   // Tour guide

@@ -175,14 +175,14 @@ export default function LicenseDetailContent({
       });
       const data = await res.json();
       if (!res.ok) {
-        setBulkKeyResult({ error: data.error ?? "오류가 발생했습니다." });
+        setBulkKeyResult({ error: data.error ?? t.common.error });
       } else {
         setBulkKeyResult({ created: data.created });
         setBulkKeyText("");
         setTimeout(() => { setShowBulkKeyModal(false); setBulkKeyResult(null); window.location.reload(); }, 1200);
       }
     } catch {
-      setBulkKeyResult({ error: "네트워크 오류" });
+      setBulkKeyResult({ error: t.toast.networkError });
     } finally {
       setBulkKeySaving(false);
     }

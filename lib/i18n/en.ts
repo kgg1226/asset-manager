@@ -944,6 +944,9 @@ export const en: TranslationDict = {
     autoApplied: "Auto-applied",
     manualOverride: "Admin can override manually",
     ciaMappingHint: "CIA grades are auto-set based on assignee's position when hardware is assigned. Network/security devices can be overridden by admins.",
+    titleRequired: "Title name is required.",
+    dataRequired: "Please enter data.",
+    bulkImportFail: "Bulk import failed",
   },
 
   toast: {
@@ -960,6 +963,7 @@ export const en: TranslationDict = {
     confirmDelete: "Are you sure you want to delete?",
     confirmUnassign: "Are you sure you want to release?",
     loadFail: "Failed to load.",
+    networkError: "A network error occurred.",
   },
 
   tour: {
