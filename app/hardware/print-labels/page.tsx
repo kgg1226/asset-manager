@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { Printer, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { useTranslation } from "@/lib/i18n";
 
 interface Asset {
   id: number;
@@ -19,14 +20,19 @@ interface Asset {
   status: string;
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  IN_STOCK: "재고", IN_USE: "사용중", INACTIVE: "비활성", UNUSABLE: "사용불가",
-  PENDING_DISPOSAL: "폐기예정", DISPOSED: "폐기완료",
-};
-
 export default function PrintLabelsPage() {
+  const { t } = useTranslation();
   const searchParams = useSearchParams();
   const ids = searchParams.get("ids")?.split(",").map(Number).filter(Boolean) ?? [];
+
+  const STATUS_LABEL: Record<string, string> = {
+    IN_STOCK: t.asset.statusInStock,
+    IN_USE: t.asset.statusInUse,
+    INACTIVE: t.asset.statusInactive,
+    UNUSABLE: t.asset.statusUnusable,
+    PENDING_DISPOSAL: t.asset.statusPendingDisposal,
+    DISPOSED: t.asset.statusDisposed,
+  };
 
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
