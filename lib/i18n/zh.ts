@@ -863,6 +863,10 @@ export const zh: TranslationDict = {
     licenseAlertHint: "请在许可证详情页发送许可证提醒。",
     markRenewed: "标记为已续期",
     alreadyRenewed: "已续期",
+    resendSuccess: "重新发送成功",
+    resendFail: "重新发送失败",
+    resendNetworkFail: "重新发送请求失败",
+    unknownError: "未知错误",
   },
 
   auth: {

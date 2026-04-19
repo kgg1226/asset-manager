@@ -864,6 +864,10 @@ export const vi: TranslationDict = {
     licenseAlertHint: "Gửi cảnh báo giấy phép từ trang chi tiết giấy phép.",
     markRenewed: "Đánh dấu đã gia hạn",
     alreadyRenewed: "Đã gia hạn",
+    resendSuccess: "Gửi lại thành công",
+    resendFail: "Gửi lại thất bại",
+    resendNetworkFail: "Yêu cầu gửi lại thất bại",
+    unknownError: "Lỗi không xác định",
   },
 
   auth: {

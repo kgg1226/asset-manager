@@ -864,6 +864,10 @@ export const ja: TranslationDict = {
     licenseAlertHint: "ライセンスアラートはライセンス詳細ページから送信してください。",
     markRenewed: "更新済みとしてマーク",
     alreadyRenewed: "更新済み",
+    resendSuccess: "再送完了",
+    resendFail: "再送失敗",
+    resendNetworkFail: "再送リクエスト失敗",
+    unknownError: "不明なエラー",
   },
 
   auth: {

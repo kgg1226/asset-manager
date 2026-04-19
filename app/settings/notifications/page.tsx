@@ -669,13 +669,13 @@ export default function NotificationSettingsPage() {
       });
       const data = await res.json();
       if (data.ok) {
-        toast.success("재발송 완료");
+        toast.success(t.notification.resendSuccess);
         setTimeout(() => loadLogs(), 800);
       } else {
-        toast.error(`재발송 실패: ${data.error ?? "알 수 없는 오류"}`);
+        toast.error(`${t.notification.resendFail}: ${data.error ?? t.notification.unknownError}`);
       }
     } catch {
-      toast.error("재발송 요청 실패");
+      toast.error(t.notification.resendNetworkFail);
     } finally {
       setResendingId(null);
     }

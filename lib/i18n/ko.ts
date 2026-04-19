@@ -865,6 +865,10 @@ export const ko: TranslationDict = {
     licenseAlertHint: "라이선스 알림은 라이선스 상세 페이지에서 발송하세요.",
     markRenewed: "갱신 완료로 표시",
     alreadyRenewed: "갱신 처리됨",
+    resendSuccess: "재발송 완료",
+    resendFail: "재발송 실패",
+    resendNetworkFail: "재발송 요청 실패",
+    unknownError: "알 수 없는 오류",
   },
 
   auth: {

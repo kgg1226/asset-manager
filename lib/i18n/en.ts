@@ -864,6 +864,10 @@ export const en: TranslationDict = {
     licenseAlertHint: "Send license alerts from the license detail page.",
     markRenewed: "Mark as renewed",
     alreadyRenewed: "Already renewed",
+    resendSuccess: "Resent successfully",
+    resendFail: "Resend failed",
+    resendNetworkFail: "Resend request failed",
+    unknownError: "Unknown error",
   },
 
   auth: {

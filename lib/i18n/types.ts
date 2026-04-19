@@ -890,6 +890,10 @@ export type TranslationDict = {
     licenseAlertHint: string;
     markRenewed: string;
     alreadyRenewed: string;
+    resendSuccess: string;
+    resendFail: string;
+    resendNetworkFail: string;
+    unknownError: string;
   };
 
   // Auth / Login

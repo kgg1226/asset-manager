@@ -863,6 +863,10 @@ export const zhTW: TranslationDict = {
     licenseAlertHint: "請在授權詳情頁發送授權提醒。",
     markRenewed: "標記為已續期",
     alreadyRenewed: "已續期",
+    resendSuccess: "重新發送成功",
+    resendFail: "重新發送失敗",
+    resendNetworkFail: "重新發送請求失敗",
+    unknownError: "未知錯誤",
   },
 
   auth: {
