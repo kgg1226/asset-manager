@@ -1,11 +1,215 @@
 "use client";
 
-import { useState } from "react";
-import { BarChart3, Download, FileSpreadsheet, FileText, Send } from "lucide-react";
+import { useState, useEffect } from "react";
+import { BarChart3, Download, FileSpreadsheet, FileText, Send, SlidersHorizontal, X, Save, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useTranslation } from "@/lib/i18n";
 import { TourGuide } from "@/app/_components/tour-guide";
 import { REPORTS_TOUR_KEY, getReportsSteps } from "@/app/_components/tours/reports-tour";
+
+// ── Field / Sheet definitions ──────────────────────────────────────────────
+
+const DETAIL_FIELDS = [
+  { key: "name", label: "Asset Name" },
+  { key: "type", label: "Type" },
+  { key: "status", label: "Status" },
+  { key: "vendor", label: "Vendor" },
+  { key: "monthlyCost", label: "Monthly Cost" },
+  { key: "currency", label: "Currency" },
+  { key: "assignee", label: "Assignee" },
+  { key: "department", label: "Department" },
+  { key: "expiryDate", label: "Expiry Date" },
+  { key: "purchaseDate", label: "Purchase Date" },
+] as const;
+
+const SHEET_OPTIONS = [
+  { key: "Summary", label: "Summary" },
+  { key: "ByType", label: "By Type" },
+  { key: "ByStatus", label: "By Status" },
+  { key: "ByDepartment", label: "By Department" },
+  { key: "Detail", label: "Detail" },
+  { key: "HardwareDetail", label: "Hardware Detail" },
+] as const;
+
+type FieldKey = typeof DETAIL_FIELDS[number]["key"];
+type SheetKey = typeof SHEET_OPTIONS[number]["key"];
+
+const PRESET_STORAGE_KEY = "report-export-presets";
+
+type Preset = { name: string; fields: FieldKey[]; sheets: SheetKey[] };
+
+function loadPresets(): Preset[] {
+  try { return JSON.parse(localStorage.getItem(PRESET_STORAGE_KEY) ?? "[]"); } catch { return []; }
+}
+function savePresets(presets: Preset[]) {
+  localStorage.setItem(PRESET_STORAGE_KEY, JSON.stringify(presets));
+}
+
+// ── Field Picker Modal ─────────────────────────────────────────────────────
+
+function FieldPickerModal({
+  yearMonth,
+  onClose,
+}: {
+  yearMonth: string;
+  onClose: () => void;
+}) {
+  const [fields, setFields] = useState<Set<FieldKey>>(new Set(DETAIL_FIELDS.map((f) => f.key)));
+  const [sheets, setSheets] = useState<Set<SheetKey>>(new Set(SHEET_OPTIONS.map((s) => s.key)));
+  const [presets, setPresets] = useState<Preset[]>([]);
+  const [presetName, setPresetName] = useState("");
+
+  useEffect(() => { setPresets(loadPresets()); }, []);
+
+  function toggleField(key: FieldKey) {
+    setFields((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  }
+
+  function toggleSheet(key: SheetKey) {
+    setSheets((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  }
+
+  function applyPreset(preset: Preset) {
+    setFields(new Set(preset.fields));
+    setSheets(new Set(preset.sheets));
+  }
+
+  function handleSavePreset() {
+    const name = presetName.trim();
+    if (!name) return;
+    const next = [...presets.filter((p) => p.name !== name), { name, fields: [...fields], sheets: [...sheets] }];
+    setPresets(next);
+    savePresets(next);
+    setPresetName("");
+  }
+
+  function handleDeletePreset(name: string) {
+    const next = presets.filter((p) => p.name !== name);
+    setPresets(next);
+    savePresets(next);
+  }
+
+  function buildUrl() {
+    const params = new URLSearchParams();
+    if (fields.size < DETAIL_FIELDS.length) params.set("fields", [...fields].join(","));
+    if (sheets.size < SHEET_OPTIONS.length) params.set("sheets", [...sheets].join(","));
+    const qs = params.toString();
+    return `/api/reports/monthly/${yearMonth}/excel${qs ? `?${qs}` : ""}`;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-lg rounded-xl bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal className="h-4 w-4 text-blue-600" />
+            <span className="font-semibold text-gray-900">커스텀 내보내기</span>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="h-4 w-4" /></button>
+        </div>
+
+        <div className="px-5 py-4 space-y-5 max-h-[70vh] overflow-y-auto">
+          {/* Presets */}
+          {presets.length > 0 && (
+            <div>
+              <p className="text-xs font-medium uppercase text-gray-500 mb-2">저장된 프리셋</p>
+              <div className="flex flex-wrap gap-2">
+                {presets.map((p) => (
+                  <div key={p.name} className="flex items-center gap-1 rounded-full border border-gray-300 px-2.5 py-1 text-xs">
+                    <button onClick={() => applyPreset(p)} className="text-gray-700 hover:text-blue-600">{p.name}</button>
+                    <button onClick={() => handleDeletePreset(p.name)} className="text-gray-300 hover:text-red-400"><Trash2 className="h-3 w-3" /></button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Sheets */}
+          <div>
+            <p className="text-xs font-medium uppercase text-gray-500 mb-2">포함할 시트</p>
+            <div className="grid grid-cols-2 gap-2">
+              {SHEET_OPTIONS.map((s) => (
+                <label key={s.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={sheets.has(s.key)}
+                    onChange={() => toggleSheet(s.key)}
+                    className="rounded border-gray-300"
+                  />
+                  {s.label}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Detail Fields */}
+          {sheets.has("Detail") && (
+            <div>
+              <p className="text-xs font-medium uppercase text-gray-500 mb-2">Detail 시트 컬럼</p>
+              <div className="grid grid-cols-2 gap-2">
+                {DETAIL_FIELDS.map((f) => (
+                  <label key={f.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={fields.has(f.key)}
+                      onChange={() => toggleField(f.key)}
+                      className="rounded border-gray-300"
+                    />
+                    {f.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Save preset */}
+          <div>
+            <p className="text-xs font-medium uppercase text-gray-500 mb-2">프리셋 저장</p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={presetName}
+                onChange={(e) => setPresetName(e.target.value)}
+                placeholder="프리셋 이름"
+                className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
+              />
+              <button
+                onClick={handleSavePreset}
+                disabled={!presetName.trim()}
+                className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+              >
+                <Save className="h-3.5 w-3.5" />
+                저장
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t border-gray-200 px-5 py-4 flex justify-end gap-2">
+          <button onClick={onClose} className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">
+            취소
+          </button>
+          <a
+            href={buildUrl()}
+            onClick={onClose}
+            className="inline-flex items-center gap-1.5 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            Excel 다운로드
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 type ReportData = {
   period: string;
@@ -40,6 +244,7 @@ export default function ReportsPage() {
   const [emailInput, setEmailInput] = useState("");
   const [emailSending, setEmailSending] = useState(false);
   const [emailResult, setEmailResult] = useState<string | null>(null);
+  const [showFieldPicker, setShowFieldPicker] = useState(false);
 
   async function fetchReport() {
     setLoading(true);
@@ -126,6 +331,14 @@ export default function ReportsPage() {
                 <FileSpreadsheet className="h-4 w-4" />
                 Excel
               </a>
+              <button
+                onClick={() => setShowFieldPicker(true)}
+                className="inline-flex items-center gap-1.5 rounded-md border border-green-600 bg-green-50 px-3 py-2 text-sm font-medium text-green-700 hover:bg-green-100"
+                title="커스텀 내보내기"
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                커스텀
+              </button>
               <a
                 href={`/api/reports/monthly/${yearMonth}/pdf`}
                 className="inline-flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
@@ -267,6 +480,10 @@ export default function ReportsPage() {
           </div>
         )}
       </div>
+
+      {showFieldPicker && (
+        <FieldPickerModal yearMonth={yearMonth} onClose={() => setShowFieldPicker(false)} />
+      )}
     </div>
   );
 }

@@ -14,11 +14,17 @@
 - [x] 조직도 비주얼 → React Flow (dagre 레이아웃, MiniMap, PNG 내보내기)
 - [x] Prisma 클라이언트 재생성, assetTag findFirst 버그 수정
 
+## 완료 (2026-04-19, dev-006~007)
+
+- [x] 보고서 커스텀 내보내기 — 필드 선택 모달 + 프리셋 저장 (localStorage)
+- [x] 정보보호 조직도 React Flow 업그레이드 (SecurityOrgChart)
+- [x] FE-047: "자산카테고리" → "증적 카테고리" 리네이밍
+
 ## 단기 (다음 스프린트)
 
-- [ ] 보고서 커스텀 내보내기 — 필드 선택 모달 + 프리셋 저장
-- [ ] 정보보호 조직도 React Flow 업그레이드 (SecurityOrgChart)
-- [ ] FE-047: "자산카테고리" → "증적 카테고리" 리네이밍
+- [ ] BE-078: 보고서 생성 → 증적 자동 연동
+- [ ] FE-048: 자산지도 노드 정렬 가이드라인 (drag snap guides)
+- [ ] FE-049: 자산지도 노드 크기 일괄 맞추기
 
 ## 다음 티켓 초안
 
