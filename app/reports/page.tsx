@@ -88,6 +88,14 @@ export default function ReportsPage() {
             <h1 className="text-2xl font-bold text-gray-900">{t.report.monthlyReport}</h1>
             <TourGuide tourKey={REPORTS_TOUR_KEY} steps={getReportsSteps(t)} />
           </div>
+          <a
+            href="/api/reports/asset-register"
+            className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100"
+            title="ISMS 정보자산관리대장 엑셀 내보내기"
+          >
+            <Download className="h-4 w-4" />
+            정보자산관리대장
+          </a>
         </div>
 
         {/* 월 선택 */}
