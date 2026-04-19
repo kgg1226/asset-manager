@@ -837,6 +837,14 @@ export type TranslationDict = {
     prefsSaveFail: string;
     on: string;
     off: string;
+    minCostThreshold: string;
+    minCostThresholdDesc: string;
+    notifyDaysLabel: string;
+    channelDefault: string;
+    channelSlackOnly: string;
+    channelEmailOnly: string;
+    channelBoth: string;
+    addThreshold: string;
   };
 
   // Auth / Login

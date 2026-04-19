@@ -811,6 +811,14 @@ export const en: TranslationDict = {
     prefsSaveFail: "Failed to save notification settings",
     on: "On",
     off: "Off",
+    minCostThreshold: "Min Cost Threshold (KRW)",
+    minCostThresholdDesc: "Assets below this amount excluded from expiry/renewal alerts",
+    notifyDaysLabel: "Notify at (days before)",
+    channelDefault: "Default",
+    channelSlackOnly: "Slack only",
+    channelEmailOnly: "Email only",
+    channelBoth: "Both",
+    addThreshold: "+Add",
   },
 
   auth: {

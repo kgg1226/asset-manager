@@ -810,6 +810,14 @@ export const zhTW: TranslationDict = {
     prefsSaveFail: "通知設定儲存失敗",
     on: "開",
     off: "關",
+    minCostThreshold: "最低費用門檻 (KRW)",
+    minCostThresholdDesc: "低於此金額的資產不包含在到期/續約通知中",
+    notifyDaysLabel: "通知時機（天前）",
+    channelDefault: "預設",
+    channelSlackOnly: "僅Slack",
+    channelEmailOnly: "僅電子郵件",
+    channelBoth: "全部",
+    addThreshold: "+新增",
   },
 
   auth: {

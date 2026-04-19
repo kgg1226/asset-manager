@@ -811,6 +811,14 @@ export const vi: TranslationDict = {
     prefsSaveFail: "Lưu cài đặt thông báo thất bại",
     on: "Bật",
     off: "Tắt",
+    minCostThreshold: "Ngưỡng chi phí tối thiểu (KRW)",
+    minCostThresholdDesc: "Tài sản dưới mức này sẽ không nhận thông báo hết hạn/gia hạn",
+    notifyDaysLabel: "Thời điểm thông báo (ngày trước)",
+    channelDefault: "Mặc định",
+    channelSlackOnly: "Chỉ Slack",
+    channelEmailOnly: "Chỉ Email",
+    channelBoth: "Tất cả",
+    addThreshold: "+Thêm",
   },
 
   auth: {

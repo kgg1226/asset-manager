@@ -469,12 +469,12 @@ function PreferencesSection({ isAdmin }: { isAdmin: boolean }) {
       {prefs.enabled && (
         <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
           <div className="flex flex-wrap items-center gap-3">
-            <span className="text-sm font-medium text-gray-700">최소 비용 임계치 (KRW):</span>
+            <span className="text-sm font-medium text-gray-700">{t.notification.minCostThreshold}:</span>
             <input
               type="number"
               min={0}
               step={10000}
-              placeholder="0 = 모두 알림"
+              placeholder="0"
               value={prefs.minCostThresholdKRW ?? ""}
               onChange={(e) => {
                 const v = e.target.value === "" ? null : Math.max(0, parseInt(e.target.value) || 0);
@@ -482,7 +482,7 @@ function PreferencesSection({ isAdmin }: { isAdmin: boolean }) {
               }}
               className="w-40 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
             />
-            <span className="text-xs text-gray-400">이 금액 미만 자산은 만료·갱신 알림 제외</span>
+            <span className="text-xs text-gray-400">{t.notification.minCostThresholdDesc}</span>
           </div>
         </div>
       )}
@@ -517,10 +517,10 @@ function PreferencesSection({ isAdmin }: { isAdmin: boolean }) {
                         }}
                         className="rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-600"
                       >
-                        <option value="DEFAULT">기본 채널</option>
-                        <option value="SLACK">Slack만</option>
-                        <option value="EMAIL">Email만</option>
-                        <option value="BOTH">모두</option>
+                        <option value="DEFAULT">{t.notification.channelDefault}</option>
+                        <option value="SLACK">{t.notification.channelSlackOnly}</option>
+                        <option value="EMAIL">{t.notification.channelEmailOnly}</option>
+                        <option value="BOTH">{t.notification.channelBoth}</option>
                       </select>
                     )}
                     <button
@@ -541,7 +541,7 @@ function PreferencesSection({ isAdmin }: { isAdmin: boolean }) {
                 {/* Multi-threshold chips for time-based events */}
                 {evt.daysListKey && evt.daysFallbackKey && prefs.events[evt.key] && (
                   <div className="mt-2 flex flex-wrap items-center gap-2 pl-7">
-                    <span className="text-xs text-gray-500 whitespace-nowrap">알림 시점 (일 전):</span>
+                    <span className="text-xs text-gray-500 whitespace-nowrap">{t.notification.notifyDaysLabel}:</span>
                     {getDaysList(evt.daysListKey, evt.daysFallbackKey).map((d) => (
                       <span key={d} className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-700">
                         D-{d}
@@ -567,7 +567,7 @@ function PreferencesSection({ isAdmin }: { isAdmin: boolean }) {
                         type="button"
                         onClick={() => addDayThreshold(evt.daysListKey!, evt.daysFallbackKey!, evt.key)}
                         className="rounded-md bg-orange-50 px-2 py-0.5 text-xs text-orange-600 hover:bg-orange-100"
-                      >+추가</button>
+                      >{t.notification.addThreshold}</button>
                     </div>
                   </div>
                 )}

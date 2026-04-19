@@ -811,6 +811,14 @@ export const ja: TranslationDict = {
     prefsSaveFail: "通知設定の保存に失敗しました",
     on: "オン",
     off: "オフ",
+    minCostThreshold: "最低コスト閾値 (KRW)",
+    minCostThresholdDesc: "この金額未満の資産は満了・更新通知から除外",
+    notifyDaysLabel: "通知タイミング（日前）",
+    channelDefault: "デフォルト",
+    channelSlackOnly: "Slackのみ",
+    channelEmailOnly: "メールのみ",
+    channelBoth: "両方",
+    addThreshold: "+追加",
   },
 
   auth: {

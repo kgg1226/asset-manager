@@ -812,6 +812,14 @@ export const ko: TranslationDict = {
     prefsSaveFail: "알림 설정 저장에 실패했습니다",
     on: "켜짐",
     off: "꺼짐",
+    minCostThreshold: "최소 비용 임계치 (KRW)",
+    minCostThresholdDesc: "이 금액 미만 자산은 만료·갱신 알림 제외",
+    notifyDaysLabel: "알림 시점 (일 전)",
+    channelDefault: "기본 채널",
+    channelSlackOnly: "Slack만",
+    channelEmailOnly: "이메일만",
+    channelBoth: "모두",
+    addThreshold: "+추가",
   },
 
   auth: {
