@@ -235,6 +235,7 @@ export default function ReportsPage() {
     CLOUD: t.cloud.title,
     HARDWARE: t.hw.title,
     DOMAIN_SSL: t.domain.title,
+    CONTRACT: t.contract.title,
     OTHER: t.hw.other,
   };
   const [yearMonth, setYearMonth] = useState(getCurrentYearMonth());

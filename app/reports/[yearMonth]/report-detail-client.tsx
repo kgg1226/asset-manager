@@ -43,6 +43,7 @@ export default function ReportDetailClient({
     CLOUD: t.cloud.title,
     HARDWARE: t.hw.title,
     DOMAIN_SSL: t.domain.title,
+    CONTRACT: t.contract.title,
     OTHER: t.hw.other,
   };
 
