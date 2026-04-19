@@ -356,7 +356,8 @@ function AssetNodeComponent({ data, selected }: { data: Record<string, unknown>;
           <AssetIcon type={type} color={colors.icon} size={iconSize} deviceType={deviceType} />
         </div>
 
-        {/* Name — always shown, font scales */}
+        {/* Name — hidden when showLabels=false */}
+        {(data.showLabels !== false) && (
         <div
           className={`font-semibold text-gray-900 truncate text-center w-full ${
             isCompact ? "text-[10px]" : "text-sm"
@@ -364,9 +365,10 @@ function AssetNodeComponent({ data, selected }: { data: Record<string, unknown>;
         >
           {data.label as string}
         </div>
+        )}
 
-        {/* Status + Type row — hidden when tiny */}
-        {!isTiny && (
+        {/* Status + Type row — hidden when tiny or labels off */}
+        {!isTiny && (data.showLabels !== false) && (
           <div className="flex items-center gap-1.5">
             <StatusDot status={status} />
             <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">
@@ -375,16 +377,16 @@ function AssetNodeComponent({ data, selected }: { data: Record<string, unknown>;
           </div>
         )}
 
-        {/* Assignee — hidden when compact */}
-        {!isCompact && assignee && (
+        {/* Assignee — hidden when compact or labels off */}
+        {!isCompact && assignee && (data.showLabels !== false) && (
           <div className="flex items-center gap-1 text-xs text-gray-600">
             <User className="w-3 h-3" />
             <span className="truncate max-w-[140px]">{assignee}</span>
           </div>
         )}
 
-        {/* Cost — hidden when compact */}
-        {!isCompact && costStr && (
+        {/* Cost — hidden when compact or labels off */}
+        {!isCompact && costStr && (data.showLabels !== false) && (
           <div
             className="text-xs font-semibold rounded-md px-2 py-0.5"
             style={{ color: colors.icon, backgroundColor: colors.light }}
@@ -2040,6 +2042,7 @@ function AssetMapContentInner() {
   const [showAssetPalette, setShowAssetPalette] = useState(false);
   const [showEntityPalette, setShowEntityPalette] = useState(false);
   const [multiSelectedIds, setMultiSelectedIds] = useState<string[]>([]);
+  const [showNodeLabels, setShowNodeLabels] = useState(true);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const viewportSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dirtyRef = useRef(false);
@@ -2907,6 +2910,16 @@ function AssetMapContentInner() {
       // silently fail
     }
   }
+
+  // ── Label visibility toggle ──────────────────────────────────────────
+
+  const handleToggleLabels = useCallback(() => {
+    setShowNodeLabels((prev) => {
+      const next = !prev;
+      setNodes((nds) => nds.map((n) => ({ ...n, data: { ...n.data, showLabels: next } })));
+      return next;
+    });
+  }, [setNodes]);
 
   // ── Multi-node alignment ──────────────────────────────────────────────
 
@@ -3895,6 +3908,13 @@ function AssetMapContentInner() {
           >
             <Plus className="inline h-3.5 w-3.5 mr-1" />
             {t.assetMap.section}
+          </button>
+          <button
+            onClick={handleToggleLabels}
+            title={showNodeLabels ? "레이블 숨기기" : "레이블 표시"}
+            className={`rounded-md border px-3 py-1.5 text-xs font-medium ${showNodeLabels ? "border-gray-300 bg-white text-gray-700 hover:bg-gray-50" : "border-gray-400 bg-gray-100 text-gray-500"}`}
+          >
+            {showNodeLabels ? "레이블 표시 중" : "레이블 숨김"}
           </button>
           <button onClick={handleAutoLayout} className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">
             <LayoutGrid className="inline h-3.5 w-3.5 mr-1" />
