@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Plus, Eye, Edit, Trash2, RefreshCw, ChevronUp, ChevronDown, Keyboard, FileDown, Tag, Printer } from "lucide-react";
+import { Plus, Eye, Edit, Trash2, RefreshCw, ChevronUp, ChevronDown, Keyboard, FileDown, Tag, Printer, AlertTriangle, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
@@ -108,6 +108,7 @@ export default function HardwareListPage() {
   const [bulkTagDraft, setBulkTagDraft] = useState<Record<number, string>>({});
   const [bulkTagSaving, setBulkTagSaving] = useState(false);
   const [showBulkStatusModal, setShowBulkStatusModal] = useState(false);
+  const [showExpiryBanner, setShowExpiryBanner] = useState(true);
   const [bulkStatusTarget, setBulkStatusTarget] = useState<AssetStatus>("IN_STOCK");
   const [bulkStatusSaving, setBulkStatusSaving] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -548,6 +549,36 @@ export default function HardwareListPage() {
             </div>
           </div>
         )}
+
+        {/* 보증 만료 임박 배너 */}
+        {showExpiryBanner && !isLoading && (() => {
+          const now = new Date();
+          const in30 = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+          const expiring = assets.filter((a) => a.expiryDate && a.status !== "DISPOSED" && new Date(a.expiryDate) >= now && new Date(a.expiryDate) <= in30);
+          if (expiring.length === 0) return null;
+          return (
+            <div className="mb-4 flex items-start gap-3 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-orange-500" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-orange-800">30일 이내 보증 만료 하드웨어 {expiring.length}건</p>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  {expiring.map((a) => {
+                    const daysLeft = Math.ceil((new Date(a.expiryDate!).getTime() - now.getTime()) / 86400000);
+                    return (
+                      <Link key={a.id} href={`/hardware/${a.id}`} className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-700 hover:bg-orange-200">
+                        {a.name}
+                        <span className="rounded bg-orange-600 px-1 py-0.5 text-[10px] text-white">D-{daysLeft}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+              <button onClick={() => setShowExpiryBanner(false)} className="shrink-0 rounded p-1 text-orange-400 hover:bg-orange-100">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          );
+        })()}
 
         <div className="overflow-x-auto rounded-lg bg-white shadow-sm" data-tour="hw-table">
           <table className="w-full min-w-[900px]">
