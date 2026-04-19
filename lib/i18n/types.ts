@@ -74,6 +74,20 @@ export type TranslationDict = {
     csvErrorMsg: string;
     startDate: string;
     endDate: string;
+    examplePrefix: string;
+    selectNone: string;
+    collapse: string;
+    expand: string;
+    moreItems: string;
+    done: string;
+    errorsSuffix: string;
+    restProcessed: string;
+    errorReportDownload: string;
+    pageSuffix: string;
+    searchTypeHint: string;
+    searchKeyboardHint: string;
+    dateReset: string;
+    itemCountSuffix: string;
   };
 
   // Navigation / Sidebar
@@ -219,6 +233,9 @@ export type TranslationDict = {
     statusChangeCol: string;
     bulkKeyAddTitle: string;
     bulkKeyAddHint: string;
+    renewalBanner: string;
+    bulkKeyError: string;
+    bulkKeySuccess: string;
   };
 
   // Employee
@@ -421,6 +438,13 @@ export type TranslationDict = {
     printLabel: string;
     loadingAssets: string;
     noAssetsForPrint: string;
+    warrantyExpiryBanner: string;
+    bulkTagSuccess: string;
+    bulkStatusSuccess: string;
+    bulkDeleteConfirm: string;
+    bulkDeleteSuccess: string;
+    bulkDeleteNotFound: string;
+    shortcutKeySuffix: string;
   };
 
   // Cloud
@@ -852,6 +876,16 @@ export type TranslationDict = {
     exchangeRateDetail1: string;
     exchangeRateDetail2: string;
     exchangeRateLink: string;
+    // Feature Flags (admin)
+    featureFlagsGuide: string;
+    featureFlagsGuideDesc: string;
+    featureFlagsDetail1: string;
+    featureFlagsDetail2: string;
+    featureFlagsDetail3: string;
+    featureFlagsDetail4: string;
+    featureFlagsDetail5: string;
+    featureFlagsDetail6: string;
+    featureFlagsDetail7: string;
   };
 
   // Notifications
@@ -1009,6 +1043,7 @@ export type TranslationDict = {
     loadFail: string;
     noticeTitle: string;
     noticeBody: string;
+    unsaved: string;
   };
 
   admin: {
@@ -1040,6 +1075,28 @@ export type TranslationDict = {
     dataRequired: string;
     bulkImportFail: string;
     assetCategoryDesc: string;
+    titleCiaDesc: string;
+    bulkRegister: string;
+    ciaHint1: string;
+    ciaAutoApply: string;
+    bulkCiaHint: string;
+    bulkCiaFormat: string;
+    jobTitleLabel: string;
+    derivedGrade: string;
+    avgScore: string;
+    jobDescription: string;
+    ciaRationale: string;
+    jobTitleCol: string;
+    assetCountCol: string;
+    rationalePrefix: string;
+    bulkRegistered: string;
+    jobTitleExamples: string;
+    jobDescPlaceholder: string;
+    ciaRationalePlaceholder: string;
+    bulkCiaExample: string;
+    bulkCiaRow1: string;
+    bulkCiaRow2: string;
+    bulkCiaRow3: string;
   };
 
   // Toast messages
@@ -1359,6 +1416,7 @@ export type TranslationDict = {
     labelsShowing: string;
     labelsHidden: string;
     alignSize: string;
+    alignSizeLabel: string;
     alignLeft: string;
     alignCenterH: string;
     alignRight: string;

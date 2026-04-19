@@ -27,11 +27,7 @@ const SCORE_COLORS: Record<number, string> = {
   3: "bg-green-100 text-green-800 ring-green-200",
 };
 
-const SCORE_LABELS: Record<number, string> = {
-  1: "1등급",
-  2: "2등급",
-  3: "3등급",
-};
+// grade labels are rendered inline using t.cia.grade
 
 function calcGrade(c: number, i: number, a: number): number {
   const avg = (c + i + a) / 3;
@@ -148,7 +144,7 @@ export default function TitleCiaMappingPage() {
         body: JSON.stringify({ bulk }),
       });
       const data = await res.json();
-      toast.success(`${data.success}/${data.total}건 등록 완료`);
+      toast.success(`${data.success}/${data.total}${t.admin.bulkRegistered}`);
       setShowBulk(false);
       setBulkText("");
       await loadMappings();
@@ -173,7 +169,7 @@ export default function TitleCiaMappingPage() {
           </button>
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-gray-900">{t.admin.titleCiaMapping}</h1>
-            <p className="mt-1 text-sm text-gray-500">직책별 CIA 점수(1~3)를 설정합니다. 1이 가장 높은 등급입니다.</p>
+            <p className="mt-1 text-sm text-gray-500">{t.admin.titleCiaDesc}</p>
           </div>
           <div className="flex gap-2">
             <button
@@ -181,7 +177,7 @@ export default function TitleCiaMappingPage() {
               className="flex items-center gap-1.5 rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
               <Upload className="h-4 w-4" />
-              대량 등록
+              {t.admin.bulkRegister}
             </button>
             <button
               onClick={() => { resetForm(); setShowForm(true); }}
@@ -197,8 +193,8 @@ export default function TitleCiaMappingPage() {
         <div className="mb-6 flex items-start gap-3 rounded-lg bg-blue-50 p-4">
           <Info className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600" />
           <div className="text-sm text-blue-800">
-            <p>CIA 점수: <strong>1 = 최상</strong> (기밀성/무결성/가용성이 매우 중요), <strong>3 = 낮음</strong>. 평균 점수로 등급이 자동 산출됩니다.</p>
-            <p className="mt-1">등급은 할당된 하드웨어 자산에 자동 적용됩니다.</p>
+            <p>{t.admin.ciaHint1}</p>
+            <p className="mt-1">{t.admin.ciaAutoApply}</p>
           </div>
         </div>
 
@@ -207,24 +203,24 @@ export default function TitleCiaMappingPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
             <div className="mx-4 w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl">
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-lg font-semibold">대량 등록</h2>
+                <h2 className="text-lg font-semibold">{t.admin.bulkRegister}</h2>
                 <button onClick={() => setShowBulk(false)} className="p-1 hover:bg-gray-100 rounded"><X className="h-5 w-5" /></button>
               </div>
               <p className="mb-3 text-sm text-gray-500">
-                탭 또는 쉼표로 구분하여 입력합니다. 이미 존재하는 직책은 업데이트됩니다.
+                {t.admin.bulkCiaHint}
               </p>
               <div className="mb-3 rounded bg-gray-50 p-3 text-xs font-mono text-gray-600">
-                직책명, C점수(1~3), I점수(1~3), A점수(1~3), 업무내용, 점수근거<br />
-                대표이사, 1, 1, 1, 전사 경영 총괄, 최고 의사결정권자<br />
-                팀장, 1, 2, 2, 팀 업무 관리, 부서 내 주요 정보 접근<br />
-                사원, 2, 2, 3, 일반 업무 수행, 제한된 정보 접근
+                {t.admin.bulkCiaFormat}<br />
+                {t.admin.bulkCiaRow1}<br />
+                {t.admin.bulkCiaRow2}<br />
+                {t.admin.bulkCiaRow3}
               </div>
               <textarea
                 value={bulkText}
                 onChange={e => setBulkText(e.target.value)}
                 rows={8}
                 className="w-full rounded-md border px-3 py-2 text-sm font-mono focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="대표이사, 1, 1, 1, 전사 경영 총괄, 최고 의사결정권자"
+                placeholder={t.admin.bulkCiaExample}
               />
               <div className="mt-4 flex justify-end gap-2">
                 <button onClick={() => setShowBulk(false)} className="rounded-md border px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
@@ -251,13 +247,13 @@ export default function TitleCiaMappingPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
-                  직책명 <span className="text-red-500">*</span>
+                  {t.admin.jobTitleLabel} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={form.title}
                   onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
-                  placeholder="대표이사, 팀장, 사원 등"
+                  placeholder={t.admin.jobTitleExamples}
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -277,7 +273,7 @@ export default function TitleCiaMappingPage() {
                               form[field] === score ? SCORE_COLORS[score] : "bg-gray-50 text-gray-500 ring-gray-200 hover:bg-gray-100"
                             }`}
                           >
-                            {score}점
+                            {score}{t.cia.points}
                           </button>
                         ))}
                       </div>
@@ -287,31 +283,31 @@ export default function TitleCiaMappingPage() {
               </div>
               {/* 평균 등급 미리보기 */}
               <div className="flex items-center gap-2 text-sm">
-                <span className="text-gray-500">산출 등급:</span>
+                <span className="text-gray-500">{t.admin.derivedGrade}</span>
                 <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ring-1 ${SCORE_COLORS[calcGrade(form.ciaC, form.ciaI, form.ciaA)]}`}>
-                  {SCORE_LABELS[calcGrade(form.ciaC, form.ciaI, form.ciaA)]}
+                  {calcGrade(form.ciaC, form.ciaI, form.ciaA)}{t.cia.grade}
                 </span>
                 <span className="text-gray-400">
-                  (평균 {((form.ciaC + form.ciaI + form.ciaA) / 3).toFixed(1)})
+                  ({t.admin.avgScore} {((form.ciaC + form.ciaI + form.ciaA) / 3).toFixed(1)})
                 </span>
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">업무 내용</label>
+                <label className="mb-1 block text-sm font-medium text-gray-700">{t.admin.jobDescription}</label>
                 <input
                   type="text"
                   value={form.description}
                   onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
-                  placeholder="해당 직책의 주요 업무를 기술합니다"
+                  placeholder={t.admin.jobDescPlaceholder}
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">점수 부여 근거</label>
+                <label className="mb-1 block text-sm font-medium text-gray-700">{t.admin.ciaRationale}</label>
                 <textarea
                   value={form.rationale}
                   onChange={e => setForm(p => ({ ...p, rationale: e.target.value }))}
                   rows={2}
-                  placeholder="이 점수를 부여한 이유를 기록합니다 (감사/심사 시 근거 자료로 활용)"
+                  placeholder={t.admin.ciaRationalePlaceholder}
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -332,13 +328,13 @@ export default function TitleCiaMappingPage() {
           <table className="w-full">
             <thead className="border-b bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">직책</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{t.admin.jobTitleCol}</th>
                 <th className="px-3 py-3 text-center text-xs font-semibold text-gray-600">C</th>
                 <th className="px-3 py-3 text-center text-xs font-semibold text-gray-600">I</th>
                 <th className="px-3 py-3 text-center text-xs font-semibold text-gray-600">A</th>
-                <th className="px-3 py-3 text-center text-xs font-semibold text-gray-600">등급</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">업무 내용</th>
-                <th className="px-3 py-3 text-center text-xs font-semibold text-gray-600">자산</th>
+                <th className="px-3 py-3 text-center text-xs font-semibold text-gray-600">{t.cia.grade}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{t.admin.jobDescription}</th>
+                <th className="px-3 py-3 text-center text-xs font-semibold text-gray-600">{t.admin.assetCountCol}</th>
                 <th className="px-3 py-3 text-right text-xs font-semibold text-gray-600">{t.common.actions}</th>
               </tr>
             </thead>
@@ -361,7 +357,7 @@ export default function TitleCiaMappingPage() {
                           {m.title}
                         </button>
                         {isExpanded && m.rationale && (
-                          <p className="mt-1 text-xs text-gray-500">근거: {m.rationale}</p>
+                          <p className="mt-1 text-xs text-gray-500">{t.admin.rationalePrefix} {m.rationale}</p>
                         )}
                       </td>
                       <td className="px-3 py-3 text-center">
@@ -375,7 +371,7 @@ export default function TitleCiaMappingPage() {
                       </td>
                       <td className="px-3 py-3 text-center">
                         <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-bold ring-1 ${SCORE_COLORS[grade]}`}>
-                          {SCORE_LABELS[grade]}
+                          {grade}{t.cia.grade}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600 max-w-[200px] truncate" title={m.description ?? ""}>

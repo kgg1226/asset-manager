@@ -73,6 +73,7 @@ export const en: TranslationDict = {
     csvErrorMsg: "Error",
     startDate: "Start Date",
     endDate: "End Date",
+    examplePrefix: "e.g. ",
   },
 
   nav: {
@@ -829,6 +830,15 @@ export const en: TranslationDict = {
     exchangeRateDetail1: "Enter USD, EUR, JPY, GBP, CNY exchange rates on the Exchange Rate page",
     exchangeRateDetail2: "Daily exchange rate records support accurate currency conversion in reports",
     exchangeRateLink: "Exchange Rates",
+    featureFlagsGuide: "6. Feature Settings",
+    featureFlagsGuideDesc: "Manage all system-wide behavior settings in one place.",
+    featureFlagsDetail1: "Visibility: Show/hide lifecycle gauge (ON/OFF for general users)",
+    featureFlagsDetail2: "Security: Session timeout, login lock count/duration, minimum password length",
+    featureFlagsDetail3: "Notifications: Expiry D-day alerts (D-70/30/15/7), lifecycle threshold alerts (50%/80%/95%)",
+    featureFlagsDetail4: "Assets: Auto-disposal threshold days (default 365)",
+    featureFlagsDetail5: "Finance: VAT rate (default 10%)",
+    featureFlagsDetail6: "Display: Items per list page (default 50)",
+    featureFlagsDetail7: "Changes take effect immediately upon saving",
   },
 
   notification: {
@@ -981,6 +991,7 @@ export const en: TranslationDict = {
     loadFail: "Failed to load settings.",
     noticeTitle: "Note",
     noticeBody: "Security/notification setting changes take effect immediately. Session expiry changes apply to new logins. Use the reset button to restore default values.",
+    unsaved: "Unsaved",
   },
 
   admin: {
@@ -1011,6 +1022,28 @@ export const en: TranslationDict = {
     dataRequired: "Please enter data.",
     bulkImportFail: "Bulk import failed",
     assetCategoryDesc: "Manage categories used to classify data in evidence exports",
+    titleCiaDesc: "Set CIA scores (1~3) per job title. 1 is the highest grade.",
+    bulkRegister: "Bulk Register",
+    ciaHint1: "CIA Score: 1 = Highest (confidentiality/integrity/availability very critical), 3 = Low. Grade is auto-calculated from average.",
+    ciaAutoApply: "Grade is automatically applied to assigned hardware assets.",
+    bulkCiaHint: "Enter values separated by tab or comma. Existing job titles will be updated.",
+    bulkCiaFormat: "Job Title, C Score(1~3), I Score(1~3), A Score(1~3), Description, Rationale",
+    jobTitleLabel: "Job Title",
+    derivedGrade: "Derived Grade:",
+    avgScore: "avg",
+    jobDescription: "Job Description",
+    ciaRationale: "Score Rationale",
+    jobTitleCol: "Job Title",
+    assetCountCol: "Assets",
+    rationalePrefix: "Rationale:",
+    bulkRegistered: " registered",
+    jobTitleExamples: "CEO, Manager, Staff, etc.",
+    jobDescPlaceholder: "Describe the main duties of this role",
+    ciaRationalePlaceholder: "Record why this score was assigned (used as evidence for audits)",
+    bulkCiaExample: "CEO, 1, 1, 1, Overall management, Highest decision-making authority",
+    bulkCiaRow1: "CEO, 1, 1, 1, Overall management, Highest decision-making authority",
+    bulkCiaRow2: "Team Lead, 1, 2, 2, Team management, Key departmental information access",
+    bulkCiaRow3: "Staff, 2, 2, 3, General duties, Limited information access",
   },
 
   toast: {
@@ -1302,6 +1335,7 @@ export const en: TranslationDict = {
     labelsShowing: "Labels Visible",
     labelsHidden: "Labels Hidden",
     alignSize: "Fit Size (Average)",
+    alignSizeLabel: "Size↔",
     alignLeft: "Align Left",
     alignCenterH: "Center Horizontal",
     alignRight: "Align Right",

@@ -73,6 +73,7 @@ export const ja: TranslationDict = {
     csvErrorMsg: "エラー内容",
     startDate: "開始日",
     endDate: "終了日",
+    examplePrefix: "例: ",
   },
 
   nav: {
@@ -829,6 +830,15 @@ export const ja: TranslationDict = {
     exchangeRateDetail1: "為替レートページでUSD、EUR、JPY、GBP、CNYの為替レートを入力",
     exchangeRateDetail2: "日次為替レート記録によりレポートの正確な通貨換算をサポート",
     exchangeRateLink: "為替レート管理",
+    featureFlagsGuide: "6. 機能設定",
+    featureFlagsGuideDesc: "システム全体の動作を左右する設定を一か所で管理します。",
+    featureFlagsDetail1: "機能公開: ライフサイクルゲージの表示可否 (一般ユーザー向けON/OFF)",
+    featureFlagsDetail2: "セキュリティ: セッション有効期間、ログインロック回数/時間、パスワード最小長",
+    featureFlagsDetail3: "通知: 期限アラートD-day (D-70/30/15/7)、ライフサイクル閾値アラート (50%/80%/95%)",
+    featureFlagsDetail4: "資産: 廃棄自動移行基準日 (デフォルト365日)",
+    featureFlagsDetail5: "財務: 消費税率 (デフォルト10%)",
+    featureFlagsDetail6: "表示: リストページあたりの件数 (デフォルト50件)",
+    featureFlagsDetail7: "変更はすぐに適用されます",
   },
 
   notification: {
@@ -981,6 +991,7 @@ export const ja: TranslationDict = {
     loadFail: "設定を読み込めませんでした。",
     noticeTitle: "注意",
     noticeBody: "セキュリティ/通知設定の変更は即時反映されます。セッション有効期限の変更は新規ログインから適用されます。リセットボタンでデフォルト値に戻せます。",
+    unsaved: "未保存",
   },
 
   admin: {
@@ -1011,6 +1022,28 @@ export const ja: TranslationDict = {
     dataRequired: "データを入力してください。",
     bulkImportFail: "一括登録失敗",
     assetCategoryDesc: "証跡エクスポート時のデータ分類カテゴリを管理します",
+    titleCiaDesc: "職責別にCIAスコア(1~3)を設定します。1が最高等級です。",
+    bulkRegister: "一括登録",
+    ciaHint1: "CIAスコア: 1 = 最高（機密性/完全性/可用性が非常に重要）、3 = 低。平均スコアで等級が自動算出されます。",
+    ciaAutoApply: "等級は割り当てられたハードウェア資産に自動適用されます。",
+    bulkCiaHint: "タブまたはカンマ区切りで入力します。既存の職責は更新されます。",
+    bulkCiaFormat: "職責名, Cスコア(1~3), Iスコア(1~3), Aスコア(1~3), 業務内容, 根拠",
+    jobTitleLabel: "職責名",
+    derivedGrade: "算出等級:",
+    avgScore: "平均",
+    jobDescription: "業務内容",
+    ciaRationale: "スコア根拠",
+    jobTitleCol: "職責",
+    assetCountCol: "資産",
+    rationalePrefix: "根拠:",
+    bulkRegistered: "件登録完了",
+    jobTitleExamples: "代表取締役、部長、一般社員など",
+    jobDescPlaceholder: "この職責の主要業務を記述してください",
+    ciaRationalePlaceholder: "このスコアを付与した理由を記録します（監査・審査時の根拠資料として活用）",
+    bulkCiaExample: "代表取締役, 1, 1, 1, 全社経営総括, 最高意思決定権者",
+    bulkCiaRow1: "代表取締役, 1, 1, 1, 全社経営総括, 最高意思決定権者",
+    bulkCiaRow2: "チームリーダー, 1, 2, 2, チーム業務管理, 部署内重要情報へのアクセス",
+    bulkCiaRow3: "一般社員, 2, 2, 3, 一般業務遂行, 限定された情報アクセス",
   },
 
   toast: {
@@ -1302,6 +1335,7 @@ export const ja: TranslationDict = {
     labelsShowing: "ラベル表示中",
     labelsHidden: "ラベル非表示",
     alignSize: "サイズを揃える（平均）",
+    alignSizeLabel: "サイズ↔",
     alignLeft: "左揃え",
     alignCenterH: "水平中央",
     alignRight: "右揃え",

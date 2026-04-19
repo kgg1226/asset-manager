@@ -153,7 +153,7 @@ export default function FeatureFlagsPage() {
                           <span className="text-sm font-medium text-gray-900">{def.label}</span>
                           {isModified && (
                             <span className="text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full">
-                              미저장
+                              {t.featureFlag.unsaved}
                             </span>
                           )}
                         </div>

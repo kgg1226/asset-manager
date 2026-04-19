@@ -1185,7 +1185,7 @@ function SectionModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-              placeholder="예: Production, DMZ, Internal..."
+              placeholder={`${t.common.examplePrefix}Production, DMZ, Internal...`}
               autoFocus
               required
             />
@@ -3936,7 +3936,7 @@ function AssetMapContentInner() {
                 title={t.assetMap.alignSize}
                 className="rounded px-2 py-0.5 text-xs text-indigo-700 hover:bg-indigo-100 border-l border-indigo-200 ml-1 pl-2"
               >
-                크기↔
+                {t.assetMap.alignSizeLabel}
               </button>
               {([
                 { dir: "left" as const, label: "⇤", title: t.assetMap.alignLeft },

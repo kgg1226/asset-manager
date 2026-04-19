@@ -73,6 +73,7 @@ export const vi: TranslationDict = {
     csvErrorMsg: "Nội dung lỗi",
     startDate: "Ngày bắt đầu",
     endDate: "Ngày kết thúc",
+    examplePrefix: "vd: ",
   },
 
   nav: {
@@ -829,6 +830,15 @@ export const vi: TranslationDict = {
     exchangeRateDetail1: "Nhập tỷ giá USD, EUR, JPY, GBP, CNY trên trang Quản lý tỷ giá",
     exchangeRateDetail2: "Bản ghi tỷ giá hàng ngày hỗ trợ chuyển đổi tiền tệ chính xác trong báo cáo",
     exchangeRateLink: "Quản lý tỷ giá",
+    featureFlagsGuide: "6. Cài đặt tính năng",
+    featureFlagsGuideDesc: "Quản lý tất cả cài đặt ảnh hưởng đến toàn hệ thống tại một nơi.",
+    featureFlagsDetail1: "Hiển thị: Bật/tắt đồng hồ vòng đời (ON/OFF cho người dùng thông thường)",
+    featureFlagsDetail2: "Bảo mật: Thời gian phiên, số lần/thời lượng khóa đăng nhập, độ dài mật khẩu tối thiểu",
+    featureFlagsDetail3: "Thông báo: Cảnh báo D-day hết hạn (D-70/30/15/7), cảnh báo ngưỡng vòng đời (50%/80%/95%)",
+    featureFlagsDetail4: "Tài sản: Số ngày tự động chuyển sang thanh lý (mặc định 365)",
+    featureFlagsDetail5: "Tài chính: Thuế suất VAT (mặc định 10%)",
+    featureFlagsDetail6: "Hiển thị: Số mục mỗi trang danh sách (mặc định 50)",
+    featureFlagsDetail7: "Thay đổi có hiệu lực ngay khi lưu",
   },
 
   notification: {
@@ -981,6 +991,7 @@ export const vi: TranslationDict = {
     loadFail: "Không thể tải cài đặt.",
     noticeTitle: "Lưu ý",
     noticeBody: "Thay đổi cài đặt bảo mật/thông báo có hiệu lực ngay. Thay đổi thời hạn phiên áp dụng từ lần đăng nhập mới. Nhấn nút đặt lại để khôi phục giá trị mặc định.",
+    unsaved: "Chưa lưu",
   },
 
   admin: {
@@ -1011,6 +1022,28 @@ export const vi: TranslationDict = {
     dataRequired: "Vui lòng nhập dữ liệu.",
     bulkImportFail: "Nhập hàng loạt thất bại",
     assetCategoryDesc: "Quản lý danh mục phân loại dữ liệu khi xuất bằng chứng",
+    titleCiaDesc: "Đặt điểm CIA (1~3) theo chức danh. 1 là cấp cao nhất.",
+    bulkRegister: "Đăng ký hàng loạt",
+    ciaHint1: "Điểm CIA: 1 = Cao nhất (bảo mật/toàn vẹn/sẵn sàng rất quan trọng), 3 = Thấp. Cấp độ được tính tự động từ điểm trung bình.",
+    ciaAutoApply: "Cấp độ tự động áp dụng cho thiết bị phần cứng được phân bổ.",
+    bulkCiaHint: "Nhập dữ liệu phân cách bằng tab hoặc dấu phẩy. Chức danh đã tồn tại sẽ được cập nhật.",
+    bulkCiaFormat: "Chức danh, Điểm C(1~3), Điểm I(1~3), Điểm A(1~3), Nội dung công việc, Căn cứ",
+    jobTitleLabel: "Chức danh",
+    derivedGrade: "Cấp độ tính toán:",
+    avgScore: "trung bình",
+    jobDescription: "Nội dung công việc",
+    ciaRationale: "Căn cứ điểm số",
+    jobTitleCol: "Chức danh",
+    assetCountCol: "Tài sản",
+    rationalePrefix: "Căn cứ:",
+    bulkRegistered: " mục đã đăng ký",
+    jobTitleExamples: "Giám đốc, Trưởng phòng, Nhân viên v.v.",
+    jobDescPlaceholder: "Mô tả công việc chính của chức danh này",
+    ciaRationalePlaceholder: "Ghi lại lý do phân bổ điểm số này (dùng làm bằng chứng khi kiểm toán)",
+    bulkCiaExample: "Giám đốc, 1, 1, 1, Quản lý toàn công ty, Người có thẩm quyền quyết định cao nhất",
+    bulkCiaRow1: "Giám đốc, 1, 1, 1, Quản lý toàn công ty, Người có thẩm quyền quyết định cao nhất",
+    bulkCiaRow2: "Trưởng nhóm, 1, 2, 2, Quản lý nhóm, Truy cập thông tin quan trọng của phòng ban",
+    bulkCiaRow3: "Nhân viên, 2, 2, 3, Thực hiện công việc thông thường, Truy cập thông tin hạn chế",
   },
 
   toast: {
@@ -1302,6 +1335,7 @@ export const vi: TranslationDict = {
     labelsShowing: "Đang hiện nhãn",
     labelsHidden: "Nhãn đã ẩn",
     alignSize: "Khớp kích thước (trung bình)",
+    alignSizeLabel: "Kích thước↔",
     alignLeft: "Căn trái",
     alignCenterH: "Căn giữa ngang",
     alignRight: "Căn phải",

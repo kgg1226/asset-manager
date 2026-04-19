@@ -73,6 +73,7 @@ export const ko: TranslationDict = {
     csvErrorMsg: "오류 내용",
     startDate: "시작일",
     endDate: "종료일",
+    examplePrefix: "예: ",
   },
 
   nav: {
@@ -830,6 +831,15 @@ export const ko: TranslationDict = {
     exchangeRateDetail1: "환율 관리 페이지에서 USD, EUR, JPY, GBP, CNY 환율 입력",
     exchangeRateDetail2: "일별 환율 기록으로 보고서의 정확한 원화 환산을 지원합니다",
     exchangeRateLink: "환율 관리",
+    featureFlagsGuide: "6. 기능 설정",
+    featureFlagsGuideDesc: "시스템 전체 동작을 좌우하는 설정을 한 곳에서 관리합니다.",
+    featureFlagsDetail1: "기능 공개: 수명 게이지 표시 여부 (일반 사용자 대상 ON/OFF)",
+    featureFlagsDetail2: "보안: 세션 유효기간, 로그인 잠금 횟수/지속시간, 비밀번호 최소 길이",
+    featureFlagsDetail3: "알림: 만료 알림 D-day (D-70/30/15/7), 수명 임계치 알림 (50%/80%/95%)",
+    featureFlagsDetail4: "자산: 폐기 자동 전환 기준일 (기본 365일)",
+    featureFlagsDetail5: "재무: 부가세율 (기본 10%)",
+    featureFlagsDetail6: "표시: 목록 페이지당 항목 수 (기본 50개)",
+    featureFlagsDetail7: "변경 사항은 저장 즉시 적용됩니다",
   },
 
   notification: {
@@ -982,6 +992,7 @@ export const ko: TranslationDict = {
     loadFail: "설정을 불러올 수 없습니다.",
     noticeTitle: "안내",
     noticeBody: "보안/알림 설정 변경은 즉시 적용됩니다. 세션 유효기간 변경은 새 로그인부터 적용됩니다. 기본값 복원 버튼을 눌러 원래 값으로 되돌릴 수 있습니다.",
+    unsaved: "미저장",
   },
 
   admin: {
@@ -1012,6 +1023,28 @@ export const ko: TranslationDict = {
     dataRequired: "데이터를 입력해주세요.",
     bulkImportFail: "대량 등록 실패",
     assetCategoryDesc: "증적 내보내기 시 데이터를 분류할 카테고리를 관리합니다",
+    titleCiaDesc: "직책별 CIA 점수(1~3)를 설정합니다. 1이 가장 높은 등급입니다.",
+    bulkRegister: "대량 등록",
+    ciaHint1: "CIA 점수: 1 = 최상 (기밀성/무결성/가용성이 매우 중요), 3 = 낮음. 평균 점수로 등급이 자동 산출됩니다.",
+    ciaAutoApply: "등급은 할당된 하드웨어 자산에 자동 적용됩니다.",
+    bulkCiaHint: "탭 또는 쉼표로 구분하여 입력합니다. 이미 존재하는 직책은 업데이트됩니다.",
+    bulkCiaFormat: "직책명, C점수(1~3), I점수(1~3), A점수(1~3), 업무내용, 점수근거",
+    jobTitleLabel: "직책명",
+    derivedGrade: "산출 등급:",
+    avgScore: "평균",
+    jobDescription: "업무 내용",
+    ciaRationale: "점수 부여 근거",
+    jobTitleCol: "직책",
+    assetCountCol: "자산",
+    rationalePrefix: "근거:",
+    bulkRegistered: "건 등록 완료",
+    jobTitleExamples: "대표이사, 팀장, 사원 등",
+    jobDescPlaceholder: "해당 직책의 주요 업무를 기술합니다",
+    ciaRationalePlaceholder: "이 점수를 부여한 이유를 기록합니다 (감사/심사 시 근거 자료로 활용)",
+    bulkCiaExample: "대표이사, 1, 1, 1, 전사 경영 총괄, 최고 의사결정권자",
+    bulkCiaRow1: "대표이사, 1, 1, 1, 전사 경영 총괄, 최고 의사결정권자",
+    bulkCiaRow2: "팀장, 1, 2, 2, 팀 업무 관리, 부서 내 주요 정보 접근",
+    bulkCiaRow3: "사원, 2, 2, 3, 일반 업무 수행, 제한된 정보 접근",
   },
 
   toast: {
@@ -1308,6 +1341,7 @@ export const ko: TranslationDict = {
     labelsShowing: "레이블 표시 중",
     labelsHidden: "레이블 숨김",
     alignSize: "크기 일괄 맞추기 (평균)",
+    alignSizeLabel: "크기↔",
     alignLeft: "왼쪽 정렬",
     alignCenterH: "가로 중앙",
     alignRight: "오른쪽 정렬",

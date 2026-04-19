@@ -73,6 +73,7 @@ export const zh: TranslationDict = {
     csvErrorMsg: "错误内容",
     startDate: "开始日期",
     endDate: "结束日期",
+    examplePrefix: "例: ",
   },
 
   nav: {
@@ -828,6 +829,15 @@ export const zh: TranslationDict = {
     exchangeRateDetail1: "在汇率管理页面输入USD、EUR、JPY、GBP、CNY汇率",
     exchangeRateDetail2: "每日汇率记录支持报表中的精确货币换算",
     exchangeRateLink: "汇率管理",
+    featureFlagsGuide: "6. 功能设置",
+    featureFlagsGuideDesc: "在一处管理影响整个系统行为的所有设置。",
+    featureFlagsDetail1: "功能公开: 生命周期仪表显示与否 (面向普通用户ON/OFF)",
+    featureFlagsDetail2: "安全: 会话有效期、登录锁定次数/时长、密码最小长度",
+    featureFlagsDetail3: "通知: 到期提醒D-day (D-70/30/15/7)、生命周期阈值提醒 (50%/80%/95%)",
+    featureFlagsDetail4: "资产: 自动废弃转换基准天数 (默认365天)",
+    featureFlagsDetail5: "财务: 增值税率 (默认10%)",
+    featureFlagsDetail6: "显示: 每页列表项目数 (默认50条)",
+    featureFlagsDetail7: "更改保存后立即生效",
   },
 
   notification: {
@@ -980,6 +990,7 @@ export const zh: TranslationDict = {
     loadFail: "无法加载设置。",
     noticeTitle: "提示",
     noticeBody: "安全/通知设置更改立即生效。会话有效期更改从新登录起生效。可使用重置按钮恢复默认值。",
+    unsaved: "未保存",
   },
 
   admin: {
@@ -1010,6 +1021,28 @@ export const zh: TranslationDict = {
     dataRequired: "请输入数据。",
     bulkImportFail: "批量导入失败",
     assetCategoryDesc: "管理证据导出时的数据分类类别",
+    titleCiaDesc: "按职务设置CIA评分(1~3)。1为最高等级。",
+    bulkRegister: "批量注册",
+    ciaHint1: "CIA评分: 1 = 最高（机密性/完整性/可用性非常重要），3 = 低。等级根据平均分自动计算。",
+    ciaAutoApply: "等级自动应用于已分配的硬件资产。",
+    bulkCiaHint: "使用制表符或逗号分隔输入。已存在的职务将被更新。",
+    bulkCiaFormat: "职务名, C评分(1~3), I评分(1~3), A评分(1~3), 业务内容, 根据",
+    jobTitleLabel: "职务名",
+    derivedGrade: "计算等级:",
+    avgScore: "平均",
+    jobDescription: "业务内容",
+    ciaRationale: "评分依据",
+    jobTitleCol: "职务",
+    assetCountCol: "资产",
+    rationalePrefix: "依据:",
+    bulkRegistered: "条注册完成",
+    jobTitleExamples: "总裁、部门经理、员工等",
+    jobDescPlaceholder: "描述该职务的主要工作内容",
+    ciaRationalePlaceholder: "记录为何分配此评分（用作审计/审查时的依据材料）",
+    bulkCiaExample: "总裁, 1, 1, 1, 全公司经营管理, 最高决策权限者",
+    bulkCiaRow1: "总裁, 1, 1, 1, 全公司经营管理, 最高决策权限者",
+    bulkCiaRow2: "团队负责人, 1, 2, 2, 团队业务管理, 部门关键信息访问",
+    bulkCiaRow3: "员工, 2, 2, 3, 日常业务执行, 有限信息访问",
   },
 
   toast: {
@@ -1301,6 +1334,7 @@ export const zh: TranslationDict = {
     labelsShowing: "标签显示中",
     labelsHidden: "标签已隐藏",
     alignSize: "统一大小（平均）",
+    alignSizeLabel: "大小↔",
     alignLeft: "左对齐",
     alignCenterH: "水平居中",
     alignRight: "右对齐",
