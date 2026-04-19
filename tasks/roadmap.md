@@ -121,11 +121,13 @@
 - [x] 계약 목록 Excel 내보내기 버튼 추가
 - [x] 갱신 알림 크론에 다중 D-day 임계치·최소 비용 필터 적용
 
-## 다음 티켓 초안
+## 완료 (2026-04-19, dev-038~040)
 
-TITLE: 보고서 커스텀 내보내기 (필드 선택 + 프리셋)
-SCOPE: app/reports/, app/api/reports/
-PRIORITY: medium
+- [x] 라이선스 수정 폼 수명 게이지 추가 (edit-form.tsx)
+- [x] 알림 설정 페이지 하드코딩 한국어 → i18n 키 전환 (6개 언어)
+- [x] 보고서 맞춤 내보내기 — 필드 선택 모달 + 프리셋 localStorage 저장
+
+## 다음 티켓 초안
 
 TITLE: 정보보호 조직도 React Flow 업그레이드
 SCOPE: app/org/security-org-chart.tsx
