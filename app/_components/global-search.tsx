@@ -6,8 +6,8 @@ import { Search, FileText, HardDrive, Users, Cloud, Globe, FileSignature, Packag
 import { useTranslation } from "@/lib/i18n";
 
 interface SearchResult {
-  licenses: { id: number; name: string; licenseType: string; expiryDate: string | null }[];
-  assets: { id: number; name: string; type: string; status: string }[];
+  licenses: { id: number; name: string; licenseType: string; expiryDate: string | null; vendor: string | null; renewalStatus: string | null }[];
+  assets: { id: number; name: string; type: string; status: string; vendor: string | null; expiryDate: string | null }[];
   employees: { id: number; name: string; department: string | null; email: string | null; status: string }[];
 }
 
@@ -180,7 +180,10 @@ export default function GlobalSearch() {
                       <FileText className="h-4 w-4 shrink-0 text-blue-500" />
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-medium text-gray-900">{l.name}</p>
-                        <p className="truncate text-xs text-gray-500">{l.licenseType}</p>
+                        <p className="truncate text-xs text-gray-500">
+                          {l.vendor ? `${l.vendor} · ` : ""}{l.licenseType}
+                          {l.renewalStatus ? ` · ${l.renewalStatus}` : ""}
+                        </p>
                       </div>
                     </button>
                   );
@@ -204,7 +207,9 @@ export default function GlobalSearch() {
                       <span className="shrink-0 text-green-500">{meta.icon}</span>
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-medium text-gray-900">{a.name}</p>
-                        <p className="truncate text-xs text-gray-500">{meta.label}</p>
+                        <p className="truncate text-xs text-gray-500">
+                          {a.vendor ? `${a.vendor} · ` : ""}{meta.label}
+                        </p>
                       </div>
                     </button>
                   );

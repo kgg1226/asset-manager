@@ -503,6 +503,8 @@ function PreferencesSection({ isAdmin }: { isAdmin: boolean }) {
 
 // ── Main Component ──
 
+const LOG_PAGE_SIZE = 20;
+
 export default function NotificationSettingsPage() {
   const { t, locale } = useTranslation();
   // Test state
@@ -516,6 +518,8 @@ export default function NotificationSettingsPage() {
   const [stats, setStats] = useState<LogStats | null>(null);
   const [isLoadingLogs, setIsLoadingLogs] = useState(true);
   const [logFilter, setLogFilter] = useState<{ status: string; channel: string }>({ status: "", channel: "" });
+  const [logPage, setLogPage] = useState(1);
+  const [logTotalPages, setLogTotalPages] = useState(1);
 
   // User role
   const [isAdmin, setIsAdmin] = useState(false);
@@ -536,17 +540,23 @@ export default function NotificationSettingsPage() {
       const params = new URLSearchParams();
       if (logFilter.status) params.set("status", logFilter.status);
       if (logFilter.channel) params.set("channel", logFilter.channel);
-      params.set("limit", "100");
+      params.set("limit", String(LOG_PAGE_SIZE));
+      params.set("page", String(logPage));
       const res = await fetch(`/api/notifications/history?${params}`);
       if (!res.ok) throw new Error();
       const data = await res.json();
       setLogs(data.logs ?? []);
       setStats(data.stats ?? null);
+      setLogTotalPages(data.totalPages ?? 1);
     } catch {
       toast.error(t.notification.loadFail);
     } finally {
       setIsLoadingLogs(false);
     }
+  }, [logFilter, logPage]);
+
+  useEffect(() => {
+    setLogPage(1);
   }, [logFilter]);
 
   useEffect(() => {
@@ -822,6 +832,45 @@ export default function NotificationSettingsPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination */}
+          {logTotalPages > 1 && (
+            <div className="flex items-center justify-between border-t px-4 py-3">
+              <span className="text-xs text-gray-500">
+                {logPage} / {logTotalPages} 페이지
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setLogPage((p) => Math.max(1, p - 1))}
+                  disabled={logPage <= 1 || isLoadingLogs}
+                  className="rounded px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+                >
+                  ‹
+                </button>
+                {Array.from({ length: Math.min(5, logTotalPages) }, (_, i) => {
+                  const start = Math.max(1, Math.min(logPage - 2, logTotalPages - 4));
+                  const p = start + i;
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => setLogPage(p)}
+                      disabled={isLoadingLogs}
+                      className={`rounded px-2.5 py-1 text-sm ${p === logPage ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100"} disabled:opacity-40`}
+                    >
+                      {p}
+                    </button>
+                  );
+                })}
+                <button
+                  onClick={() => setLogPage((p) => Math.min(logTotalPages, p + 1))}
+                  disabled={logPage >= logTotalPages || isLoadingLogs}
+                  className="rounded px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+                >
+                  ›
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
