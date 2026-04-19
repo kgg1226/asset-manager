@@ -64,6 +64,8 @@ export async function GET(request: NextRequest) {
                 { cloudDetail: { platform: search } },
                 { cloudDetail: { accountId: search } },
                 { cloudDetail: { resourceId: search } },
+                { contractDetail: { counterparty: search } },
+                { contractDetail: { contractNumber: search } },
               ],
             },
             select: {
