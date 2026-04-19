@@ -36,7 +36,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendSlackMessage, sendEmail } from "@/lib/notification";
 import { isCronAuthorized } from "@/lib/cron-auth";
-import { getAppSetting } from "@/lib/system-config";
+import { getAppSetting, getNotificationPreferences } from "@/lib/system-config";
 
 type NotifyLogEntry = {
   entityType: "LICENSE" | "ASSET";
@@ -83,7 +83,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const NOTICE_DAYS = (await getAppSetting<number[]>("RENEWAL_ALERT_DAYS")) || [70, 30, 15, 7];
+  const prefs = await getNotificationPreferences();
+  const prefsRenewalList = prefs.renewalDaysBeforeList ?? (prefs.renewalDaysBefore ? [prefs.renewalDaysBefore] : null);
+  const NOTICE_DAYS =
+    prefsRenewalList && prefsRenewalList.length > 0
+      ? prefsRenewalList
+      : (await getAppSetting<number[]>("RENEWAL_ALERT_DAYS")) || [70, 30, 15, 7];
+  const minCostKRW = prefs.minCostThresholdKRW ?? null;
 
   const now = new Date();
   let notified = 0;
@@ -221,6 +227,7 @@ export async function POST(request: NextRequest) {
       where: {
         expiryDate: range,
         status: { in: ["IN_STOCK", "IN_USE", "INACTIVE"] },
+        ...(minCostKRW != null && minCostKRW > 0 ? { cost: { gte: minCostKRW } } : {}),
       },
       include: {
         assignee: { select: { id: true, name: true, email: true } },
