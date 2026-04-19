@@ -66,6 +66,7 @@ export const ko: TranslationDict = {
     dSuffix: "일",
     navigate: "이동",
     returned: "반납",
+    csvErrorHeader: "행,필드,오류내용",
   },
 
   nav: {

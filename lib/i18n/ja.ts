@@ -66,6 +66,7 @@ export const ja: TranslationDict = {
     dSuffix: "日",
     navigate: "移動",
     returned: "返却",
+    csvErrorHeader: "行,フィールド,エラー内容",
   },
 
   nav: {

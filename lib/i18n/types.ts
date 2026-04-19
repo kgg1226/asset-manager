@@ -67,6 +67,7 @@ export type TranslationDict = {
     dSuffix: string;
     navigate: string;
     returned: string;
+    csvErrorHeader: string;
   };
 
   // Navigation / Sidebar

@@ -66,6 +66,7 @@ export const en: TranslationDict = {
     dSuffix: "d",
     navigate: "Go",
     returned: "Returned",
+    csvErrorHeader: "Row,Field,Error",
   },
 
   nav: {

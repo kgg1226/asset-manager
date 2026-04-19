@@ -66,6 +66,7 @@ export const vi: TranslationDict = {
     dSuffix: "N",
     navigate: "Đến",
     returned: "Đã trả",
+    csvErrorHeader: "Hàng,Trường,Nội dung lỗi",
   },
 
   nav: {

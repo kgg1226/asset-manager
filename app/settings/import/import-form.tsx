@@ -202,7 +202,7 @@ export default function ImportForm() {
               <button
                 type="button"
                 onClick={() => {
-                  const header = "행,필드,오류내용\n";
+                  const header = t.common.csvErrorHeader + "\n";
                   const rows = result.errors.map((e) => `${e.row},"${e.column}","${e.message.replace(/"/g, '""')}"`).join("\n");
                   const blob = new Blob(["\uFEFF" + header + rows], { type: "text/csv;charset=utf-8" });
                   const url = URL.createObjectURL(blob);

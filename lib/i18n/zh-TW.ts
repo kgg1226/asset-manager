@@ -66,6 +66,7 @@ export const zhTW: TranslationDict = {
     dSuffix: "天",
     navigate: "前往",
     returned: "歸還",
+    csvErrorHeader: "行,欄位,錯誤內容",
   },
 
   nav: {
