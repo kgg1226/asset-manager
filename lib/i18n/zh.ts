@@ -68,6 +68,11 @@ export const zh: TranslationDict = {
     returned: "归还",
     csvErrorHeader: "行,字段,错误内容",
     countSuffix: "条",
+    csvRowNum: "行 #",
+    csvField: "字段",
+    csvErrorMsg: "错误内容",
+    startDate: "开始日期",
+    endDate: "结束日期",
   },
 
   nav: {
@@ -142,6 +147,8 @@ export const zh: TranslationDict = {
     widgetCharts: "图表",
     widgetOrgUsage: "组织使用情况",
     widgetExpiring: "即将到期资产",
+    legendAlert: "已发送通知",
+    legendRenewed: "已续期",
   },
 
   license: {
@@ -203,6 +210,10 @@ export const zh: TranslationDict = {
     uploadFile: "上传文件",
     downloadFile: "下载",
     contractInfo: "合同信息",
+    renewProcess: "处理续期",
+    statusChangeCol: "状态变更",
+    bulkKeyAddTitle: "批量添加座位密钥",
+    bulkKeyAddHint: "每行一个（最多500个）",
   },
 
   employee: {
@@ -232,6 +243,8 @@ export const zh: TranslationDict = {
     onboardDept: "分配部门/组织",
     onboardLicense: "分配软件许可证",
     onboardHardware: "分配硬件设备",
+    onboardIncompleteTitle: "入职未完成事项",
+    onboardCompleteCount: "完成",
   },
 
   asset: {
@@ -369,6 +382,33 @@ export const zh: TranslationDict = {
     sizeSmall: "小",
     sizeMedium: "中",
     sizeLarge: "大",
+    shortcutTitle: "键盘快捷键",
+    shortcutNew: "注册新资产",
+    shortcutEdit: "编辑选中",
+    shortcutDeselect: "取消选择",
+    shortcutSearch: "搜索焦点",
+    shortcutHelp: "本帮助",
+    bulkTagEdit: "批量编辑标签",
+    labelPrint: "打印标签",
+    bulkTagEditTitle: "批量编辑资产标签",
+    depreciationStatus: "折旧状况",
+    straight5Year: "以取得成本为基准的5年直线法",
+    totalAcquisitionCost: "总取得成本",
+    currentBookValue: "当前账面价值",
+    remainingSuffix: "剩余",
+    accumulatedDep: "累计折旧",
+    countByStatus: "按状态统计",
+    depGood: "良好",
+    depOver50: "50%↑",
+    depComplete: "完成",
+    bookValueRatio: "账面价值比率",
+    bulkStatusChangeTitle: "批量状态变更",
+    changeStatusLabel: "目标状态",
+    statusChangeDesc: "个资产的状态将被变更。",
+    selectedCount: "个已选",
+    printLabel: "打印",
+    loadingAssets: "加载中...",
+    noAssetsForPrint: "没有可打印的资产。请在URL中添加 ?ids=1,2,3。",
   },
 
   cloud: {

@@ -499,8 +499,8 @@ export default function LicenseDetailContent({
         {showBulkKeyModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
             <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
-              <h3 className="mb-1 text-lg font-semibold text-gray-900">시트 키 일괄 추가</h3>
-              <p className="mb-3 text-xs text-gray-500">한 줄에 하나씩 입력 (최대 500개)</p>
+              <h3 className="mb-1 text-lg font-semibold text-gray-900">{t.license.bulkKeyAddTitle}</h3>
+              <p className="mb-3 text-xs text-gray-500">{t.license.bulkKeyAddHint}</p>
               <textarea
                 className="h-48 w-full rounded border border-gray-300 p-2 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder={"XXXX-XXXX-XXXX\nYYYY-YYYY-YYYY\n..."}

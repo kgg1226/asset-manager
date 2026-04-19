@@ -68,6 +68,11 @@ export const ko: TranslationDict = {
     returned: "반납",
     csvErrorHeader: "행,필드,오류내용",
     countSuffix: "건",
+    csvRowNum: "행 #",
+    csvField: "필드",
+    csvErrorMsg: "오류 내용",
+    startDate: "시작일",
+    endDate: "종료일",
   },
 
   nav: {
@@ -142,6 +147,8 @@ export const ko: TranslationDict = {
     widgetCharts: "차트",
     widgetOrgUsage: "조직별 사용 현황",
     widgetExpiring: "만료 임박 자산",
+    legendAlert: "알림발송",
+    legendRenewed: "갱신완료",
   },
 
   license: {
@@ -203,6 +210,10 @@ export const ko: TranslationDict = {
     uploadFile: "파일 업로드",
     downloadFile: "다운로드",
     contractInfo: "계약 정보",
+    renewProcess: "갱신 처리",
+    bulkKeyAddTitle: "시트 키 일괄 추가",
+    bulkKeyAddHint: "한 줄에 하나씩 입력 (최대 500개)",
+    statusChangeCol: "상태 변경",
   },
 
   employee: {
@@ -232,6 +243,8 @@ export const ko: TranslationDict = {
     onboardDept: "부서/조직 배정",
     onboardLicense: "소프트웨어 라이선스 배정",
     onboardHardware: "하드웨어 장비 배정",
+    onboardIncompleteTitle: "온보딩 미완료 항목",
+    onboardCompleteCount: "완료",
   },
 
   asset: {
@@ -369,6 +382,33 @@ export const ko: TranslationDict = {
     sizeSmall: "소",
     sizeMedium: "중",
     sizeLarge: "대",
+    shortcutTitle: "키보드 단축키",
+    shortcutNew: "신규 자산 등록",
+    shortcutEdit: "선택 항목 편집",
+    shortcutDeselect: "선택 해제",
+    shortcutSearch: "검색 포커스",
+    shortcutHelp: "이 도움말",
+    bulkTagEdit: "태그 일괄 편집",
+    labelPrint: "라벨 인쇄",
+    bulkTagEditTitle: "자산 태그 일괄 편집",
+    depreciationStatus: "감가상각 현황",
+    straight5Year: "취득가 기준 5년 정액법",
+    totalAcquisitionCost: "총 취득원가",
+    currentBookValue: "현재 장부가",
+    remainingSuffix: "잔존",
+    accumulatedDep: "누적 감가상각",
+    countByStatus: "상태별 건수",
+    depGood: "양호",
+    depOver50: "50%↑",
+    depComplete: "완료",
+    bookValueRatio: "장부가 비율",
+    bulkStatusChangeTitle: "상태 일괄 변경",
+    changeStatusLabel: "변경할 상태",
+    statusChangeDesc: "개 자산의 상태가 변경됩니다.",
+    selectedCount: "개 선택",
+    printLabel: "인쇄",
+    loadingAssets: "불러오는 중...",
+    noAssetsForPrint: "출력할 자산이 없습니다. URL에 ?ids=1,2,3 를 추가하세요.",
   },
 
   cloud: {

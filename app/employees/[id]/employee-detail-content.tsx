@@ -134,8 +134,8 @@ export default function EmployeeDetailContent({
             <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4">
               <div className="mb-3 flex items-center gap-2">
                 <div className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-white text-xs font-bold">{incomplete.length}</div>
-                <p className="text-sm font-semibold text-amber-800">온보딩 미완료 항목</p>
-                <span className="ml-auto text-xs text-amber-600">{steps.length - incomplete.length}/{steps.length} 완료</span>
+                <p className="text-sm font-semibold text-amber-800">{t.employee.onboardIncompleteTitle}</p>
+                <span className="ml-auto text-xs text-amber-600">{steps.length - incomplete.length}/{steps.length} {t.employee.onboardCompleteCount}</span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {steps.map((step) => {

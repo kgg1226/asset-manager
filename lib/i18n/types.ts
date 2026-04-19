@@ -69,6 +69,11 @@ export type TranslationDict = {
     returned: string;
     csvErrorHeader: string;
     countSuffix: string;
+    csvRowNum: string;
+    csvField: string;
+    csvErrorMsg: string;
+    startDate: string;
+    endDate: string;
   };
 
   // Navigation / Sidebar
@@ -146,6 +151,8 @@ export type TranslationDict = {
     widgetCharts: string;
     widgetOrgUsage: string;
     widgetExpiring: string;
+    legendAlert: string;
+    legendRenewed: string;
   };
 
   // License
@@ -208,6 +215,10 @@ export type TranslationDict = {
     uploadFile: string;
     downloadFile: string;
     contractInfo: string;
+    renewProcess: string;
+    statusChangeCol: string;
+    bulkKeyAddTitle: string;
+    bulkKeyAddHint: string;
   };
 
   // Employee
@@ -238,6 +249,8 @@ export type TranslationDict = {
     onboardDept: string;
     onboardLicense: string;
     onboardHardware: string;
+    onboardIncompleteTitle: string;
+    onboardCompleteCount: string;
   };
 
   // Assets (common for hardware/cloud/domain/contract)
@@ -381,6 +394,33 @@ export type TranslationDict = {
     sizeSmall: string;
     sizeMedium: string;
     sizeLarge: string;
+    shortcutTitle: string;
+    shortcutNew: string;
+    shortcutEdit: string;
+    shortcutDeselect: string;
+    shortcutSearch: string;
+    shortcutHelp: string;
+    bulkTagEdit: string;
+    labelPrint: string;
+    bulkTagEditTitle: string;
+    depreciationStatus: string;
+    straight5Year: string;
+    totalAcquisitionCost: string;
+    currentBookValue: string;
+    remainingSuffix: string;
+    accumulatedDep: string;
+    countByStatus: string;
+    depGood: string;
+    depOver50: string;
+    depComplete: string;
+    bookValueRatio: string;
+    bulkStatusChangeTitle: string;
+    changeStatusLabel: string;
+    statusChangeDesc: string;
+    selectedCount: string;
+    printLabel: string;
+    loadingAssets: string;
+    noAssetsForPrint: string;
   };
 
   // Cloud

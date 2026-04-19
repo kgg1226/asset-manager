@@ -185,10 +185,10 @@ export default function LicensesContent({
                 <table className="mt-2 w-full text-sm">
                   <thead>
                     <tr className="border-b border-amber-100">
-                      <th className="pb-1 text-left text-xs font-medium text-amber-700">라이선스명</th>
-                      <th className="pb-1 text-left text-xs font-medium text-amber-700">만료일</th>
-                      <th className="pb-1 text-left text-xs font-medium text-amber-700">담당자</th>
-                      <th className="pb-1 text-right text-xs font-medium text-amber-700">상태 변경</th>
+                      <th className="pb-1 text-left text-xs font-medium text-amber-700">{t.license.licenseName}</th>
+                      <th className="pb-1 text-left text-xs font-medium text-amber-700">{t.license.expiryDate}</th>
+                      <th className="pb-1 text-left text-xs font-medium text-amber-700">{t.license.adminName}</th>
+                      <th className="pb-1 text-right text-xs font-medium text-amber-700">{t.license.statusChangeCol}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-amber-50">
@@ -205,7 +205,7 @@ export default function LicensesContent({
                           </td>
                           <td className="py-1.5 text-gray-600">{lic.adminName ?? "—"}</td>
                           <td className="py-1.5 text-right">
-                            <Link href={`/licenses/${lic.id}#renewal`} className="rounded bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700">갱신 처리</Link>
+                            <Link href={`/licenses/${lic.id}#renewal`} className="rounded bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700">{t.license.renewProcess}</Link>
                           </td>
                         </tr>
                       );

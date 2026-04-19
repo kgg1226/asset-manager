@@ -90,16 +90,16 @@ export default function PrintLabelsPage() {
           onClick={() => window.print()}
           className="ml-auto flex items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
         >
-          <Printer className="h-4 w-4" />인쇄
+          <Printer className="h-4 w-4" />{t.hw.printLabel}
         </button>
       </div>
 
       {/* Labels */}
       <div className="label-grid flex flex-wrap gap-2 p-4 bg-gray-100 min-h-screen">
         {loading ? (
-          <p className="p-8 text-gray-500">불러오는 중...</p>
+          <p className="p-8 text-gray-500">{t.hw.loadingAssets}</p>
         ) : assets.length === 0 ? (
-          <p className="p-8 text-gray-500">출력할 자산이 없습니다. URL에 ?ids=1,2,3 를 추가하세요.</p>
+          <p className="p-8 text-gray-500">{t.hw.noAssetsForPrint}</p>
         ) : (
           assets.map((a) => (
             <div key={a.id} className={`label-card flex flex-col justify-between rounded border border-gray-400 bg-white font-mono ${labelClass}`}>

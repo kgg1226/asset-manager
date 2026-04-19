@@ -68,6 +68,11 @@ export const zhTW: TranslationDict = {
     returned: "歸還",
     csvErrorHeader: "行,欄位,錯誤內容",
     countSuffix: "筆",
+    csvRowNum: "行 #",
+    csvField: "欄位",
+    csvErrorMsg: "錯誤內容",
+    startDate: "開始日期",
+    endDate: "結束日期",
   },
 
   nav: {
@@ -142,6 +147,8 @@ export const zhTW: TranslationDict = {
     widgetCharts: "圖表",
     widgetOrgUsage: "組織使用情況",
     widgetExpiring: "即將到期資產",
+    legendAlert: "已傳送通知",
+    legendRenewed: "已續期",
   },
 
   license: {
@@ -203,6 +210,10 @@ export const zhTW: TranslationDict = {
     uploadFile: "上傳檔案",
     downloadFile: "下載",
     contractInfo: "合約資訊",
+    renewProcess: "處理續期",
+    statusChangeCol: "狀態變更",
+    bulkKeyAddTitle: "批次新增座位金鑰",
+    bulkKeyAddHint: "每行一個（最多500個）",
   },
 
   employee: {
@@ -232,6 +243,8 @@ export const zhTW: TranslationDict = {
     onboardDept: "分配部門/組織",
     onboardLicense: "分配軟體授權",
     onboardHardware: "分配硬體設備",
+    onboardIncompleteTitle: "入職未完成事項",
+    onboardCompleteCount: "完成",
   },
 
   asset: {
@@ -369,6 +382,33 @@ export const zhTW: TranslationDict = {
     sizeSmall: "小",
     sizeMedium: "中",
     sizeLarge: "大",
+    shortcutTitle: "鍵盤快捷鍵",
+    shortcutNew: "新增資產",
+    shortcutEdit: "編輯選取",
+    shortcutDeselect: "取消選取",
+    shortcutSearch: "搜尋焦點",
+    shortcutHelp: "本說明",
+    bulkTagEdit: "批次編輯標籤",
+    labelPrint: "列印標籤",
+    bulkTagEditTitle: "批次編輯資產標籤",
+    depreciationStatus: "折舊狀況",
+    straight5Year: "以取得成本為基準的5年直線法",
+    totalAcquisitionCost: "總取得成本",
+    currentBookValue: "目前帳面價值",
+    remainingSuffix: "殘存",
+    accumulatedDep: "累計折舊",
+    countByStatus: "按狀態統計",
+    depGood: "良好",
+    depOver50: "50%↑",
+    depComplete: "完成",
+    bookValueRatio: "帳面價值比率",
+    bulkStatusChangeTitle: "批次狀態變更",
+    changeStatusLabel: "目標狀態",
+    statusChangeDesc: "個資產的狀態將被變更。",
+    selectedCount: "個已選",
+    printLabel: "列印",
+    loadingAssets: "載入中...",
+    noAssetsForPrint: "沒有可列印的資產。請在URL中添加 ?ids=1,2,3。",
   },
 
   cloud: {

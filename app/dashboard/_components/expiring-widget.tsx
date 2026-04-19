@@ -164,8 +164,8 @@ export default function ExpiringWidget({ items }: { items: ExpiringItem[] }) {
           {items.length}{t.dashboard.items}
         </span>
         <span className="ml-auto text-xs text-gray-400">
-          <Bell className="mr-1 inline h-3 w-3" />알림발송 &nbsp;
-          <CheckCircle className="mr-1 inline h-3 w-3" />갱신완료
+          <Bell className="mr-1 inline h-3 w-3" />{t.dashboard.legendAlert} &nbsp;
+          <CheckCircle className="mr-1 inline h-3 w-3" />{t.dashboard.legendRenewed}
         </span>
       </div>
       <div className="space-y-2">

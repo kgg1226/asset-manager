@@ -898,14 +898,14 @@ export default function NotificationSettingsPage() {
               <option value="EMAIL">{t.notification.emailChannel}</option>
               <option value="SLACK">{t.notification.slackChannel}</option>
             </select>
-            <span className="text-xs text-gray-400">시작일</span>
+            <span className="text-xs text-gray-400">{t.common.startDate}</span>
             <input
               type="date"
               value={logFilter.from}
               onChange={(e) => setLogFilter((p) => ({ ...p, from: e.target.value }))}
               className="rounded-md border border-gray-300 px-2 py-1 text-sm"
             />
-            <span className="text-xs text-gray-400">종료일</span>
+            <span className="text-xs text-gray-400">{t.common.endDate}</span>
             <input
               type="date"
               value={logFilter.to}

@@ -227,9 +227,9 @@ export default function ImportForm() {
               <table className="min-w-full text-xs">
                 <thead className="sticky top-0 bg-red-50">
                   <tr>
-                    <th className="px-3 py-2 text-left font-medium text-red-700 w-12">행 #</th>
-                    <th className="px-3 py-2 text-left font-medium text-red-700 w-28">필드</th>
-                    <th className="px-3 py-2 text-left font-medium text-red-700">오류 내용</th>
+                    <th className="px-3 py-2 text-left font-medium text-red-700 w-12">{t.common.csvRowNum}</th>
+                    <th className="px-3 py-2 text-left font-medium text-red-700 w-28">{t.common.csvField}</th>
+                    <th className="px-3 py-2 text-left font-medium text-red-700">{t.common.csvErrorMsg}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-red-50">

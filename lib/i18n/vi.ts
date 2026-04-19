@@ -68,6 +68,11 @@ export const vi: TranslationDict = {
     returned: "Đã trả",
     csvErrorHeader: "Hàng,Trường,Nội dung lỗi",
     countSuffix: " mục",
+    csvRowNum: "Hàng #",
+    csvField: "Trường",
+    csvErrorMsg: "Nội dung lỗi",
+    startDate: "Ngày bắt đầu",
+    endDate: "Ngày kết thúc",
   },
 
   nav: {
@@ -142,6 +147,8 @@ export const vi: TranslationDict = {
     widgetCharts: "Biểu đồ",
     widgetOrgUsage: "Sử dụng theo tổ chức",
     widgetExpiring: "Tài sản sắp hết hạn",
+    legendAlert: "Đã gửi cảnh báo",
+    legendRenewed: "Đã gia hạn",
   },
 
   license: {
@@ -203,6 +210,10 @@ export const vi: TranslationDict = {
     uploadFile: "Tải lên tệp",
     downloadFile: "Tải xuống",
     contractInfo: "Thông tin hợp đồng",
+    renewProcess: "Xử lý gia hạn",
+    statusChangeCol: "Thay đổi trạng thái",
+    bulkKeyAddTitle: "Thêm khóa ghế hàng loạt",
+    bulkKeyAddHint: "Mỗi dòng một khóa (tối đa 500)",
   },
 
   employee: {
@@ -232,6 +243,8 @@ export const vi: TranslationDict = {
     onboardDept: "Phân bổ phòng ban/tổ chức",
     onboardLicense: "Phân bổ giấy phép phần mềm",
     onboardHardware: "Phân bổ thiết bị phần cứng",
+    onboardIncompleteTitle: "Mục onboarding chưa hoàn thành",
+    onboardCompleteCount: "hoàn thành",
   },
 
   asset: {
@@ -369,6 +382,33 @@ export const vi: TranslationDict = {
     sizeSmall: "Nhỏ",
     sizeMedium: "Vừa",
     sizeLarge: "Lớn",
+    shortcutTitle: "Phím tắt",
+    shortcutNew: "Đăng ký tài sản mới",
+    shortcutEdit: "Chỉnh sửa đã chọn",
+    shortcutDeselect: "Bỏ chọn",
+    shortcutSearch: "Tìm kiếm",
+    shortcutHelp: "Trợ giúp này",
+    bulkTagEdit: "Chỉnh sửa thẻ hàng loạt",
+    labelPrint: "In nhãn",
+    bulkTagEditTitle: "Chỉnh sửa thẻ tài sản hàng loạt",
+    depreciationStatus: "Tóm tắt khấu hao",
+    straight5Year: "Phương pháp đường thẳng 5 năm từ giá trị mua",
+    totalAcquisitionCost: "Tổng chi phí mua",
+    currentBookValue: "Giá trị sổ sách hiện tại",
+    remainingSuffix: "còn lại",
+    accumulatedDep: "Khấu hao lũy kế",
+    countByStatus: "Số lượng theo trạng thái",
+    depGood: "Tốt",
+    depOver50: "50%↑",
+    depComplete: "Hoàn thành",
+    bookValueRatio: "Tỷ lệ giá trị sổ sách",
+    bulkStatusChangeTitle: "Thay đổi trạng thái hàng loạt",
+    changeStatusLabel: "Trạng thái mục tiêu",
+    statusChangeDesc: "tài sản sẽ được thay đổi trạng thái.",
+    selectedCount: "đã chọn",
+    printLabel: "In",
+    loadingAssets: "Đang tải...",
+    noAssetsForPrint: "Không có tài sản để in. Thêm ?ids=1,2,3 vào URL.",
   },
 
   cloud: {

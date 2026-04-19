@@ -68,6 +68,11 @@ export const en: TranslationDict = {
     returned: "Returned",
     csvErrorHeader: "Row,Field,Error",
     countSuffix: "",
+    csvRowNum: "Row #",
+    csvField: "Field",
+    csvErrorMsg: "Error",
+    startDate: "Start Date",
+    endDate: "End Date",
   },
 
   nav: {
@@ -142,6 +147,8 @@ export const en: TranslationDict = {
     widgetCharts: "Charts",
     widgetOrgUsage: "Org Usage",
     widgetExpiring: "Expiring Assets",
+    legendAlert: "Alert Sent",
+    legendRenewed: "Renewed",
   },
 
   license: {
@@ -203,6 +210,10 @@ export const en: TranslationDict = {
     uploadFile: "Upload File",
     downloadFile: "Download",
     contractInfo: "Contract Information",
+    renewProcess: "Process Renewal",
+    statusChangeCol: "Status Change",
+    bulkKeyAddTitle: "Bulk Add Seat Keys",
+    bulkKeyAddHint: "One per line (max 500)",
   },
 
   employee: {
@@ -232,6 +243,8 @@ export const en: TranslationDict = {
     onboardDept: "Department assigned",
     onboardLicense: "Software license assigned",
     onboardHardware: "Hardware assigned",
+    onboardIncompleteTitle: "Incomplete Onboarding Items",
+    onboardCompleteCount: "complete",
   },
 
   asset: {
@@ -369,6 +382,33 @@ export const en: TranslationDict = {
     sizeSmall: "S",
     sizeMedium: "M",
     sizeLarge: "L",
+    shortcutTitle: "Keyboard Shortcuts",
+    shortcutNew: "Register new asset",
+    shortcutEdit: "Edit selected",
+    shortcutDeselect: "Deselect",
+    shortcutSearch: "Focus search",
+    shortcutHelp: "This help",
+    bulkTagEdit: "Bulk Tag Edit",
+    labelPrint: "Print Labels",
+    bulkTagEditTitle: "Bulk Edit Asset Tags",
+    depreciationStatus: "Depreciation Summary",
+    straight5Year: "5-year straight-line from acquisition",
+    totalAcquisitionCost: "Total Acquisition Cost",
+    currentBookValue: "Current Book Value",
+    remainingSuffix: "remaining",
+    accumulatedDep: "Accumulated Depreciation",
+    countByStatus: "Count by Status",
+    depGood: "Good",
+    depOver50: "50%+",
+    depComplete: "Fully Dep.",
+    bookValueRatio: "Book Value Ratio",
+    bulkStatusChangeTitle: "Bulk Status Change",
+    changeStatusLabel: "Target Status",
+    statusChangeDesc: "assets will have their status changed.",
+    selectedCount: "selected",
+    printLabel: "Print",
+    loadingAssets: "Loading...",
+    noAssetsForPrint: "No assets to print. Add ?ids=1,2,3 to the URL.",
   },
 
   cloud: {

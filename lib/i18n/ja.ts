@@ -68,6 +68,11 @@ export const ja: TranslationDict = {
     returned: "返却",
     csvErrorHeader: "行,フィールド,エラー内容",
     countSuffix: "件",
+    csvRowNum: "行 #",
+    csvField: "フィールド",
+    csvErrorMsg: "エラー内容",
+    startDate: "開始日",
+    endDate: "終了日",
   },
 
   nav: {
@@ -142,6 +147,8 @@ export const ja: TranslationDict = {
     widgetCharts: "チャート",
     widgetOrgUsage: "組織別使用状況",
     widgetExpiring: "期限切れ間近の資産",
+    legendAlert: "通知送信",
+    legendRenewed: "更新済み",
   },
 
   license: {
@@ -203,6 +210,10 @@ export const ja: TranslationDict = {
     uploadFile: "ファイルアップロード",
     downloadFile: "ダウンロード",
     contractInfo: "契約情報",
+    renewProcess: "更新処理",
+    statusChangeCol: "状態変更",
+    bulkKeyAddTitle: "シートキー一括追加",
+    bulkKeyAddHint: "1行に1つ入力（最大500個）",
   },
 
   employee: {
@@ -232,6 +243,8 @@ export const ja: TranslationDict = {
     onboardDept: "部署/組織配属",
     onboardLicense: "ソフトウェアライセンス配布",
     onboardHardware: "ハードウェア配布",
+    onboardIncompleteTitle: "オンボーディング未完了項目",
+    onboardCompleteCount: "完了",
   },
 
   asset: {
@@ -369,6 +382,33 @@ export const ja: TranslationDict = {
     sizeSmall: "小",
     sizeMedium: "中",
     sizeLarge: "大",
+    shortcutTitle: "キーボードショートカット",
+    shortcutNew: "新規資産登録",
+    shortcutEdit: "選択項目編集",
+    shortcutDeselect: "選択解除",
+    shortcutSearch: "検索フォーカス",
+    shortcutHelp: "このヘルプ",
+    bulkTagEdit: "タグ一括編集",
+    labelPrint: "ラベル印刷",
+    bulkTagEditTitle: "資産タグ一括編集",
+    depreciationStatus: "減価償却状況",
+    straight5Year: "取得価額基準 5年定額法",
+    totalAcquisitionCost: "総取得原価",
+    currentBookValue: "現在の帳簿価額",
+    remainingSuffix: "残存",
+    accumulatedDep: "累積減価償却",
+    countByStatus: "状態別件数",
+    depGood: "良好",
+    depOver50: "50%↑",
+    depComplete: "完了",
+    bookValueRatio: "帳簿価額比率",
+    bulkStatusChangeTitle: "状態一括変更",
+    changeStatusLabel: "変更する状態",
+    statusChangeDesc: "個の資産の状態が変更されます。",
+    selectedCount: "個選択",
+    printLabel: "印刷",
+    loadingAssets: "読み込み中...",
+    noAssetsForPrint: "印刷する資産がありません。URLに ?ids=1,2,3 を追加してください。",
   },
 
   cloud: {

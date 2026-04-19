@@ -344,12 +344,12 @@ export default function HardwareListPage() {
               </button>
               {showShortcutHint && (
                 <div className="absolute right-0 top-full z-10 mt-1 w-52 rounded-lg border border-gray-200 bg-white p-3 shadow-lg text-xs text-gray-600 space-y-1">
-                  <p className="font-semibold text-gray-800 mb-2">키보드 단축키</p>
-                  {isAdmin && <p><kbd className="rounded border border-gray-300 bg-gray-100 px-1">N</kbd> — 신규 자산 등록</p>}
-                  {isAdmin && <p><kbd className="rounded border border-gray-300 bg-gray-100 px-1">E</kbd> — 선택 항목 편집</p>}
-                  <p><kbd className="rounded border border-gray-300 bg-gray-100 px-1">Esc</kbd> — 선택 해제</p>
-                  <p><kbd className="rounded border border-gray-300 bg-gray-100 px-1">/</kbd> — 검색 포커스</p>
-                  <p><kbd className="rounded border border-gray-300 bg-gray-100 px-1">?</kbd> — 이 도움말</p>
+                  <p className="font-semibold text-gray-800 mb-2">{t.hw.shortcutTitle}</p>
+                  {isAdmin && <p><kbd className="rounded border border-gray-300 bg-gray-100 px-1">N</kbd> — {t.hw.shortcutNew}</p>}
+                  {isAdmin && <p><kbd className="rounded border border-gray-300 bg-gray-100 px-1">E</kbd> — {t.hw.shortcutEdit}</p>}
+                  <p><kbd className="rounded border border-gray-300 bg-gray-100 px-1">Esc</kbd> — {t.hw.shortcutDeselect}</p>
+                  <p><kbd className="rounded border border-gray-300 bg-gray-100 px-1">/</kbd> — {t.hw.shortcutSearch}</p>
+                  <p><kbd className="rounded border border-gray-300 bg-gray-100 px-1">?</kbd> — {t.hw.shortcutHelp}</p>
                 </div>
               )}
             </div>
@@ -385,24 +385,24 @@ export default function HardwareListPage() {
         {/* 일괄 작업 바 */}
         {isAdmin && selectedIds.size > 0 && (
           <div className="mb-2 flex items-center gap-3 rounded-lg bg-blue-50 border border-blue-200 px-4 py-2">
-            <span className="text-sm font-medium text-blue-700">{selectedIds.size}개 선택</span>
+            <span className="text-sm font-medium text-blue-700">{selectedIds.size}{t.hw.selectedCount}</span>
             <button
               onClick={openBulkTagModal}
               className="flex items-center gap-1.5 rounded bg-blue-600 px-3 py-1 text-sm font-medium text-white hover:bg-blue-700"
             >
-              <Tag className="h-3.5 w-3.5" />태그 일괄 편집
+              <Tag className="h-3.5 w-3.5" />{t.hw.bulkTagEdit}
             </button>
             <button
               onClick={() => setShowBulkStatusModal(true)}
               className="flex items-center gap-1.5 rounded border border-gray-300 bg-white px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
             >
-              상태 일괄 변경
+              {t.hw.bulkStatusChangeTitle}
             </button>
             <button
               onClick={() => window.open(`/hardware/print-labels?ids=${[...selectedIds].join(",")}`, "_blank")}
               className="flex items-center gap-1.5 rounded border border-gray-300 bg-white px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
             >
-              <Printer className="h-3.5 w-3.5" />라벨 인쇄
+              <Printer className="h-3.5 w-3.5" />{t.hw.labelPrint}
             </button>
             <button
               onClick={handleBulkDelete}
@@ -422,8 +422,8 @@ export default function HardwareListPage() {
               <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
                 <div className="flex items-center gap-2">
                   <Tag className="h-4 w-4 text-blue-600" />
-                  <h2 className="text-base font-semibold text-gray-900">자산 태그 일괄 편집</h2>
-                  <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">{selectedIds.size}개</span>
+                  <h2 className="text-base font-semibold text-gray-900">{t.hw.bulkTagEditTitle}</h2>
+                  <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">{selectedIds.size}</span>
                 </div>
                 <button onClick={() => setShowBulkTagModal(false)} className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600">✕</button>
               </div>
@@ -431,8 +431,8 @@ export default function HardwareListPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-100">
-                      <th className="pb-2 text-left text-xs font-medium text-gray-500">자산명</th>
-                      <th className="pb-2 text-left text-xs font-medium text-gray-500">자산 태그</th>
+                      <th className="pb-2 text-left text-xs font-medium text-gray-500">{t.asset.assetName}</th>
+                      <th className="pb-2 text-left text-xs font-medium text-gray-500">{t.hw.assetTag}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
@@ -457,7 +457,7 @@ export default function HardwareListPage() {
                 </table>
               </div>
               <div className="flex justify-end gap-2 border-t border-gray-200 px-6 py-4">
-                <button onClick={() => setShowBulkTagModal(false)} className="rounded px-4 py-2 text-sm text-gray-600 hover:bg-gray-100">취소</button>
+                <button onClick={() => setShowBulkTagModal(false)} className="rounded px-4 py-2 text-sm text-gray-600 hover:bg-gray-100">{t.common.cancel}</button>
                 <button
                   onClick={handleBulkTagSave}
                   disabled={bulkTagSaving}
@@ -474,31 +474,31 @@ export default function HardwareListPage() {
         {!isLoading && assets.length > 0 && depreciationSummary.totalCost > 0 && (
           <div className="mb-4 rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-200">
             <div className="mb-3 flex items-center justify-between">
-              <p className="text-sm font-semibold text-gray-700">감가상각 현황</p>
-              <p className="text-xs text-gray-400">취득가 기준 5년 정액법</p>
+              <p className="text-sm font-semibold text-gray-700">{t.hw.depreciationStatus}</p>
+              <p className="text-xs text-gray-400">{t.hw.straight5Year}</p>
             </div>
             <div className="grid grid-cols-4 gap-3">
               <div>
-                <p className="text-[10px] text-gray-400 uppercase font-medium">총 취득원가</p>
+                <p className="text-[10px] text-gray-400 uppercase font-medium">{t.hw.totalAcquisitionCost}</p>
                 <p className="text-base font-bold text-gray-900">₩{depreciationSummary.totalCost.toLocaleString()}</p>
               </div>
               <div>
-                <p className="text-[10px] text-gray-400 uppercase font-medium">현재 장부가</p>
+                <p className="text-[10px] text-gray-400 uppercase font-medium">{t.hw.currentBookValue}</p>
                 <p className="text-base font-bold text-blue-600">₩{depreciationSummary.totalBookValue.toLocaleString()}</p>
                 <p className="text-[10px] text-gray-400">
-                  {depreciationSummary.totalCost > 0 ? Math.round((depreciationSummary.totalBookValue / depreciationSummary.totalCost) * 100) : 0}% 잔존
+                  {depreciationSummary.totalCost > 0 ? Math.round((depreciationSummary.totalBookValue / depreciationSummary.totalCost) * 100) : 0}% {t.hw.remainingSuffix}
                 </p>
               </div>
               <div>
-                <p className="text-[10px] text-gray-400 uppercase font-medium">누적 감가상각</p>
+                <p className="text-[10px] text-gray-400 uppercase font-medium">{t.hw.accumulatedDep}</p>
                 <p className="text-base font-bold text-amber-600">₩{(depreciationSummary.totalCost - depreciationSummary.totalBookValue).toLocaleString()}</p>
               </div>
               <div>
-                <p className="text-[10px] text-gray-400 uppercase font-medium">상태별 건수</p>
+                <p className="text-[10px] text-gray-400 uppercase font-medium">{t.hw.countByStatus}</p>
                 <div className="flex gap-2 text-xs mt-0.5">
-                  <span className="rounded bg-green-100 px-1.5 py-0.5 text-green-700">{depreciationSummary.underHalf}건 양호</span>
-                  <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-700">{depreciationSummary.overHalf}건 50%↑</span>
-                  <span className="rounded bg-red-100 px-1.5 py-0.5 text-red-700">{depreciationSummary.fullyDepreciated}건 완료</span>
+                  <span className="rounded bg-green-100 px-1.5 py-0.5 text-green-700">{depreciationSummary.underHalf}{t.common.countSuffix} {t.hw.depGood}</span>
+                  <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-700">{depreciationSummary.overHalf}{t.common.countSuffix} {t.hw.depOver50}</span>
+                  <span className="rounded bg-red-100 px-1.5 py-0.5 text-red-700">{depreciationSummary.fullyDepreciated}{t.common.countSuffix} {t.hw.depComplete}</span>
                 </div>
               </div>
             </div>
@@ -507,7 +507,7 @@ export default function HardwareListPage() {
               <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
                 <div className="h-2 rounded-full bg-blue-500 transition-all" style={{ width: `${Math.round((depreciationSummary.totalBookValue / depreciationSummary.totalCost) * 100)}%` }} />
               </div>
-              <p className="mt-1 text-[10px] text-gray-400 text-right">장부가 비율</p>
+              <p className="mt-1 text-[10px] text-gray-400 text-right">{t.hw.bookValueRatio}</p>
             </div>
           </div>
         )}
@@ -518,13 +518,13 @@ export default function HardwareListPage() {
             <div className="w-80 rounded-xl bg-white shadow-2xl">
               <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-base font-semibold text-gray-900">상태 일괄 변경</h2>
-                  <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">{selectedIds.size}개</span>
+                  <h2 className="text-base font-semibold text-gray-900">{t.hw.bulkStatusChangeTitle}</h2>
+                  <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">{selectedIds.size}</span>
                 </div>
                 <button onClick={() => setShowBulkStatusModal(false)} className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600">✕</button>
               </div>
               <div className="px-6 py-4">
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">변경할 상태</label>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">{t.hw.changeStatusLabel}</label>
                 <select
                   value={bulkStatusTarget}
                   onChange={(e) => setBulkStatusTarget(e.target.value as AssetStatus)}
@@ -534,10 +534,10 @@ export default function HardwareListPage() {
                     <option key={s} value={s}>{getStatusLabel(s)}</option>
                   ))}
                 </select>
-                <p className="mt-2 text-xs text-gray-500">선택한 {selectedIds.size}개 자산의 상태가 변경됩니다.</p>
+                <p className="mt-2 text-xs text-gray-500">{selectedIds.size}{t.hw.statusChangeDesc}</p>
               </div>
               <div className="flex justify-end gap-2 border-t border-gray-200 px-6 py-4">
-                <button onClick={() => setShowBulkStatusModal(false)} className="rounded px-4 py-2 text-sm text-gray-600 hover:bg-gray-100">취소</button>
+                <button onClick={() => setShowBulkStatusModal(false)} className="rounded px-4 py-2 text-sm text-gray-600 hover:bg-gray-100">{t.common.cancel}</button>
                 <button
                   onClick={handleBulkStatusSave}
                   disabled={bulkStatusSaving}
@@ -585,7 +585,7 @@ export default function HardwareListPage() {
             <thead className="border-b bg-gray-50">
               <tr>
                 {isAdmin && <th className="w-10 px-3 py-3"><input type="checkbox" checked={selectedIds.size > 0 && selectedIds.size === sortedAssets.length} onChange={toggleAll} className="h-4 w-4 rounded border-gray-300" /></th>}
-                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("assetTag")}>{t.hw.assetTag ?? "자산태그"}<SortIcon field="assetTag" /></th>
+                <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("assetTag")}>{t.hw.assetTag}<SortIcon field="assetTag" /></th>
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("name")}>{t.asset.assetName}<SortIcon field="name" /></th>
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("deviceType")}>{t.hw.deviceType}<SortIcon field="deviceType" /></th>
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("manufacturer")}>{t.hw.manufacturer} / {t.hw.model}<SortIcon field="manufacturer" /></th>
