@@ -67,6 +67,7 @@ export const zhTW: TranslationDict = {
     navigate: "前往",
     returned: "歸還",
     csvErrorHeader: "行,欄位,錯誤內容",
+    countSuffix: "筆",
   },
 
   nav: {
@@ -564,6 +565,12 @@ export const zhTW: TranslationDict = {
     persons: "人",
     days: "天",
     millionWon: "百萬韓元",
+    pngExport: "匯出PNG",
+    unitCountSuffix: "個部門",
+    memberCountSuffix: "人",
+    unassigned: "未分配",
+    treeView: "樹狀",
+    visualization: "視覺化",
   },
 
   report: {
@@ -587,6 +594,16 @@ export const zhTW: TranslationDict = {
     savedPresets: "已儲存的預設",
     selectFields: "選擇要匯出的欄位",
     presetNamePlaceholder: "預設名稱",
+    includeSheets: "包含的工作表",
+    detailSheetColumns: "Detail工作表欄位",
+    excelDownload: "下載Excel",
+    assetRegisterTitle: "資產管理台帳",
+    assetRegisterTooltip: "匯出ISMS資產管理台帳",
+    evidenceHistory: "證據歷史",
+    viewAll: "查看全部 →",
+    countSuffix: "筆",
+    vsLastMonth: "較上月",
+    sameAsLastMonth: "與上月相同",
   },
 
   history: {
@@ -947,6 +964,7 @@ export const zhTW: TranslationDict = {
     titleRequired: "職稱名稱為必填項。",
     dataRequired: "請輸入資料。",
     bulkImportFail: "批量匯入失敗",
+    assetCategoryDesc: "管理證據匯出時的資料分類類別",
   },
 
   toast: {

@@ -67,6 +67,7 @@ export const ja: TranslationDict = {
     navigate: "移動",
     returned: "返却",
     csvErrorHeader: "行,フィールド,エラー内容",
+    countSuffix: "件",
   },
 
   nav: {
@@ -564,6 +565,12 @@ export const ja: TranslationDict = {
     persons: "名",
     days: "日",
     millionWon: "百万ウォン",
+    pngExport: "PNGエクスポート",
+    unitCountSuffix: "部署",
+    memberCountSuffix: "名",
+    unassigned: "未配属",
+    treeView: "ツリー",
+    visualization: "ビジュアル",
   },
 
   report: {
@@ -587,6 +594,16 @@ export const ja: TranslationDict = {
     savedPresets: "保存済みプリセット",
     selectFields: "エクスポートするフィールドを選択",
     presetNamePlaceholder: "プリセット名",
+    includeSheets: "含めるシート",
+    detailSheetColumns: "Detailシートの列",
+    excelDownload: "Excelダウンロード",
+    assetRegisterTitle: "資産管理台帳",
+    assetRegisterTooltip: "ISMS資産管理台帳をエクスポート",
+    evidenceHistory: "証跡履歴",
+    viewAll: "すべて見る →",
+    countSuffix: "件",
+    vsLastMonth: "前月比",
+    sameAsLastMonth: "前月と同じ",
   },
 
   history: {
@@ -948,6 +965,7 @@ export const ja: TranslationDict = {
     titleRequired: "職責名は必須です。",
     dataRequired: "データを入力してください。",
     bulkImportFail: "一括登録失敗",
+    assetCategoryDesc: "証跡エクスポート時のデータ分類カテゴリを管理します",
   },
 
   toast: {

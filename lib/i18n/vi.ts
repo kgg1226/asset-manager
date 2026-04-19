@@ -67,6 +67,7 @@ export const vi: TranslationDict = {
     navigate: "Đến",
     returned: "Đã trả",
     csvErrorHeader: "Hàng,Trường,Nội dung lỗi",
+    countSuffix: " mục",
   },
 
   nav: {
@@ -564,6 +565,12 @@ export const vi: TranslationDict = {
     persons: "người",
     days: "ngày",
     millionWon: "triệu KRW",
+    pngExport: "Xuất PNG",
+    unitCountSuffix: "phòng ban",
+    memberCountSuffix: "người",
+    unassigned: "Chưa phân công",
+    treeView: "Cây",
+    visualization: "Trực quan",
   },
 
   report: {
@@ -587,6 +594,16 @@ export const vi: TranslationDict = {
     savedPresets: "Bộ lọc đã lưu",
     selectFields: "Chọn trường để xuất",
     presetNamePlaceholder: "Tên bộ lọc",
+    includeSheets: "Trang tính bao gồm",
+    detailSheetColumns: "Cột trang tính Detail",
+    excelDownload: "Tải Excel",
+    assetRegisterTitle: "Sổ đăng ký tài sản",
+    assetRegisterTooltip: "Xuất sổ đăng ký tài sản ISMS",
+    evidenceHistory: "Lịch sử bằng chứng",
+    viewAll: "Xem tất cả →",
+    countSuffix: "bản ghi",
+    vsLastMonth: "so với tháng trước",
+    sameAsLastMonth: "Giống tháng trước",
   },
 
   history: {
@@ -948,6 +965,7 @@ export const vi: TranslationDict = {
     titleRequired: "Tên chức danh là bắt buộc.",
     dataRequired: "Vui lòng nhập dữ liệu.",
     bulkImportFail: "Nhập hàng loạt thất bại",
+    assetCategoryDesc: "Quản lý danh mục phân loại dữ liệu khi xuất bằng chứng",
   },
 
   toast: {

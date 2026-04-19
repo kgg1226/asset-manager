@@ -67,6 +67,7 @@ export const en: TranslationDict = {
     navigate: "Go",
     returned: "Returned",
     csvErrorHeader: "Row,Field,Error",
+    countSuffix: "",
   },
 
   nav: {
@@ -564,6 +565,12 @@ export const en: TranslationDict = {
     persons: "persons",
     days: "days",
     millionWon: "million KRW",
+    pngExport: "Export PNG",
+    unitCountSuffix: "departments",
+    memberCountSuffix: "members",
+    unassigned: "Unassigned",
+    treeView: "Tree",
+    visualization: "Visual",
   },
 
   report: {
@@ -587,6 +594,16 @@ export const en: TranslationDict = {
     savedPresets: "Saved Presets",
     selectFields: "Select Fields to Export",
     presetNamePlaceholder: "Preset name",
+    includeSheets: "Included Sheets",
+    detailSheetColumns: "Detail Sheet Columns",
+    excelDownload: "Download Excel",
+    assetRegisterTitle: "Asset Register",
+    assetRegisterTooltip: "Export ISMS Asset Register to Excel",
+    evidenceHistory: "Evidence History",
+    viewAll: "View All →",
+    countSuffix: "records",
+    vsLastMonth: "vs last month",
+    sameAsLastMonth: "Same as last month",
   },
 
   history: {
@@ -948,6 +965,7 @@ export const en: TranslationDict = {
     titleRequired: "Title name is required.",
     dataRequired: "Please enter data.",
     bulkImportFail: "Bulk import failed",
+    assetCategoryDesc: "Manage categories used to classify data in evidence exports",
   },
 
   toast: {

@@ -21,6 +21,7 @@ import "@xyflow/react/dist/style.css";
 import dagre from "dagre";
 import { toPng } from "html-to-image";
 import { Shield, User, Download } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 
 type Employee = { id: number; name: string; department: string | null; title: string | null };
 type SecurityNode = {
@@ -35,6 +36,7 @@ type SecurityNode = {
 // ── Node component ─────────────────────────────────────────────────────
 
 function SecurityRoleNode({ data }: { data: { title: string; employeeName: string | null; isRoot: boolean } }) {
+  const { t } = useTranslation();
   return (
     <div className={`rounded-xl border-2 px-4 py-3 shadow-md min-w-[160px] text-center ${
       data.isRoot
@@ -55,7 +57,7 @@ function SecurityRoleNode({ data }: { data: { title: string; employeeName: strin
           {data.employeeName}
         </div>
       ) : (
-        <div className="text-xs text-gray-400 italic">미배정</div>
+        <div className="text-xs text-gray-400 italic">{t.org.unassigned}</div>
       )}
     </div>
   );
@@ -81,6 +83,7 @@ function applyDagre(nodes: Node[], edges: Edge[]): Node[] {
 // ── Canvas ─────────────────────────────────────────────────────────────
 
 function SecurityFlowCanvas({ securityNodes }: { securityNodes: SecurityNode[] }) {
+  const { t } = useTranslation();
   const { fitView } = useReactFlow();
   const flowRef = useRef<HTMLDivElement>(null);
 
@@ -154,7 +157,7 @@ function SecurityFlowCanvas({ securityNodes }: { securityNodes: SecurityNode[] }
         className="absolute top-3 right-3 z-10 flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-xs font-medium text-gray-600 shadow border border-gray-200 hover:bg-gray-50"
       >
         <Download className="h-3.5 w-3.5" />
-        PNG 내보내기
+        {t.org.pngExport}
       </button>
     </div>
   );

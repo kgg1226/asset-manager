@@ -264,8 +264,8 @@ export function DataTable<T extends Record<string, unknown>>({
       {!loading && (
         <p className="mt-2 text-xs text-gray-500">
           {sortedData.length !== data.length
-            ? `${sortedData.length} / ${data.length}건`
-            : `${data.length}건`}
+            ? `${sortedData.length} / ${data.length}${t.common.countSuffix}`
+            : `${data.length}${t.common.countSuffix}`}
         </p>
       )}
     </div>

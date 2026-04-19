@@ -67,6 +67,7 @@ export const zh: TranslationDict = {
     navigate: "前往",
     returned: "归还",
     csvErrorHeader: "行,字段,错误内容",
+    countSuffix: "条",
   },
 
   nav: {
@@ -564,6 +565,12 @@ export const zh: TranslationDict = {
     persons: "人",
     days: "天",
     millionWon: "百万韩元",
+    pngExport: "导出PNG",
+    unitCountSuffix: "个部门",
+    memberCountSuffix: "人",
+    unassigned: "未分配",
+    treeView: "树形",
+    visualization: "可视化",
   },
 
   report: {
@@ -587,6 +594,16 @@ export const zh: TranslationDict = {
     savedPresets: "已保存的预设",
     selectFields: "选择要导出的字段",
     presetNamePlaceholder: "预设名称",
+    includeSheets: "包含的工作表",
+    detailSheetColumns: "Detail工作表列",
+    excelDownload: "下载Excel",
+    assetRegisterTitle: "资产管理台账",
+    assetRegisterTooltip: "导出ISMS资产管理台账",
+    evidenceHistory: "证据历史",
+    viewAll: "查看全部 →",
+    countSuffix: "条",
+    vsLastMonth: "较上月",
+    sameAsLastMonth: "与上月相同",
   },
 
   history: {
@@ -947,6 +964,7 @@ export const zh: TranslationDict = {
     titleRequired: "职称名称为必填项。",
     dataRequired: "请输入数据。",
     bulkImportFail: "批量导入失败",
+    assetCategoryDesc: "管理证据导出时的数据分类类别",
   },
 
   toast: {

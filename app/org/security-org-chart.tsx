@@ -284,10 +284,10 @@ export default function SecurityOrgChart() {
           {/* View toggle */}
           <div className="flex rounded-md border border-gray-200 overflow-hidden">
             <button onClick={() => setViewMode("tree")} className={`flex items-center gap-1 px-2.5 py-1 text-xs ${viewMode === "tree" ? "bg-gray-100 font-medium" : "text-gray-500 hover:bg-gray-50"}`}>
-              <List className="h-3.5 w-3.5" /> 트리
+              <List className="h-3.5 w-3.5" /> {t.org.treeView}
             </button>
             <button onClick={() => setViewMode("flow")} className={`flex items-center gap-1 px-2.5 py-1 text-xs border-l border-gray-200 ${viewMode === "flow" ? "bg-gray-100 font-medium" : "text-gray-500 hover:bg-gray-50"}`}>
-              <GitBranch className="h-3.5 w-3.5" /> 시각화
+              <GitBranch className="h-3.5 w-3.5" /> {t.org.visualization}
             </button>
           </div>
         </div>

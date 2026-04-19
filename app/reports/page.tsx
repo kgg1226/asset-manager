@@ -135,7 +135,7 @@ function FieldPickerModal({
 
           {/* Sheets */}
           <div>
-            <p className="text-xs font-medium uppercase text-gray-500 mb-2">포함할 시트</p>
+            <p className="text-xs font-medium uppercase text-gray-500 mb-2">{t.report.includeSheets}</p>
             <div className="grid grid-cols-2 gap-2">
               {SHEET_OPTIONS.map((s) => (
                 <label key={s.key} className="flex items-center gap-2 text-sm cursor-pointer">
@@ -154,7 +154,7 @@ function FieldPickerModal({
           {/* Detail Fields */}
           {sheets.has("Detail") && (
             <div>
-              <p className="text-xs font-medium uppercase text-gray-500 mb-2">Detail 시트 컬럼</p>
+              <p className="text-xs font-medium uppercase text-gray-500 mb-2">{t.report.detailSheetColumns}</p>
               <div className="grid grid-cols-2 gap-2">
                 {DETAIL_FIELDS.map((f) => (
                   <label key={f.key} className="flex items-center gap-2 text-sm cursor-pointer">
@@ -188,7 +188,7 @@ function FieldPickerModal({
                 className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-200 disabled:opacity-50"
               >
                 <Save className="h-3.5 w-3.5" />
-                저장
+                {t.common.save}
               </button>
             </div>
           </div>
@@ -196,7 +196,7 @@ function FieldPickerModal({
 
         <div className="border-t border-gray-200 px-5 py-4 flex justify-end gap-2">
           <button onClick={onClose} className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">
-            취소
+            {t.common.cancel}
           </button>
           <a
             href={buildUrl()}
@@ -204,7 +204,7 @@ function FieldPickerModal({
             className="inline-flex items-center gap-1.5 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
           >
             <FileSpreadsheet className="h-4 w-4" />
-            Excel 다운로드
+            {t.report.excelDownload}
           </a>
         </div>
       </div>
@@ -317,10 +317,10 @@ export default function ReportsPage() {
           <a
             href="/api/reports/asset-register"
             className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100"
-            title="ISMS 정보자산관리대장 엑셀 내보내기"
+            title={t.report.assetRegisterTooltip}
           >
             <Download className="h-4 w-4" />
-            정보자산관리대장
+            {t.report.assetRegisterTitle}
           </a>
         </div>
 
@@ -501,9 +501,9 @@ export default function ReportsPage() {
             <div className="mb-4 flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-base font-semibold text-gray-900">
                 <Archive className="h-4 w-4 text-purple-500" />
-                증적 이력 ({yearMonth})
+                {t.report.evidenceHistory} ({yearMonth})
               </h2>
-              <a href="/admin/archives" className="text-xs text-purple-600 hover:underline">전체 보기 →</a>
+              <a href="/admin/archives" className="text-xs text-purple-600 hover:underline">{t.report.viewAll}</a>
             </div>
             <div className="space-y-2">
               {archives.map((a) => (
@@ -517,7 +517,7 @@ export default function ReportsPage() {
                   )}
                   <span className="font-medium text-gray-900">{a.yearMonth}</span>
                   <span className="text-gray-400">·</span>
-                  <span className="text-gray-600">{a.data.find((d) => d.dataType === "assets")?.recordCount ?? 0}건</span>
+                  <span className="text-gray-600">{a.data.find((d) => d.dataType === "assets")?.recordCount ?? 0}{t.report.countSuffix}</span>
                   <span className="text-gray-400">·</span>
                   <span className="text-gray-500">{a.trigger === "manual" ? t.common.manual : t.common.auto}</span>
                   <span className="ml-auto text-xs text-gray-400">
@@ -545,6 +545,7 @@ export default function ReportsPage() {
 }
 
 function SummaryCard({ label, value, highlight, prevValue }: { label: string; value: string; highlight?: boolean; prevValue?: number }) {
+  const { t } = useTranslation();
   let changeLine: React.ReactNode = null;
   if (prevValue !== undefined) {
     const curr = parseFloat(value.replace(/[₩,]/g, "")) || 0;
@@ -555,11 +556,11 @@ function SummaryCard({ label, value, highlight, prevValue }: { label: string; va
       changeLine = (
         <p className={`mt-1 text-xs font-medium ${up ? "text-red-500" : "text-green-600"}`}>
           {up ? "▲" : "▼"} ₩{Math.abs(diff).toLocaleString()}{pct ? ` (${up ? "+" : ""}${pct}%)` : ""}
-          <span className="ml-1 text-gray-400 font-normal">전월 대비</span>
+          <span className="ml-1 text-gray-400 font-normal">{t.report.vsLastMonth}</span>
         </p>
       );
     } else {
-      changeLine = <p className="mt-1 text-xs text-gray-400">전월 동일</p>;
+      changeLine = <p className="mt-1 text-xs text-gray-400">{t.report.sameAsLastMonth}</p>;
     }
   }
   return (

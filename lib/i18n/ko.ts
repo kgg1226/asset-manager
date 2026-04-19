@@ -67,6 +67,7 @@ export const ko: TranslationDict = {
     navigate: "이동",
     returned: "반납",
     csvErrorHeader: "행,필드,오류내용",
+    countSuffix: "건",
   },
 
   nav: {
@@ -565,6 +566,12 @@ export const ko: TranslationDict = {
     persons: "명",
     days: "일",
     millionWon: "백만원",
+    pngExport: "PNG 내보내기",
+    unitCountSuffix: "개 부서",
+    memberCountSuffix: "명",
+    unassigned: "미배정",
+    treeView: "트리",
+    visualization: "시각화",
   },
 
   report: {
@@ -588,6 +595,16 @@ export const ko: TranslationDict = {
     savedPresets: "저장된 프리셋",
     selectFields: "내보낼 필드 선택",
     presetNamePlaceholder: "프리셋 이름",
+    includeSheets: "포함할 시트",
+    detailSheetColumns: "Detail 시트 컬럼",
+    excelDownload: "Excel 다운로드",
+    assetRegisterTitle: "정보자산관리대장",
+    assetRegisterTooltip: "ISMS 정보자산관리대장 엑셀 내보내기",
+    evidenceHistory: "증적 이력",
+    viewAll: "전체 보기 →",
+    countSuffix: "건",
+    vsLastMonth: "전월 대비",
+    sameAsLastMonth: "전월 동일",
   },
 
   history: {
@@ -949,6 +966,7 @@ export const ko: TranslationDict = {
     titleRequired: "직책명은 필수입니다.",
     dataRequired: "데이터를 입력해주세요.",
     bulkImportFail: "대량 등록 실패",
+    assetCategoryDesc: "증적 내보내기 시 데이터를 분류할 카테고리를 관리합니다",
   },
 
   toast: {

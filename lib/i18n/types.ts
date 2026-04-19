@@ -68,6 +68,7 @@ export type TranslationDict = {
     navigate: string;
     returned: string;
     csvErrorHeader: string;
+    countSuffix: string;
   };
 
   // Navigation / Sidebar
@@ -581,6 +582,12 @@ export type TranslationDict = {
     persons: string;
     days: string;
     millionWon: string;
+    pngExport: string;
+    unitCountSuffix: string;
+    memberCountSuffix: string;
+    unassigned: string;
+    treeView: string;
+    visualization: string;
   };
 
   // Reports
@@ -605,6 +612,16 @@ export type TranslationDict = {
     savedPresets: string;
     selectFields: string;
     presetNamePlaceholder: string;
+    includeSheets: string;
+    detailSheetColumns: string;
+    excelDownload: string;
+    assetRegisterTitle: string;
+    assetRegisterTooltip: string;
+    evidenceHistory: string;
+    viewAll: string;
+    countSuffix: string;
+    vsLastMonth: string;
+    sameAsLastMonth: string;
   };
 
   // History / Audit
@@ -977,6 +994,7 @@ export type TranslationDict = {
     titleRequired: string;
     dataRequired: string;
     bulkImportFail: string;
+    assetCategoryDesc: string;
   };
 
   // Toast messages

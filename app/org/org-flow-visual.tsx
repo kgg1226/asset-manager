@@ -30,6 +30,7 @@ type Company = { id: number; name: string; orgs: OrgUnit[] };
 // ── Node Types ─────────────────────────────────────────────────────────
 
 function CompanyNode({ data }: { data: { label: string; unitCount: number; memberCount: number } }) {
+  const { t } = useTranslation();
   return (
     <div className="rounded-xl border-2 border-blue-600 bg-blue-50 px-5 py-3 shadow-md min-w-[160px] text-center">
       <Handle type="source" position={Position.Bottom} className="!bg-blue-600" />
@@ -37,12 +38,13 @@ function CompanyNode({ data }: { data: { label: string; unitCount: number; membe
         <Building2 className="h-4 w-4 text-blue-600" />
         <span className="font-bold text-blue-800 text-sm">{data.label}</span>
       </div>
-      <span className="text-xs text-blue-500">{data.unitCount}개 부서 · {data.memberCount}명</span>
+      <span className="text-xs text-blue-500">{data.unitCount} {t.org.unitCountSuffix} · {data.memberCount} {t.org.memberCountSuffix}</span>
     </div>
   );
 }
 
 function UnitNode({ data }: { data: { label: string; memberCount: number } }) {
+  const { t } = useTranslation();
   return (
     <div className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 shadow-sm min-w-[130px] text-center hover:border-blue-400 transition-colors">
       <Handle type="target" position={Position.Top} className="!bg-gray-400" />
@@ -50,7 +52,7 @@ function UnitNode({ data }: { data: { label: string; memberCount: number } }) {
       <div className="font-medium text-gray-800 text-sm mb-0.5">{data.label}</div>
       <div className="flex items-center justify-center gap-1 text-xs text-gray-400">
         <Users className="h-3 w-3" />
-        {data.memberCount}명
+        {data.memberCount} {t.org.memberCountSuffix}
       </div>
     </div>
   );
@@ -165,7 +167,7 @@ function OrgFlowCanvas({ companies }: { companies: Company[] }) {
         className="absolute top-3 right-3 z-10 flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-xs font-medium text-gray-600 shadow border border-gray-200 hover:bg-gray-50"
       >
         <Download className="h-3.5 w-3.5" />
-        {"PNG 내보내기"}
+        {t.org.pngExport}
       </button>
     </div>
   );
