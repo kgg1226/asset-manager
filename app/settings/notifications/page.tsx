@@ -973,10 +973,10 @@ export default function NotificationSettingsPage() {
                             onClick={() => handleResend(log.id)}
                             disabled={resendingId === log.id}
                             className="flex items-center gap-1 rounded px-2 py-1 text-xs text-orange-600 hover:bg-orange-50 disabled:opacity-40"
-                            title="재발송"
+                            title={t.notification.resend}
                           >
                             <RefreshCw className={`h-3 w-3 ${resendingId === log.id ? "animate-spin" : ""}`} />
-                            재발송
+                            {t.notification.resend}
                           </button>
                         )}
                       </td>

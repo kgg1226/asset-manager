@@ -338,7 +338,7 @@ export default function HardwareListPage() {
               <button
                 onClick={() => setShowShortcutHint((v) => !v)}
                 className="flex items-center gap-1 rounded-md border border-gray-300 px-2 py-2 text-sm text-gray-500 hover:bg-gray-50"
-                title="키보드 단축키 (? 키)"
+                title={t.hw.keyboardShortcuts}
               >
                 <Keyboard className="h-4 w-4" />
               </button>
