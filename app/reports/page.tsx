@@ -495,10 +495,13 @@ export default function ReportsPage() {
         {/* 증적 이력 */}
         {archives.length > 0 && (
           <div className="mt-6 rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
-            <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-gray-900">
-              <Archive className="h-4 w-4 text-purple-500" />
-              증적 이력 ({yearMonth})
-            </h2>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-base font-semibold text-gray-900">
+                <Archive className="h-4 w-4 text-purple-500" />
+                증적 이력 ({yearMonth})
+              </h2>
+              <a href="/admin/archives" className="text-xs text-purple-600 hover:underline">전체 보기 →</a>
+            </div>
             <div className="space-y-2">
               {archives.map((a) => (
                 <div key={a.id} className="flex items-center gap-3 rounded-md border border-gray-100 px-4 py-2.5 text-sm">
