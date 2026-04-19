@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
 import CiaScoreInput from "@/app/_components/cia-score-input";
 import type { CiaLevel } from "@/lib/cia";
+import LifecycleGauge from "@/app/_components/lifecycle-gauge";
 
 const CURRENCIES = ["USD", "KRW", "EUR", "JPY", "GBP", "CNY"];
 const BILLING_CYCLE_VALUES = ["MONTHLY", "ANNUAL", "ONE_TIME"] as const;
@@ -68,6 +69,20 @@ export default function ContractNewPage() {
       })
       .catch(() => {});
   }, []);
+
+  // Auto-calculate expiryDate from purchaseDate + billingCycle when expiryDate is empty
+  useEffect(() => {
+    if (!form.purchaseDate || form.expiryDate) return;
+    const d = new Date(form.purchaseDate);
+    if (isNaN(d.getTime())) return;
+    if (form.billingCycle === "ANNUAL") {
+      d.setFullYear(d.getFullYear() + 1);
+      setForm((p) => ({ ...p, expiryDate: d.toISOString().slice(0, 10) }));
+    } else if (form.billingCycle === "MONTHLY") {
+      d.setMonth(d.getMonth() + 1);
+      setForm((p) => ({ ...p, expiryDate: d.toISOString().slice(0, 10) }));
+    }
+  }, [form.purchaseDate, form.billingCycle]);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -178,6 +193,11 @@ export default function ContractNewPage() {
                 <input type="date" name="expiryDate" value={form.expiryDate} onChange={onChange} className={inputCls} />
               </div>
             </div>
+            {form.purchaseDate && form.expiryDate && (
+              <div className="mb-6">
+                <LifecycleGauge startDate={form.purchaseDate} endDate={form.expiryDate} size="sm" showLabel showDates />
+              </div>
+            )}
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">{t.license.managingOrg}</label>
               <select value={selectedOrgUnitId} onChange={(e) => setSelectedOrgUnitId(e.target.value)} className={inputCls}>
