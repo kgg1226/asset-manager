@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 
-// GET /api/search?q=keyword&limit=10&types=licenses,assets,employees
-// 통합 검색 (라이선스 + 자산 + 조직원, 인증 필수)
+// GET /api/search?q=keyword&limit=10&types=licenses,assets,employees,orgs
+// 통합 검색 (라이선스 + 자산 + 조직원 + 조직, 인증 필수)
 // types 파라미터로 검색 범위 지정 가능 (미지정 시 전체)
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
@@ -17,10 +17,10 @@ export async function GET(request: NextRequest) {
     const typesParam = request.nextUrl.searchParams.get("types");
     const requestedTypes = typesParam
       ? new Set(typesParam.split(",").map((t) => t.trim()))
-      : new Set(["licenses", "assets", "employees"]);
+      : new Set(["licenses", "assets", "employees", "orgs"]);
 
     if (!q || q.length < 1) {
-      return NextResponse.json({ licenses: [], assets: [], employees: [] });
+      return NextResponse.json({ licenses: [], assets: [], employees: [], orgs: [] });
     }
 
     const search = { contains: q, mode: "insensitive" as const };
@@ -101,15 +101,36 @@ export async function GET(request: NextRequest) {
             orderBy: { name: "asc" },
           })
         : Promise.resolve([]),
+
+      orgs: requestedTypes.has("orgs")
+        ? Promise.all([
+            prisma.orgCompany.findMany({
+              where: { name: search },
+              select: { id: true, name: true },
+              take: limit,
+              orderBy: { name: "asc" },
+            }),
+            prisma.orgUnit.findMany({
+              where: { name: search },
+              select: { id: true, name: true, company: { select: { name: true } } },
+              take: limit,
+              orderBy: { name: "asc" },
+            }),
+          ]).then(([companies, units]) => [
+            ...companies.map((c) => ({ id: c.id, name: c.name, kind: "company" as const, sub: null })),
+            ...units.map((u) => ({ id: u.id, name: u.name, kind: "unit" as const, sub: u.company.name })),
+          ])
+        : Promise.resolve([]),
     };
 
-    const [licenses, assets, employees] = await Promise.all([
+    const [licenses, assets, employees, orgs] = await Promise.all([
       queries.licenses,
       queries.assets,
       queries.employees,
+      queries.orgs,
     ]);
 
-    return NextResponse.json({ licenses, assets, employees });
+    return NextResponse.json({ licenses, assets, employees, orgs });
   } catch (error) {
     console.error("Search failed:", error instanceof Error ? error.message : "Unknown error");
     return NextResponse.json({ error: "검색에 실패했습니다." }, { status: 500 });

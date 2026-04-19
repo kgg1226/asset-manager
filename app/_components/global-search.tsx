@@ -2,13 +2,14 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Search, FileText, HardDrive, Users, Cloud, Globe, FileSignature, Package, X, Command } from "lucide-react";
+import { Search, FileText, HardDrive, Users, Cloud, Globe, FileSignature, Package, X, Command, Building2 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 
 interface SearchResult {
   licenses: { id: number; name: string; licenseType: string; expiryDate: string | null; vendor: string | null; renewalStatus: string | null }[];
   assets: { id: number; name: string; type: string; status: string; vendor: string | null; expiryDate: string | null }[];
   employees: { id: number; name: string; department: string | null; email: string | null; status: string }[];
+  orgs: { id: number; name: string; kind: "company" | "unit"; sub: string | null }[];
 }
 
 export default function GlobalSearch() {
@@ -94,7 +95,7 @@ export default function GlobalSearch() {
       if (res.ok) {
         const data: SearchResult = await res.json();
         setResults(data);
-        const hasResults = data.licenses.length > 0 || data.assets.length > 0 || data.employees.length > 0;
+        const hasResults = data.licenses.length > 0 || data.assets.length > 0 || data.employees.length > 0 || (data.orgs?.length ?? 0) > 0;
         setOpen(hasResults || q.length > 0);
       }
     } catch { /* ignore */ }
@@ -134,6 +135,11 @@ export default function GlobalSearch() {
           label: e.name,
           sub: e.department || e.email || "—",
         })),
+        ...(results.orgs ?? []).map((o) => ({
+          path: `/org`,
+          label: o.name,
+          sub: o.sub ?? "",
+        })),
       ]
     : [];
 
@@ -154,7 +160,7 @@ export default function GlobalSearch() {
   };
 
   const totalCount = results
-    ? results.licenses.length + results.assets.length + results.employees.length
+    ? results.licenses.length + results.assets.length + results.employees.length + (results.orgs?.length ?? 0)
     : 0;
 
   const ResultDropdown = ({ isModal }: { isModal: boolean }) => {
@@ -233,6 +239,29 @@ export default function GlobalSearch() {
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-medium text-gray-900">{e.name}</p>
                         <p className="truncate text-xs text-gray-500">{e.department || e.email || "—"}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Orgs */}
+            {(results.orgs?.length ?? 0) > 0 && (
+              <div>
+                <p className="px-4 py-1.5 text-xs font-semibold uppercase text-gray-400">{t.org?.title ?? "조직"}</p>
+                {results.orgs.map((o, idx) => {
+                  const flatIdx = results.licenses.length + results.assets.length + results.employees.length + idx;
+                  return (
+                    <button
+                      key={`o-${o.kind}-${o.id}`}
+                      onClick={() => navigate(`/org`)}
+                      className={`flex w-full items-center gap-3 px-4 py-2 text-left text-sm ${isModal && activeIndex === flatIdx ? "bg-blue-50" : "hover:bg-gray-50"}`}
+                    >
+                      <Building2 className="h-4 w-4 shrink-0 text-orange-500" />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium text-gray-900">{o.name}</p>
+                        <p className="truncate text-xs text-gray-500">{o.sub || (o.kind === "company" ? "회사" : "부서")}</p>
                       </div>
                     </button>
                   );
