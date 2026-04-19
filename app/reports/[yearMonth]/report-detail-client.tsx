@@ -1,9 +1,181 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, FileSpreadsheet, FileText, Search, SlidersHorizontal } from "lucide-react";
+import { ArrowLeft, FileSpreadsheet, FileText, Search, SlidersHorizontal, Download, X, Save, BookMarked } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
+
+const PRESET_STORAGE_KEY = "report_export_presets";
+const ALL_FIELDS = ["name", "type", "status", "vendor", "monthlyCost", "assignee", "expiryDate"] as const;
+type ExportField = typeof ALL_FIELDS[number];
+
+interface ExportPreset { name: string; fields: ExportField[] }
+
+function CustomExportModal({
+  open,
+  onClose,
+  data,
+  yearMonth,
+  typeLabels,
+  statusLabels,
+}: {
+  open: boolean;
+  onClose: () => void;
+  data: ReportData;
+  yearMonth: string;
+  typeLabels: Record<string, string>;
+  statusLabels: Record<string, string>;
+}) {
+  const { t } = useTranslation();
+  const [selected, setSelected] = useState<ExportField[]>([...ALL_FIELDS]);
+  const [presets, setPresets] = useState<ExportPreset[]>([]);
+  const [presetName, setPresetName] = useState("");
+
+  const FIELD_LABELS: Record<ExportField, string> = {
+    name: t.asset.assetName,
+    type: t.common.type,
+    status: t.common.status,
+    vendor: t.license.vendor,
+    monthlyCost: t.dashboard.monthlyExpenses,
+    assignee: t.asset.assignee,
+    expiryDate: t.asset.expiryDate,
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    try {
+      const raw = localStorage.getItem(PRESET_STORAGE_KEY);
+      if (raw) setPresets(JSON.parse(raw));
+    } catch { /* ignore */ }
+  }, [open]);
+
+  if (!open) return null;
+
+  const toggle = (f: ExportField) =>
+    setSelected((prev) => prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f]);
+
+  const savePreset = () => {
+    if (!presetName.trim() || selected.length === 0) return;
+    const next = [...presets.filter((p) => p.name !== presetName.trim()), { name: presetName.trim(), fields: selected }];
+    setPresets(next);
+    localStorage.setItem(PRESET_STORAGE_KEY, JSON.stringify(next));
+    setPresetName("");
+  };
+
+  const deletePreset = (name: string) => {
+    const next = presets.filter((p) => p.name !== name);
+    setPresets(next);
+    localStorage.setItem(PRESET_STORAGE_KEY, JSON.stringify(next));
+  };
+
+  const exportCsv = () => {
+    const header = selected.map((f) => FIELD_LABELS[f]).join(",");
+    const rows = data.assetDetails.map((a) => {
+      return selected.map((f) => {
+        let val = "";
+        if (f === "name") val = a.name;
+        else if (f === "type") val = typeLabels[a.type] ?? a.type;
+        else if (f === "status") val = statusLabels[a.status] ?? a.status;
+        else if (f === "vendor") val = a.vendor ?? "";
+        else if (f === "monthlyCost") val = a.monthlyCost != null ? String(a.monthlyCost) : "";
+        else if (f === "assignee") val = a.assignee?.name ?? a.department ?? "";
+        else if (f === "expiryDate") val = a.expiryDate ? new Date(a.expiryDate).toLocaleDateString() : "";
+        return `"${val.replace(/"/g, '""')}"`;
+      }).join(",");
+    });
+    const csv = "\uFEFF" + header + "\n" + rows.join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `report_${yearMonth}_custom.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+      <div className="relative mx-4 w-full max-w-md rounded-xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-lg font-bold text-gray-900">
+            <Download className="h-5 w-5 text-blue-500" />
+            {t.report.customExport}
+          </h2>
+          <button onClick={onClose} className="rounded-md p-1 hover:bg-gray-100">
+            <X className="h-5 w-5 text-gray-400" />
+          </button>
+        </div>
+
+        {/* Presets */}
+        {presets.length > 0 && (
+          <div className="mb-4">
+            <p className="mb-1.5 text-xs font-medium text-gray-500">{t.report.savedPresets}</p>
+            <div className="flex flex-wrap gap-1.5">
+              {presets.map((p) => (
+                <span key={p.name} className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
+                  <button type="button" onClick={() => setSelected(p.fields)} className="hover:underline">{p.name}</button>
+                  <button type="button" onClick={() => deletePreset(p.name)} className="ml-0.5 text-blue-400 hover:text-red-500">×</button>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Field checkboxes */}
+        <p className="mb-2 text-xs font-medium text-gray-500">{t.report.selectFields}</p>
+        <div className="mb-4 grid grid-cols-2 gap-2">
+          {ALL_FIELDS.map((f) => (
+            <label key={f} className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm transition ${selected.includes(f) ? "border-blue-400 bg-blue-50 text-blue-700" : "border-gray-200 text-gray-600 hover:bg-gray-50"}`}>
+              <input type="checkbox" checked={selected.includes(f)} onChange={() => toggle(f)} className="sr-only" />
+              <span className={`h-4 w-4 rounded border flex items-center justify-center ${selected.includes(f) ? "border-blue-500 bg-blue-500" : "border-gray-300"}`}>
+                {selected.includes(f) && <span className="text-white text-xs">✓</span>}
+              </span>
+              {FIELD_LABELS[f]}
+            </label>
+          ))}
+        </div>
+
+        {/* Save preset */}
+        <div className="mb-4 flex gap-2">
+          <input
+            type="text"
+            value={presetName}
+            onChange={(e) => setPresetName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && savePreset()}
+            placeholder={t.report.presetNamePlaceholder}
+            className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
+          />
+          <button
+            type="button"
+            onClick={savePreset}
+            disabled={!presetName.trim() || selected.length === 0}
+            className="flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+          >
+            <Save className="h-3.5 w-3.5" />
+            {t.common.save}
+          </button>
+        </div>
+
+        <div className="flex justify-end gap-2">
+          <button onClick={onClose} className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+            {t.common.cancel}
+          </button>
+          <button
+            onClick={exportCsv}
+            disabled={selected.length === 0}
+            className="flex items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-40"
+          >
+            <Download className="h-4 w-4" />
+            CSV {t.common.export}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 type ReportData = {
   period: string;
@@ -37,6 +209,7 @@ export default function ReportDetailClient({
   const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
+  const [showCustomExport, setShowCustomExport] = useState(false);
 
   const TYPE_LABELS: Record<string, string> = {
     SOFTWARE: t.nav.licenses,
@@ -93,6 +266,14 @@ export default function ReportDetailClient({
             <span className="text-sm text-gray-400">{data.startDate} ~ {data.endDate}</span>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowCustomExport(true)}
+              className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <BookMarked className="h-4 w-4" />
+              {t.report.customExport}
+            </button>
             <a
               href={`/api/reports/monthly/${yearMonth}/excel`}
               className="inline-flex items-center gap-1.5 rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700"
@@ -230,6 +411,17 @@ export default function ReportDetailClient({
           </div>
         </div>
       </div>
+
+      {showCustomExport && (
+        <CustomExportModal
+          open={showCustomExport}
+          onClose={() => setShowCustomExport(false)}
+          data={data}
+          yearMonth={yearMonth}
+          typeLabels={TYPE_LABELS}
+          statusLabels={STATUS_LABELS}
+        />
+      )}
     </div>
   );
 }

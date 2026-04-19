@@ -546,6 +546,10 @@ export const en: TranslationDict = {
     costByDept: "Cost by Department",
     monthlyCost: "Monthly Cost",
     emailPlaceholder: "Email addresses (comma separated)",
+    customExport: "Custom Export",
+    savedPresets: "Saved Presets",
+    selectFields: "Select Fields to Export",
+    presetNamePlaceholder: "Preset name",
   },
 
   history: {

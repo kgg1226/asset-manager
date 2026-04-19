@@ -546,6 +546,10 @@ export const vi: TranslationDict = {
     costByDept: "Chi phí theo phòng ban",
     monthlyCost: "Chi phí hàng tháng",
     emailPlaceholder: "Địa chỉ email (phân cách bằng dấu phẩy)",
+    customExport: "Xuất tùy chỉnh",
+    savedPresets: "Bộ lọc đã lưu",
+    selectFields: "Chọn trường để xuất",
+    presetNamePlaceholder: "Tên bộ lọc",
   },
 
   history: {

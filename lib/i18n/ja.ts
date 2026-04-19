@@ -546,6 +546,10 @@ export const ja: TranslationDict = {
     costByDept: "部門別コスト",
     monthlyCost: "月間コスト",
     emailPlaceholder: "メールアドレス（カンマ区切り）",
+    customExport: "カスタムエクスポート",
+    savedPresets: "保存済みプリセット",
+    selectFields: "エクスポートするフィールドを選択",
+    presetNamePlaceholder: "プリセット名",
   },
 
   history: {

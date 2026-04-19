@@ -547,6 +547,10 @@ export const ko: TranslationDict = {
     costByDept: "부서별 비용",
     monthlyCost: "월간 비용",
     emailPlaceholder: "이메일 주소 (쉼표로 구분)",
+    customExport: "맞춤 내보내기",
+    savedPresets: "저장된 프리셋",
+    selectFields: "내보낼 필드 선택",
+    presetNamePlaceholder: "프리셋 이름",
   },
 
   history: {

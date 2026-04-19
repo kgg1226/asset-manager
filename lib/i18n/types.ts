@@ -564,6 +564,10 @@ export type TranslationDict = {
     costByDept: string;
     monthlyCost: string;
     emailPlaceholder: string;
+    customExport: string;
+    savedPresets: string;
+    selectFields: string;
+    presetNamePlaceholder: string;
   };
 
   // History / Audit

@@ -546,6 +546,10 @@ export const zhTW: TranslationDict = {
     costByDept: "依部門成本",
     monthlyCost: "每月成本",
     emailPlaceholder: "電子郵件地址（逗號分隔）",
+    customExport: "自訂匯出",
+    savedPresets: "已儲存的預設",
+    selectFields: "選擇要匯出的欄位",
+    presetNamePlaceholder: "預設名稱",
   },
 
   history: {
