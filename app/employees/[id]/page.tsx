@@ -106,11 +106,10 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
 
   const history: HistoryEntry[] = assignmentHistory.map((h) => {
     const licenseName = h.assignment?.license?.name ?? `License #${h.licenseId}`;
-    const actionLabel = h.action === "ASSIGNED" ? "할당" : h.action === "RETURNED" ? "반납" : "해제";
     return {
       id: `ah-${h.id}`,
       action: h.action,
-      description: `${licenseName} — ${actionLabel}${h.reason ? ` (${h.reason})` : ""}`,
+      description: `${licenseName}${h.reason ? ` (${h.reason})` : ""}`,
       createdAt: h.createdAt.toLocaleDateString(),
     };
   });
