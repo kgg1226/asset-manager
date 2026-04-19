@@ -120,7 +120,10 @@ export default function AssetCategoriesPage() {
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <FolderOpen className="h-6 w-6 text-purple-600" />
-            <h1 className="text-2xl font-bold text-gray-900">{t.header.assetCategory}</h1>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">{t.header.assetCategory}</h1>
+              <p className="mt-0.5 text-sm text-gray-500">증적 내보내기 시 데이터를 분류할 카테고리를 관리합니다</p>
+            </div>
           </div>
           {!showForm && (
             <button
