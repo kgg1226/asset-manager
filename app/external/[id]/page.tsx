@@ -213,7 +213,7 @@ export default function ExternalEntityDetailPage({ params }: { params: Promise<{
                       </td>
                       <td className="px-4 py-2 text-gray-600">{link.type}</td>
                       <td className="px-4 py-2 text-gray-600">
-                        {link.direction === "outgoing" ? "→ 대상" : "← 소스"}
+                        {link.direction === "outgoing" ? t.externalEntity.linkTarget : t.externalEntity.linkSource}
                       </td>
                       <td className="px-4 py-2 text-gray-600">{link.label || "-"}</td>
                     </tr>

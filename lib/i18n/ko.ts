@@ -74,6 +74,19 @@ export const ko: TranslationDict = {
     startDate: "시작일",
     endDate: "종료일",
     examplePrefix: "예: ",
+    selectNone: "— 선택 안 함 —",
+    collapse: "▲ 접기",
+    expand: "▼ 펼치기",
+    moreItems: "건 더",
+    done: "완료",
+    errorsSuffix: "건 오류",
+    restProcessed: "(나머지는 처리됨)",
+    errorReportDownload: "오류 보고서 다운로드",
+    pageSuffix: "페이지",
+    searchTypeHint: "검색어를 입력하세요",
+    searchKeyboardHint: "↑↓ 탐색 · Enter 이동 · Esc 닫기",
+    dateReset: "날짜 초기화",
+    itemCountSuffix: "개",
   },
 
   nav: {
@@ -215,6 +228,9 @@ export const ko: TranslationDict = {
     bulkKeyAddTitle: "시트 키 일괄 추가",
     bulkKeyAddHint: "한 줄에 하나씩 입력 (최대 500개)",
     statusChangeCol: "상태 변경",
+    renewalBanner: "갱신 조치 필요 라이선스 {N}개 (60일 이내 만료)",
+    bulkKeyError: "오류:",
+    bulkKeySuccess: "개 추가 완료",
   },
 
   employee: {
@@ -410,6 +426,13 @@ export const ko: TranslationDict = {
     printLabel: "인쇄",
     loadingAssets: "불러오는 중...",
     noAssetsForPrint: "출력할 자산이 없습니다. URL에 ?ids=1,2,3 를 추가하세요.",
+    warrantyExpiryBanner: "30일 이내 보증 만료 하드웨어",
+    bulkTagSuccess: "개 태그 수정 완료",
+    bulkStatusSuccess: "개 상태 변경 완료",
+    bulkDeleteConfirm: "개 자산을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+    bulkDeleteSuccess: "개 삭제 완료",
+    bulkDeleteNotFound: "개 미발견",
+    shortcutKeySuffix: " (/ 단축키)",
   },
 
   cloud: {
@@ -493,6 +516,7 @@ export const ko: TranslationDict = {
     years10: "10년",
     monthlyCost: "월 환산 비용",
     perMonth: "월",
+    expiryBanner: "30일 이내 만료 도메인/SSL",
   },
 
   contract: {
@@ -510,6 +534,8 @@ export const ko: TranslationDict = {
     typeService: "용역",
     typeLease: "임대",
     typeOther: "기타",
+    expiryBanner: "30일 이내 만료 계약",
+    moreExpiring: "건 더",
   },
 
   org: {
@@ -1456,5 +1482,7 @@ export const ko: TranslationDict = {
     connectedAssets: "연결된 자산",
     noEntities: "등록된 외부 조직이 없습니다",
     deleteConfirm: "이 외부 조직을 삭제하시겠습니까?",
+    linkTarget: "→ 대상",
+    linkSource: "← 소스",
   },
 };

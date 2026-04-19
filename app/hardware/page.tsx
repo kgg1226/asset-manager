@@ -145,7 +145,7 @@ export default function HardwareListPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        toast.success(`${data.updated}개 태그 수정 완료`);
+        toast.success(`${data.updated}${t.hw.bulkTagSuccess}`);
         setShowBulkTagModal(false);
         setSelectedIds(new Set());
         await loadAssets();
@@ -169,7 +169,7 @@ export default function HardwareListPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        toast.success(`${data.updated}개 상태 변경 완료`);
+        toast.success(`${data.updated}${t.hw.bulkStatusSuccess}`);
         setShowBulkStatusModal(false);
         setSelectedIds(new Set());
         await loadAssets();
@@ -185,7 +185,7 @@ export default function HardwareListPage() {
 
   const handleBulkDelete = async () => {
     if (selectedIds.size === 0) return;
-    if (!confirm(`${selectedIds.size}개 자산을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) return;
+    if (!confirm(`${selectedIds.size}${t.hw.bulkDeleteConfirm}`)) return;
     setBulkDeleting(true);
     try {
       const res = await fetch("/api/assets/bulk-delete", {
@@ -195,7 +195,7 @@ export default function HardwareListPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        toast.success(`${data.deleted}개 삭제 완료${data.notFound > 0 ? ` (${data.notFound}개 미발견)` : ""}`);
+        toast.success(`${data.deleted}${t.hw.bulkDeleteSuccess}${data.notFound > 0 ? ` (${data.notFound}${t.hw.bulkDeleteNotFound})` : ""}`);
       } else {
         const err = await res.json().catch(() => ({ error: t.toast.deleteFail }));
         toast.error(err.error || t.toast.deleteFail);
@@ -357,7 +357,7 @@ export default function HardwareListPage() {
               <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             </button>
             {isAdmin && (
-              <a href="/api/export/all?type=HARDWARE&format=xlsx" className="flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-600 hover:bg-gray-50" title="Excel 내보내기">
+              <a href="/api/export/all?type=HARDWARE&format=xlsx" className="flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-600 hover:bg-gray-50" title={t.common.excelExport}>
                 <FileDown className="h-4 w-4" />
                 Excel
               </a>
@@ -372,7 +372,7 @@ export default function HardwareListPage() {
 
         <div className="mb-6 rounded-lg bg-white p-4 shadow-sm">
           <div className="mb-4" data-tour="hw-search">
-            <input ref={searchInputRef} type="text" placeholder={`${t.asset.assetName} ${t.common.search}... (/ 단축키)`} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
+            <input ref={searchInputRef} type="text" placeholder={`${t.asset.assetName} ${t.common.search}...${t.hw.shortcutKeySuffix}`} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
           </div>
           <div className="flex flex-wrap gap-2" data-tour="hw-status-filter">
             <button onClick={() => setSelectedStatus("")} className={`rounded-full px-3 py-1 text-sm ${selectedStatus === "" ? "bg-blue-600 text-white" : "bg-gray-100"}`}>{t.common.all} {t.common.status}</button>
@@ -560,7 +560,7 @@ export default function HardwareListPage() {
             <div className="mb-4 flex items-start gap-3 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-orange-500" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-orange-800">30일 이내 보증 만료 하드웨어 {expiring.length}건</p>
+                <p className="text-sm font-medium text-orange-800">{t.hw.warrantyExpiryBanner} {expiring.length}{t.common.countSuffix}</p>
                 <div className="mt-1 flex flex-wrap gap-2">
                   {expiring.map((a) => {
                     const daysLeft = Math.ceil((new Date(a.expiryDate!).getTime() - now.getTime()) / 86400000);

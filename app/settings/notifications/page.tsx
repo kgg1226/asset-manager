@@ -917,7 +917,7 @@ export default function NotificationSettingsPage() {
                 onClick={() => setLogFilter((p) => ({ ...p, from: "", to: "" }))}
                 className="text-xs text-gray-400 hover:text-gray-600"
               >
-                날짜 초기화
+                {t.common.dateReset}
               </button>
             )}
           </div>
@@ -991,7 +991,7 @@ export default function NotificationSettingsPage() {
           {logTotalPages > 1 && (
             <div className="flex items-center justify-between border-t px-4 py-3">
               <span className="text-xs text-gray-500">
-                {logPage} / {logTotalPages} 페이지
+                {logPage} / {logTotalPages} {t.common.pageSuffix}
               </span>
               <div className="flex items-center gap-1">
                 <button

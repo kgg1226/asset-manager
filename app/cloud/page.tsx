@@ -148,7 +148,7 @@ export default function CloudListPage() {
               <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             </button>
             {isAdmin && (
-              <a href="/api/export/all?type=CLOUD&format=xlsx" className="flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-600 hover:bg-gray-50" title="Excel 내보내기">
+              <a href="/api/export/all?type=CLOUD&format=xlsx" className="flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-600 hover:bg-gray-50" title={t.common.excelExport}>
                 <FileDown className="h-4 w-4" />Excel
               </a>
             )}

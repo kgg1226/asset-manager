@@ -74,6 +74,19 @@ export const en: TranslationDict = {
     startDate: "Start Date",
     endDate: "End Date",
     examplePrefix: "e.g. ",
+    selectNone: "— None —",
+    collapse: "▲ Collapse",
+    expand: "▼ Expand",
+    moreItems: " more",
+    done: "done",
+    errorsSuffix: " errors",
+    restProcessed: "(others processed)",
+    errorReportDownload: "Download Error Report",
+    pageSuffix: "page",
+    searchTypeHint: "Type to search",
+    searchKeyboardHint: "↑↓ navigate · Enter select · Esc close",
+    dateReset: "Reset Dates",
+    itemCountSuffix: "",
   },
 
   nav: {
@@ -215,6 +228,9 @@ export const en: TranslationDict = {
     statusChangeCol: "Status Change",
     bulkKeyAddTitle: "Bulk Add Seat Keys",
     bulkKeyAddHint: "One per line (max 500)",
+    renewalBanner: "Licenses requiring renewal ({N} expiring within 60 days)",
+    bulkKeyError: "Error:",
+    bulkKeySuccess: " keys added",
   },
 
   employee: {
@@ -410,6 +426,13 @@ export const en: TranslationDict = {
     printLabel: "Print",
     loadingAssets: "Loading...",
     noAssetsForPrint: "No assets to print. Add ?ids=1,2,3 to the URL.",
+    warrantyExpiryBanner: "Hardware with warranty expiring within 30 days",
+    bulkTagSuccess: " tags updated",
+    bulkStatusSuccess: " statuses updated",
+    bulkDeleteConfirm: " assets will be deleted. This cannot be undone.",
+    bulkDeleteSuccess: " deleted",
+    bulkDeleteNotFound: " not found",
+    shortcutKeySuffix: " (/ shortcut)",
   },
 
   cloud: {
@@ -493,6 +516,7 @@ export const en: TranslationDict = {
     years10: "10 Years",
     monthlyCost: "Monthly Cost",
     perMonth: "mo",
+    expiryBanner: "Domains/SSL expiring within 30 days",
   },
 
   contract: {
@@ -510,6 +534,8 @@ export const en: TranslationDict = {
     typeService: "Service",
     typeLease: "Lease",
     typeOther: "Other",
+    expiryBanner: "Contracts expiring within 30 days",
+    moreExpiring: " more",
   },
 
   org: {
@@ -1446,5 +1472,7 @@ export const en: TranslationDict = {
     connectedAssets: "Connected Assets",
     noEntities: "No external entities found",
     deleteConfirm: "Delete this external entity?",
+    linkTarget: "→ Target",
+    linkSource: "← Source",
   },
 };

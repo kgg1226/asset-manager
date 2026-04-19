@@ -509,7 +509,7 @@ export default function LicenseDetailContent({
               />
               {bulkKeyResult && (
                 <p className={`mt-2 text-sm ${bulkKeyResult.error ? "text-red-600" : "text-green-700"}`}>
-                  {bulkKeyResult.error ? `오류: ${bulkKeyResult.error}` : `${bulkKeyResult.created}개 추가 완료`}
+                  {bulkKeyResult.error ? `${t.license.bulkKeyError} ${bulkKeyResult.error}` : `${bulkKeyResult.created}${t.license.bulkKeySuccess}`}
                 </p>
               )}
               <div className="mt-4 flex justify-end gap-2">
@@ -547,7 +547,7 @@ export default function LicenseDetailContent({
                   className="flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
                 >
                   <Upload className="h-3.5 w-3.5" />
-                  시트 키 일괄 추가
+                  {t.license.bulkKeyAddTitle}
                 </button>
               )}
             </div>

@@ -303,7 +303,7 @@ export default function EditLicenseForm({
 
             <Field label={t.license.managingOrg}>
               <select name="orgUnitId" defaultValue={license.orgUnitId ?? ""} className="input">
-                <option value="">— 선택 안 함 —</option>
+                <option value="">{t.common.selectNone}</option>
                 {orgUnits.map((org) => (
                   <option key={org.id} value={org.id}>
                     [{org.companyName}] {org.name}

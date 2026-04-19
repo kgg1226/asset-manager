@@ -176,9 +176,9 @@ export default function LicensesContent({
             >
               <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
               <span className="text-sm font-medium text-amber-800">
-                갱신 조치 필요 라이선스 {renewalQueue.length}개 (60일 이내 만료)
+                {t.license.renewalBanner.replace("{N}", String(renewalQueue.length))}
               </span>
-              <span className="ml-auto text-xs text-amber-600">{showRenewalQueue ? "▲ 접기" : "▼ 펼치기"}</span>
+              <span className="ml-auto text-xs text-amber-600">{showRenewalQueue ? t.common.collapse : t.common.expand}</span>
             </button>
             {showRenewalQueue && (
               <div className="border-t border-amber-200 px-4 pb-3">

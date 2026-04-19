@@ -248,7 +248,7 @@ export default function NewLicensePage() {
 
             <Field label={t.license.managingOrg} error={state.errors?.orgUnitId}>
               <select name="orgUnitId" className="input" defaultValue="">
-                <option value="">— 선택 안 함 —</option>
+                <option value="">{t.common.selectNone}</option>
                 {orgUnits.map((org) => (
                   <option key={org.id} value={org.id}>
                     [{org.companyName}] {org.name}

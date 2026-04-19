@@ -87,7 +87,7 @@ export default function DomainsListPage() {
               <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             </button>
             {isAdmin && (
-              <a href="/api/export/all?type=DOMAIN_SSL&format=xlsx" className="flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-600 hover:bg-gray-50" title="Excel 내보내기">
+              <a href="/api/export/all?type=DOMAIN_SSL&format=xlsx" className="flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-600 hover:bg-gray-50" title={t.common.excelExport}>
                 <FileDown className="h-4 w-4" />Excel
               </a>
             )}
@@ -121,7 +121,7 @@ export default function DomainsListPage() {
             <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-red-800">30일 이내 만료 도메인/SSL {expiring.length}건</p>
+                <p className="text-sm font-medium text-red-800">{t.domain.expiryBanner} {expiring.length}{t.common.countSuffix}</p>
                 <div className="mt-1 flex flex-wrap gap-2">
                   {expiring.map((a) => {
                     const daysLeft = Math.ceil((new Date(a.expiryDate!).getTime() - now.getTime()) / 86400000);

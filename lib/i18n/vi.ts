@@ -74,6 +74,19 @@ export const vi: TranslationDict = {
     startDate: "Ngày bắt đầu",
     endDate: "Ngày kết thúc",
     examplePrefix: "vd: ",
+    selectNone: "— Không chọn —",
+    collapse: "▲ Thu gọn",
+    expand: "▼ Mở rộng",
+    moreItems: " mục nữa",
+    done: "hoàn thành",
+    errorsSuffix: " lỗi",
+    restProcessed: "(phần còn lại đã xử lý)",
+    errorReportDownload: "Tải báo cáo lỗi",
+    pageSuffix: "trang",
+    searchTypeHint: "Nhập từ khóa tìm kiếm",
+    searchKeyboardHint: "↑↓ điều hướng · Enter chọn · Esc đóng",
+    dateReset: "Đặt lại ngày",
+    itemCountSuffix: " mục",
   },
 
   nav: {
@@ -215,6 +228,9 @@ export const vi: TranslationDict = {
     statusChangeCol: "Thay đổi trạng thái",
     bulkKeyAddTitle: "Thêm khóa ghế hàng loạt",
     bulkKeyAddHint: "Mỗi dòng một khóa (tối đa 500)",
+    renewalBanner: "Giấy phép cần gia hạn (hết hạn trong 60 ngày)",
+    bulkKeyError: "Lỗi:",
+    bulkKeySuccess: " khóa đã thêm",
   },
 
   employee: {
@@ -410,6 +426,13 @@ export const vi: TranslationDict = {
     printLabel: "In",
     loadingAssets: "Đang tải...",
     noAssetsForPrint: "Không có tài sản để in. Thêm ?ids=1,2,3 vào URL.",
+    warrantyExpiryBanner: "Phần cứng hết bảo hành trong 30 ngày",
+    bulkTagSuccess: " thẻ đã cập nhật",
+    bulkStatusSuccess: " trạng thái đã thay đổi",
+    bulkDeleteConfirm: " tài sản sẽ bị xóa. Thao tác này không thể hoàn tác.",
+    bulkDeleteSuccess: " đã xóa",
+    bulkDeleteNotFound: " không tìm thấy",
+    shortcutKeySuffix: " (phím tắt /)",
   },
 
   cloud: {
@@ -493,6 +516,7 @@ export const vi: TranslationDict = {
     years10: "10 Năm",
     monthlyCost: "Chi phí hàng tháng",
     perMonth: "tháng",
+    expiryBanner: "Tên miền/SSL hết hạn trong 30 ngày",
   },
 
   contract: {
@@ -510,6 +534,8 @@ export const vi: TranslationDict = {
     typeService: "Dịch vụ",
     typeLease: "Thuê",
     typeOther: "Khác",
+    expiryBanner: "Hợp đồng hết hạn trong 30 ngày",
+    moreExpiring: " mục nữa",
   },
 
   org: {
@@ -1417,5 +1443,7 @@ export const vi: TranslationDict = {
     connectedAssets: "Tài sản liên kết",
     noEntities: "Không có tổ chức bên ngoài",
     deleteConfirm: "Xóa tổ chức bên ngoài này?",
+    linkTarget: "→ Đích",
+    linkSource: "← Nguồn",
   },
 };

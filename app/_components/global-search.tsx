@@ -356,15 +356,15 @@ export default function GlobalSearch() {
             {flatResults.length > 0 && (
               <div className="flex items-center justify-between border-t border-gray-100 px-4 py-2">
                 <span className="text-xs text-gray-400">
-                  ↑↓ 탐색 · Enter 이동 · Esc 닫기
+                  {t.common.searchKeyboardHint}
                 </span>
-                <span className="text-xs text-gray-400">{totalCount}건</span>
+                <span className="text-xs text-gray-400">{totalCount}{t.common.countSuffix}</span>
               </div>
             )}
 
             {!query && (
               <div className="px-4 py-6 text-center text-sm text-gray-400">
-                검색어를 입력하세요
+                {t.common.searchTypeHint}
               </div>
             )}
           </div>

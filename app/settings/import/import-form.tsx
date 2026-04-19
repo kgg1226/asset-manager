@@ -186,12 +186,12 @@ export default function ImportForm() {
             <div>
               {(result.created > 0 || result.updated > 0) && (
                 <p className="text-sm font-medium text-green-800">
-                  {[result.created > 0 && `${result.created}건 ${t.common.create}`, result.updated > 0 && `${result.updated}건 ${t.common.edit}`].filter(Boolean).join(", ")} 완료
+                  {[result.created > 0 && `${result.created}${t.common.countSuffix} ${t.common.create}`, result.updated > 0 && `${result.updated}${t.common.countSuffix} ${t.common.edit}`].filter(Boolean).join(", ")} {t.common.done}
                 </p>
               )}
               {result.errors.length > 0 && (
                 <p className="text-sm font-medium text-red-700 mt-0.5">
-                  {result.errors.length}건 오류 {result.created > 0 || result.updated > 0 ? "(나머지는 처리됨)" : ""}
+                  {result.errors.length}{t.common.errorsSuffix} {result.created > 0 || result.updated > 0 ? t.common.restProcessed : ""}
                 </p>
               )}
               {result.message && !result.success && result.errors.length === 0 && (
@@ -216,7 +216,7 @@ export default function ImportForm() {
                 }}
                 className="flex shrink-0 items-center gap-1 rounded border border-amber-300 bg-white px-2.5 py-1 text-xs font-medium text-amber-700 hover:bg-amber-50"
               >
-                오류 보고서 다운로드
+                {t.common.errorReportDownload}
               </button>
             )}
           </div>

@@ -74,6 +74,19 @@ export const zhTW: TranslationDict = {
     startDate: "開始日期",
     endDate: "結束日期",
     examplePrefix: "例: ",
+    selectNone: "— 無 —",
+    collapse: "▲ 收起",
+    expand: "▼ 展開",
+    moreItems: "筆以上",
+    done: "完成",
+    errorsSuffix: "筆錯誤",
+    restProcessed: "（其餘已處理）",
+    errorReportDownload: "下載錯誤報告",
+    pageSuffix: "頁",
+    searchTypeHint: "請輸入搜尋詞",
+    searchKeyboardHint: "↑↓ 導覽 · Enter 選擇 · Esc 關閉",
+    dateReset: "重置日期",
+    itemCountSuffix: "個",
   },
 
   nav: {
@@ -215,6 +228,9 @@ export const zhTW: TranslationDict = {
     statusChangeCol: "狀態變更",
     bulkKeyAddTitle: "批次新增座位金鑰",
     bulkKeyAddHint: "每行一個（最多500個）",
+    renewalBanner: "需要續期的授權（60天內到期）",
+    bulkKeyError: "錯誤:",
+    bulkKeySuccess: "個已新增",
   },
 
   employee: {
@@ -410,6 +426,13 @@ export const zhTW: TranslationDict = {
     printLabel: "列印",
     loadingAssets: "載入中...",
     noAssetsForPrint: "沒有可列印的資產。請在URL中添加 ?ids=1,2,3。",
+    warrantyExpiryBanner: "30天內保固到期的硬體",
+    bulkTagSuccess: "個標籤更新完成",
+    bulkStatusSuccess: "個狀態變更完成",
+    bulkDeleteConfirm: "個資產將被刪除，此操作無法復原。",
+    bulkDeleteSuccess: "個已刪除",
+    bulkDeleteNotFound: "個未找到",
+    shortcutKeySuffix: "（/快捷鍵）",
   },
 
   cloud: {
@@ -493,6 +516,7 @@ export const zhTW: TranslationDict = {
     years10: "10年",
     monthlyCost: "月均費用",
     perMonth: "月",
+    expiryBanner: "30天內到期的網域/SSL",
   },
 
   contract: {
@@ -510,6 +534,8 @@ export const zhTW: TranslationDict = {
     typeService: "服務",
     typeLease: "租賃",
     typeOther: "其他",
+    expiryBanner: "30天內到期的合約",
+    moreExpiring: "筆以上",
   },
 
   org: {
@@ -1416,5 +1442,7 @@ export const zhTW: TranslationDict = {
     connectedAssets: "關聯資產",
     noEntities: "暫無外部組織",
     deleteConfirm: "確定刪除該外部組織？",
+    linkTarget: "→ 目標",
+    linkSource: "← 來源",
   },
 };

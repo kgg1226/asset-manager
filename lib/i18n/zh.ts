@@ -74,6 +74,19 @@ export const zh: TranslationDict = {
     startDate: "开始日期",
     endDate: "结束日期",
     examplePrefix: "例: ",
+    selectNone: "— 无 —",
+    collapse: "▲ 收起",
+    expand: "▼ 展开",
+    moreItems: "条以上",
+    done: "完成",
+    errorsSuffix: "条错误",
+    restProcessed: "（其余已处理）",
+    errorReportDownload: "下载错误报告",
+    pageSuffix: "页",
+    searchTypeHint: "请输入搜索词",
+    searchKeyboardHint: "↑↓ 导航 · Enter 选择 · Esc 关闭",
+    dateReset: "重置日期",
+    itemCountSuffix: "个",
   },
 
   nav: {
@@ -215,6 +228,9 @@ export const zh: TranslationDict = {
     statusChangeCol: "状态变更",
     bulkKeyAddTitle: "批量添加座位密钥",
     bulkKeyAddHint: "每行一个（最多500个）",
+    renewalBanner: "需要续期的许可证（60天内到期）",
+    bulkKeyError: "错误:",
+    bulkKeySuccess: "个已添加",
   },
 
   employee: {
@@ -410,6 +426,13 @@ export const zh: TranslationDict = {
     printLabel: "打印",
     loadingAssets: "加载中...",
     noAssetsForPrint: "没有可打印的资产。请在URL中添加 ?ids=1,2,3。",
+    warrantyExpiryBanner: "30天内保修到期的硬件",
+    bulkTagSuccess: "个标签更新完成",
+    bulkStatusSuccess: "个状态更改完成",
+    bulkDeleteConfirm: "个资产将被删除，此操作不可撤销。",
+    bulkDeleteSuccess: "个已删除",
+    bulkDeleteNotFound: "个未找到",
+    shortcutKeySuffix: "（/快捷键）",
   },
 
   cloud: {
@@ -493,6 +516,7 @@ export const zh: TranslationDict = {
     years10: "10年",
     monthlyCost: "月均费用",
     perMonth: "月",
+    expiryBanner: "30天内到期的域名/SSL",
   },
 
   contract: {
@@ -510,6 +534,8 @@ export const zh: TranslationDict = {
     typeService: "服务",
     typeLease: "租赁",
     typeOther: "其他",
+    expiryBanner: "30天内到期的合同",
+    moreExpiring: "条以上",
   },
 
   org: {
@@ -1416,5 +1442,7 @@ export const zh: TranslationDict = {
     connectedAssets: "关联资产",
     noEntities: "暂无外部组织",
     deleteConfirm: "确定删除该外部组织？",
+    linkTarget: "→ 目标",
+    linkSource: "← 来源",
   },
 };

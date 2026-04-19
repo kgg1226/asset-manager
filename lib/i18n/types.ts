@@ -530,6 +530,7 @@ export type TranslationDict = {
     years10: string;
     monthlyCost: string;
     perMonth: string;
+    expiryBanner: string;
   };
 
   // Contract
@@ -548,6 +549,8 @@ export type TranslationDict = {
     typeService: string;
     typeLease: string;
     typeOther: string;
+    expiryBanner: string;
+    moreExpiring: string;
   };
 
   // Org Chart
@@ -1531,5 +1534,7 @@ export type TranslationDict = {
     connectedAssets: string;
     noEntities: string;
     deleteConfirm: string;
+    linkTarget: string;
+    linkSource: string;
   };
 };

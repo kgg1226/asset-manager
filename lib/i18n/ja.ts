@@ -74,6 +74,19 @@ export const ja: TranslationDict = {
     startDate: "開始日",
     endDate: "終了日",
     examplePrefix: "例: ",
+    selectNone: "— なし —",
+    collapse: "▲ 折りたたむ",
+    expand: "▼ 展開",
+    moreItems: "件以上",
+    done: "完了",
+    errorsSuffix: "件のエラー",
+    restProcessed: "(残りは処理済み)",
+    errorReportDownload: "エラーレポートをダウンロード",
+    pageSuffix: "ページ",
+    searchTypeHint: "検索語を入力してください",
+    searchKeyboardHint: "↑↓ 移動 · Enter 選択 · Esc 閉じる",
+    dateReset: "日付をリセット",
+    itemCountSuffix: "件",
   },
 
   nav: {
@@ -215,6 +228,9 @@ export const ja: TranslationDict = {
     statusChangeCol: "状態変更",
     bulkKeyAddTitle: "シートキー一括追加",
     bulkKeyAddHint: "1行に1つ入力（最大500個）",
+    renewalBanner: "更新対応が必要なライセンス（60日以内に期限切れ）",
+    bulkKeyError: "エラー:",
+    bulkKeySuccess: "件追加完了",
   },
 
   employee: {
@@ -410,6 +426,13 @@ export const ja: TranslationDict = {
     printLabel: "印刷",
     loadingAssets: "読み込み中...",
     noAssetsForPrint: "印刷する資産がありません。URLに ?ids=1,2,3 を追加してください。",
+    warrantyExpiryBanner: "30日以内に保証が切れるハードウェア",
+    bulkTagSuccess: "件タグ修正完了",
+    bulkStatusSuccess: "件ステータス変更完了",
+    bulkDeleteConfirm: "件の資産を削除しますか？この操作は元に戻せません。",
+    bulkDeleteSuccess: "件削除完了",
+    bulkDeleteNotFound: "件未発見",
+    shortcutKeySuffix: "（/ショートカット）",
   },
 
   cloud: {
@@ -493,6 +516,7 @@ export const ja: TranslationDict = {
     years10: "10年",
     monthlyCost: "月換算費用",
     perMonth: "月",
+    expiryBanner: "30日以内に期限切れのドメイン/SSL",
   },
 
   contract: {
@@ -510,6 +534,8 @@ export const ja: TranslationDict = {
     typeService: "役務",
     typeLease: "リース",
     typeOther: "その他",
+    expiryBanner: "30日以内に期限切れの契約",
+    moreExpiring: "件以上",
   },
 
   org: {
@@ -1417,5 +1443,7 @@ export const ja: TranslationDict = {
     connectedAssets: "関連資産",
     noEntities: "外部組織がありません",
     deleteConfirm: "この外部組織を削除しますか？",
+    linkTarget: "→ 対象",
+    linkSource: "← ソース",
   },
 };

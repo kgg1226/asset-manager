@@ -160,7 +160,7 @@ export default function ContractListPage() {
               <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             </button>
             {isAdmin && (
-              <a href="/api/export/all?type=CONTRACT&format=xlsx" className="flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-600 hover:bg-gray-50" title="Excel 내보내기">
+              <a href="/api/export/all?type=CONTRACT&format=xlsx" className="flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-600 hover:bg-gray-50" title={t.common.excelExport}>
                 <FileDown className="h-4 w-4" />Excel
               </a>
             )}
@@ -189,7 +189,7 @@ export default function ContractListPage() {
           <div className="mb-4 rounded-lg border border-red-200 bg-red-50">
             <div className="flex items-center gap-2 px-4 py-2.5">
               <AlertTriangle className="h-4 w-4 shrink-0 text-red-500" />
-              <span className="text-sm font-medium text-red-800">30일 이내 만료 계약 {expiringContracts.length}건</span>
+              <span className="text-sm font-medium text-red-800">{t.contract.expiryBanner} {expiringContracts.length}{t.common.countSuffix}</span>
               <div className="ml-3 flex flex-wrap gap-2">
                 {expiringContracts.slice(0, 5).map((a) => {
                   const daysLeft = Math.ceil((new Date(a.expiryDate!).getTime() - Date.now()) / 86400000);
@@ -202,7 +202,7 @@ export default function ContractListPage() {
                   );
                 })}
                 {expiringContracts.length > 5 && (
-                  <span className="text-xs text-red-600">+{expiringContracts.length - 5}건 더</span>
+                  <span className="text-xs text-red-600">+{expiringContracts.length - 5}{t.contract.moreExpiring}</span>
                 )}
               </div>
               <button onClick={() => setShowExpiryBanner(false)} className="ml-auto rounded p-0.5 text-red-400 hover:text-red-600">✕</button>
