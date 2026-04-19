@@ -16,6 +16,8 @@ export async function GET(req: NextRequest) {
   const status = searchParams.get("status"); // SUCCESS | FAILED
   const channel = searchParams.get("channel"); // EMAIL | SLACK
   const entityType = searchParams.get("entityType"); // LICENSE | ASSET
+  const from = searchParams.get("from"); // ISO date string
+  const to = searchParams.get("to"); // ISO date string
   const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
   const limit = Math.min(Number(searchParams.get("limit") ?? 50), 500);
 
@@ -23,6 +25,12 @@ export async function GET(req: NextRequest) {
   if (status) where.status = status;
   if (channel) where.channel = channel;
   if (entityType) where.entityType = entityType;
+  if (from || to) {
+    where.sentAt = {
+      ...(from ? { gte: new Date(from) } : {}),
+      ...(to ? { lte: new Date(new Date(to).setHours(23, 59, 59, 999)) } : {}),
+    };
+  }
 
   const [total, logs] = await Promise.all([
     prisma.notificationLog.count({ where }),

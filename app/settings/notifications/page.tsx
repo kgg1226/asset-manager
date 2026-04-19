@@ -517,9 +517,10 @@ export default function NotificationSettingsPage() {
   const [logs, setLogs] = useState<NotifLog[]>([]);
   const [stats, setStats] = useState<LogStats | null>(null);
   const [isLoadingLogs, setIsLoadingLogs] = useState(true);
-  const [logFilter, setLogFilter] = useState<{ status: string; channel: string }>({ status: "", channel: "" });
+  const [logFilter, setLogFilter] = useState<{ status: string; channel: string; from: string; to: string }>({ status: "", channel: "", from: "", to: "" });
   const [logPage, setLogPage] = useState(1);
   const [logTotalPages, setLogTotalPages] = useState(1);
+  const [resendingId, setResendingId] = useState<number | null>(null);
 
   // User role
   const [isAdmin, setIsAdmin] = useState(false);
@@ -540,6 +541,8 @@ export default function NotificationSettingsPage() {
       const params = new URLSearchParams();
       if (logFilter.status) params.set("status", logFilter.status);
       if (logFilter.channel) params.set("channel", logFilter.channel);
+      if (logFilter.from) params.set("from", logFilter.from);
+      if (logFilter.to) params.set("to", logFilter.to);
       params.set("limit", String(LOG_PAGE_SIZE));
       params.set("page", String(logPage));
       const res = await fetch(`/api/notifications/history?${params}`);
@@ -562,6 +565,28 @@ export default function NotificationSettingsPage() {
   useEffect(() => {
     loadLogs();
   }, [loadLogs]);
+
+  const handleResend = async (logId: number) => {
+    setResendingId(logId);
+    try {
+      const res = await fetch("/api/notifications/resend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ logId }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        toast.success("재발송 완료");
+        setTimeout(() => loadLogs(), 800);
+      } else {
+        toast.error(`재발송 실패: ${data.error ?? "알 수 없는 오류"}`);
+      }
+    } catch {
+      toast.error("재발송 요청 실패");
+    } finally {
+      setResendingId(null);
+    }
+  };
 
   // ── Test send ──
   const handleTest = async () => {
@@ -780,6 +805,28 @@ export default function NotificationSettingsPage() {
               <option value="EMAIL">{t.notification.emailChannel}</option>
               <option value="SLACK">{t.notification.slackChannel}</option>
             </select>
+            <span className="text-xs text-gray-400">시작일</span>
+            <input
+              type="date"
+              value={logFilter.from}
+              onChange={(e) => setLogFilter((p) => ({ ...p, from: e.target.value }))}
+              className="rounded-md border border-gray-300 px-2 py-1 text-sm"
+            />
+            <span className="text-xs text-gray-400">종료일</span>
+            <input
+              type="date"
+              value={logFilter.to}
+              onChange={(e) => setLogFilter((p) => ({ ...p, to: e.target.value }))}
+              className="rounded-md border border-gray-300 px-2 py-1 text-sm"
+            />
+            {(logFilter.from || logFilter.to) && (
+              <button
+                onClick={() => setLogFilter((p) => ({ ...p, from: "", to: "" }))}
+                className="text-xs text-gray-400 hover:text-gray-600"
+              >
+                날짜 초기화
+              </button>
+            )}
           </div>
 
           <div className="overflow-x-auto">
@@ -792,13 +839,14 @@ export default function NotificationSettingsPage() {
                   <th className="px-3 py-2 text-left text-xs font-semibold">{t.notification.target}</th>
                   <th className="px-3 py-2 text-left text-xs font-semibold">{t.common.status}</th>
                   <th className="px-3 py-2 text-left text-xs font-semibold">{t.notification.errorCol}</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold"></th>
                 </tr>
               </thead>
               <tbody>
                 {isLoadingLogs ? (
-                  <tr><td colSpan={6} className="px-3 py-6 text-center text-gray-400">{t.common.loading}</td></tr>
+                  <tr><td colSpan={7} className="px-3 py-6 text-center text-gray-400">{t.common.loading}</td></tr>
                 ) : logs.length === 0 ? (
-                  <tr><td colSpan={6} className="px-3 py-6 text-center text-gray-500">{t.common.noData}</td></tr>
+                  <tr><td colSpan={7} className="px-3 py-6 text-center text-gray-500">{t.common.noData}</td></tr>
                 ) : (
                   logs.map((log) => (
                     <tr key={log.id} className="border-b hover:bg-gray-50">
@@ -826,6 +874,19 @@ export default function NotificationSettingsPage() {
                         )}
                       </td>
                       <td className="px-3 py-2 text-xs text-red-600 max-w-[200px] truncate" title={log.errorMsg ?? ""}>{log.errorMsg || "—"}</td>
+                      <td className="px-3 py-2">
+                        {log.status === "FAILED" && (
+                          <button
+                            onClick={() => handleResend(log.id)}
+                            disabled={resendingId === log.id}
+                            className="flex items-center gap-1 rounded px-2 py-1 text-xs text-orange-600 hover:bg-orange-50 disabled:opacity-40"
+                            title="재발송"
+                          >
+                            <RefreshCw className={`h-3 w-3 ${resendingId === log.id ? "animate-spin" : ""}`} />
+                            재발송
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))
                 )}
