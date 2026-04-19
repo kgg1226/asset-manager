@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Plus, Eye, Edit, Trash2, RefreshCw, ChevronUp, ChevronDown, AlertTriangle } from "lucide-react";
+import { Plus, Eye, Edit, Trash2, RefreshCw, ChevronUp, ChevronDown, AlertTriangle, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
@@ -159,6 +159,11 @@ export default function ContractListPage() {
             <button onClick={loadAssets} disabled={isLoading} className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
               <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             </button>
+            {isAdmin && (
+              <a href="/api/export/all?type=CONTRACT&format=xlsx" className="flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-600 hover:bg-gray-50" title="Excel 내보내기">
+                <FileDown className="h-4 w-4" />Excel
+              </a>
+            )}
             {isAdmin && (
               <Link href="/contracts/new" data-tour="contract-new-btn" className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
                 <Plus className="h-4 w-4" />{t.contract.newContract}
