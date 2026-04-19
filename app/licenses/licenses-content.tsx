@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { FileDown } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { CURRENCY_SYMBOLS } from "@/lib/cost-calculator";
 import DeleteButton from "./delete-button";
@@ -136,14 +137,21 @@ export default function LicensesContent({
           <h1 className="text-2xl font-bold text-gray-900">
             {t.license.title} {t.common.list}
           </h1>
-          {isAdmin && (
-            <Link
-              href="/licenses/new"
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-            >
-              + {t.license.newLicense}
-            </Link>
-          )}
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <a href="/api/export/all?format=xlsx" className="flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-600 hover:bg-gray-50" title="전체 Excel 내보내기">
+                <FileDown className="h-4 w-4" />Excel
+              </a>
+            )}
+            {isAdmin && (
+              <Link
+                href="/licenses/new"
+                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                + {t.license.newLicense}
+              </Link>
+            )}
+          </div>
         </div>
 
         {licenses.length === 0 ? (
