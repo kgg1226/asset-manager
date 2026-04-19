@@ -7,7 +7,7 @@ import {
   type AssetRow,
 } from "@/lib/dashboard-aggregator";
 
-const VALID_TYPES: AssetCategory[] = ["SOFTWARE", "CLOUD", "HARDWARE", "DOMAIN_SSL", "OTHER"];
+const VALID_TYPES: AssetCategory[] = ["SOFTWARE", "CLOUD", "HARDWARE", "DOMAIN_SSL", "CONTRACT", "OTHER"];
 
 export async function GET(request: NextRequest) {
   try {
