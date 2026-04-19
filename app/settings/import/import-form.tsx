@@ -25,6 +25,7 @@ export default function ImportForm() {
     { value: "cloud", label: t.cloud?.title ?? "클라우드" },
     { value: "domains", label: t.domain?.title ?? "도메인·SSL" },
     { value: "hardware", label: t.hw?.title ?? "하드웨어" },
+    { value: "contracts", label: t.contract?.title ?? "계약" },
   ];
 
   async function handleDownloadTemplate() {
@@ -259,5 +260,6 @@ function getRequiredHeaders(type: ImportType): string[] {
     case "cloud": return ["name"];
     case "domains": return ["name"];
     case "hardware": return ["name"];
+    case "contracts": return ["name"];
   }
 }

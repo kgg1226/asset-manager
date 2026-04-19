@@ -23,7 +23,7 @@ export async function importCsv(formData: FormData): Promise<ImportResult> {
   const type = formData.get("type") as ImportType | null;
   const file = formData.get("file") as File | null;
 
-  const validTypes: ImportType[] = ["licenses", "employees", "groups", "assignments", "seats", "cloud", "domains", "hardware"];
+  const validTypes: ImportType[] = ["licenses", "employees", "groups", "assignments", "seats", "cloud", "domains", "hardware", "contracts"];
   if (!type || !validTypes.includes(type)) {
     return { success: false, created: 0, updated: 0, errors: [], message: "가져오기 유형을 선택하세요." };
   }
@@ -81,6 +81,8 @@ export async function importCsv(formData: FormData): Promise<ImportResult> {
         return await importDomainAssets(parsed.data, actor);
       case "hardware":
         return await importHardwareAssets(parsed.data, actor);
+      case "contracts":
+        return await importContractAssets(parsed.data, actor);
     }
   } catch (error) {
     return {
@@ -110,6 +112,8 @@ function getRequiredHeaders(type: ImportType): string[] {
     case "domains":
       return ["name"];
     case "hardware":
+      return ["name"];
+    case "contracts":
       return ["name"];
   }
 }
@@ -1309,6 +1313,103 @@ async function importHardwareAssets(rows: Record<string, string>[], actor: strin
         action: "IMPORTED",
         actor,
         details: JSON.stringify({ summary: `하드웨어 자산 CSV 가져오기: ${created}건 생성` }),
+      },
+    });
+  }
+
+  return { success: true, created, updated: 0, errors: [] };
+}
+
+// ─── Contract Asset Import ─────────────────────────────────────────────
+
+async function importContractAssets(rows: Record<string, string>[], actor: string): Promise<ImportResult> {
+  const errors: RowError[] = [];
+
+  const validated = rows.map((row, i) => {
+    const rowNum = i + 2;
+    const name = requireField(row.name, rowNum, "name", errors);
+    const contractNumber = row.contractNumber?.trim() || null;
+    const counterparty = row.counterparty?.trim() || null;
+    const contractType = row.contractType?.trim() || null;
+    const cost = parseNumber(row.cost, rowNum, "cost", errors);
+    const currency = row.currency?.trim().toUpperCase() || "KRW";
+    const purchaseDate = parseDate(row.purchaseDate, rowNum, "purchaseDate", errors);
+    const expiryDate = parseDate(row.expiryDate, rowNum, "expiryDate", errors);
+    const autoRenew = parseBoolean(row.autoRenew, rowNum, "autoRenew", errors);
+    const description = row.description?.trim() || null;
+    const companyName = row.companyName?.trim() || null;
+    const orgUnitName = row.orgUnitName?.trim() || null;
+    const assigneeName = row.assigneeName?.trim() || null;
+    return {
+      rowNum, name, contractNumber, counterparty, contractType,
+      cost, currency, purchaseDate, expiryDate, autoRenew,
+      description, companyName, orgUnitName, assigneeName,
+    };
+  });
+
+  if (errors.length > 0) return { success: false, created: 0, updated: 0, errors };
+
+  const valid = await validateCompanyOrgNames(validated, errors);
+  if (!valid) return { success: false, created: 0, updated: 0, errors };
+
+  let created = 0;
+
+  await prisma.$transaction(async (tx) => {
+    for (const row of validated) {
+      const companyId = await resolveCompanyId(tx, row.companyName);
+      const orgUnitId = await resolveOrgUnitId(tx, row.orgUnitName, companyId);
+      const assigneeId = await resolveEmployeeByName(tx, row.assigneeName);
+
+      const asset = await tx.asset.create({
+        data: {
+          type: "CONTRACT",
+          name: row.name!,
+          vendor: row.counterparty,
+          description: row.description,
+          cost: row.cost != null ? row.cost : undefined,
+          currency: row.currency,
+          purchaseDate: row.purchaseDate,
+          expiryDate: row.expiryDate,
+          companyId,
+          orgUnitId,
+          assigneeId,
+          status: "IN_STOCK",
+          contractDetail: {
+            create: {
+              contractNumber: row.contractNumber,
+              counterparty: row.counterparty,
+              contractType: row.contractType,
+              autoRenew: row.autoRenew ?? false,
+            },
+          },
+        },
+      });
+
+      if (assigneeId) {
+        await tx.assetAssignmentHistory.create({
+          data: {
+            assetId: asset.id,
+            employeeId: assigneeId,
+            action: "ASSIGNED",
+            reason: "CSV Import",
+          },
+        });
+      }
+
+      created++;
+    }
+  });
+
+  revalidatePath("/contracts");
+
+  if (created > 0) {
+    await prisma.auditLog.create({
+      data: {
+        entityType: "ASSET",
+        entityId: 0,
+        action: "IMPORTED",
+        actor,
+        details: JSON.stringify({ summary: `계약 CSV 가져오기: ${created}건 생성` }),
       },
     });
   }

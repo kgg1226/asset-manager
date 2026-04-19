@@ -1,4 +1,4 @@
-// CSV 가져오기 템플릿 정의 — 라이선스, 조직원, 그룹, 할당, 시트, 클라우드, 도메인, 하드웨어
+// CSV 가져오기 템플릿 정의 — 라이선스, 조직원, 그룹, 할당, 시트, 클라우드, 도메인, 하드웨어, 계약
 
 import type { ImportType } from "@/lib/csv-import";
 
@@ -304,6 +304,56 @@ export const templates: Record<ImportType, TemplateDefinition> = {
         "1",
         "1",
         "1",
+      ],
+    ],
+  },
+  contracts: {
+    label: "계약",
+    headers: [
+      "name",
+      "contractNumber",
+      "counterparty",
+      "contractType",
+      "cost",
+      "currency",
+      "purchaseDate",
+      "expiryDate",
+      "autoRenew",
+      "description",
+      "companyName",
+      "orgUnitName",
+      "assigneeName",
+    ],
+    sampleRows: [
+      [
+        "네이버클라우드 유지보수 계약",
+        "NCL-2024-001",
+        "네이버클라우드",
+        "유지보수",
+        "12000000",
+        "KRW",
+        "2024-01-01",
+        "2025-01-01",
+        "true",
+        "클라우드 인프라 유지보수",
+        "본사",
+        "인프라팀",
+        "김관리",
+      ],
+      [
+        "AWS Support Business",
+        "AWS-2024-SUP",
+        "Amazon Web Services",
+        "SLA",
+        "500",
+        "USD",
+        "2024-06-01",
+        "2025-06-01",
+        "false",
+        "AWS 비즈니스 서포트",
+        "",
+        "",
+        "",
       ],
     ],
   },
