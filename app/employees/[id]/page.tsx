@@ -11,7 +11,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
   const { id } = await params;
   const employeeId = Number(id);
 
-  const [employee, companies, sameName] = await Promise.all([
+  const [employee, companies, sameName, hardwareCount] = await Promise.all([
     prisma.employee.findUnique({
       where: { id: employeeId },
       include: {
@@ -36,6 +36,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
       where: {},
       select: { id: true, name: true, email: true },
     }),
+    prisma.asset.count({ where: { assigneeId: employeeId, type: "HARDWARE" } }),
   ]);
 
   if (!employee) notFound();
@@ -153,6 +154,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
       pastAssignments={pastAssignmentsData}
       displayHistory={displayHistory}
       isLoggedIn={!!user}
+      hardwareCount={hardwareCount}
     />
   );
 }

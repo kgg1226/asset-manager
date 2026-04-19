@@ -39,22 +39,22 @@ Font.registerHyphenationCallback((word: string) => [word]);
 
 type Params = { params: Promise<{ yearMonth: string }> };
 
-// ── Type / Status labels (English fallback for server-side) ──────────────────
+// ── Type / Status labels ─────────────────────────────────────────────────────
 const TYPE_LABELS: Record<string, string> = {
-  SOFTWARE: "Software",
-  CLOUD: "Cloud",
-  HARDWARE: "Hardware",
-  DOMAIN_SSL: "Domain/SSL",
-  OTHER: "Other",
+  SOFTWARE: "소프트웨어",
+  CLOUD: "클라우드",
+  HARDWARE: "하드웨어",
+  DOMAIN_SSL: "도메인/SSL",
+  OTHER: "기타",
 };
 const STATUS_LABELS: Record<string, string> = {
-  IN_STOCK: "In Stock",
-  IN_USE: "In Use",
-  ACTIVE: "Active",
-  INACTIVE: "Inactive",
-  UNUSABLE: "Unusable",
-  PENDING_DISPOSAL: "Pending Disposal",
-  DISPOSED: "Disposed",
+  IN_STOCK: "재고",
+  IN_USE: "사용중",
+  ACTIVE: "활성",
+  INACTIVE: "비활성",
+  UNUSABLE: "불용",
+  PENDING_DISPOSAL: "폐기 예정",
+  DISPOSED: "폐기",
 };
 
 // ── 헬퍼 ────────────────────────────────────────────────────────────────────
@@ -190,6 +190,7 @@ interface ReportData {
   byType: Array<{ type: string; count: number; cost: number }>;
   byStatus: Array<{ status: string; count: number; cost: number }>;
   byDept: Array<{ dept: string; count: number; cost: number }>;
+  expiringAssets: Array<{ name: string; type: string; expiryDate: string; daysLeft: number; assignee: string }>;
   assets: Array<{
     name: string;
     type: string;
@@ -210,17 +211,17 @@ function ReportDocument({ data }: { data: ReportData }) {
     React.createElement(
       Page,
       { size: "A4", style: s.coverPage },
-      React.createElement(Text, { style: s.coverTitle }, "Monthly Asset Report"),
+      React.createElement(Text, { style: s.coverTitle }, "월별 자산 현황 보고서"),
       React.createElement(Text, { style: s.coverSubtitle }, `${data.period}`),
       React.createElement(
         Text,
         { style: s.coverSubtitle },
-        `Assets: ${data.assetCount} | Monthly Cost: ${fmtCurrency(data.totalMonthlyCost)} KRW`,
+        `총 자산 ${data.assetCount}건 | 월 비용 합계 ₩${fmtCurrency(data.totalMonthlyCost)}`,
       ),
       React.createElement(
         Text,
         { style: s.coverMeta },
-        `Generated: ${fmtDate(new Date())} | Asset Manager`,
+        `생성일: ${fmtDate(new Date())} | Asset Manager`,
       ),
     ),
 
@@ -230,48 +231,48 @@ function ReportDocument({ data }: { data: ReportData }) {
       { size: "A4", style: s.page },
 
       // Summary section
-      React.createElement(Text, { style: s.sectionTitle }, "Summary"),
+      React.createElement(Text, { style: s.sectionTitle }, "요약"),
       React.createElement(
         View,
         { style: { marginBottom: 12 } },
-        summaryItem("Period", data.period),
-        summaryItem("Start Date", fmtDate(data.startDate)),
-        summaryItem("End Date", fmtDate(data.endDate)),
-        summaryItem("Total Assets", `${data.assetCount}`),
-        summaryItem("Monthly Cost Total (KRW)", `${fmtCurrency(data.totalMonthlyCost)} KRW`),
-        summaryItem("Report Generated", fmtDate(new Date())),
+        summaryItem("기간", data.period),
+        summaryItem("시작일", fmtDate(data.startDate)),
+        summaryItem("종료일", fmtDate(data.endDate)),
+        summaryItem("총 자산 수", `${data.assetCount}건`),
+        summaryItem("월 비용 합계", `₩${fmtCurrency(data.totalMonthlyCost)}`),
+        summaryItem("보고서 생성일", fmtDate(new Date())),
       ),
 
       // By Type
-      React.createElement(Text, { style: s.sectionTitle }, "By Type"),
+      React.createElement(Text, { style: s.sectionTitle }, "자산 유형별 현황"),
       tableView(
-        ["Type", "Count", "Monthly Cost (KRW)"],
-        [30, 20, 50],
+        ["유형", "건수", "월 비용 (KRW)"],
+        [35, 20, 45],
         data.byType.map((t) => [
           TYPE_LABELS[t.type] ?? t.type,
-          `${t.count}`,
-          `${fmtCurrency(t.cost)} KRW`,
+          `${t.count}건`,
+          `₩${fmtCurrency(t.cost)}`,
         ]),
       ),
 
       // By Status
-      React.createElement(Text, { style: s.sectionTitle }, "By Status"),
+      React.createElement(Text, { style: s.sectionTitle }, "상태별 현황"),
       tableView(
-        ["Status", "Count", "Monthly Cost (KRW)"],
-        [30, 20, 50],
+        ["상태", "건수", "월 비용 (KRW)"],
+        [35, 20, 45],
         data.byStatus.map((st) => [
           STATUS_LABELS[st.status] ?? st.status,
-          `${st.count}`,
-          `${fmtCurrency(st.cost)} KRW`,
+          `${st.count}건`,
+          `₩${fmtCurrency(st.cost)}`,
         ]),
       ),
 
-      // By Department
-      React.createElement(Text, { style: s.sectionTitle }, "By Department"),
+      // By Department (top 10)
+      React.createElement(Text, { style: s.sectionTitle }, "부서/조직별 비용 (상위 10)"),
       tableView(
-        ["Department", "Count", "Monthly Cost (KRW)"],
-        [40, 15, 45],
-        data.byDept.map((d) => [d.dept, `${d.count}`, `${fmtCurrency(d.cost)} KRW`]),
+        ["부서/조직", "건수", "월 비용 (KRW)"],
+        [45, 15, 40],
+        data.byDept.slice(0, 10).map((d) => [d.dept, `${d.count}건`, `₩${fmtCurrency(d.cost)}`]),
       ),
 
       // Footer
@@ -286,13 +287,42 @@ function ReportDocument({ data }: { data: ReportData }) {
       ),
     ),
 
+    // ── Expiring Assets Page (only if any) ──
+    ...(data.expiringAssets.length > 0
+      ? [React.createElement(
+          Page,
+          { size: "A4", style: s.page },
+          React.createElement(Text, { style: { ...s.sectionTitle, color: "#DC2626" } }, `만료 임박 자산 (30일 이내) — ${data.expiringAssets.length}건`),
+          tableView(
+            ["자산명", "유형", "만료일", "D-day", "담당자"],
+            [30, 15, 18, 12, 25],
+            data.expiringAssets.map((a) => [
+              a.name,
+              a.type,
+              a.expiryDate,
+              a.daysLeft <= 0 ? "만료됨" : `D-${a.daysLeft}`,
+              a.assignee,
+            ]),
+          ),
+          React.createElement(
+            View,
+            { style: s.footer, fixed: true },
+            React.createElement(Text, null, "Asset Manager"),
+            React.createElement(
+              Text,
+              { render: ({ pageNumber, totalPages }: { pageNumber: number; totalPages: number }) => `${pageNumber} / ${totalPages}` },
+            ),
+          ),
+        )]
+      : []),
+
     // ── Detail Page(s) ──
     React.createElement(
       Page,
       { size: "A4", style: { ...s.page, padding: 30 }, orientation: "landscape" },
-      React.createElement(Text, { style: s.sectionTitle }, "Asset Detail"),
+      React.createElement(Text, { style: s.sectionTitle }, "자산 상세 목록"),
       tableView(
-        ["Asset Name", "Type", "Status", "Vendor", "Monthly Cost", "Assignee", "Expiry Date"],
+        ["자산명", "유형", "상태", "벤더", "월 비용", "담당자", "만료일"],
         [22, 12, 10, 16, 14, 12, 14],
         data.assets.map((a) => [
           a.name,
@@ -410,6 +440,19 @@ export async function GET(_request: NextRequest, { params }: Params) {
       deptMap.set(dept, de);
     }
 
+    const now = new Date();
+    const in30 = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const expiringAssets = assets
+      .filter((a) => a.expiryDate && a.expiryDate <= in30 && a.status !== "DISPOSED")
+      .sort((a, b) => (a.expiryDate! > b.expiryDate! ? 1 : -1))
+      .map((a) => ({
+        name: a.name,
+        type: TYPE_LABELS[a.type] ?? a.type,
+        expiryDate: fmtDate(a.expiryDate),
+        daysLeft: Math.ceil((a.expiryDate!.getTime() - now.getTime()) / 86400000),
+        assignee: a.assignee?.name ?? "-",
+      }));
+
     const reportData: ReportData = {
       period,
       startDate,
@@ -418,7 +461,8 @@ export async function GET(_request: NextRequest, { params }: Params) {
       totalMonthlyCost,
       byType: [...typeMap.entries()].map(([type, d]) => ({ type, count: d.count, cost: d.cost })),
       byStatus: [...statusMap.entries()].map(([status, d]) => ({ status, count: d.count, cost: d.cost })),
-      byDept: [...deptMap.entries()].map(([dept, d]) => ({ dept, count: d.count, cost: d.cost })),
+      byDept: [...deptMap.entries()].sort((a, b) => b[1].cost - a[1].cost).map(([dept, d]) => ({ dept, count: d.count, cost: d.cost })),
+      expiringAssets,
       assets: assets.map((a) => ({
         name: a.name,
         type: TYPE_LABELS[a.type] ?? a.type,

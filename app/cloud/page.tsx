@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plus, Eye, Edit, Trash2, RefreshCw, FileDown } from "lucide-react";
@@ -19,6 +19,7 @@ interface Asset {
   name: string;
   status: AssetStatus;
   cost?: number | null;
+  monthlyCost?: number | string | null;
   currency: string;
   purchaseDate?: string | null;
   expiryDate?: string | null;
@@ -97,6 +98,28 @@ export default function CloudListPage() {
     return () => clearTimeout(timer);
   }, [loadAssets]);
 
+  const costForecast = useMemo(() => {
+    const ACTIVE = new Set(["IN_USE", "IN_STOCK"]);
+    const activeAssets = assets.filter((a) => ACTIVE.has(a.status));
+    const toNum = (v: number | string | null | undefined) => {
+      if (v == null) return 0;
+      return typeof v === "number" ? v : parseFloat(String(v)) || 0;
+    };
+    const currentMonthly = activeAssets.reduce((s, a) => s + toNum(a.monthlyCost), 0);
+    const nextMonth = new Date();
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    const nextMonthly = activeAssets
+      .filter((a) => !a.expiryDate || new Date(a.expiryDate) >= nextMonth)
+      .reduce((s, a) => s + toNum(a.monthlyCost), 0);
+    const expiringNextMonth = activeAssets.filter((a) => {
+      if (!a.expiryDate) return false;
+      const exp = new Date(a.expiryDate);
+      const now = new Date();
+      return exp >= now && exp < nextMonth;
+    });
+    return { currentMonthly: Math.round(currentMonthly), nextMonthly: Math.round(nextMonthly), expiringNextMonth };
+  }, [assets]);
+
   const handleDelete = async (id: number, name: string) => {
     if (!confirm(t.toast.confirmDelete)) return;
     try {
@@ -152,6 +175,39 @@ export default function CloudListPage() {
             ))}
           </div>
         </div>
+
+        {/* 비용 예측 카드 */}
+        {!isLoading && assets.length > 0 && (
+          <div className="mb-4 grid grid-cols-3 gap-3">
+            <div className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-200">
+              <p className="text-xs font-medium text-gray-500 uppercase">이번 달 예상 비용</p>
+              <p className="mt-1 text-xl font-bold text-gray-900">₩{costForecast.currentMonthly.toLocaleString()}</p>
+              <p className="mt-0.5 text-xs text-gray-400">활성 구독 기준</p>
+            </div>
+            <div className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-200">
+              <p className="text-xs font-medium text-gray-500 uppercase">다음 달 예측 비용</p>
+              <p className={`mt-1 text-xl font-bold ${costForecast.nextMonthly < costForecast.currentMonthly ? "text-green-600" : "text-gray-900"}`}>
+                ₩{costForecast.nextMonthly.toLocaleString()}
+              </p>
+              {costForecast.currentMonthly > 0 && (
+                <p className={`mt-0.5 text-xs ${costForecast.nextMonthly < costForecast.currentMonthly ? "text-green-600" : "text-gray-400"}`}>
+                  {costForecast.nextMonthly < costForecast.currentMonthly
+                    ? `▼ ₩${(costForecast.currentMonthly - costForecast.nextMonthly).toLocaleString()} 감소 예정`
+                    : "변동 없음"}
+                </p>
+              )}
+            </div>
+            <div className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-200">
+              <p className="text-xs font-medium text-gray-500 uppercase">다음 달 만료 구독</p>
+              <p className="mt-1 text-xl font-bold text-amber-600">{costForecast.expiringNextMonth.length}건</p>
+              {costForecast.expiringNextMonth.length > 0 && (
+                <p className="mt-0.5 text-xs text-amber-500 truncate">
+                  {costForecast.expiringNextMonth.map((a) => a.name).join(", ")}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="overflow-x-auto rounded-lg bg-white shadow-sm">
           <table className="w-full min-w-[800px]">

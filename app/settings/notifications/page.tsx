@@ -80,6 +80,10 @@ interface NotificationPreferences {
   events: Record<string, boolean>;
   renewalDaysBefore: number;
   cancellationDaysBefore: number;
+  renewalDaysBeforeList?: number[];
+  cancellationDaysBeforeList?: number[];
+  minCostThresholdKRW?: number | null;
+  eventChannelOverrides?: Record<string, "SLACK" | "EMAIL" | "BOTH" | "DEFAULT">;
 }
 
 // ── Channel Config Modal ──
@@ -378,13 +382,39 @@ function PreferencesSection({ isAdmin }: { isAdmin: boolean }) {
 
   if (!isAdmin || isLoading || !prefs) return null;
 
-  const EVENT_CONFIG: Array<{ key: string; icon: React.ReactNode; label: string; desc: string; hasDays?: boolean; daysKey?: "renewalDaysBefore" | "cancellationDaysBefore" }> = [
+  const [daysInput, setDaysInput] = useState<Record<string, string>>({});
+
+  const getDaysList = (key: "renewalDaysBeforeList" | "cancellationDaysBeforeList", fallbackKey: "renewalDaysBefore" | "cancellationDaysBefore"): number[] => {
+    if (!prefs) return [];
+    const list = prefs[key];
+    if (list && list.length > 0) return list;
+    return [prefs[fallbackKey]];
+  };
+
+  const addDayThreshold = (listKey: "renewalDaysBeforeList" | "cancellationDaysBeforeList", fallbackKey: "renewalDaysBefore" | "cancellationDaysBefore", inputKey: string) => {
+    const v = parseInt(daysInput[inputKey] || "");
+    if (!v || v < 1 || v > 365) return;
+    const current = getDaysList(listKey, fallbackKey);
+    if (current.includes(v)) return;
+    const next = [...current, v].sort((a, b) => b - a);
+    updatePrefs((p) => ({ ...p, [listKey]: next, [fallbackKey]: next[next.length - 1] }));
+    setDaysInput((prev) => ({ ...prev, [inputKey]: "" }));
+  };
+
+  const removeDayThreshold = (listKey: "renewalDaysBeforeList" | "cancellationDaysBeforeList", fallbackKey: "renewalDaysBefore" | "cancellationDaysBefore", day: number) => {
+    const current = getDaysList(listKey, fallbackKey);
+    const next = current.filter((d) => d !== day);
+    if (next.length === 0) return;
+    updatePrefs((p) => ({ ...p, [listKey]: next, [fallbackKey]: next[next.length - 1] }));
+  };
+
+  const EVENT_CONFIG: Array<{ key: string; icon: React.ReactNode; label: string; desc: string; daysListKey?: "renewalDaysBeforeList" | "cancellationDaysBeforeList"; daysFallbackKey?: "renewalDaysBefore" | "cancellationDaysBefore" }> = [
     { key: "ASSET_CREATED", icon: <BellRing className="h-4 w-4 text-blue-500" />, label: t.notification.eventAssetCreated, desc: t.notification.eventAssetCreatedDesc },
     { key: "ASSET_UPDATED", icon: <BellRing className="h-4 w-4 text-amber-500" />, label: t.notification.eventAssetUpdated, desc: t.notification.eventAssetUpdatedDesc },
     { key: "ASSET_DELETED", icon: <BellRing className="h-4 w-4 text-red-500" />, label: t.notification.eventAssetDeleted, desc: t.notification.eventAssetDeletedDesc },
     { key: "DATA_IMPORT", icon: <FileDown className="h-4 w-4 text-green-500" />, label: t.notification.eventDataImport, desc: t.notification.eventDataImportDesc },
-    { key: "RENEWAL_APPROACHING", icon: <CalendarClock className="h-4 w-4 text-orange-500" />, label: t.notification.eventRenewal, desc: t.notification.eventRenewalDesc, hasDays: true, daysKey: "renewalDaysBefore" },
-    { key: "CANCELLATION_APPROACHING", icon: <AlertTriangle className="h-4 w-4 text-red-500" />, label: t.notification.eventCancellation, desc: t.notification.eventCancellationDesc, hasDays: true, daysKey: "cancellationDaysBefore" },
+    { key: "RENEWAL_APPROACHING", icon: <CalendarClock className="h-4 w-4 text-orange-500" />, label: t.notification.eventRenewal, desc: t.notification.eventRenewalDesc, daysListKey: "renewalDaysBeforeList", daysFallbackKey: "renewalDaysBefore" },
+    { key: "CANCELLATION_APPROACHING", icon: <AlertTriangle className="h-4 w-4 text-red-500" />, label: t.notification.eventCancellation, desc: t.notification.eventCancellationDesc, daysListKey: "cancellationDaysBeforeList", daysFallbackKey: "cancellationDaysBefore" },
     { key: "ASSIGNMENT_CHANGE", icon: <ArrowLeftRight className="h-4 w-4 text-purple-500" />, label: t.notification.eventAssignment, desc: t.notification.eventAssignmentDesc },
     { key: "USER_MANAGEMENT", icon: <UserCog className="h-4 w-4 text-gray-500" />, label: t.notification.eventUserMgmt, desc: t.notification.eventUserMgmtDesc },
   ];
@@ -435,52 +465,115 @@ function PreferencesSection({ isAdmin }: { isAdmin: boolean }) {
         )}
       </div>
 
+      {/* Cost threshold */}
+      {prefs.enabled && (
+        <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-sm font-medium text-gray-700">최소 비용 임계치 (KRW):</span>
+            <input
+              type="number"
+              min={0}
+              step={10000}
+              placeholder="0 = 모두 알림"
+              value={prefs.minCostThresholdKRW ?? ""}
+              onChange={(e) => {
+                const v = e.target.value === "" ? null : Math.max(0, parseInt(e.target.value) || 0);
+                updatePrefs((p) => ({ ...p, minCostThresholdKRW: v }));
+              }}
+              className="w-40 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+            />
+            <span className="text-xs text-gray-400">이 금액 미만 자산은 만료·갱신 알림 제외</span>
+          </div>
+        </div>
+      )}
+
       {/* Event toggles */}
       {prefs.enabled && (
         <div className="space-y-2">
           <h3 className="mb-2 text-sm font-semibold text-gray-700">{t.notification.eventTypes}</h3>
-          {EVENT_CONFIG.map((evt) => (
-            <div key={evt.key} className="flex items-center justify-between rounded-lg border border-gray-100 px-4 py-3 hover:bg-gray-50">
-              <div className="flex items-center gap-3">
-                {evt.icon}
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{evt.label}</p>
-                  <p className="text-xs text-gray-500">{evt.desc}</p>
+          {EVENT_CONFIG.map((evt) => {
+            const channelOverride = prefs.eventChannelOverrides?.[evt.key] ?? "DEFAULT";
+            return (
+              <div key={evt.key} className="rounded-lg border border-gray-100 px-4 py-3 hover:bg-gray-50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {evt.icon}
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{evt.label}</p>
+                      <p className="text-xs text-gray-500">{evt.desc}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {/* Per-event channel override */}
+                    {prefs.events[evt.key] && (
+                      <select
+                        value={channelOverride}
+                        onChange={(e) => {
+                          const val = e.target.value as "SLACK" | "EMAIL" | "BOTH" | "DEFAULT";
+                          updatePrefs((p) => ({
+                            ...p,
+                            eventChannelOverrides: { ...p.eventChannelOverrides, [evt.key]: val },
+                          }));
+                        }}
+                        className="rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-600"
+                      >
+                        <option value="DEFAULT">기본 채널</option>
+                        <option value="SLACK">Slack만</option>
+                        <option value="EMAIL">Email만</option>
+                        <option value="BOTH">모두</option>
+                      </select>
+                    )}
+                    <button
+                      onClick={() =>
+                        updatePrefs((p) => ({
+                          ...p,
+                          events: { ...p.events, [evt.key]: !p.events[evt.key] },
+                        }))
+                      }
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                        prefs.events[evt.key] ? "bg-blue-600" : "bg-gray-300"
+                      }`}
+                    >
+                      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${prefs.events[evt.key] ? "translate-x-4.5" : "translate-x-0.5"}`} />
+                    </button>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-3">
-                {evt.hasDays && evt.daysKey && prefs.events[evt.key] && (
-                  <div className="flex items-center gap-1">
-                    <input
-                      type="number"
-                      min={1}
-                      max={365}
-                      value={prefs[evt.daysKey]}
-                      onChange={(e) => {
-                        const v = parseInt(e.target.value) || 30;
-                        updatePrefs((p) => ({ ...p, [evt.daysKey!]: Math.max(1, Math.min(365, v)) }));
-                      }}
-                      className="w-16 rounded-md border border-gray-300 px-2 py-1 text-center text-sm"
-                    />
-                    <span className="text-xs text-gray-500 whitespace-nowrap">{t.notification.daysBefore}</span>
+                {/* Multi-threshold chips for time-based events */}
+                {evt.daysListKey && evt.daysFallbackKey && prefs.events[evt.key] && (
+                  <div className="mt-2 flex flex-wrap items-center gap-2 pl-7">
+                    <span className="text-xs text-gray-500 whitespace-nowrap">알림 시점 (일 전):</span>
+                    {getDaysList(evt.daysListKey, evt.daysFallbackKey).map((d) => (
+                      <span key={d} className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-700">
+                        D-{d}
+                        <button
+                          type="button"
+                          onClick={() => removeDayThreshold(evt.daysListKey!, evt.daysFallbackKey!, d)}
+                          className="ml-0.5 rounded-full hover:text-red-600"
+                        >×</button>
+                      </span>
+                    ))}
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        min={1}
+                        max={365}
+                        value={daysInput[evt.key] ?? ""}
+                        onChange={(e) => setDaysInput((prev) => ({ ...prev, [evt.key]: e.target.value }))}
+                        onKeyDown={(e) => { if (e.key === "Enter") addDayThreshold(evt.daysListKey!, evt.daysFallbackKey!, evt.key); }}
+                        placeholder="추가"
+                        className="w-16 rounded-md border border-gray-300 px-2 py-0.5 text-xs text-center"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => addDayThreshold(evt.daysListKey!, evt.daysFallbackKey!, evt.key)}
+                        className="rounded-md bg-orange-50 px-2 py-0.5 text-xs text-orange-600 hover:bg-orange-100"
+                      >+추가</button>
+                    </div>
                   </div>
                 )}
-                <button
-                  onClick={() =>
-                    updatePrefs((p) => ({
-                      ...p,
-                      events: { ...p.events, [evt.key]: !p.events[evt.key] },
-                    }))
-                  }
-                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                    prefs.events[evt.key] ? "bg-blue-600" : "bg-gray-300"
-                  }`}
-                >
-                  <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${prefs.events[evt.key] ? "translate-x-4.5" : "translate-x-0.5"}`} />
-                </button>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

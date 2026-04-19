@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Plus, Eye, Edit, Trash2, RefreshCw, ChevronUp, ChevronDown, Keyboard, FileDown } from "lucide-react";
+import { Plus, Eye, Edit, Trash2, RefreshCw, ChevronUp, ChevronDown, Keyboard, FileDown, Tag, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
@@ -21,7 +21,7 @@ interface Asset {
   purchaseDate?: string | null; expiryDate?: string | null;
   ciaC?: number | null; ciaI?: number | null; ciaA?: number | null;
   assignee?: { id: number; name: string } | null;
-  hardwareDetail?: { assetTag?: string | null; deviceType?: string | null; manufacturer?: string | null; model?: string | null; condition?: string | null } | null;
+  hardwareDetail?: { assetTag?: string | null; deviceType?: string | null; manufacturer?: string | null; model?: string | null; condition?: string | null; usefulLifeYears?: number | null } | null;
 }
 
 const STATUS_KEYS: Record<AssetStatus, string> = { IN_STOCK: "statusInStock", IN_USE: "statusInUse", INACTIVE: "statusInactive", UNUSABLE: "statusUnusable", PENDING_DISPOSAL: "statusPendingDisposal", DISPOSED: "statusDisposed" };
@@ -104,6 +104,12 @@ export default function HardwareListPage() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [showShortcutHint, setShowShortcutHint] = useState(false);
+  const [showBulkTagModal, setShowBulkTagModal] = useState(false);
+  const [bulkTagDraft, setBulkTagDraft] = useState<Record<number, string>>({});
+  const [bulkTagSaving, setBulkTagSaving] = useState(false);
+  const [showBulkStatusModal, setShowBulkStatusModal] = useState(false);
+  const [bulkStatusTarget, setBulkStatusTarget] = useState<AssetStatus>("IN_STOCK");
+  const [bulkStatusSaving, setBulkStatusSaving] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const toggleSelect = (id: number) => {
@@ -117,6 +123,65 @@ export default function HardwareListPage() {
     if (selectedIds.size === sortedAssets.length) setSelectedIds(new Set());
     else setSelectedIds(new Set(sortedAssets.map(a => a.id)));
   };
+  const openBulkTagModal = () => {
+    const draft: Record<number, string> = {};
+    for (const id of selectedIds) {
+      const asset = sortedAssets.find((a) => a.id === id);
+      draft[id] = asset?.hardwareDetail?.assetTag ?? "";
+    }
+    setBulkTagDraft(draft);
+    setShowBulkTagModal(true);
+  };
+
+  const handleBulkTagSave = async () => {
+    setBulkTagSaving(true);
+    try {
+      const entries = Object.entries(bulkTagDraft).map(([id, assetTag]) => ({ id: Number(id), assetTag }));
+      const res = await fetch("/api/assets/bulk-tag", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ entries }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(`${data.updated}개 태그 수정 완료`);
+        setShowBulkTagModal(false);
+        setSelectedIds(new Set());
+        await loadAssets();
+      } else {
+        const err = await res.json().catch(() => ({ error: "수정 실패" }));
+        toast.error(err.error || "태그 수정에 실패했습니다.");
+      }
+    } catch {
+      toast.error("네트워크 오류로 수정에 실패했습니다.");
+    }
+    setBulkTagSaving(false);
+  };
+
+  const handleBulkStatusSave = async () => {
+    setBulkStatusSaving(true);
+    try {
+      const res = await fetch("/api/assets/bulk-status", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: Array.from(selectedIds), status: bulkStatusTarget }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(`${data.updated}개 상태 변경 완료`);
+        setShowBulkStatusModal(false);
+        setSelectedIds(new Set());
+        await loadAssets();
+      } else {
+        const err = await res.json().catch(() => ({ error: "변경 실패" }));
+        toast.error(err.error || "상태 변경에 실패했습니다.");
+      }
+    } catch {
+      toast.error("네트워크 오류로 변경에 실패했습니다.");
+    }
+    setBulkStatusSaving(false);
+  };
+
   const handleBulkDelete = async () => {
     if (selectedIds.size === 0) return;
     if (!confirm(`${selectedIds.size}개 자산을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) return;
@@ -226,6 +291,26 @@ export default function HardwareListPage() {
 
   const sortedAssets = useMemo(() => sortAssets(assets, sortField, sortOrder), [assets, sortField, sortOrder]);
 
+  const depreciationSummary = useMemo(() => {
+    const now = Date.now();
+    let totalCost = 0, totalBookValue = 0, fullyDepreciated = 0, overHalf = 0, underHalf = 0, noData = 0;
+    for (const a of assets) {
+      if (!a.cost || !a.purchaseDate) { noData++; continue; }
+      const cost = a.cost;
+      const lifeMo = (a.hardwareDetail?.usefulLifeYears ?? 5) * 12;
+      const elapsedMo = Math.max(0, (now - new Date(a.purchaseDate).getTime()) / (1000 * 60 * 60 * 24 * 30.44));
+      const depr = Math.min(cost, (cost / lifeMo) * elapsedMo);
+      const bv = Math.max(0, cost - depr);
+      const pct = cost > 0 ? depr / cost : 0;
+      totalCost += cost;
+      totalBookValue += bv;
+      if (pct >= 1) fullyDepreciated++;
+      else if (pct >= 0.5) overHalf++;
+      else underHalf++;
+    }
+    return { totalCost: Math.round(totalCost), totalBookValue: Math.round(totalBookValue), fullyDepreciated, overHalf, underHalf, noData };
+  }, [assets]);
+
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return <span className="ml-1 text-gray-300">⇅</span>;
     return sortOrder === "asc" ? <ChevronUp className="ml-0.5 inline h-3 w-3 text-blue-600" /> : <ChevronDown className="ml-0.5 inline h-3 w-3 text-blue-600" />;
@@ -296,10 +381,28 @@ export default function HardwareListPage() {
           </div>
         </div>
 
-        {/* 대량 삭제 바 */}
+        {/* 일괄 작업 바 */}
         {isAdmin && selectedIds.size > 0 && (
-          <div className="mb-2 flex items-center gap-3 rounded-lg bg-red-50 border border-red-200 px-4 py-2">
-            <span className="text-sm font-medium text-red-700">{selectedIds.size}개 선택</span>
+          <div className="mb-2 flex items-center gap-3 rounded-lg bg-blue-50 border border-blue-200 px-4 py-2">
+            <span className="text-sm font-medium text-blue-700">{selectedIds.size}개 선택</span>
+            <button
+              onClick={openBulkTagModal}
+              className="flex items-center gap-1.5 rounded bg-blue-600 px-3 py-1 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              <Tag className="h-3.5 w-3.5" />태그 일괄 편집
+            </button>
+            <button
+              onClick={() => setShowBulkStatusModal(true)}
+              className="flex items-center gap-1.5 rounded border border-gray-300 bg-white px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
+            >
+              상태 일괄 변경
+            </button>
+            <button
+              onClick={() => window.open(`/hardware/print-labels?ids=${[...selectedIds].join(",")}`, "_blank")}
+              className="flex items-center gap-1.5 rounded border border-gray-300 bg-white px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
+            >
+              <Printer className="h-3.5 w-3.5" />라벨 인쇄
+            </button>
             <button
               onClick={handleBulkDelete}
               disabled={bulkDeleting}
@@ -308,6 +411,141 @@ export default function HardwareListPage() {
               {bulkDeleting ? "삭제 중..." : "선택 삭제"}
             </button>
             <button onClick={() => setSelectedIds(new Set())} className="text-sm text-gray-500 hover:text-gray-700">선택 해제</button>
+          </div>
+        )}
+
+        {/* 태그 일괄 편집 모달 */}
+        {showBulkTagModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="w-full max-w-lg rounded-xl bg-white shadow-2xl">
+              <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+                <div className="flex items-center gap-2">
+                  <Tag className="h-4 w-4 text-blue-600" />
+                  <h2 className="text-base font-semibold text-gray-900">자산 태그 일괄 편집</h2>
+                  <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">{selectedIds.size}개</span>
+                </div>
+                <button onClick={() => setShowBulkTagModal(false)} className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600">✕</button>
+              </div>
+              <div className="max-h-80 overflow-y-auto px-6 py-3">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100">
+                      <th className="pb-2 text-left text-xs font-medium text-gray-500">자산명</th>
+                      <th className="pb-2 text-left text-xs font-medium text-gray-500">자산 태그</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {[...selectedIds].map((id) => {
+                      const asset = sortedAssets.find((a) => a.id === id);
+                      return (
+                        <tr key={id}>
+                          <td className="py-2 pr-3 text-gray-700 max-w-[180px] truncate">{asset?.name ?? `#${id}`}</td>
+                          <td className="py-2">
+                            <input
+                              type="text"
+                              value={bulkTagDraft[id] ?? ""}
+                              onChange={(e) => setBulkTagDraft((prev) => ({ ...prev, [id]: e.target.value }))}
+                              placeholder="태그 없음"
+                              className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex justify-end gap-2 border-t border-gray-200 px-6 py-4">
+                <button onClick={() => setShowBulkTagModal(false)} className="rounded px-4 py-2 text-sm text-gray-600 hover:bg-gray-100">취소</button>
+                <button
+                  onClick={handleBulkTagSave}
+                  disabled={bulkTagSaving}
+                  className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {bulkTagSaving ? "저장 중..." : "저장"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 감가상각 현황 요약 */}
+        {!isLoading && assets.length > 0 && depreciationSummary.totalCost > 0 && (
+          <div className="mb-4 rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-200">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-sm font-semibold text-gray-700">감가상각 현황</p>
+              <p className="text-xs text-gray-400">취득가 기준 5년 정액법</p>
+            </div>
+            <div className="grid grid-cols-4 gap-3">
+              <div>
+                <p className="text-[10px] text-gray-400 uppercase font-medium">총 취득원가</p>
+                <p className="text-base font-bold text-gray-900">₩{depreciationSummary.totalCost.toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-gray-400 uppercase font-medium">현재 장부가</p>
+                <p className="text-base font-bold text-blue-600">₩{depreciationSummary.totalBookValue.toLocaleString()}</p>
+                <p className="text-[10px] text-gray-400">
+                  {depreciationSummary.totalCost > 0 ? Math.round((depreciationSummary.totalBookValue / depreciationSummary.totalCost) * 100) : 0}% 잔존
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] text-gray-400 uppercase font-medium">누적 감가상각</p>
+                <p className="text-base font-bold text-amber-600">₩{(depreciationSummary.totalCost - depreciationSummary.totalBookValue).toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-gray-400 uppercase font-medium">상태별 건수</p>
+                <div className="flex gap-2 text-xs mt-0.5">
+                  <span className="rounded bg-green-100 px-1.5 py-0.5 text-green-700">{depreciationSummary.underHalf}건 양호</span>
+                  <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-700">{depreciationSummary.overHalf}건 50%↑</span>
+                  <span className="rounded bg-red-100 px-1.5 py-0.5 text-red-700">{depreciationSummary.fullyDepreciated}건 완료</span>
+                </div>
+              </div>
+            </div>
+            {/* Depreciation bar */}
+            <div className="mt-3">
+              <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                <div className="h-2 rounded-full bg-blue-500 transition-all" style={{ width: `${Math.round((depreciationSummary.totalBookValue / depreciationSummary.totalCost) * 100)}%` }} />
+              </div>
+              <p className="mt-1 text-[10px] text-gray-400 text-right">장부가 비율</p>
+            </div>
+          </div>
+        )}
+
+        {/* 상태 일괄 변경 모달 */}
+        {showBulkStatusModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="w-80 rounded-xl bg-white shadow-2xl">
+              <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-semibold text-gray-900">상태 일괄 변경</h2>
+                  <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">{selectedIds.size}개</span>
+                </div>
+                <button onClick={() => setShowBulkStatusModal(false)} className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600">✕</button>
+              </div>
+              <div className="px-6 py-4">
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">변경할 상태</label>
+                <select
+                  value={bulkStatusTarget}
+                  onChange={(e) => setBulkStatusTarget(e.target.value as AssetStatus)}
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {(Object.keys(STATUS_KEYS) as AssetStatus[]).map((s) => (
+                    <option key={s} value={s}>{getStatusLabel(s)}</option>
+                  ))}
+                </select>
+                <p className="mt-2 text-xs text-gray-500">선택한 {selectedIds.size}개 자산의 상태가 변경됩니다.</p>
+              </div>
+              <div className="flex justify-end gap-2 border-t border-gray-200 px-6 py-4">
+                <button onClick={() => setShowBulkStatusModal(false)} className="rounded px-4 py-2 text-sm text-gray-600 hover:bg-gray-100">취소</button>
+                <button
+                  onClick={handleBulkStatusSave}
+                  disabled={bulkStatusSaving}
+                  className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {bulkStatusSaving ? "변경 중..." : "변경"}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

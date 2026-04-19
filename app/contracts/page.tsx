@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Plus, Eye, Edit, Trash2, RefreshCw, ChevronUp, ChevronDown } from "lucide-react";
+import { Plus, Eye, Edit, Trash2, RefreshCw, ChevronUp, ChevronDown, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
@@ -124,6 +124,17 @@ export default function ContractListPage() {
 
   const sortedAssets = useMemo(() => sortAssets(assets, sortField, sortOrder), [assets, sortField, sortOrder]);
 
+  const [showExpiryBanner, setShowExpiryBanner] = useState(true);
+  const expiringContracts = useMemo(() => {
+    const now = Date.now();
+    const cutoff = now + 30 * 86400 * 1000;
+    return sortedAssets.filter((a) => {
+      if (!a.expiryDate || a.status === "DISPOSED") return false;
+      const exp = new Date(a.expiryDate).getTime();
+      return exp > now && exp <= cutoff;
+    }).sort((a, b) => (a.expiryDate ?? "").localeCompare(b.expiryDate ?? ""));
+  }, [sortedAssets]);
+
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return <span className="ml-1 text-gray-300">⇅</span>;
     return sortOrder === "asc" ? <ChevronUp className="ml-0.5 inline h-3 w-3 text-blue-600" /> : <ChevronDown className="ml-0.5 inline h-3 w-3 text-blue-600" />;
@@ -167,6 +178,32 @@ export default function ContractListPage() {
             ))}
           </div>
         </div>
+
+        {/* 만료 임박 계약 배너 */}
+        {!isLoading && expiringContracts.length > 0 && showExpiryBanner && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50">
+            <div className="flex items-center gap-2 px-4 py-2.5">
+              <AlertTriangle className="h-4 w-4 shrink-0 text-red-500" />
+              <span className="text-sm font-medium text-red-800">30일 이내 만료 계약 {expiringContracts.length}건</span>
+              <div className="ml-3 flex flex-wrap gap-2">
+                {expiringContracts.slice(0, 5).map((a) => {
+                  const daysLeft = Math.ceil((new Date(a.expiryDate!).getTime() - Date.now()) / 86400000);
+                  return (
+                    <Link key={a.id} href={`/contracts/${a.id}`}
+                      className="flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 hover:bg-red-200">
+                      {a.name}
+                      <span className="rounded bg-red-200 px-1 font-bold">D-{daysLeft}</span>
+                    </Link>
+                  );
+                })}
+                {expiringContracts.length > 5 && (
+                  <span className="text-xs text-red-600">+{expiringContracts.length - 5}건 더</span>
+                )}
+              </div>
+              <button onClick={() => setShowExpiryBanner(false)} className="ml-auto rounded p-0.5 text-red-400 hover:text-red-600">✕</button>
+            </div>
+          </div>
+        )}
 
         <div className="overflow-x-auto rounded-lg bg-white shadow-sm" data-tour="contract-table">
           <table className="w-full min-w-[800px]">

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, Eye, Edit, Trash2, RefreshCw, FileDown } from "lucide-react";
+import { Plus, Eye, Edit, Trash2, RefreshCw, FileDown, AlertTriangle, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
@@ -47,6 +47,7 @@ export default function DomainsListPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<AssetStatus | "">("");
+  const [showExpiryBanner, setShowExpiryBanner] = useState(true);
 
   const loadAssets = useCallback(async () => {
     setIsLoading(true);
@@ -109,6 +110,36 @@ export default function DomainsListPage() {
             ))}
           </div>
         </div>
+
+        {/* 만료 임박 배너 */}
+        {showExpiryBanner && !isLoading && (() => {
+          const now = new Date();
+          const in30 = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+          const expiring = assets.filter((a) => a.expiryDate && a.status !== "DISPOSED" && new Date(a.expiryDate) >= now && new Date(a.expiryDate) <= in30);
+          if (expiring.length === 0) return null;
+          return (
+            <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-red-800">30일 이내 만료 도메인/SSL {expiring.length}건</p>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  {expiring.map((a) => {
+                    const daysLeft = Math.ceil((new Date(a.expiryDate!).getTime() - now.getTime()) / 86400000);
+                    return (
+                      <Link key={a.id} href={`/domains/${a.id}`} className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700 hover:bg-red-200">
+                        {a.name}
+                        <span className="rounded bg-red-600 px-1 py-0.5 text-[10px] text-white">D-{daysLeft}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+              <button onClick={() => setShowExpiryBanner(false)} className="shrink-0 rounded p-1 text-red-400 hover:bg-red-100">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          );
+        })()}
 
         <div className="overflow-x-auto rounded-lg bg-white shadow-sm">
           <table className="w-full min-w-[700px]">

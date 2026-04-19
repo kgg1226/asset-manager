@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Package, History } from "lucide-react";
+import { Package, History, CheckCircle2, Circle, Monitor, Key, Building2, Mail } from "lucide-react";
 import ManageLicenses from "./manage-licenses";
 import OrgEditForm from "./org-edit-form";
 import OffboardButton from "./offboard-button";
@@ -65,6 +65,7 @@ export default function EmployeeDetailContent({
   pastAssignments,
   displayHistory,
   isLoggedIn,
+  hardwareCount,
 }: {
   employee: EmployeeData;
   displayName: string;
@@ -76,6 +77,7 @@ export default function EmployeeDetailContent({
   pastAssignments: PastAssignment[];
   displayHistory: HistoryEntry[];
   isLoggedIn: boolean;
+  hardwareCount: number;
 }) {
   const { t } = useTranslation();
 
@@ -117,6 +119,45 @@ export default function EmployeeDetailContent({
             </Link>
           </div>
         </div>
+
+        {/* Onboarding Checklist (admin only, ACTIVE employees with incomplete steps) */}
+        {isLoggedIn && employee.status === "ACTIVE" && (() => {
+          const steps = [
+            { done: !!employee.email, label: "이메일 등록", icon: Mail, link: null },
+            { done: !!employee.orgUnitId, label: "부서/조직 배정", icon: Building2, link: null },
+            { done: activeAssignmentCount > 0, label: "소프트웨어 라이선스 배정", icon: Key, link: "#manage-licenses" },
+            { done: hardwareCount > 0, label: "하드웨어 장비 배정", icon: Monitor, link: `/hardware?search=${encodeURIComponent(employee.name)}` },
+          ];
+          const incomplete = steps.filter((s) => !s.done);
+          if (incomplete.length === 0) return null;
+          return (
+            <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <div className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-white text-xs font-bold">{incomplete.length}</div>
+                <p className="text-sm font-semibold text-amber-800">온보딩 미완료 항목</p>
+                <span className="ml-auto text-xs text-amber-600">{steps.length - incomplete.length}/{steps.length} 완료</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {steps.map((step) => {
+                  const Icon = step.icon;
+                  return (
+                    <div key={step.label} className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm ${step.done ? "bg-white text-gray-400" : "bg-white text-gray-800 ring-1 ring-amber-300"}`}>
+                      {step.done
+                        ? <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />
+                        : <Circle className="h-4 w-4 shrink-0 text-amber-400" />
+                      }
+                      <Icon className="h-3.5 w-3.5 shrink-0" />
+                      {step.done || !step.link
+                        ? <span>{step.label}</span>
+                        : <a href={step.link} className="text-blue-600 hover:underline">{step.label}</a>
+                      }
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Asset Overview Cards */}
         <div className="mb-6 grid grid-cols-2 gap-4">
@@ -166,11 +207,13 @@ export default function EmployeeDetailContent({
 
         {/* Manage Licenses */}
         {isLoggedIn && (
+          <div id="manage-licenses">
           <ManageLicenses
             employeeId={employee.id}
             assigned={assignedForManage}
             availableLicenses={availableLicenses}
           />
+          </div>
         )}
 
         {/* Past Assignments */}
