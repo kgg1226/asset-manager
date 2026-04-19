@@ -431,6 +431,11 @@ export const vi: TranslationDict = {
     monthsUnit: " tháng",
     noChange: "Không thay đổi",
     decreaseForecast: "dự kiến giảm",
+    currentMonthEstimate: "Chi phí dự kiến tháng này",
+    activeSubscriptionBasis: "Dựa trên đăng ký đang hoạt động",
+    nextMonthForecast: "Dự báo tháng sau",
+    expiringNextMonthSub: "Đăng ký hết hạn tháng sau",
+    expiryBanner: "Tài sản đám mây hết hạn trong 30 ngày",
   },
 
   domain: {
@@ -1300,6 +1305,7 @@ export const vi: TranslationDict = {
     countItems: "mục", org: "Tổ chức", company: "Công ty", monthlyCostKRW: "Chi phí tháng (₩)",
     unassignedCount: "đã hủy phân bổ", historyLoadFail: "Tải lịch sử thất bại",
     addOwnerFail: "Thêm người phụ trách thất bại", statusChangeFail: "Thay đổi trạng thái thất bại", renewalDateFail: "Đặt ngày gia hạn thất bại",
+    autoRateLabel: "Tự động", loadingRate: "Đang tải...", rateHint: "Tự động lấy dữ liệu từ tab quản lý tỷ giá. Có thể nhập thủ công.",
   },
 
   lifecycle: {

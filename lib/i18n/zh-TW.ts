@@ -431,6 +431,11 @@ export const zhTW: TranslationDict = {
     monthsUnit: "個月",
     noChange: "無變動",
     decreaseForecast: "預計減少",
+    currentMonthEstimate: "本月預計費用",
+    activeSubscriptionBasis: "按有效訂閱計算",
+    nextMonthForecast: "下月預測費用",
+    expiringNextMonthSub: "下月到期訂閱",
+    expiryBanner: "30天內到期的雲端資產",
   },
 
   domain: {
@@ -1299,6 +1304,7 @@ export const zhTW: TranslationDict = {
     countItems: "筆", org: "組織", company: "公司", monthlyCostKRW: "月費用（₩）",
     unassignedCount: "筆取消分配", historyLoadFail: "載入歷史失敗",
     addOwnerFail: "新增負責人失敗", statusChangeFail: "狀態變更失敗", renewalDateFail: "設定續期日期失敗",
+    autoRateLabel: "自動", loadingRate: "查詢中...", rateHint: "自動從匯率管理標籤獲取資料，也可手動輸入。",
   },
 
   lifecycle: {

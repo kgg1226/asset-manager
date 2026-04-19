@@ -431,6 +431,11 @@ export const en: TranslationDict = {
     monthsUnit: " months",
     noChange: "No change",
     decreaseForecast: "decrease forecasted",
+    currentMonthEstimate: "Estimated This Month",
+    activeSubscriptionBasis: "Based on active subscriptions",
+    nextMonthForecast: "Next Month Forecast",
+    expiringNextMonthSub: "Expiring Next Month",
+    expiryBanner: "Cloud assets expiring within 30 days",
   },
 
   domain: {
@@ -1327,6 +1332,9 @@ export const en: TranslationDict = {
     addOwnerFail: "Failed to add owner",
     statusChangeFail: "Status change failed",
     renewalDateFail: "Failed to set renewal date",
+    autoRateLabel: "Auto",
+    loadingRate: "Loading...",
+    rateHint: "Automatically fetches data from the exchange rate management tab. Manual entry is also possible.",
   },
 
   lifecycle: {

@@ -439,6 +439,7 @@ function BarTableSection({
   onFilterClick?: (key: string) => void;
   activeFilter?: string;
 }) {
+  const { t } = useTranslation();
   const maxCost = Math.max(...rows.map((r) => r.cost), 1);
   return (
     <div className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
@@ -455,7 +456,7 @@ function BarTableSection({
             >
               <div className="flex items-center justify-between text-sm mb-1">
                 <span className="font-medium text-gray-900">{r.label}</span>
-                <span className="text-gray-500">{r.count}건 · ₩{r.cost.toLocaleString()}</span>
+                <span className="text-gray-500">{r.count}{t.common.countSuffix} · ₩{r.cost.toLocaleString()}</span>
               </div>
               <div className="h-2 w-full rounded-full bg-gray-100">
                 <div

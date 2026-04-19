@@ -431,6 +431,11 @@ export const zh: TranslationDict = {
     monthsUnit: "个月",
     noChange: "无变动",
     decreaseForecast: "预计减少",
+    currentMonthEstimate: "本月预计费用",
+    activeSubscriptionBasis: "按有效订阅计算",
+    nextMonthForecast: "下月预测费用",
+    expiringNextMonthSub: "下月到期订阅",
+    expiryBanner: "30天内到期的云资产",
   },
 
   domain: {
@@ -1299,6 +1304,7 @@ export const zh: TranslationDict = {
     countItems: "条", org: "组织", company: "公司", monthlyCostKRW: "月费用（₩）",
     unassignedCount: "条取消分配", historyLoadFail: "加载历史失败",
     addOwnerFail: "添加负责人失败", statusChangeFail: "状态更改失败", renewalDateFail: "设置续期日期失败",
+    autoRateLabel: "自动", loadingRate: "查询中...", rateHint: "自动从汇率管理标签获取数据，也可手动输入。",
   },
 
   lifecycle: {

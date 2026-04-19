@@ -444,6 +444,11 @@ export type TranslationDict = {
     monthsUnit: string;
     noChange: string;
     decreaseForecast: string;
+    currentMonthEstimate: string;
+    activeSubscriptionBasis: string;
+    nextMonthForecast: string;
+    expiringNextMonthSub: string;
+    expiryBanner: string;
   };
 
   // Domain / SSL
@@ -1386,6 +1391,9 @@ export type TranslationDict = {
     addOwnerFail: string;
     statusChangeFail: string;
     renewalDateFail: string;
+    autoRateLabel: string;
+    loadingRate: string;
+    rateHint: string;
   };
 
   // Lifecycle gauge

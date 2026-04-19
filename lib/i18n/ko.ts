@@ -431,6 +431,11 @@ export const ko: TranslationDict = {
     monthsUnit: "개월",
     noChange: "변동 없음",
     decreaseForecast: "감소 예정",
+    currentMonthEstimate: "이번 달 예상 비용",
+    activeSubscriptionBasis: "활성 구독 기준",
+    nextMonthForecast: "다음 달 예측 비용",
+    expiringNextMonthSub: "다음 달 만료 구독",
+    expiryBanner: "30일 이내 만료 클라우드 자산",
   },
 
   domain: {
@@ -1335,6 +1340,9 @@ export const ko: TranslationDict = {
     addOwnerFail: "담당자 추가 실패",
     statusChangeFail: "상태 변경 실패",
     renewalDateFail: "갱신일 설정 실패",
+    autoRateLabel: "자동",
+    loadingRate: "조회 중...",
+    rateHint: "환율 관리 탭의 데이터를 자동으로 가져옵니다. 직접 입력도 가능합니다.",
   },
 
   // Lifecycle gauge

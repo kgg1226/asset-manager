@@ -431,6 +431,11 @@ export const ja: TranslationDict = {
     monthsUnit: "ヶ月",
     noChange: "変動なし",
     decreaseForecast: "減少予定",
+    currentMonthEstimate: "今月の予想費用",
+    activeSubscriptionBasis: "有効なサブスクリプション基準",
+    nextMonthForecast: "来月予測費用",
+    expiringNextMonthSub: "来月満了サブスクリプション",
+    expiryBanner: "30日以内に満了するクラウド資産",
   },
 
   domain: {
@@ -1300,6 +1305,7 @@ export const ja: TranslationDict = {
     countItems: "件", org: "組織", company: "会社", monthlyCostKRW: "月額費用（₩）",
     unassignedCount: "件割当解除完了", historyLoadFail: "履歴の読み込み失敗",
     addOwnerFail: "担当者追加失敗", statusChangeFail: "状態変更失敗", renewalDateFail: "更新日設定失敗",
+    autoRateLabel: "自動", loadingRate: "照会中...", rateHint: "為替管理タブのデータを自動取得します。手動入力も可能です。",
   },
 
   lifecycle: {

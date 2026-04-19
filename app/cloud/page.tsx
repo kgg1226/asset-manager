@@ -181,12 +181,12 @@ export default function CloudListPage() {
         {!isLoading && assets.length > 0 && (
           <div className="mb-4 grid grid-cols-3 gap-3">
             <div className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-200">
-              <p className="text-xs font-medium text-gray-500 uppercase">이번 달 예상 비용</p>
+              <p className="text-xs font-medium text-gray-500 uppercase">{t.cloud.currentMonthEstimate}</p>
               <p className="mt-1 text-xl font-bold text-gray-900">₩{costForecast.currentMonthly.toLocaleString()}</p>
-              <p className="mt-0.5 text-xs text-gray-400">활성 구독 기준</p>
+              <p className="mt-0.5 text-xs text-gray-400">{t.cloud.activeSubscriptionBasis}</p>
             </div>
             <div className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-200">
-              <p className="text-xs font-medium text-gray-500 uppercase">다음 달 예측 비용</p>
+              <p className="text-xs font-medium text-gray-500 uppercase">{t.cloud.nextMonthForecast}</p>
               <p className={`mt-1 text-xl font-bold ${costForecast.nextMonthly < costForecast.currentMonthly ? "text-green-600" : "text-gray-900"}`}>
                 ₩{costForecast.nextMonthly.toLocaleString()}
               </p>
@@ -199,8 +199,8 @@ export default function CloudListPage() {
               )}
             </div>
             <div className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-200">
-              <p className="text-xs font-medium text-gray-500 uppercase">다음 달 만료 구독</p>
-              <p className="mt-1 text-xl font-bold text-amber-600">{costForecast.expiringNextMonth.length}건</p>
+              <p className="text-xs font-medium text-gray-500 uppercase">{t.cloud.expiringNextMonthSub}</p>
+              <p className="mt-1 text-xl font-bold text-amber-600">{costForecast.expiringNextMonth.length}{t.common.countSuffix}</p>
               {costForecast.expiringNextMonth.length > 0 && (
                 <p className="mt-0.5 text-xs text-amber-500 truncate">
                   {costForecast.expiringNextMonth.map((a) => a.name).join(", ")}
@@ -220,7 +220,7 @@ export default function CloudListPage() {
             <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-red-800">30일 이내 만료 클라우드 자산 {expiring.length}건</p>
+                <p className="text-sm font-medium text-red-800">{t.cloud.expiryBanner} {expiring.length}{t.common.countSuffix}</p>
                 <div className="mt-1 flex flex-wrap gap-2">
                   {expiring.map((a) => {
                     const daysLeft = Math.ceil((new Date(a.expiryDate!).getTime() - now.getTime()) / 86400000);
