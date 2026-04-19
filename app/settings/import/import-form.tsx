@@ -25,7 +25,7 @@ export default function ImportForm() {
     { value: "cloud", label: t.cloud?.title ?? "클라우드" },
     { value: "domains", label: t.domain?.title ?? "도메인·SSL" },
     { value: "hardware", label: t.hw?.title ?? "하드웨어" },
-    { value: "contracts", label: t.contract?.title ?? "계약" },
+    { value: "contracts", label: t.contract.title },
   ];
 
   async function handleDownloadTemplate() {

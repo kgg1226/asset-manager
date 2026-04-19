@@ -13,6 +13,7 @@ import {
   type Currency,
 } from "@/lib/cost-calculator";
 import { useTranslation } from "@/lib/i18n";
+import LifecycleGauge from "@/app/_components/lifecycle-gauge";
 
 type LicenseType = "NO_KEY" | "KEY_BASED" | "VOLUME";
 
@@ -477,6 +478,11 @@ export default function EditLicenseForm({
                 <input type="hidden" name="expiryDate" value={renewalDateStr} />
               </div>
             </div>
+            {purchaseDateStr && renewalDateStr && (
+              <div className="mt-4">
+                <LifecycleGauge startDate={purchaseDateStr} endDate={renewalDateStr} size="sm" showLabel showDates />
+              </div>
+            )}
           </fieldset>
 
           {/* 해지 통보 기한 */}
