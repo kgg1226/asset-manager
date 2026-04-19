@@ -878,6 +878,26 @@ export const zh: TranslationDict = {
     securityTip3: "请使用与其他账户不同的密码。",
   },
 
+  featureFlag: {
+    categoryFeatureLabel: "功能开放",
+    categoryFeatureDesc: "控制向普通用户显示的功能",
+    categorySecurityLabel: "安全",
+    categorySecurityDesc: "管理认证、会话和密码策略",
+    categoryNotificationLabel: "通知基准",
+    categoryNotificationDesc: "设置到期/寿命提醒的阈值",
+    categoryAssetLabel: "资产管理",
+    categoryAssetDesc: "配置资产自动处理规则",
+    categoryFinanceLabel: "财务",
+    categoryFinanceDesc: "设置税务和成本计算规则",
+    categoryDisplayLabel: "界面显示",
+    categoryDisplayDesc: "管理列表页面显示设置",
+    pageDesc: "在一处管理所有系统范围的设置。更改立即生效。",
+    resetToDefault: "恢复默认值",
+    loadFail: "无法加载设置。",
+    noticeTitle: "提示",
+    noticeBody: "安全/通知设置更改立即生效。会话有效期更改从新登录起生效。可使用重置按钮恢复默认值。",
+  },
+
   admin: {
     accountList: "账户列表",
     newAccount: "+ 新账户",

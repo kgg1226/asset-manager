@@ -879,6 +879,26 @@ export const vi: TranslationDict = {
     securityTip3: "Sử dụng mật khẩu khác với các tài khoản khác.",
   },
 
+  featureFlag: {
+    categoryFeatureLabel: "Tính năng",
+    categoryFeatureDesc: "Kiểm soát các tính năng hiển thị cho người dùng thường",
+    categorySecurityLabel: "Bảo mật",
+    categorySecurityDesc: "Quản lý xác thực, phiên và chính sách mật khẩu",
+    categoryNotificationLabel: "Ngưỡng thông báo",
+    categoryNotificationDesc: "Đặt ngưỡng cảnh báo hết hạn và vòng đời",
+    categoryAssetLabel: "Quản lý tài sản",
+    categoryAssetDesc: "Cấu hình quy tắc xử lý tài sản tự động",
+    categoryFinanceLabel: "Tài chính",
+    categoryFinanceDesc: "Đặt quy tắc tính thuế và chi phí",
+    categoryDisplayLabel: "Hiển thị",
+    categoryDisplayDesc: "Quản lý cài đặt hiển thị trang danh sách",
+    pageDesc: "Quản lý tất cả cài đặt toàn hệ thống tại một nơi. Thay đổi có hiệu lực ngay.",
+    resetToDefault: "Đặt lại mặc định",
+    loadFail: "Không thể tải cài đặt.",
+    noticeTitle: "Lưu ý",
+    noticeBody: "Thay đổi cài đặt bảo mật/thông báo có hiệu lực ngay. Thay đổi thời hạn phiên áp dụng từ lần đăng nhập mới. Nhấn nút đặt lại để khôi phục giá trị mặc định.",
+  },
+
   admin: {
     accountList: "Danh sách tài khoản",
     newAccount: "+ Tài khoản mới",

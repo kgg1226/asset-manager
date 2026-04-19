@@ -151,7 +151,7 @@ export default function LicensesContent({
           </h1>
           <div className="flex items-center gap-2">
             {isAdmin && (
-              <a href="/api/export/all?format=xlsx" className="flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-600 hover:bg-gray-50" title="전체 Excel 내보내기">
+              <a href="/api/export/all?format=xlsx" className="flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-600 hover:bg-gray-50" title={t.header.excelExportAll}>
                 <FileDown className="h-4 w-4" />Excel
               </a>
             )}

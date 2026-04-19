@@ -907,6 +907,26 @@ export type TranslationDict = {
   };
 
   // Admin
+  featureFlag: {
+    categoryFeatureLabel: string;
+    categoryFeatureDesc: string;
+    categorySecurityLabel: string;
+    categorySecurityDesc: string;
+    categoryNotificationLabel: string;
+    categoryNotificationDesc: string;
+    categoryAssetLabel: string;
+    categoryAssetDesc: string;
+    categoryFinanceLabel: string;
+    categoryFinanceDesc: string;
+    categoryDisplayLabel: string;
+    categoryDisplayDesc: string;
+    pageDesc: string;
+    resetToDefault: string;
+    loadFail: string;
+    noticeTitle: string;
+    noticeBody: string;
+  };
+
   admin: {
     accountList: string;
     newAccount: string;

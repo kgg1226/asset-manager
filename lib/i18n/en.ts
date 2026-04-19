@@ -879,6 +879,26 @@ export const en: TranslationDict = {
     securityTip3: "Use a different password from other accounts.",
   },
 
+  featureFlag: {
+    categoryFeatureLabel: "Features",
+    categoryFeatureDesc: "Control features visible to general users",
+    categorySecurityLabel: "Security",
+    categorySecurityDesc: "Manage authentication, sessions, and password policies",
+    categoryNotificationLabel: "Notification Thresholds",
+    categoryNotificationDesc: "Set thresholds for expiry and lifecycle alerts",
+    categoryAssetLabel: "Asset Management",
+    categoryAssetDesc: "Configure automatic asset processing rules",
+    categoryFinanceLabel: "Finance",
+    categoryFinanceDesc: "Set tax and cost calculation rules",
+    categoryDisplayLabel: "Display",
+    categoryDisplayDesc: "Manage list page display settings",
+    pageDesc: "Manage all system-wide settings in one place. Changes take effect immediately.",
+    resetToDefault: "Reset to default",
+    loadFail: "Failed to load settings.",
+    noticeTitle: "Note",
+    noticeBody: "Security/notification setting changes take effect immediately. Session expiry changes apply to new logins. Use the reset button to restore default values.",
+  },
+
   admin: {
     accountList: "Account List",
     newAccount: "+ New Account",

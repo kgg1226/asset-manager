@@ -880,6 +880,26 @@ export const ko: TranslationDict = {
     securityTip3: "다른 계정과 다른 비밀번호를 사용하세요.",
   },
 
+  featureFlag: {
+    categoryFeatureLabel: "기능 공개",
+    categoryFeatureDesc: "일반 사용자에게 표시할 기능을 제어합니다",
+    categorySecurityLabel: "보안",
+    categorySecurityDesc: "인증, 세션, 비밀번호 정책을 관리합니다",
+    categoryNotificationLabel: "알림 기준",
+    categoryNotificationDesc: "만료/수명 알림의 기준값을 설정합니다",
+    categoryAssetLabel: "자산 관리",
+    categoryAssetDesc: "자산 자동 처리 기준을 설정합니다",
+    categoryFinanceLabel: "재무",
+    categoryFinanceDesc: "세금 및 비용 계산 기준을 설정합니다",
+    categoryDisplayLabel: "화면 표시",
+    categoryDisplayDesc: "목록 페이지 표시 설정을 관리합니다",
+    pageDesc: "시스템 전체 동작을 제어하는 설정을 한 곳에서 관리합니다. 변경 사항은 즉시 적용됩니다.",
+    resetToDefault: "기본값 복원",
+    loadFail: "설정을 불러올 수 없습니다.",
+    noticeTitle: "안내",
+    noticeBody: "보안/알림 설정 변경은 즉시 적용됩니다. 세션 유효기간 변경은 새 로그인부터 적용됩니다. 기본값 복원 버튼을 눌러 원래 값으로 되돌릴 수 있습니다.",
+  },
+
   admin: {
     accountList: "계정 목록",
     newAccount: "+ 새 계정",

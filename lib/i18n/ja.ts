@@ -879,6 +879,26 @@ export const ja: TranslationDict = {
     securityTip3: "他のアカウントと異なるパスワードを使用してください。",
   },
 
+  featureFlag: {
+    categoryFeatureLabel: "機能公開",
+    categoryFeatureDesc: "一般ユーザーに表示する機能を制御します",
+    categorySecurityLabel: "セキュリティ",
+    categorySecurityDesc: "認証、セッション、パスワードポリシーを管理します",
+    categoryNotificationLabel: "通知基準",
+    categoryNotificationDesc: "期限・寿命アラートの閾値を設定します",
+    categoryAssetLabel: "資産管理",
+    categoryAssetDesc: "資産の自動処理基準を設定します",
+    categoryFinanceLabel: "財務",
+    categoryFinanceDesc: "税金およびコスト計算基準を設定します",
+    categoryDisplayLabel: "画面表示",
+    categoryDisplayDesc: "一覧ページの表示設定を管理します",
+    pageDesc: "システム全体の動作を一元管理します。変更は即時反映されます。",
+    resetToDefault: "デフォルトに戻す",
+    loadFail: "設定を読み込めませんでした。",
+    noticeTitle: "注意",
+    noticeBody: "セキュリティ/通知設定の変更は即時反映されます。セッション有効期限の変更は新規ログインから適用されます。リセットボタンでデフォルト値に戻せます。",
+  },
+
   admin: {
     accountList: "アカウント一覧",
     newAccount: "+ 新規アカウント",

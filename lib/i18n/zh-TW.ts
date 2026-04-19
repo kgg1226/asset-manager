@@ -878,6 +878,26 @@ export const zhTW: TranslationDict = {
     securityTip3: "請使用與其他帳戶不同的密碼。",
   },
 
+  featureFlag: {
+    categoryFeatureLabel: "功能開放",
+    categoryFeatureDesc: "控制向一般用戶顯示的功能",
+    categorySecurityLabel: "安全",
+    categorySecurityDesc: "管理認證、會話和密碼政策",
+    categoryNotificationLabel: "通知基準",
+    categoryNotificationDesc: "設置到期/壽命提醒的閾值",
+    categoryAssetLabel: "資產管理",
+    categoryAssetDesc: "配置資產自動處理規則",
+    categoryFinanceLabel: "財務",
+    categoryFinanceDesc: "設置稅務和成本計算規則",
+    categoryDisplayLabel: "介面顯示",
+    categoryDisplayDesc: "管理列表頁面顯示設定",
+    pageDesc: "在一處管理所有系統範圍的設定。更改立即生效。",
+    resetToDefault: "還原預設值",
+    loadFail: "無法載入設定。",
+    noticeTitle: "提示",
+    noticeBody: "安全/通知設定更改立即生效。會話有效期更改從新登入起生效。可使用重置按鈕還原預設值。",
+  },
+
   admin: {
     accountList: "帳戶列表",
     newAccount: "+ 新帳戶",
