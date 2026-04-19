@@ -261,7 +261,7 @@ export default function GlobalSearch() {
                       <Building2 className="h-4 w-4 shrink-0 text-orange-500" />
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-medium text-gray-900">{o.name}</p>
-                        <p className="truncate text-xs text-gray-500">{o.sub || (o.kind === "company" ? "회사" : "부서")}</p>
+                        <p className="truncate text-xs text-gray-500">{o.sub || (o.kind === "company" ? t.org.companyName : t.employee.department)}</p>
                       </div>
                     </button>
                   );
