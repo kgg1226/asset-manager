@@ -1,8 +1,10 @@
 // BE-031: GET /api/reports/monthly/{yearMonth}/excel — Excel 보고서 다운로드
+// BE-078: 다운로드 시 Archive 증적 자동 생성
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ValidationError, handleValidationError } from "@/lib/validation";
+import { getCurrentUser } from "@/lib/auth";
 import ExcelJS from "exceljs";
 
 type Params = { params: Promise<{ yearMonth: string }> };
@@ -305,6 +307,41 @@ export async function GET(request: NextRequest, { params }: Params) {
     // ── Buffer 변환 및 응답 ──
     const buffer = await wb.xlsx.writeBuffer();
     const fileName = `Asset_Report_${period}.xlsx`;
+
+    // BE-078: 증적 Archive 자동 생성 (비동기, 실패해도 다운로드 응답에 영향 없음)
+    getCurrentUser().then((user) => {
+      return prisma.archive.create({
+        data: {
+          yearMonth: period,
+          status: "COMPLETED",
+          trigger: "manual",
+          startDate: startDate,
+          endDate: endDate,
+          createdBy: user?.id ?? null,
+          completedAt: new Date(),
+          data: {
+            create: {
+              dataType: "assets",
+              payload: assets.map((a) => ({
+                id: a.id, name: a.name, type: a.type, status: a.status,
+                vendor: a.vendor, monthlyCost: a.monthlyCost ? Number(a.monthlyCost) : null,
+                currency: a.currency, assignee: a.assignee?.name ?? null,
+                department: a.orgUnit?.name ?? a.assignee?.department ?? null,
+                expiryDate: a.expiryDate?.toISOString() ?? null,
+                purchaseDate: a.purchaseDate?.toISOString() ?? null,
+              })),
+              recordCount: assets.length,
+            },
+          },
+          logs: {
+            create: {
+              level: "info",
+              message: `Excel 보고서 생성 완료 — ${assets.length}건 (${period})`,
+            },
+          },
+        },
+      });
+    }).catch((e) => console.error("[archive] auto-create failed:", e));
 
     return new NextResponse(buffer as ArrayBuffer, {
       status: 200,

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { BarChart3, Download, FileSpreadsheet, FileText, Send, SlidersHorizontal, X, Save, Trash2 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { BarChart3, Download, FileSpreadsheet, FileText, Send, SlidersHorizontal, X, Save, Trash2, Archive, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { useTranslation } from "@/lib/i18n";
 import { TourGuide } from "@/app/_components/tour-guide";
@@ -246,6 +246,25 @@ export default function ReportsPage() {
   const [emailResult, setEmailResult] = useState<string | null>(null);
   const [showFieldPicker, setShowFieldPicker] = useState(false);
 
+  type ArchiveItem = {
+    id: number; yearMonth: string; status: string; trigger: string;
+    createdAt: string; completedAt: string | null;
+    data: { dataType: string; recordCount: number }[];
+  };
+  const [archives, setArchives] = useState<ArchiveItem[]>([]);
+
+  const fetchArchives = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/archives?yearMonth=${yearMonth}&limit=5`);
+      if (res.ok) {
+        const json = await res.json();
+        setArchives(json.items ?? []);
+      }
+    } catch { /* ignore */ }
+  }, [yearMonth]);
+
+  useEffect(() => { fetchArchives(); }, [fetchArchives]);
+
   async function fetchReport() {
     setLoading(true);
     setError(null);
@@ -471,6 +490,37 @@ export default function ReportsPage() {
               )}
             </div>
           </>
+        )}
+
+        {/* 증적 이력 */}
+        {archives.length > 0 && (
+          <div className="mt-6 rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
+            <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-gray-900">
+              <Archive className="h-4 w-4 text-purple-500" />
+              증적 이력 ({yearMonth})
+            </h2>
+            <div className="space-y-2">
+              {archives.map((a) => (
+                <div key={a.id} className="flex items-center gap-3 rounded-md border border-gray-100 px-4 py-2.5 text-sm">
+                  {a.status === "COMPLETED" ? (
+                    <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                  ) : a.status === "FAILED" ? (
+                    <AlertCircle className="h-4 w-4 text-red-500 shrink-0" />
+                  ) : (
+                    <Clock className="h-4 w-4 text-yellow-500 shrink-0" />
+                  )}
+                  <span className="font-medium text-gray-900">{a.yearMonth}</span>
+                  <span className="text-gray-400">·</span>
+                  <span className="text-gray-600">{a.data.find((d) => d.dataType === "assets")?.recordCount ?? 0}건</span>
+                  <span className="text-gray-400">·</span>
+                  <span className="text-gray-500">{a.trigger === "manual" ? "수동" : "자동"}</span>
+                  <span className="ml-auto text-xs text-gray-400">
+                    {new Date(a.createdAt).toLocaleString("ko-KR")}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         {!data && !loading && !error && (
