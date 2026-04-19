@@ -64,6 +64,7 @@ export const ko: TranslationDict = {
     show: "표시",
     today: "오늘",
     dSuffix: "일",
+    navigate: "이동",
   },
 
   nav: {
@@ -224,6 +225,10 @@ export const ko: TranslationDict = {
     offboardWarning2: "7일 유예 기간 후 계정이 자동 삭제됩니다.",
     offboardWarning3: "보유 라이선스는 즉시 반납되지 않습니다.",
     offboardFail: "퇴사 처리 실패",
+    onboardEmail: "이메일 등록",
+    onboardDept: "부서/조직 배정",
+    onboardLicense: "소프트웨어 라이선스 배정",
+    onboardHardware: "하드웨어 장비 배정",
   },
 
   asset: {
@@ -852,6 +857,13 @@ export const ko: TranslationDict = {
     channelEmailOnly: "이메일만",
     channelBoth: "모두",
     addThreshold: "+추가",
+    sendAlert: "알림 발송",
+    alertSentSuccess: "알림을 발송했습니다.",
+    alertSentFail: "알림 발송에 실패했습니다.",
+    networkFail: "네트워크 오류로 알림 발송에 실패했습니다.",
+    licenseAlertHint: "라이선스 알림은 라이선스 상세 페이지에서 발송하세요.",
+    markRenewed: "갱신 완료로 표시",
+    alreadyRenewed: "갱신 처리됨",
   },
 
   auth: {

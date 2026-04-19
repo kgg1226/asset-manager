@@ -64,6 +64,7 @@ export const ja: TranslationDict = {
     show: "表示",
     today: "今日",
     dSuffix: "日",
+    navigate: "移動",
   },
 
   nav: {
@@ -224,6 +225,10 @@ export const ja: TranslationDict = {
     offboardWarning2: "7日間の猶予期間後、アカウントが自動削除されます。",
     offboardWarning3: "保有ライセンスは即時返却されません。",
     offboardFail: "退職処理失敗",
+    onboardEmail: "メール登録",
+    onboardDept: "部署/組織配属",
+    onboardLicense: "ソフトウェアライセンス配布",
+    onboardHardware: "ハードウェア配布",
   },
 
   asset: {
@@ -851,6 +856,13 @@ export const ja: TranslationDict = {
     channelEmailOnly: "メールのみ",
     channelBoth: "両方",
     addThreshold: "+追加",
+    sendAlert: "アラート送信",
+    alertSentSuccess: "アラートを送信しました。",
+    alertSentFail: "アラート送信に失敗しました。",
+    networkFail: "ネットワークエラーでアラート送信に失敗しました。",
+    licenseAlertHint: "ライセンスアラートはライセンス詳細ページから送信してください。",
+    markRenewed: "更新済みとしてマーク",
+    alreadyRenewed: "更新済み",
   },
 
   auth: {

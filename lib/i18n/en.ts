@@ -64,6 +64,7 @@ export const en: TranslationDict = {
     show: "Show",
     today: "Today",
     dSuffix: "d",
+    navigate: "Go",
   },
 
   nav: {
@@ -224,6 +225,10 @@ export const en: TranslationDict = {
     offboardWarning2: "Account will be auto-deleted after 7-day grace period.",
     offboardWarning3: "Assigned licenses will not be returned immediately.",
     offboardFail: "Offboard failed",
+    onboardEmail: "Email registered",
+    onboardDept: "Department assigned",
+    onboardLicense: "Software license assigned",
+    onboardHardware: "Hardware assigned",
   },
 
   asset: {
@@ -851,6 +856,13 @@ export const en: TranslationDict = {
     channelEmailOnly: "Email only",
     channelBoth: "Both",
     addThreshold: "+Add",
+    sendAlert: "Send Alert",
+    alertSentSuccess: "Alert sent.",
+    alertSentFail: "Failed to send alert.",
+    networkFail: "Network error: failed to send alert.",
+    licenseAlertHint: "Send license alerts from the license detail page.",
+    markRenewed: "Mark as renewed",
+    alreadyRenewed: "Already renewed",
   },
 
   auth: {

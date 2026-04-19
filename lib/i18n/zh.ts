@@ -64,6 +64,7 @@ export const zh: TranslationDict = {
     show: "显示",
     today: "今天",
     dSuffix: "天",
+    navigate: "前往",
   },
 
   nav: {
@@ -224,6 +225,10 @@ export const zh: TranslationDict = {
     offboardWarning2: "7天宽限期后账户将自动删除。",
     offboardWarning3: "持有的许可证不会立即归还。",
     offboardFail: "离职处理失败",
+    onboardEmail: "注册邮箱",
+    onboardDept: "分配部门/组织",
+    onboardLicense: "分配软件许可证",
+    onboardHardware: "分配硬件设备",
   },
 
   asset: {
@@ -850,6 +855,13 @@ export const zh: TranslationDict = {
     channelEmailOnly: "仅邮件",
     channelBoth: "全部",
     addThreshold: "+添加",
+    sendAlert: "发送提醒",
+    alertSentSuccess: "提醒已发送。",
+    alertSentFail: "发送提醒失败。",
+    networkFail: "网络错误，发送提醒失败。",
+    licenseAlertHint: "请在许可证详情页发送许可证提醒。",
+    markRenewed: "标记为已续期",
+    alreadyRenewed: "已续期",
   },
 
   auth: {

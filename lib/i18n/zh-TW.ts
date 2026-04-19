@@ -64,6 +64,7 @@ export const zhTW: TranslationDict = {
     show: "顯示",
     today: "今天",
     dSuffix: "天",
+    navigate: "前往",
   },
 
   nav: {
@@ -224,6 +225,10 @@ export const zhTW: TranslationDict = {
     offboardWarning2: "7天寬限期後帳戶將自動刪除。",
     offboardWarning3: "持有的授權不會立即歸還。",
     offboardFail: "離職處理失敗",
+    onboardEmail: "註冊電子郵件",
+    onboardDept: "分配部門/組織",
+    onboardLicense: "分配軟體授權",
+    onboardHardware: "分配硬體設備",
   },
 
   asset: {
@@ -850,6 +855,13 @@ export const zhTW: TranslationDict = {
     channelEmailOnly: "僅電子郵件",
     channelBoth: "全部",
     addThreshold: "+新增",
+    sendAlert: "發送提醒",
+    alertSentSuccess: "提醒已發送。",
+    alertSentFail: "發送提醒失敗。",
+    networkFail: "網路錯誤，發送提醒失敗。",
+    licenseAlertHint: "請在授權詳情頁發送授權提醒。",
+    markRenewed: "標記為已續期",
+    alreadyRenewed: "已續期",
   },
 
   auth: {

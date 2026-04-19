@@ -64,6 +64,7 @@ export const vi: TranslationDict = {
     show: "Hiện",
     today: "Hôm nay",
     dSuffix: "N",
+    navigate: "Đến",
   },
 
   nav: {
@@ -224,6 +225,10 @@ export const vi: TranslationDict = {
     offboardWarning2: "Tài khoản sẽ tự động bị xóa sau 7 ngày ân hạn.",
     offboardWarning3: "Các giấy phép đang sở hữu sẽ không được trả lại ngay.",
     offboardFail: "Xử lý nghỉ việc thất bại",
+    onboardEmail: "Đăng ký email",
+    onboardDept: "Phân bổ phòng ban/tổ chức",
+    onboardLicense: "Phân bổ giấy phép phần mềm",
+    onboardHardware: "Phân bổ thiết bị phần cứng",
   },
 
   asset: {
@@ -851,6 +856,13 @@ export const vi: TranslationDict = {
     channelEmailOnly: "Chỉ Email",
     channelBoth: "Tất cả",
     addThreshold: "+Thêm",
+    sendAlert: "Gửi cảnh báo",
+    alertSentSuccess: "Đã gửi cảnh báo.",
+    alertSentFail: "Gửi cảnh báo thất bại.",
+    networkFail: "Lỗi mạng: gửi cảnh báo thất bại.",
+    licenseAlertHint: "Gửi cảnh báo giấy phép từ trang chi tiết giấy phép.",
+    markRenewed: "Đánh dấu đã gia hạn",
+    alreadyRenewed: "Đã gia hạn",
   },
 
   auth: {

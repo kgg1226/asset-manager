@@ -65,6 +65,7 @@ export type TranslationDict = {
     show: string;
     today: string;
     dSuffix: string;
+    navigate: string;
   };
 
   // Navigation / Sidebar
@@ -230,6 +231,10 @@ export type TranslationDict = {
     offboardWarning2: string;
     offboardWarning3: string;
     offboardFail: string;
+    onboardEmail: string;
+    onboardDept: string;
+    onboardLicense: string;
+    onboardHardware: string;
   };
 
   // Assets (common for hardware/cloud/domain/contract)
@@ -877,6 +882,13 @@ export type TranslationDict = {
     channelEmailOnly: string;
     channelBoth: string;
     addThreshold: string;
+    sendAlert: string;
+    alertSentSuccess: string;
+    alertSentFail: string;
+    networkFail: string;
+    licenseAlertHint: string;
+    markRenewed: string;
+    alreadyRenewed: string;
   };
 
   // Auth / Login

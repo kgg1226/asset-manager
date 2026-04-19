@@ -123,10 +123,10 @@ export default function EmployeeDetailContent({
         {/* Onboarding Checklist (admin only, ACTIVE employees with incomplete steps) */}
         {isLoggedIn && employee.status === "ACTIVE" && (() => {
           const steps = [
-            { done: !!employee.email, label: "이메일 등록", icon: Mail, link: null },
-            { done: !!employee.orgUnitId, label: "부서/조직 배정", icon: Building2, link: null },
-            { done: activeAssignmentCount > 0, label: "소프트웨어 라이선스 배정", icon: Key, link: "#manage-licenses" },
-            { done: hardwareCount > 0, label: "하드웨어 장비 배정", icon: Monitor, link: `/hardware?search=${encodeURIComponent(employee.name)}` },
+            { done: !!employee.email, label: t.employee.onboardEmail, icon: Mail, link: null },
+            { done: !!employee.orgUnitId, label: t.employee.onboardDept, icon: Building2, link: null },
+            { done: activeAssignmentCount > 0, label: t.employee.onboardLicense, icon: Key, link: "#manage-licenses" },
+            { done: hardwareCount > 0, label: t.employee.onboardHardware, icon: Monitor, link: `/hardware?search=${encodeURIComponent(employee.name)}` },
           ];
           const incomplete = steps.filter((s) => !s.done);
           if (incomplete.length === 0) return null;
