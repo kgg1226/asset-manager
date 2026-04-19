@@ -59,6 +59,11 @@ export const ja: TranslationDict = {
     reasonOptional: "理由（任意）",
     manual: "手動",
     auto: "自動",
+    apply: "適用",
+    hide: "非表示",
+    show: "表示",
+    today: "今日",
+    dSuffix: "日",
   },
 
   nav: {
@@ -127,6 +132,12 @@ export const ja: TranslationDict = {
     monthly: "月別",
     cumulative: "累積",
     average: "平均",
+    widgetConfig: "ウィジェット設定",
+    widgetConfigDesc: "ドラッグで並べ替え、クリックで表示/非表示",
+    widgetMetrics: "サマリー指標",
+    widgetCharts: "チャート",
+    widgetOrgUsage: "組織別使用状況",
+    widgetExpiring: "期限切れ間近の資産",
   },
 
   license: {
@@ -345,6 +356,7 @@ export const ja: TranslationDict = {
     bulkTagSaving: "保存中...",
     bulkStatusChange: "変更",
     bulkStatusChanging: "変更中...",
+    keyboardShortcuts: "キーボードショートカット（?キー）",
   },
 
   cloud: {
@@ -579,6 +591,7 @@ export const ja: TranslationDict = {
     dateRange: "日付範囲",
     startDate: "開始日",
     endDate: "終了日",
+    quickFilter: "クイックフィルター",
   },
 
   cia: {
@@ -828,6 +841,7 @@ export const ja: TranslationDict = {
     prefsSaved: "通知設定が保存されました",
     prefsSaveFail: "通知設定の保存に失敗しました",
     on: "オン",
+    resend: "再送信",
     off: "オフ",
     minCostThreshold: "最低コスト閾値 (KRW)",
     minCostThresholdDesc: "この金額未満の資産は満了・更新通知から除外",

@@ -59,6 +59,11 @@ export const vi: TranslationDict = {
     reasonOptional: "Lý do (tùy chọn)",
     manual: "Thủ công",
     auto: "Tự động",
+    apply: "Áp dụng",
+    hide: "Ẩn",
+    show: "Hiện",
+    today: "Hôm nay",
+    dSuffix: "N",
   },
 
   nav: {
@@ -127,6 +132,12 @@ export const vi: TranslationDict = {
     monthly: "Hàng tháng",
     cumulative: "Lũy kế",
     average: "TB",
+    widgetConfig: "Cấu hình widget",
+    widgetConfigDesc: "Kéo để sắp xếp, nhấp để hiện/ẩn",
+    widgetMetrics: "Chỉ số tóm tắt",
+    widgetCharts: "Biểu đồ",
+    widgetOrgUsage: "Sử dụng theo tổ chức",
+    widgetExpiring: "Tài sản sắp hết hạn",
   },
 
   license: {
@@ -345,6 +356,7 @@ export const vi: TranslationDict = {
     bulkTagSaving: "Đang lưu...",
     bulkStatusChange: "Áp dụng",
     bulkStatusChanging: "Đang áp dụng...",
+    keyboardShortcuts: "Phím tắt bàn phím (phím ?)",
   },
 
   cloud: {
@@ -579,6 +591,7 @@ export const vi: TranslationDict = {
     dateRange: "Khoảng thời gian",
     startDate: "Ngày bắt đầu",
     endDate: "Ngày kết thúc",
+    quickFilter: "Lọc nhanh",
   },
 
   cia: {
@@ -828,6 +841,7 @@ export const vi: TranslationDict = {
     prefsSaved: "Đã lưu cài đặt thông báo",
     prefsSaveFail: "Lưu cài đặt thông báo thất bại",
     on: "Bật",
+    resend: "Gửi lại",
     off: "Tắt",
     minCostThreshold: "Ngưỡng chi phí tối thiểu (KRW)",
     minCostThresholdDesc: "Tài sản dưới mức này sẽ không nhận thông báo hết hạn/gia hạn",

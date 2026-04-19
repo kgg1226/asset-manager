@@ -59,6 +59,11 @@ export const zh: TranslationDict = {
     reasonOptional: "原因（可选）",
     manual: "手动",
     auto: "自动",
+    apply: "应用",
+    hide: "隐藏",
+    show: "显示",
+    today: "今天",
+    dSuffix: "天",
   },
 
   nav: {
@@ -127,6 +132,12 @@ export const zh: TranslationDict = {
     monthly: "月度",
     cumulative: "累计",
     average: "平均",
+    widgetConfig: "组件配置",
+    widgetConfigDesc: "拖拽排序，点击显示/隐藏",
+    widgetMetrics: "摘要指标",
+    widgetCharts: "图表",
+    widgetOrgUsage: "组织使用情况",
+    widgetExpiring: "即将到期资产",
   },
 
   license: {
@@ -345,6 +356,7 @@ export const zh: TranslationDict = {
     bulkTagSaving: "保存中...",
     bulkStatusChange: "更改",
     bulkStatusChanging: "更改中...",
+    keyboardShortcuts: "键盘快捷键（?键）",
   },
 
   cloud: {
@@ -579,6 +591,7 @@ export const zh: TranslationDict = {
     dateRange: "日期范围",
     startDate: "开始日期",
     endDate: "结束日期",
+    quickFilter: "快速筛选",
   },
 
   cia: {
@@ -827,6 +840,7 @@ export const zh: TranslationDict = {
     prefsSaved: "通知设置已保存",
     prefsSaveFail: "通知设置保存失败",
     on: "开",
+    resend: "重新发送",
     off: "关",
     minCostThreshold: "最低费用阈值 (KRW)",
     minCostThresholdDesc: "低于此金额的资产不包含在到期/续订通知中",

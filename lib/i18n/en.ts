@@ -59,6 +59,11 @@ export const en: TranslationDict = {
     reasonOptional: "Reason (optional)",
     manual: "Manual",
     auto: "Auto",
+    apply: "Apply",
+    hide: "Hide",
+    show: "Show",
+    today: "Today",
+    dSuffix: "d",
   },
 
   nav: {
@@ -127,6 +132,12 @@ export const en: TranslationDict = {
     monthly: "Monthly",
     cumulative: "Cumulative",
     average: "Avg",
+    widgetConfig: "Widget Config",
+    widgetConfigDesc: "Drag to reorder, click to show/hide",
+    widgetMetrics: "Summary Metrics",
+    widgetCharts: "Charts",
+    widgetOrgUsage: "Org Usage",
+    widgetExpiring: "Expiring Assets",
   },
 
   license: {
@@ -345,6 +356,7 @@ export const en: TranslationDict = {
     bulkTagSaving: "Saving...",
     bulkStatusChange: "Apply",
     bulkStatusChanging: "Applying...",
+    keyboardShortcuts: "Keyboard Shortcuts (? key)",
   },
 
   cloud: {
@@ -579,6 +591,7 @@ export const en: TranslationDict = {
     dateRange: "Date Range",
     startDate: "Start Date",
     endDate: "End Date",
+    quickFilter: "Quick Filter",
   },
 
   cia: {
@@ -829,6 +842,7 @@ export const en: TranslationDict = {
     prefsSaveFail: "Failed to save notification settings",
     on: "On",
     off: "Off",
+    resend: "Resend",
     minCostThreshold: "Min Cost Threshold (KRW)",
     minCostThresholdDesc: "Assets below this amount excluded from expiry/renewal alerts",
     notifyDaysLabel: "Notify at (days before)",

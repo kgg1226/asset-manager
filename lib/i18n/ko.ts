@@ -59,6 +59,11 @@ export const ko: TranslationDict = {
     reasonOptional: "사유 (선택)",
     manual: "수동",
     auto: "자동",
+    apply: "적용",
+    hide: "숨기기",
+    show: "표시",
+    today: "오늘",
+    dSuffix: "일",
   },
 
   nav: {
@@ -127,6 +132,12 @@ export const ko: TranslationDict = {
     monthly: "월별",
     cumulative: "누적",
     average: "평균",
+    widgetConfig: "위젯 구성",
+    widgetConfigDesc: "드래그로 순서 변경, 클릭으로 표시/숨김",
+    widgetMetrics: "요약 지표",
+    widgetCharts: "차트",
+    widgetOrgUsage: "조직별 사용 현황",
+    widgetExpiring: "만료 임박 자산",
   },
 
   license: {
@@ -345,6 +356,7 @@ export const ko: TranslationDict = {
     bulkTagSaving: "저장 중...",
     bulkStatusChange: "변경",
     bulkStatusChanging: "변경 중...",
+    keyboardShortcuts: "키보드 단축키 (? 키)",
   },
 
   cloud: {
@@ -580,6 +592,7 @@ export const ko: TranslationDict = {
     dateRange: "날짜 범위",
     startDate: "시작일",
     endDate: "종료일",
+    quickFilter: "빠른 필터",
   },
 
   cia: {
@@ -830,6 +843,7 @@ export const ko: TranslationDict = {
     prefsSaveFail: "알림 설정 저장에 실패했습니다",
     on: "켜짐",
     off: "꺼짐",
+    resend: "재발송",
     minCostThreshold: "최소 비용 임계치 (KRW)",
     minCostThresholdDesc: "이 금액 미만 자산은 만료·갱신 알림 제외",
     notifyDaysLabel: "알림 시점 (일 전)",

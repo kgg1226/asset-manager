@@ -60,6 +60,11 @@ export type TranslationDict = {
     reasonOptional: string;
     manual: string;
     auto: string;
+    apply: string;
+    hide: string;
+    show: string;
+    today: string;
+    dSuffix: string;
   };
 
   // Navigation / Sidebar
@@ -131,6 +136,12 @@ export type TranslationDict = {
     monthly: string;
     cumulative: string;
     average: string;
+    widgetConfig: string;
+    widgetConfigDesc: string;
+    widgetMetrics: string;
+    widgetCharts: string;
+    widgetOrgUsage: string;
+    widgetExpiring: string;
   };
 
   // License
@@ -357,6 +368,7 @@ export type TranslationDict = {
     bulkTagSaving: string;
     bulkStatusChange: string;
     bulkStatusChanging: string;
+    keyboardShortcuts: string;
   };
 
   // Cloud
@@ -598,6 +610,7 @@ export type TranslationDict = {
     dateRange: string;
     startDate: string;
     endDate: string;
+    quickFilter: string;
   };
 
   // CIA
@@ -855,6 +868,7 @@ export type TranslationDict = {
     prefsSaveFail: string;
     on: string;
     off: string;
+    resend: string;
     minCostThreshold: string;
     minCostThresholdDesc: string;
     notifyDaysLabel: string;

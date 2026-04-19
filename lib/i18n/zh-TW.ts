@@ -59,6 +59,11 @@ export const zhTW: TranslationDict = {
     reasonOptional: "原因（選填）",
     manual: "手動",
     auto: "自動",
+    apply: "套用",
+    hide: "隱藏",
+    show: "顯示",
+    today: "今天",
+    dSuffix: "天",
   },
 
   nav: {
@@ -127,6 +132,12 @@ export const zhTW: TranslationDict = {
     monthly: "月度",
     cumulative: "累計",
     average: "平均",
+    widgetConfig: "元件設定",
+    widgetConfigDesc: "拖曳排序，點擊顯示/隱藏",
+    widgetMetrics: "摘要指標",
+    widgetCharts: "圖表",
+    widgetOrgUsage: "組織使用情況",
+    widgetExpiring: "即將到期資產",
   },
 
   license: {
@@ -345,6 +356,7 @@ export const zhTW: TranslationDict = {
     bulkTagSaving: "儲存中...",
     bulkStatusChange: "變更",
     bulkStatusChanging: "變更中...",
+    keyboardShortcuts: "鍵盤快捷鍵（?鍵）",
   },
 
   cloud: {
@@ -579,6 +591,7 @@ export const zhTW: TranslationDict = {
     dateRange: "日期範圍",
     startDate: "開始日期",
     endDate: "結束日期",
+    quickFilter: "快速篩選",
   },
 
   cia: {
@@ -827,6 +840,7 @@ export const zhTW: TranslationDict = {
     prefsSaved: "通知設定已儲存",
     prefsSaveFail: "通知設定儲存失敗",
     on: "開",
+    resend: "重新發送",
     off: "關",
     minCostThreshold: "最低費用門檻 (KRW)",
     minCostThresholdDesc: "低於此金額的資產不包含在到期/續約通知中",

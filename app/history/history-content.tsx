@@ -155,8 +155,8 @@ export default function HistoryContent({
 
         {/* Quick date filters */}
         <div className="mb-3 flex items-center gap-2">
-          <span className="text-xs text-gray-500 font-medium">빠른 필터:</span>
-          {[{ label: "오늘", days: 0 }, { label: "7일", days: 7 }, { label: "30일", days: 30 }, { label: "90일", days: 90 }].map(({ label, days }) => (
+          <span className="text-xs text-gray-500 font-medium">{t.history.quickFilter}:</span>
+          {[{ label: t.common.today, days: 0 }, { label: `7${t.common.dSuffix}`, days: 7 }, { label: `30${t.common.dSuffix}`, days: 30 }, { label: `90${t.common.dSuffix}`, days: 90 }].map(({ label, days }) => (
             <button
               key={label}
               type="button"

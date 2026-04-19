@@ -17,12 +17,14 @@ import { Settings, GripVertical, Eye, EyeOff, X } from "lucide-react";
 type WidgetId = "metrics" | "charts" | "orgUsage" | "expiring";
 
 const DEFAULT_WIDGETS: WidgetId[] = ["metrics", "charts", "orgUsage", "expiring"];
-const WIDGET_LABELS: Record<WidgetId, string> = {
-  metrics: "요약 지표",
-  charts: "차트",
-  orgUsage: "조직별 사용 현황",
-  expiring: "만료 임박 자산",
-};
+function getWidgetLabels(t: ReturnType<typeof import("@/lib/i18n").useTranslation>["t"]): Record<WidgetId, string> {
+  return {
+    metrics: t.dashboard.widgetMetrics,
+    charts: t.dashboard.widgetCharts,
+    orgUsage: t.dashboard.widgetOrgUsage,
+    expiring: t.dashboard.widgetExpiring,
+  };
+}
 
 const STORAGE_KEY = "dashboard-widget-config";
 
@@ -61,6 +63,8 @@ function WidgetConfigPanel({
   onChange: (config: WidgetConfig[]) => void;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
+  const WIDGET_LABELS = getWidgetLabels(t);
   const [local, setLocal] = useState<WidgetConfig[]>(config);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
 
@@ -95,11 +99,11 @@ function WidgetConfigPanel({
     <div className="fixed inset-0 z-40 flex items-center justify-center" style={{ backgroundColor: "rgba(0,0,0,0.3)" }}>
       <div className="w-80 rounded-xl border border-gray-200 bg-white shadow-xl">
         <div className="flex items-center justify-between border-b px-4 py-3">
-          <h3 className="text-sm font-semibold text-gray-900">위젯 구성</h3>
+          <h3 className="text-sm font-semibold text-gray-900">{t.dashboard.widgetConfig}</h3>
           <button onClick={onClose} className="rounded p-1 hover:bg-gray-100"><X className="h-4 w-4 text-gray-500" /></button>
         </div>
         <div className="p-4">
-          <p className="mb-3 text-xs text-gray-500">드래그로 순서 변경, 클릭으로 표시/숨김</p>
+          <p className="mb-3 text-xs text-gray-500">{t.dashboard.widgetConfigDesc}</p>
           <div className="space-y-1.5">
             {local.map((widget, idx) => (
               <div
@@ -117,7 +121,7 @@ function WidgetConfigPanel({
                 <button
                   onClick={() => toggleVisible(widget.id)}
                   className={`rounded p-1 ${widget.visible ? "text-blue-600 hover:bg-blue-50" : "text-gray-400 hover:bg-gray-100"}`}
-                  title={widget.visible ? "숨기기" : "표시"}
+                  title={widget.visible ? t.common.hide : t.common.show}
                 >
                   {widget.visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                 </button>
@@ -126,8 +130,8 @@ function WidgetConfigPanel({
           </div>
         </div>
         <div className="flex gap-2 border-t px-4 py-3">
-          <button onClick={reset} className="flex-1 rounded-md border border-gray-300 py-1.5 text-sm text-gray-600 hover:bg-gray-50">초기화</button>
-          <button onClick={apply} className="flex-1 rounded-md bg-blue-600 py-1.5 text-sm font-medium text-white hover:bg-blue-700">적용</button>
+          <button onClick={reset} className="flex-1 rounded-md border border-gray-300 py-1.5 text-sm text-gray-600 hover:bg-gray-50">{t.common.reset}</button>
+          <button onClick={apply} className="flex-1 rounded-md bg-blue-600 py-1.5 text-sm font-medium text-white hover:bg-blue-700">{t.common.apply}</button>
         </div>
       </div>
     </div>
@@ -227,10 +231,10 @@ export default function DashboardContent({
           <button
             onClick={() => setShowConfigPanel(true)}
             className="flex items-center gap-1.5 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
-            title="위젯 구성"
+            title={t.dashboard.widgetConfig}
           >
             <Settings className="h-4 w-4" />
-            위젯 구성
+            {t.dashboard.widgetConfig}
           </button>
           <TourGuide tourKey={DASHBOARD_TOUR_KEY} steps={getDashboardSteps(t)} />
         </div>
