@@ -409,9 +409,9 @@ export default function HardwareListPage() {
               disabled={bulkDeleting}
               className="rounded bg-red-600 px-3 py-1 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
             >
-              {bulkDeleting ? "삭제 중..." : "선택 삭제"}
+              {bulkDeleting ? t.common.deleting : t.hw.bulkDelete}
             </button>
-            <button onClick={() => setSelectedIds(new Set())} className="text-sm text-gray-500 hover:text-gray-700">선택 해제</button>
+            <button onClick={() => setSelectedIds(new Set())} className="text-sm text-gray-500 hover:text-gray-700">{t.hw.deselectAll}</button>
           </div>
         )}
 
@@ -446,7 +446,7 @@ export default function HardwareListPage() {
                               type="text"
                               value={bulkTagDraft[id] ?? ""}
                               onChange={(e) => setBulkTagDraft((prev) => ({ ...prev, [id]: e.target.value }))}
-                              placeholder="태그 없음"
+                              placeholder={t.hw.noTags}
                               className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                           </td>
@@ -463,7 +463,7 @@ export default function HardwareListPage() {
                   disabled={bulkTagSaving}
                   className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {bulkTagSaving ? "저장 중..." : "저장"}
+                  {bulkTagSaving ? t.hw.bulkTagSaving : t.hw.bulkTagSave}
                 </button>
               </div>
             </div>
@@ -543,7 +543,7 @@ export default function HardwareListPage() {
                   disabled={bulkStatusSaving}
                   className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {bulkStatusSaving ? "변경 중..." : "변경"}
+                  {bulkStatusSaving ? t.hw.bulkStatusChanging : t.hw.bulkStatusChange}
                 </button>
               </div>
             </div>

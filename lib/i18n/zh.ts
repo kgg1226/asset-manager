@@ -338,6 +338,13 @@ export const zh: TranslationDict = {
     deleteConfirmTitle: "确认删除",
     deleteConfirmMessage: "将被删除，确定吗？",
     unusableAutoNote: "※ 标记为不可用后将自动变为待处置状态",
+    bulkDelete: "批量删除",
+    deselectAll: "取消选择",
+    noTags: "无标签",
+    bulkTagSave: "保存",
+    bulkTagSaving: "保存中...",
+    bulkStatusChange: "更改",
+    bulkStatusChanging: "更改中...",
   },
 
   cloud: {

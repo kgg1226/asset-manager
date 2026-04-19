@@ -350,6 +350,13 @@ export type TranslationDict = {
     deleteConfirmTitle: string;
     deleteConfirmMessage: string;
     unusableAutoNote: string;
+    bulkDelete: string;
+    deselectAll: string;
+    noTags: string;
+    bulkTagSave: string;
+    bulkTagSaving: string;
+    bulkStatusChange: string;
+    bulkStatusChanging: string;
   };
 
   // Cloud

@@ -338,6 +338,13 @@ export const zhTW: TranslationDict = {
     deleteConfirmTitle: "確認刪除",
     deleteConfirmMessage: "將被刪除，確定嗎？",
     unusableAutoNote: "※ 標記為不可用後將自動變為待處置狀態",
+    bulkDelete: "批量刪除",
+    deselectAll: "取消選擇",
+    noTags: "無標籤",
+    bulkTagSave: "儲存",
+    bulkTagSaving: "儲存中...",
+    bulkStatusChange: "變更",
+    bulkStatusChanging: "變更中...",
   },
 
   cloud: {

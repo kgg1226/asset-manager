@@ -338,6 +338,13 @@ export const en: TranslationDict = {
     deleteConfirmTitle: "Delete Confirmation",
     deleteConfirmMessage: "will be deleted. Are you sure?",
     unusableAutoNote: "※ Marking as unusable will automatically change to Pending Disposal",
+    bulkDelete: "Delete Selected",
+    deselectAll: "Deselect All",
+    noTags: "No tags",
+    bulkTagSave: "Save",
+    bulkTagSaving: "Saving...",
+    bulkStatusChange: "Apply",
+    bulkStatusChanging: "Applying...",
   },
 
   cloud: {

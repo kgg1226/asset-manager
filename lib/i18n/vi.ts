@@ -338,6 +338,13 @@ export const vi: TranslationDict = {
     deleteConfirmTitle: "Xác nhận xóa",
     deleteConfirmMessage: "sẽ bị xóa. Bạn có chắc không?",
     unusableAutoNote: "※ Khi đánh dấu không sử dụng sẽ tự động chuyển sang Chờ thanh lý",
+    bulkDelete: "Xóa đã chọn",
+    deselectAll: "Bỏ chọn tất cả",
+    noTags: "Không có thẻ",
+    bulkTagSave: "Lưu",
+    bulkTagSaving: "Đang lưu...",
+    bulkStatusChange: "Áp dụng",
+    bulkStatusChanging: "Đang áp dụng...",
   },
 
   cloud: {

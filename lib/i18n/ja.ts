@@ -338,6 +338,13 @@ export const ja: TranslationDict = {
     deleteConfirmTitle: "削除確認",
     deleteConfirmMessage: "を削除しますか？",
     unusableAutoNote: "※ 不用処理すると自動的に廃棄対象に変更されます",
+    bulkDelete: "選択削除",
+    deselectAll: "選択解除",
+    noTags: "タグなし",
+    bulkTagSave: "保存",
+    bulkTagSaving: "保存中...",
+    bulkStatusChange: "変更",
+    bulkStatusChanging: "変更中...",
   },
 
   cloud: {

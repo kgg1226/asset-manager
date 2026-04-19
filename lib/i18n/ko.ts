@@ -338,6 +338,13 @@ export const ko: TranslationDict = {
     deleteConfirmTitle: "삭제 확인",
     deleteConfirmMessage: "을(를) 삭제하시겠습니까?",
     unusableAutoNote: "※ 불용 처리 시 자동으로 폐기 대상으로 전환됩니다",
+    bulkDelete: "선택 삭제",
+    deselectAll: "선택 해제",
+    noTags: "태그 없음",
+    bulkTagSave: "저장",
+    bulkTagSaving: "저장 중...",
+    bulkStatusChange: "변경",
+    bulkStatusChanging: "변경 중...",
   },
 
   cloud: {
