@@ -54,6 +54,7 @@ function FieldPickerModal({
   yearMonth: string;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const [fields, setFields] = useState<Set<FieldKey>>(new Set(DETAIL_FIELDS.map((f) => f.key)));
   const [sheets, setSheets] = useState<Set<SheetKey>>(new Set(SHEET_OPTIONS.map((s) => s.key)));
   const [presets, setPresets] = useState<Preset[]>([]);
@@ -111,7 +112,7 @@ function FieldPickerModal({
         <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="h-4 w-4 text-blue-600" />
-            <span className="font-semibold text-gray-900">커스텀 내보내기</span>
+            <span className="font-semibold text-gray-900">{t.report.customExport}</span>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="h-4 w-4" /></button>
         </div>
@@ -120,7 +121,7 @@ function FieldPickerModal({
           {/* Presets */}
           {presets.length > 0 && (
             <div>
-              <p className="text-xs font-medium uppercase text-gray-500 mb-2">저장된 프리셋</p>
+              <p className="text-xs font-medium uppercase text-gray-500 mb-2">{t.report.savedPresets}</p>
               <div className="flex flex-wrap gap-2">
                 {presets.map((p) => (
                   <div key={p.name} className="flex items-center gap-1 rounded-full border border-gray-300 px-2.5 py-1 text-xs">
@@ -172,13 +173,13 @@ function FieldPickerModal({
 
           {/* Save preset */}
           <div>
-            <p className="text-xs font-medium uppercase text-gray-500 mb-2">프리셋 저장</p>
+            <p className="text-xs font-medium uppercase text-gray-500 mb-2">{t.report.savedPresets}</p>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={presetName}
                 onChange={(e) => setPresetName(e.target.value)}
-                placeholder="프리셋 이름"
+                placeholder={t.report.presetNamePlaceholder}
                 className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
               />
               <button
@@ -354,10 +355,10 @@ export default function ReportsPage() {
               <button
                 onClick={() => setShowFieldPicker(true)}
                 className="inline-flex items-center gap-1.5 rounded-md border border-green-600 bg-green-50 px-3 py-2 text-sm font-medium text-green-700 hover:bg-green-100"
-                title="커스텀 내보내기"
+                title={t.report.customExport}
               >
                 <SlidersHorizontal className="h-4 w-4" />
-                커스텀
+                {t.report.customExport}
               </button>
               <a
                 href={`/api/reports/monthly/${yearMonth}/pdf`}
@@ -518,7 +519,7 @@ export default function ReportsPage() {
                   <span className="text-gray-400">·</span>
                   <span className="text-gray-600">{a.data.find((d) => d.dataType === "assets")?.recordCount ?? 0}건</span>
                   <span className="text-gray-400">·</span>
-                  <span className="text-gray-500">{a.trigger === "manual" ? "수동" : "자동"}</span>
+                  <span className="text-gray-500">{a.trigger === "manual" ? t.common.manual : t.common.auto}</span>
                   <span className="ml-auto text-xs text-gray-400">
                     {new Date(a.createdAt).toLocaleString("ko-KR")}
                   </span>

@@ -57,6 +57,8 @@ export const vi: TranslationDict = {
     updatedAt: "Cập nhật",
     reason: "Lý do",
     reasonOptional: "Lý do (tùy chọn)",
+    manual: "Thủ công",
+    auto: "Tự động",
   },
 
   nav: {

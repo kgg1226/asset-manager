@@ -58,6 +58,8 @@ export type TranslationDict = {
     updatedAt: string;
     reason: string;
     reasonOptional: string;
+    manual: string;
+    auto: string;
   };
 
   // Navigation / Sidebar

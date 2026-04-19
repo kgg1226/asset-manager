@@ -57,6 +57,8 @@ export const ja: TranslationDict = {
     updatedAt: "更新",
     reason: "理由",
     reasonOptional: "理由（任意）",
+    manual: "手動",
+    auto: "自動",
   },
 
   nav: {

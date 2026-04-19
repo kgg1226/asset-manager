@@ -57,6 +57,8 @@ export const zh: TranslationDict = {
     updatedAt: "更新",
     reason: "原因",
     reasonOptional: "原因（可选）",
+    manual: "手动",
+    auto: "自动",
   },
 
   nav: {

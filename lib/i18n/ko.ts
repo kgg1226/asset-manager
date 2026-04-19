@@ -57,6 +57,8 @@ export const ko: TranslationDict = {
     updatedAt: "수정",
     reason: "사유",
     reasonOptional: "사유 (선택)",
+    manual: "수동",
+    auto: "자동",
   },
 
   nav: {

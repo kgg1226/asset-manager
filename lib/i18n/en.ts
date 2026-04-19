@@ -57,6 +57,8 @@ export const en: TranslationDict = {
     updatedAt: "Updated",
     reason: "Reason",
     reasonOptional: "Reason (optional)",
+    manual: "Manual",
+    auto: "Auto",
   },
 
   nav: {
