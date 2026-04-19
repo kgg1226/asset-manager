@@ -27,6 +27,7 @@ const TYPE_LABELS: Record<string, string> = {
   CLOUD: "Cloud",
   HARDWARE: "Hardware",
   DOMAIN_SSL: "Domain/SSL",
+  CONTRACT: "Contract",
   OTHER: "Other",
 };
 

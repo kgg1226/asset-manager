@@ -72,6 +72,7 @@ function buildAssetMessage(assetName: string, assetType: string, daysLeft: numbe
     CLOUD: "클라우드",
     HARDWARE: "하드웨어",
     DOMAIN_SSL: "도메인/SSL",
+    CONTRACT: "계약",
     OTHER: "기타",
   };
   return `⚠️ 자산 만료 D-${daysLeft} 알림\n자산: ${assetName} (${typeLabel[assetType] ?? assetType})\n만료일: ${dateStr}\n갱신 또는 조치가 필요합니다.`;

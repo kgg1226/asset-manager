@@ -45,6 +45,7 @@ const TYPE_LABELS: Record<string, string> = {
   CLOUD: "클라우드",
   HARDWARE: "하드웨어",
   DOMAIN_SSL: "도메인/SSL",
+  CONTRACT: "계약",
   OTHER: "기타",
 };
 const STATUS_LABELS: Record<string, string> = {
