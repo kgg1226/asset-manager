@@ -363,6 +363,10 @@ export const en: TranslationDict = {
     bulkStatusChange: "Apply",
     bulkStatusChanging: "Applying...",
     keyboardShortcuts: "Keyboard Shortcuts (? key)",
+    labelCount: "Asset Labels",
+    sizeSmall: "S",
+    sizeMedium: "M",
+    sizeLarge: "L",
   },
 
   cloud: {

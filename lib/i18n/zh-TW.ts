@@ -363,6 +363,10 @@ export const zhTW: TranslationDict = {
     bulkStatusChange: "變更",
     bulkStatusChanging: "變更中...",
     keyboardShortcuts: "鍵盤快捷鍵（?鍵）",
+    labelCount: "資產標籤",
+    sizeSmall: "小",
+    sizeMedium: "中",
+    sizeLarge: "大",
   },
 
   cloud: {

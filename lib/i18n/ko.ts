@@ -363,6 +363,10 @@ export const ko: TranslationDict = {
     bulkStatusChange: "변경",
     bulkStatusChanging: "변경 중...",
     keyboardShortcuts: "키보드 단축키 (? 키)",
+    labelCount: "자산 라벨",
+    sizeSmall: "소",
+    sizeMedium: "중",
+    sizeLarge: "대",
   },
 
   cloud: {

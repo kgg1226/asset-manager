@@ -75,14 +75,14 @@ export default function PrintLabelsPage() {
       {/* Controls */}
       <div className="no-print sticky top-0 z-10 flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-3 shadow-sm">
         <Link href="/hardware" className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900">
-          <ArrowLeft className="h-4 w-4" />뒤로
+          <ArrowLeft className="h-4 w-4" />{t.common.back}
         </Link>
-        <span className="text-sm text-gray-500">자산 라벨 {assets.length}매</span>
+        <span className="text-sm text-gray-500">{t.hw.labelCount} {assets.length}</span>
         <div className="flex items-center gap-1 ml-2">
           {(["sm", "md", "lg"] as const).map((s) => (
             <button key={s} onClick={() => setLabelSize(s)}
               className={`rounded px-2 py-1 text-xs ${labelSize === s ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600"}`}>
-              {s === "sm" ? "소" : s === "md" ? "중" : "대"}
+              {s === "sm" ? t.hw.sizeSmall : s === "md" ? t.hw.sizeMedium : t.hw.sizeLarge}
             </button>
           ))}
         </div>

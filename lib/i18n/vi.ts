@@ -363,6 +363,10 @@ export const vi: TranslationDict = {
     bulkStatusChange: "Áp dụng",
     bulkStatusChanging: "Đang áp dụng...",
     keyboardShortcuts: "Phím tắt bàn phím (phím ?)",
+    labelCount: "Nhãn tài sản",
+    sizeSmall: "Nhỏ",
+    sizeMedium: "Vừa",
+    sizeLarge: "Lớn",
   },
 
   cloud: {

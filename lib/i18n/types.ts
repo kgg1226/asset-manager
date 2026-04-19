@@ -375,6 +375,10 @@ export type TranslationDict = {
     bulkStatusChange: string;
     bulkStatusChanging: string;
     keyboardShortcuts: string;
+    labelCount: string;
+    sizeSmall: string;
+    sizeMedium: string;
+    sizeLarge: string;
   };
 
   // Cloud

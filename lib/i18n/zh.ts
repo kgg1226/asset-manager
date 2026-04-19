@@ -363,6 +363,10 @@ export const zh: TranslationDict = {
     bulkStatusChange: "更改",
     bulkStatusChanging: "更改中...",
     keyboardShortcuts: "键盘快捷键（?键）",
+    labelCount: "资产标签",
+    sizeSmall: "小",
+    sizeMedium: "中",
+    sizeLarge: "大",
   },
 
   cloud: {

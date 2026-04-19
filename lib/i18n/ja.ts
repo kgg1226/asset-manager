@@ -363,6 +363,10 @@ export const ja: TranslationDict = {
     bulkStatusChange: "変更",
     bulkStatusChanging: "変更中...",
     keyboardShortcuts: "キーボードショートカット（?キー）",
+    labelCount: "資産ラベル",
+    sizeSmall: "小",
+    sizeMedium: "中",
+    sizeLarge: "大",
   },
 
   cloud: {
