@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
 import {
   aggregateDashboard,
   type AssetCategory,
@@ -10,6 +11,8 @@ import {
 const VALID_TYPES: AssetCategory[] = ["SOFTWARE", "CLOUD", "HARDWARE", "DOMAIN_SSL", "CONTRACT", "OTHER"];
 
 export async function GET(request: NextRequest) {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
   try {
     const { searchParams } = request.nextUrl;
     const typeParam = searchParams.get("type")?.toUpperCase() as AssetCategory | undefined;

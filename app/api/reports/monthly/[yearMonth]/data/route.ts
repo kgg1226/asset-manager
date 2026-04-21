@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
 import { ValidationError, handleValidationError } from "@/lib/validation";
 
 type Params = { params: Promise<{ yearMonth: string }> };
@@ -21,7 +22,8 @@ function parsePeriod(yearMonth: string) {
 }
 
 export async function GET(_request: NextRequest, { params }: Params) {
-
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
   try {
     const { yearMonth } = await params;
     const { year, month, startDate, endDate, period } = parsePeriod(yearMonth);
