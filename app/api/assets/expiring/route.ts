@@ -2,12 +2,14 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
 import { handleValidationError, vNum } from "@/lib/validation";
 
 // ── GET /api/assets/expiring?days=30 ──
 
 export async function GET(request: NextRequest) {
-
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
   try {
     const withinDays =
       vNum(request.nextUrl.searchParams.get("days"), { min: 1, max: 365, integer: true }) ?? 30;

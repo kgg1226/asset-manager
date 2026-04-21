@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -24,7 +25,8 @@ async function collectDescendants(
 
 // GET /api/org/units/:id/delete-preview — 삭제 전 영향 범위 미리보기
 export async function GET(request: NextRequest, { params }: Params) {
-
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
   try {
     const { id } = await params;
     const unitId = Number(id);

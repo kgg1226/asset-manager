@@ -2,10 +2,13 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
 
 // GET /api/assignments — 할당 목록 조회
 // Query: ?licenseId=1&employeeId=1&active=true&page=1&limit=50
 export async function GET(request: NextRequest) {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
   try {
     const { searchParams } = new URL(request.url);
     const licenseId = searchParams.get("licenseId");

@@ -131,6 +131,11 @@
 
 - [x] i18n 전면 확장 — 대시보드 위젯, 히스토리 필터, 기능설정, 라이선스, 만료임박 위젯, 직원 온보딩, 자산지도 정렬/레이블, 알림 재발송, 하드웨어 라벨 인쇄, 오류 메시지 등 6개 언어 완전 전환 (types.ts + ko/en/ja/zh/zh-TW/vi)
 
+## 완료 (2026-04-21, dev-006 / SEC-010)
+
+- [x] 미보호 API 라우트 8건 인증 가드 추가 — dashboard, assignments, licenses/[id]/renewal-history, org/units/[id]/delete-preview, assets/[id]/assignment-history, assets/expiring, reports/monthly/[yearMonth]/(data|pdf)
+- [x] 보안 2차 리뷰 (`tasks/security-report.md`): npm audit high+ 0건, 하드코딩 시크릿 0건, 인증 누락 8건 전량 수정
+
 ## 다음 티켓 초안
 
 TITLE: 정보보호 조직도 React Flow 업그레이드
