@@ -136,7 +136,26 @@
 - [x] 미보호 API 라우트 8건 인증 가드 추가 — dashboard, assignments, licenses/[id]/renewal-history, org/units/[id]/delete-preview, assets/[id]/assignment-history, assets/expiring, reports/monthly/[yearMonth]/(data|pdf)
 - [x] 보안 2차 리뷰 (`tasks/security-report.md`): npm audit high+ 0건, 하드코딩 시크릿 0건, 인증 누락 8건 전량 수정
 
+## 완료 (2026-04-27, dev-007)
+
+- [x] 클로드 디자인 시스템 레퍼런스 도입 — `colors_and_type.css` (토큰), `preview/*.html` (21종 비주얼), `ui_kits/asset-manager/index.html` (인터랙티브 UI Kit)
+- [x] 하드웨어 감가상각 카드 반응형 — `formatCostMillions` 도입 + `grid-cols-2 md:grid-cols-4` + `truncate tabular-nums` (좁은 폭에서 큰 금액 카드 깨짐 해결)
+
+## 즉시 (이번 스프린트)
+
+- [ ] 디자인 레퍼런스 정리 — 루트 `assets/`, `fonts/` 가 `public/` 사본과 중복. `docs/design/` 으로 이전하고 `colors_and_type.css` 의 상대경로 갱신
+- [ ] `ui_kits/asset-manager/index.html` 데모 자격증명(`admin/changeme123`) 제거 또는 명시적 placeholder 토큰화
+
+## 단기 (다음 2주)
+
+- [ ] `colors_and_type.css` 토큰을 `app/globals.css` 에 CSS 변수로 인라인 → 차츰 raw Tailwind 클래스를 토큰 기반으로 마이그레이션 (저위험 시작 후보: 사이드바 nav 그룹 라벨, 상태 배지)
+- [ ] 디자인 레퍼런스를 GitHub Pages 또는 Vercel Static에 배포해 디자이너/QA가 직접 비교 가능하도록
+
 ## 다음 티켓 초안
+
+TITLE: 디자인 레퍼런스 디렉토리 정리 (docs/design/ 이전)
+SCOPE: assets/, fonts/, preview/, ui_kits/, colors_and_type.css → docs/design/* 로 이전 + 상대경로 갱신
+PRIORITY: low
 
 TITLE: 정보보호 조직도 React Flow 업그레이드
 SCOPE: app/org/security-org-chart.tsx

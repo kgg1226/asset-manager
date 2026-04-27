@@ -1,0 +1,27 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><link rel="stylesheet" href="../colors_and_type.css"><style>
+body{margin:0;background:#f9fafb;padding:22px;font-family:var(--font-sans);}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,.05);padding:16px 18px;}
+.label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;margin-bottom:6px;}
+.value{font-size:22px;font-weight:700;color:#111827;line-height:1.1;}
+.delta{font-size:11.5px;color:#16a34a;margin-top:6px;font-weight:500;}
+.delta.down{color:#dc2626;}
+</style></head><body>
+<div class="grid">
+  <div class="card">
+    <div class="label">Total licenses</div>
+    <div class="value">482</div>
+    <div class="delta">▲ 12 this month</div>
+  </div>
+  <div class="card">
+    <div class="label">Monthly cost</div>
+    <div class="value">₩14.2M</div>
+    <div class="delta down">▼ ₩320K · FX adj.</div>
+  </div>
+  <div class="card">
+    <div class="label">Expiring ≤ 30d</div>
+    <div class="value">7</div>
+    <div class="delta" style="color:#a16207">⚠ 2 renewed</div>
+  </div>
+</div>
+</body></html>

@@ -1,0 +1,25 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><link rel="stylesheet" href="../colors_and_type.css"><style>
+body{margin:0;background:#fff;padding:20px;font-family:var(--font-sans);}
+.row{display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border-default);}
+.sw{flex:1;padding:14px 10px;display:flex;flex-direction:column;gap:4px;}
+.sw .name{font-size:11px;font-weight:600;}
+.sw .hex{font-family:var(--font-mono);font-size:10.5px;opacity:.75;}
+.dark{color:#fff;}.light{color:#111827;}
+.caption{color:var(--fg-muted);font-size:12px;margin-top:10px;}
+.chips{display:flex;gap:8px;margin-top:14px;}
+.chip{padding:4px 10px;border-radius:6px;font-size:12px;font-weight:500;}
+</style></head><body>
+<div class="row">
+  <div class="sw light" style="background:#eff6ff"><span class="name">50</span><span class="hex">#eff6ff</span></div>
+  <div class="sw light" style="background:#dbeafe"><span class="name">100</span><span class="hex">#dbeafe</span></div>
+  <div class="sw dark"  style="background:#3b82f6"><span class="name">500</span><span class="hex">#3b82f6</span></div>
+  <div class="sw dark"  style="background:#2563eb"><span class="name">600 · accent</span><span class="hex">#2563eb</span></div>
+  <div class="sw dark"  style="background:#1d4ed8"><span class="name">700</span><span class="hex">#1d4ed8</span></div>
+</div>
+<div class="chips">
+  <span class="chip" style="background:#2563eb;color:#fff">Primary button</span>
+  <span class="chip" style="background:#eff6ff;color:#1d4ed8">Active nav</span>
+  <span class="chip" style="background:#dbeafe;color:#1d4ed8">Admin badge</span>
+</div>
+<div class="caption">Blue — the single accent. Primary CTAs, active nav, focus rings, links.</div>
+</body></html>
