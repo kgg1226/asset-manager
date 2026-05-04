@@ -1,0 +1,25 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><link rel="stylesheet" href="../colors_and_type.css"><style>
+body{margin:0;background:#fff;padding:16px;font-family:var(--font-sans);}
+.sb{width:240px;border:1px solid #e5e7eb;border-radius:8px;padding:12px 10px;}
+.group{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#9ca3af;padding:0 10px;margin:10px 0 4px;display:flex;align-items:center;gap:4px;}
+.item{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:6px;font-size:13.5px;color:#4b5563;cursor:pointer;}
+.item:hover{background:#f3f4f6;color:#111827;}
+.item.active{background:#eff6ff;color:#1d4ed8;font-weight:500;}
+.item svg{width:14px;height:14px;stroke-width:2;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;}
+.item .pill{margin-left:auto;background:#f3e8ff;color:#7e22ce;padding:1px 6px;border-radius:9999px;font-size:9.5px;font-weight:600;}
+</style></head><body>
+<div style="display:flex;gap:16px;align-items:flex-start;">
+<div class="sb">
+  <div class="group">▼ ANALYSIS</div>
+  <div class="item active"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>Dashboard</div>
+  <div class="item"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>Reports</div>
+  <div class="item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Change history</div>
+  <div class="item"><svg viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>Asset Map<span class="pill">Alpha</span></div>
+</div>
+<div style="font-size:12px;color:#6b7280;max-width:300px;line-height:1.55;">
+  <b style="color:#111827">Active:</b> <code style="background:#eff6ff;color:#1d4ed8;padding:1px 4px;border-radius:3px">bg-blue-50 text-blue-700</code><br>
+  <b style="color:#111827">Hover:</b> <code style="background:#f3f4f6;padding:1px 4px;border-radius:3px">bg-gray-100</code><br>
+  <b style="color:#111827">Size:</b> text-sm · px-3 py-2 · rounded-md
+</div>
+</div>
+</body></html>

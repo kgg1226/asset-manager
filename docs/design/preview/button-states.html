@@ -1,0 +1,28 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><link rel="stylesheet" href="../colors_and_type.css"><style>
+body{margin:0;background:#fff;padding:22px;font-family:var(--font-sans);}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;}
+.lbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--fg-muted);width:80px;}
+.btn{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:500;border-radius:6px;padding:6px 12px;cursor:pointer;border:1px solid transparent;transition:background 120ms;}
+.primary{background:#2563eb;color:#fff;}
+.primary:hover{background:#1d4ed8;}
+.secondary{background:#fff;color:#374151;border-color:#d1d5db;box-shadow:0 1px 2px rgba(0,0,0,.05);}
+.secondary:hover{background:#f9fafb;}
+.ghost{background:transparent;color:#4b5563;}
+.ghost:hover{background:#f3f4f6;color:#111827;}
+.disabled{opacity:.5;cursor:not-allowed;}
+svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+</style></head><body>
+<div class="row"><span class="lbl">Primary</span>
+  <button class="btn primary"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add license</button>
+  <button class="btn primary">Save</button>
+  <button class="btn primary disabled">Saving…</button>
+</div>
+<div class="row"><span class="lbl">Secondary</span>
+  <button class="btn secondary"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download CSV</button>
+  <button class="btn secondary">Cancel</button>
+</div>
+<div class="row"><span class="lbl">Ghost</span>
+  <button class="btn ghost"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings</button>
+  <button class="btn ghost">Reset</button>
+</div>
+</body></html>

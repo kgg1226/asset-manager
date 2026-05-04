@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Asset Manager — UI Kit</title>
+<link rel="stylesheet" href="../../colors_and_type.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg-app); color: var(--fg-primary); font-family: var(--font-sans); }
+  button { font-family: inherit; cursor: pointer; border: 0; background: transparent; }
+  a { color: inherit; text-decoration: none; }
+  .icon { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+  .icon-sm { width: 12px; height: 12px; }
+  .icon-lg { width: 20px; height: 20px; }
+
+  /* App shell */
+  .app { min-height: 100vh; }
+  .sidebar { position: fixed; inset: 0 auto 0 0; width: 240px; background: #fff; border-right: 1px solid var(--border-default); display: flex; flex-direction: column; z-index: 30; }
+  .brand { height: 56px; display: flex; align-items: center; gap: 8px; padding: 0 16px; border-bottom: 1px solid var(--border-default); }
+  .brand svg { stroke: var(--blue-600); width: 20px; height: 20px; }
+  .brand .name { font-size: 14px; font-weight: 700; color: var(--fg-primary); }
+  .nav { flex: 1; overflow-y: auto; padding: 12px; }
+  .nav-group { margin-top: 18px; }
+  .nav-group:first-child { margin-top: 4px; }
+  .nav-group-title { display: flex; align-items: center; gap: 4px; padding: 0 12px; margin-bottom: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--gray-400); background: transparent; width: 100%; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: 6px; font-size: 13.5px; color: var(--fg-tertiary); transition: background 120ms, color 120ms; cursor: pointer; }
+  .nav-item:hover { background: var(--gray-100); color: var(--fg-primary); }
+  .nav-item.active { background: var(--blue-50); color: var(--blue-700); font-weight: 500; }
+  .nav-item .pill { margin-left: auto; background: var(--purple-100); color: var(--purple-700); padding: 1px 6px; border-radius: 9999px; font-size: 9.5px; font-weight: 600; }
+
+  .header { position: fixed; top: 0; left: 240px; right: 0; height: 56px; background: #fff; border-bottom: 1px solid var(--border-default); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; z-index: 20; }
+  .search { position: relative; width: 320px; }
+  .search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--gray-400); stroke: currentColor; }
+  .search input { width: 100%; padding: 7px 12px 7px 32px; border: 1px solid var(--border-strong); border-radius: 6px; font-size: 13px; background: #fff; outline: none; font-family: inherit; }
+  .search input:focus { border-color: var(--blue-500); box-shadow: var(--ring-focus); }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .icon-btn { padding: 6px; border-radius: 6px; color: var(--gray-500); position: relative; }
+  .icon-btn:hover { background: var(--gray-100); color: var(--gray-700); }
+  .icon-btn .dot { position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; background: var(--red-600); border-radius: 9999px; border: 1.5px solid #fff; }
+  .avatar { width: 28px; height: 28px; border-radius: 9999px; background: var(--gray-200); color: var(--gray-600); display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; }
+  .user { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fg-secondary); font-weight: 500; }
+  .role-chip { background: var(--blue-100); color: var(--blue-700); padding: 1px 6px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+
+  main { margin-left: 240px; padding: 56px 0 0; min-height: 100vh; }
+  .page { max-width: 1200px; padding: 32px 24px; margin: 0 auto; }
+  .page-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; gap: 16px; }
+  .page-title { font-size: 24px; font-weight: 700; color: var(--fg-primary); margin: 0 0 2px; letter-spacing: -0.01em; }
+  .page-subtitle { font-size: 13px; color: var(--fg-muted); margin: 0; }
+  .page-actions { display: flex; gap: 8px; }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 500; border-radius: 6px; padding: 7px 12px; border: 1px solid transparent; transition: background 120ms; cursor: pointer; font-family: inherit; }
+  .btn-primary { background: var(--blue-600); color: #fff; }
+  .btn-primary:hover { background: var(--blue-700); }
+  .btn-secondary { background: #fff; color: var(--fg-tertiary); border-color: var(--border-strong); box-shadow: var(--shadow-sm); }
+  .btn-secondary:hover { background: var(--gray-50); }
+  .btn-ghost { color: var(--fg-tertiary); }
+  .btn-ghost:hover { background: var(--gray-100); color: var(--fg-primary); }
+
+  /* Cards */
+  .card { background: #fff; border: 1px solid var(--border-default); border-radius: 8px; box-shadow: var(--shadow-sm); }
+  .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+  .metric { padding: 16px 18px; }
+  .metric .lbl { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--fg-muted); margin-bottom: 6px; }
+  .metric .val { font-size: 22px; font-weight: 700; color: var(--fg-primary); line-height: 1.1; }
+  .metric .delta { font-size: 11.5px; margin-top: 6px; font-weight: 500; color: var(--green-700); }
+  .metric .delta.down { color: var(--red-700); }
+  .metric .delta.warn { color: var(--yellow-700); }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border-default); margin-bottom: 18px; }
+  .tab { padding: 8px 14px; font-size: 13px; color: var(--fg-muted); border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; font-family: inherit; background: transparent; border-left: 0; border-right: 0; border-top: 0; }
+  .tab:hover { color: var(--fg-primary); }
+  .tab.active { color: var(--blue-700); border-bottom-color: var(--blue-600); font-weight: 500; }
+
+  /* Table */
+  .table-shell { background: #fff; border: 1px solid var(--border-default); border-radius: 8px; overflow: hidden; }
+  .table-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .table-search { position: relative; flex: 1; max-width: 340px; }
+  .table-search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--gray-400); stroke: currentColor; }
+  .table-search input { width: 100%; padding: 7px 12px 7px 32px; border: 1px solid var(--border-strong); border-radius: 6px; font-size: 13px; font-family: inherit; outline: none; }
+  .table-search input:focus { border-color: var(--blue-500); box-shadow: var(--ring-focus); }
+  table.data { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .data thead { background: var(--gray-50); border-bottom: 1px solid var(--border-default); }
+  .data th { text-align: left; padding: 10px 14px; font-size: 11.5px; font-weight: 600; color: var(--fg-tertiary); white-space: nowrap; cursor: pointer; user-select: none; }
+  .data th:hover { color: var(--blue-600); }
+  .data th.sorted { color: var(--blue-600); }
+  .data th svg { display: inline-block; vertical-align: middle; }
+  .data td { padding: 11px 14px; border-bottom: 1px solid var(--border-default); color: var(--fg-primary); }
+  .data tbody tr:last-child td { border-bottom: 0; }
+  .data tbody tr:hover td { background: var(--gray-50); }
+  .count-foot { font-size: 11.5px; color: var(--fg-muted); margin-top: 8px; }
+
+  /* Badges */
+  .pill { display: inline-flex; align-items: center; gap: 4px; border-radius: 9999px; padding: 2px 8px; font-size: 11.5px; font-weight: 500; white-space: nowrap; }
+  .pill-low { background: var(--green-100); color: var(--green-800); }
+  .pill-med { background: var(--yellow-100); color: var(--yellow-800); }
+  .pill-high { background: var(--red-100); color: var(--red-800); }
+  .pill-neutral { background: var(--gray-100); color: var(--gray-600); }
+  .pill-info { background: var(--blue-100); color: var(--blue-700); }
+
+  /* Login screen */
+  .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--bg-app); padding: 24px; }
+  .login-box { width: 100%; max-width: 360px; }
+  .login-title { font-size: 22px; font-weight: 700; text-align: center; margin: 0 0 28px; color: var(--fg-primary); display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .login-title svg { stroke: var(--blue-600); width: 24px; height: 24px; }
+  .login-form { background: #fff; border: 1px solid var(--border-default); border-radius: 8px; box-shadow: var(--shadow-sm); padding: 24px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 13px; font-weight: 500; color: var(--fg-secondary); margin-bottom: 5px; }
+  .field input { width: 100%; padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: 6px; font-size: 14px; box-shadow: var(--shadow-sm); outline: none; font-family: inherit; }
+  .field input:focus { border-color: var(--blue-500); box-shadow: var(--ring-focus); }
+  .login-btn { width: 100%; padding: 10px; background: var(--blue-600); color: #fff; border-radius: 6px; font-size: 14px; font-weight: 500; margin-top: 8px; cursor: pointer; border: 0; font-family: inherit; }
+  .login-btn:hover { background: var(--blue-700); }
+  .login-err { background: var(--red-50); color: var(--red-700); border-radius: 6px; padding: 8px 12px; font-size: 12.5px; margin-bottom: 14px; }
+
+  /* Modal */
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 40; display: flex; align-items: center; justify-content: center; }
+  .modal { width: 440px; background: #fff; border-radius: 12px; box-shadow: var(--shadow-xl); border: 1px solid var(--border-default); }
+  .modal-head { padding: 14px 18px; border-bottom: 1px solid var(--border-default); display: flex; align-items: center; justify-content: space-between; }
+  .modal-head h3 { margin: 0; font-size: 14px; font-weight: 600; }
+  .modal-body { padding: 18px; }
+  .modal-foot { padding: 14px 18px; border-top: 1px solid var(--border-default); display: flex; gap: 8px; justify-content: flex-end; }
+
+  .dashboard-row { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-top: 14px; }
+  .chart-card { padding: 16px 18px; }
+  .chart-card h4 { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--fg-primary); }
+  .chart-bars { height: 150px; display: flex; align-items: flex-end; gap: 10px; padding: 8px 0; }
+  .chart-bars .bar { flex: 1; background: var(--blue-500); border-radius: 3px 3px 0 0; position: relative; }
+  .chart-bars .bar.alt { background: var(--blue-200, #bfdbfe); }
+  .chart-bars .lbl { position: absolute; bottom: -18px; left: 0; right: 0; text-align: center; font-size: 10px; color: var(--fg-muted); }
+  .expiring-list { list-style: none; margin: 0; padding: 0; }
+  .expiring-list li { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border-default); font-size: 12.5px; }
+  .expiring-list li:last-child { border-bottom: 0; }
+  .expiring-list .name { flex: 1; color: var(--fg-primary); }
+  .expiring-list .days { font-family: var(--font-mono); font-size: 11px; color: var(--fg-muted); }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- ============== LOGIN SCREEN ============== -->
+<div id="screen-login" class="login-wrap">
+  <div class="login-box">
+    <h1 class="login-title">
+      <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M16.5 9.4 7.55 4.24"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+      Asset Manager
+    </h1>
+    <form class="login-form" onsubmit="doLogin(event)">
+      <div id="loginErr" class="login-err hidden">Enter any non-empty username and password to enter the demo.</div>
+      <div class="field"><label>Username</label><input id="u" placeholder="any value" autocomplete="off"></div>
+      <div class="field"><label>Password</label><input id="p" type="password" placeholder="any value"></div>
+      <button class="login-btn" type="submit">Log in</button>
+    </form>
+  </div>
+</div>
+
+<!-- ============== APP SHELL ============== -->
+<div id="screen-app" class="app hidden">
+  <aside class="sidebar">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" class="icon"><path d="M16.5 9.4 7.55 4.24"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+      <span class="name">Asset Manager</span>
+    </div>
+    <nav class="nav">
+      <div class="nav-group">
+        <button class="nav-group-title"><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>ANALYSIS</button>
+        <div class="nav-item" data-page="dashboard"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>Dashboard</div>
+        <div class="nav-item" data-page="reports"><svg class="icon" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>Reports</div>
+        <div class="nav-item" data-page="history"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Change history</div>
+        <div class="nav-item" data-page="asset-map"><svg class="icon" viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>Asset Map</div>
+      </div>
+      <div class="nav-group">
+        <button class="nav-group-title"><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>ASSET MANAGEMENT</button>
+        <div class="nav-item" data-page="hardware"><svg class="icon" viewBox="0 0 24 24"><line x1="22" y1="12" x2="2" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>Hardware</div>
+        <div class="nav-item" data-page="licenses"><svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Licenses</div>
+        <div class="nav-item" data-page="cloud"><svg class="icon" viewBox="0 0 24 24"><path d="M17.5 19a4.5 4.5 0 1 0 0-9h-1.8A7 7 0 1 0 4 15.5"/></svg>Cloud</div>
+        <div class="nav-item" data-page="domains"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Domains &amp; SSL</div>
+        <div class="nav-item" data-page="contracts"><svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="m14 17-3-3 3-3"/></svg>Contracts</div>
+      </div>
+      <div class="nav-group">
+        <button class="nav-group-title"><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>ORGANIZATION</button>
+        <div class="nav-item" data-page="employees"><svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Employees</div>
+        <div class="nav-item" data-page="org"><svg class="icon" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="6"/><rect x="2" y="16" width="6" height="6"/><rect x="16" y="16" width="6" height="6"/><path d="M12 8v4M12 12H5v4M12 12h7v4"/></svg>Org chart</div>
+      </div>
+      <div class="nav-group">
+        <button class="nav-group-title"><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>SETTINGS</button>
+        <div class="nav-item" data-page="profile"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.66a9 9 0 0 1 10 0"/></svg>Profile</div>
+        <div class="nav-item" data-page="notifs"><svg class="icon" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>Notifications</div>
+      </div>
+    </nav>
+  </aside>
+
+  <header class="header">
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input placeholder="Search licenses, assets, employees…">
+    </div>
+    <div class="header-right">
+      <button class="icon-btn" title="Notifications"><svg class="icon" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="dot"></span></button>
+      <button class="icon-btn" title="Language"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></button>
+      <div class="user">
+        <span class="avatar">A</span>
+        <span>admin</span>
+        <span class="role-chip">ADMIN</span>
+        <button class="icon-btn" onclick="logout()" title="Log out"><svg class="icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="page">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">Dashboard</h1>
+          <p class="page-subtitle">Total assets · Monthly expenses</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-secondary"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Customize</button>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active">All</button><button class="tab">Software</button><button class="tab">Cloud</button><button class="tab">Hardware</button><button class="tab">Domain</button><button class="tab">Contract</button>
+      </div>
+
+      <div class="metric-grid">
+        <div class="card metric"><div class="lbl">Total assets</div><div class="val">1,284</div><div class="delta">▲ 42 this month</div></div>
+        <div class="card metric"><div class="lbl">Monthly cost</div><div class="val">₩14.2M</div><div class="delta down">▼ ₩320K vs last</div></div>
+        <div class="card metric"><div class="lbl">Expiring ≤ 30d</div><div class="val">7</div><div class="delta warn">⚠ action needed</div></div>
+        <div class="card metric"><div class="lbl">Avg CIA rating</div><div class="val">2.1</div><div class="delta">Medium overall</div></div>
+      </div>
+
+      <div class="dashboard-row">
+        <div class="card chart-card">
+          <h4>Monthly cost trend (KRW, M)</h4>
+          <div class="chart-bars">
+            <div class="bar" style="height:45%"><div class="lbl">Jul</div></div>
+            <div class="bar" style="height:58%"><div class="lbl">Aug</div></div>
+            <div class="bar" style="height:62%"><div class="lbl">Sep</div></div>
+            <div class="bar" style="height:70%"><div class="lbl">Oct</div></div>
+            <div class="bar" style="height:78%"><div class="lbl">Nov</div></div>
+            <div class="bar" style="height:88%"><div class="lbl">Dec</div></div>
+            <div class="bar" style="height:82%"><div class="lbl">Jan</div></div>
+            <div class="bar" style="height:90%"><div class="lbl">Feb</div></div>
+            <div class="bar" style="height:95%"><div class="lbl">Mar</div></div>
+            <div class="bar" style="height:100%"><div class="lbl">Apr</div></div>
+          </div>
+        </div>
+        <div class="card chart-card">
+          <h4>Expiring soon</h4>
+          <ul class="expiring-list">
+            <li><span class="name">Figma Professional</span><span class="pill pill-high">D-7</span></li>
+            <li><span class="name">github.com domain</span><span class="pill pill-high">D-12</span></li>
+            <li><span class="name">AWS reserved ins.</span><span class="pill pill-med">D-22</span></li>
+            <li><span class="name">Sentry Business</span><span class="pill pill-med">D-28</span></li>
+            <li><span class="name">Adobe CC</span><span class="pill pill-neutral">D-61</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- LICENSES -->
+    <div id="page-licenses" class="page hidden">
+      <div class="page-head">
+        <div><h1 class="page-title">Licenses</h1><p class="page-subtitle">Software licenses · seats · assignments</p></div>
+        <div class="page-actions">
+          <button class="btn btn-secondary"><svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download CSV</button>
+          <button class="btn btn-primary" onclick="openModal()"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add license</button>
+        </div>
+      </div>
+
+      <div class="table-toolbar">
+        <div class="table-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input placeholder="Search" id="licSearch" oninput="filterRows()">
+        </div>
+      </div>
+
+      <div class="table-shell">
+        <table class="data" id="licTable">
+          <thead><tr><th class="sorted">Name <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></th><th>Type</th><th>Seats</th><th>Expiry</th><th>CIA</th><th>Admin</th></tr></thead>
+          <tbody>
+            <tr><td>Figma Professional</td><td style="color:var(--fg-muted)">SaaS</td><td>28 / 30</td><td>2026-11-30</td><td><span class="pill pill-med">보통</span></td><td>design@corp</td></tr>
+            <tr><td>GitHub Enterprise</td><td style="color:var(--fg-muted)">SaaS</td><td>42 / 50</td><td>2027-02-14</td><td><span class="pill pill-high">높음</span></td><td>eng-ops@corp</td></tr>
+            <tr><td>Adobe Creative Cloud</td><td style="color:var(--fg-muted)">SaaS</td><td>10 / 10</td><td>2026-05-09</td><td><span class="pill pill-low">낮음</span></td><td>design@corp</td></tr>
+            <tr><td>1Password Business</td><td style="color:var(--fg-muted)">SaaS</td><td>—</td><td>2026-08-22</td><td><span class="pill pill-med">보통</span></td><td>it@corp</td></tr>
+            <tr><td>Notion Plus</td><td style="color:var(--fg-muted)">SaaS</td><td>84 / 100</td><td>2027-01-03</td><td><span class="pill pill-low">낮음</span></td><td>ops@corp</td></tr>
+            <tr><td>Sentry Business</td><td style="color:var(--fg-muted)">SaaS</td><td>—</td><td>2026-05-18</td><td><span class="pill pill-med">보통</span></td><td>eng-ops@corp</td></tr>
+            <tr><td>JetBrains All Products</td><td style="color:var(--fg-muted)">Key</td><td>18 / 20</td><td>2026-09-10</td><td><span class="pill pill-low">낮음</span></td><td>eng-ops@corp</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="count-foot" id="licCount">7 items</div>
+    </div>
+
+    <!-- HARDWARE -->
+    <div id="page-hardware" class="page hidden">
+      <div class="page-head">
+        <div><h1 class="page-title">Hardware</h1><p class="page-subtitle">Servers · network · PCs · mobile</p></div>
+        <div class="page-actions"><button class="btn btn-primary"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add hardware</button></div>
+      </div>
+      <div class="table-shell">
+        <table class="data"><thead><tr><th>Name</th><th>Type</th><th>Status</th><th>Assigned to</th><th>CIA</th></tr></thead>
+          <tbody>
+            <tr><td>srv-prod-01</td><td style="color:var(--fg-muted)">Server</td><td><span class="pill pill-info">active</span></td><td>—</td><td><span class="pill pill-high">높음</span></td></tr>
+            <tr><td>mb-2024-018</td><td style="color:var(--fg-muted)">Laptop</td><td><span class="pill pill-info">assigned</span></td><td>김민준 · Design</td><td><span class="pill pill-med">보통</span></td></tr>
+            <tr><td>net-core-sw-02</td><td style="color:var(--fg-muted)">Network</td><td><span class="pill pill-info">active</span></td><td>—</td><td><span class="pill pill-high">높음</span></td></tr>
+            <tr><td>ipad-marketing-03</td><td style="color:var(--fg-muted)">Tablet</td><td><span class="pill pill-neutral">spare</span></td><td>—</td><td><span class="pill pill-low">낮음</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- STUB PAGES -->
+    <div id="page-reports" class="page hidden"><div class="page-head"><div><h1 class="page-title">Reports</h1><p class="page-subtitle">Monthly PDF / Excel export</p></div></div><div class="card" style="padding:24px;color:var(--fg-muted);font-size:13px">Report generation module — placeholder (not implemented in this kit).</div></div>
+    <div id="page-cloud" class="page hidden"><div class="page-head"><div><h1 class="page-title">Cloud</h1><p class="page-subtitle">AWS / GCP / Azure / SaaS subscriptions</p></div></div><div class="card" style="padding:24px;color:var(--fg-muted);font-size:13px">Cloud module — placeholder.</div></div>
+    <div id="page-domains" class="page hidden"><div class="page-head"><div><h1 class="page-title">Domains &amp; SSL</h1><p class="page-subtitle">Expiry D-day tracking</p></div></div><div class="card" style="padding:24px;color:var(--fg-muted);font-size:13px">Domains module — placeholder.</div></div>
+    <div id="page-contracts" class="page hidden"><div class="page-head"><div><h1 class="page-title">Contracts</h1><p class="page-subtitle">Maintenance · SLA · outsourcing</p></div></div><div class="card" style="padding:24px;color:var(--fg-muted);font-size:13px">Contracts module — placeholder.</div></div>
+    <div id="page-employees" class="page hidden"><div class="page-head"><div><h1 class="page-title">Employees</h1><p class="page-subtitle">People · assignments</p></div></div><div class="card" style="padding:24px;color:var(--fg-muted);font-size:13px">Employees module — placeholder.</div></div>
+    <div id="page-org" class="page hidden"><div class="page-head"><div><h1 class="page-title">Org chart</h1></div></div><div class="card" style="padding:24px;color:var(--fg-muted);font-size:13px">Drag &amp; drop org chart — placeholder.</div></div>
+    <div id="page-history" class="page hidden"><div class="page-head"><div><h1 class="page-title">Change history</h1></div></div><div class="card" style="padding:24px;color:var(--fg-muted);font-size:13px">Audit log — placeholder.</div></div>
+    <div id="page-asset-map" class="page hidden"><div class="page-head"><div><h1 class="page-title">Asset Map</h1><p class="page-subtitle">Interactive node graph of asset relationships</p></div></div><div class="card" style="padding:24px;color:var(--fg-muted);font-size:13px">ReactFlow canvas — placeholder.</div></div>
+    <div id="page-profile" class="page hidden"><div class="page-head"><div><h1 class="page-title">Profile</h1></div></div><div class="card" style="padding:24px;color:var(--fg-muted);font-size:13px">Profile settings — placeholder.</div></div>
+    <div id="page-notifs" class="page hidden"><div class="page-head"><div><h1 class="page-title">Notifications</h1></div></div><div class="card" style="padding:24px;color:var(--fg-muted);font-size:13px">Email / Slack / thresholds — placeholder.</div></div>
+
+  </main>
+</div>
+
+<!-- ============== MODAL ============== -->
+<div id="modal" class="modal-backdrop hidden" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-head"><h3>Add license</h3><button class="icon-btn" onclick="closeModal()"><svg class="icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="modal-body">
+      <div class="field"><label>Name</label><input id="newName" placeholder="e.g. Linear Standard"></div>
+      <div class="field"><label>Type</label><select style="width:100%;padding:8px 12px;border:1px solid var(--border-strong);border-radius:6px;font-size:14px;font-family:inherit;"><option>SaaS</option><option>Key-based</option><option>Perpetual</option></select></div>
+      <div class="field"><label>Seats</label><input type="number" value="20"></div>
+      <div class="field"><label>Expiry date</label><input type="date" value="2027-01-01"></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveNew()">Save</button></div>
+  </div>
+</div>
+
+<script>
+// ---------- State: persistent location ----------
+const STORAGE = 'asset-mgr-ui-kit';
+function saveState(s){ try{localStorage.setItem(STORAGE, JSON.stringify(s));}catch{} }
+function loadState(){ try{return JSON.parse(localStorage.getItem(STORAGE) || '{}');}catch{return{};} }
+
+let state = Object.assign({ loggedIn: false, page: 'dashboard' }, loadState());
+
+function render() {
+  document.getElementById('screen-login').classList.toggle('hidden', state.loggedIn);
+  document.getElementById('screen-app').classList.toggle('hidden', !state.loggedIn);
+  document.querySelectorAll('main .page').forEach(p => p.classList.add('hidden'));
+  const active = document.getElementById('page-' + state.page);
+  if (active) active.classList.remove('hidden');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === state.page));
+  saveState(state);
+}
+
+function navigate(page) { state.page = page; render(); }
+function doLogin(e) {
+  e.preventDefault();
+  const u = document.getElementById('u').value.trim(), p = document.getElementById('p').value.trim();
+  if (u && p) { state.loggedIn = true; state.page = 'dashboard'; document.getElementById('loginErr').classList.add('hidden'); render(); }
+  else document.getElementById('loginErr').classList.remove('hidden');
+}
+function logout() { state.loggedIn = false; render(); }
+function openModal() { document.getElementById('modal').classList.remove('hidden'); }
+function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+function saveNew() {
+  const name = document.getElementById('newName').value.trim() || 'New license';
+  const tbody = document.querySelector('#licTable tbody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td>${name}</td><td style="color:var(--fg-muted)">SaaS</td><td>0 / 20</td><td>2027-01-01</td><td><span class="pill pill-low">낮음</span></td><td>—</td>`;
+  tbody.prepend(tr);
+  document.getElementById('licCount').textContent = tbody.children.length + ' items';
+  closeModal();
+}
+function filterRows() {
+  const q = document.getElementById('licSearch').value.toLowerCase();
+  let n = 0;
+  document.querySelectorAll('#licTable tbody tr').forEach(r => {
+    const match = r.textContent.toLowerCase().includes(q);
+    r.style.display = match ? '' : 'none';
+    if (match) n++;
+  });
+  document.getElementById('licCount').textContent = n + ' items';
+}
+
+document.querySelectorAll('.nav-item').forEach(el => el.addEventListener('click', () => navigate(el.dataset.page)));
+render();
+</script>
+</body>
+</html>

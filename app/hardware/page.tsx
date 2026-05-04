@@ -37,6 +37,13 @@ function formatCost(cost: number | null | undefined, currency: string): string {
   return `${sym}${cost.toLocaleString()}`;
 }
 
+function formatCostMillions(cost: number, unit: string): string {
+  const millions = cost / 1_000_000;
+  if (Math.abs(millions) >= 1) return `${Math.round(millions).toLocaleString()} ${unit}`;
+  if (cost === 0) return `0 ${unit}`;
+  return `${millions.toFixed(1)} ${unit}`;
+}
+
 const STATUS_ORDER: Record<AssetStatus, number> = { IN_STOCK: 0, IN_USE: 1, INACTIVE: 2, UNUSABLE: 3, PENDING_DISPOSAL: 4, DISPOSED: 5 };
 
 function sortAssets(assets: Asset[], field: SortField | null, order: SortOrder): Asset[] {
@@ -477,25 +484,25 @@ export default function HardwareListPage() {
               <p className="text-sm font-semibold text-gray-700">{t.hw.depreciationStatus}</p>
               <p className="text-xs text-gray-400">{t.hw.straight5Year}</p>
             </div>
-            <div className="grid grid-cols-4 gap-3">
-              <div>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              <div className="min-w-0">
                 <p className="text-[10px] text-gray-400 uppercase font-medium">{t.hw.totalAcquisitionCost}</p>
-                <p className="text-base font-bold text-gray-900">₩{depreciationSummary.totalCost.toLocaleString()}</p>
+                <p className="truncate text-sm font-bold text-gray-900 tabular-nums" title={`₩${depreciationSummary.totalCost.toLocaleString()}`}>{formatCostMillions(depreciationSummary.totalCost, t.org.millionWon)}</p>
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-[10px] text-gray-400 uppercase font-medium">{t.hw.currentBookValue}</p>
-                <p className="text-base font-bold text-blue-600">₩{depreciationSummary.totalBookValue.toLocaleString()}</p>
+                <p className="truncate text-sm font-bold text-blue-600 tabular-nums" title={`₩${depreciationSummary.totalBookValue.toLocaleString()}`}>{formatCostMillions(depreciationSummary.totalBookValue, t.org.millionWon)}</p>
                 <p className="text-[10px] text-gray-400">
                   {depreciationSummary.totalCost > 0 ? Math.round((depreciationSummary.totalBookValue / depreciationSummary.totalCost) * 100) : 0}% {t.hw.remainingSuffix}
                 </p>
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-[10px] text-gray-400 uppercase font-medium">{t.hw.accumulatedDep}</p>
-                <p className="text-base font-bold text-amber-600">₩{(depreciationSummary.totalCost - depreciationSummary.totalBookValue).toLocaleString()}</p>
+                <p className="truncate text-sm font-bold text-amber-600 tabular-nums" title={`₩${(depreciationSummary.totalCost - depreciationSummary.totalBookValue).toLocaleString()}`}>{formatCostMillions(depreciationSummary.totalCost - depreciationSummary.totalBookValue, t.org.millionWon)}</p>
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-[10px] text-gray-400 uppercase font-medium">{t.hw.countByStatus}</p>
-                <div className="flex gap-2 text-xs mt-0.5">
+                <div className="mt-0.5 flex flex-wrap gap-1.5 text-xs">
                   <span className="rounded bg-green-100 px-1.5 py-0.5 text-green-700">{depreciationSummary.underHalf}{t.common.countSuffix} {t.hw.depGood}</span>
                   <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-700">{depreciationSummary.overHalf}{t.common.countSuffix} {t.hw.depOver50}</span>
                   <span className="rounded bg-red-100 px-1.5 py-0.5 text-red-700">{depreciationSummary.fullyDepreciated}{t.common.countSuffix} {t.hw.depComplete}</span>

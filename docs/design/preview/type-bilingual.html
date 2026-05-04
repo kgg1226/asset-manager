@@ -1,0 +1,31 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+body{margin:0;background:#fff;padding:22px 24px;font-family:var(--font-sans);color:var(--fg-primary);}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.col h3{margin:0 0 6px 0;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;}
+.col .big{font-size:22px;font-weight:700;line-height:1.2;letter-spacing:-0.01em;}
+.col .body{font-size:14px;margin-top:4px;line-height:1.5;}
+.col .mono{font-family:'Geist Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#374151;margin-top:6px;}
+.foot{margin-top:14px;padding-top:10px;border-top:1px dashed #e5e7eb;font-size:11px;color:#6b7280;line-height:1.5;}
+.foot code{font-family:'Geist Mono',ui-monospace,monospace;background:#f3f4f6;color:#1d4ed8;padding:1px 5px;border-radius:3px;font-size:10.5px;}
+</style></head><body>
+<div class="grid">
+  <div class="col">
+    <h3>Pretendard · Latin</h3>
+    <div class="big">Asset Manager</div>
+    <div class="body">Seat assignment, key management, usage tracking.</div>
+    <div class="mono">123.45 · USD · D-30</div>
+  </div>
+  <div class="col">
+    <h3>Pretendard · 한국어</h3>
+    <div class="big">자산 관리</div>
+    <div class="body">시트 배정, 키 관리, 사용률 추적을 한 곳에서.</div>
+    <div class="mono">123.45 · 원 · D-30</div>
+  </div>
+</div>
+<div class="foot">
+  단일 패밀리로 Latin + CJK 모두 커버 — 별도 한글 폴백 불필요. 본문 14px / 제목 22px / 모노 12px.
+  Weights: <code>400</code> body · <code>500</code> nav/labels · <code>600</code> section · <code>700</code> page title.
+</div>
+</body></html>

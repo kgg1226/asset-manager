@@ -1,0 +1,39 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><link rel="stylesheet" href="../colors_and_type.css"><style>
+body{margin:0;background:#fff;padding:22px;font-family:var(--font-sans);font-size:12px;color:#111827;}
+.row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;align-items:center;}
+.lbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;width:110px;flex-shrink:0;}
+.pill{display:inline-flex;align-items:center;gap:4px;border-radius:9999px;padding:2px 8px;font-size:11.5px;font-weight:500;white-space:nowrap;}
+.sq{display:inline-flex;align-items:center;gap:4px;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:500;}
+.host{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:#374151;}
+.host .count{background:#e5e7eb;color:#4b5563;min-width:20px;justify-content:center;padding:1px 7px;font-size:10.5px;font-weight:600;border-radius:9999px;display:inline-flex;}
+.host .count.alert{background:#dc2626;color:#fff;}
+.note{font-size:11px;color:#6b7280;margin-left:8px;}
+hr{border:0;border-top:1px solid #f3f4f6;margin:6px 0;}
+</style></head><body>
+<div class="row"><span class="lbl">CIA</span>
+  <span class="pill" style="background:#dcfce7;color:#166534">낮음 · Low</span>
+  <span class="pill" style="background:#fef9c3;color:#854d0e">보통 · Medium</span>
+  <span class="pill" style="background:#fee2e2;color:#991b1b">높음 · High</span>
+  <span class="pill" style="background:#f3f4f6;color:#6b7280">미설정 · N/A</span>
+</div>
+<div class="row"><span class="lbl">Role</span>
+  <span class="sq" style="background:#dbeafe;color:#1d4ed8">ADMIN</span>
+  <span class="sq" style="background:#f3f4f6;color:#4b5563">USER</span>
+</div>
+<div class="row"><span class="lbl">Feature tag</span>
+  <span class="pill" style="background:#f3e8ff;color:#7e22ce;font-size:10px;font-weight:600">Alpha</span>
+  <span class="pill" style="background:#dbeafe;color:#1d4ed8;font-size:10px;font-weight:600">Beta</span>
+</div>
+<div class="row"><span class="lbl">Expiry D-day</span>
+  <span class="pill" style="background:#fee2e2;color:#991b1b">D-7</span>
+  <span class="pill" style="background:#fef9c3;color:#854d0e">D-30</span>
+  <span class="pill" style="background:#f3f4f6;color:#4b5563">D-70</span>
+</div>
+<hr>
+<div class="row"><span class="lbl">Count<br><span style="font-weight:400;text-transform:none;letter-spacing:0;color:#9ca3af">in context</span></span>
+  <span class="host">Licenses<span class="count">128</span></span>
+  <span class="host">Hardware<span class="count">42</span></span>
+  <span class="host">Notifications<span class="count alert">3</span></span>
+  <span class="note">Gray = total · Red = unread / needs action</span>
+</div>
+</body></html>

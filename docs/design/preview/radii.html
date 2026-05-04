@@ -1,0 +1,17 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><link rel="stylesheet" href="../colors_and_type.css"><style>
+body{margin:0;background:#fff;padding:20px;font-family:var(--font-sans);}
+.row{display:flex;gap:16px;align-items:flex-end;}
+.item{display:flex;flex-direction:column;align-items:center;gap:6px;}
+.box{width:64px;height:44px;background:var(--bg-surface);border:1px solid var(--border-default);box-shadow:var(--shadow-sm);}
+.name{font-size:11px;font-weight:600;color:var(--fg-primary);}
+.val{font-family:var(--font-mono);font-size:10px;color:var(--fg-muted);}
+.pill{padding:4px 10px;border-radius:9999px;background:var(--gray-100);color:var(--gray-700);font-size:11px;font-weight:500;}
+</style></head><body>
+<div class="row">
+  <div class="item"><div class="box" style="border-radius:4px"></div><div class="name">rounded</div><div class="val">4px · chips</div></div>
+  <div class="item"><div class="box" style="border-radius:6px"></div><div class="name">rounded-md</div><div class="val">6px · buttons · inputs</div></div>
+  <div class="item"><div class="box" style="border-radius:8px"></div><div class="name">rounded-lg</div><div class="val">8px · cards · tables</div></div>
+  <div class="item"><div class="box" style="border-radius:12px"></div><div class="name">rounded-xl</div><div class="val">12px · modals</div></div>
+  <div class="item"><span class="pill">rounded-full</span><div class="val">pill badges · avatars</div></div>
+</div>
+</body></html>
