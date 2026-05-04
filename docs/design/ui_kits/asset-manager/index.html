@@ -147,9 +147,9 @@
       Asset Manager
     </h1>
     <form class="login-form" onsubmit="doLogin(event)">
-      <div id="loginErr" class="login-err hidden">Invalid credentials. Try admin / changeme123.</div>
-      <div class="field"><label>Username</label><input id="u" value="admin" autocomplete="off"></div>
-      <div class="field"><label>Password</label><input id="p" type="password" value="changeme123"></div>
+      <div id="loginErr" class="login-err hidden">Enter any non-empty username and password to enter the demo.</div>
+      <div class="field"><label>Username</label><input id="u" placeholder="any value" autocomplete="off"></div>
+      <div class="field"><label>Password</label><input id="p" type="password" placeholder="any value"></div>
       <button class="login-btn" type="submit">Log in</button>
     </form>
   </div>
@@ -363,8 +363,8 @@ function render() {
 function navigate(page) { state.page = page; render(); }
 function doLogin(e) {
   e.preventDefault();
-  const u = document.getElementById('u').value, p = document.getElementById('p').value;
-  if (u === 'admin' && p === 'changeme123') { state.loggedIn = true; state.page = 'dashboard'; document.getElementById('loginErr').classList.add('hidden'); render(); }
+  const u = document.getElementById('u').value.trim(), p = document.getElementById('p').value.trim();
+  if (u && p) { state.loggedIn = true; state.page = 'dashboard'; document.getElementById('loginErr').classList.add('hidden'); render(); }
   else document.getElementById('loginErr').classList.remove('hidden');
 }
 function logout() { state.loggedIn = false; render(); }

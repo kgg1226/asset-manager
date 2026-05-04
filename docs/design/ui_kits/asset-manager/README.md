@@ -6,7 +6,7 @@ A single-file interactive recreation of the Asset Manager web app (Next.js 15 + 
 Open `index.html` directly — it links `../../colors_and_type.css` for fonts + tokens.
 
 ## What's in here
-- **Login screen** — centered form card. Use `admin / changeme123`.
+- **Login screen** — centered form card. Enter any non-empty username + password to enter the demo (no credential check — this is a static UI mockup).
 - **App shell** — fixed 240px sidebar + 56px top header, `max-w-7xl` content container.
 - **Sidebar** — collapsible groups (ANALYSIS, ASSET MANAGEMENT, ORGANIZATION, SETTINGS), active-state styling, Alpha pill on Asset Map.
 - **Top header** — global search, notification bell (with red dot), language toggle, avatar + role chip + log-out.

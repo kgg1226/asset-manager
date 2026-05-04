@@ -141,10 +141,12 @@
 - [x] 클로드 디자인 시스템 레퍼런스 도입 — `colors_and_type.css` (토큰), `preview/*.html` (21종 비주얼), `ui_kits/asset-manager/index.html` (인터랙티브 UI Kit)
 - [x] 하드웨어 감가상각 카드 반응형 — `formatCostMillions` 도입 + `grid-cols-2 md:grid-cols-4` + `truncate tabular-nums` (좁은 폭에서 큰 금액 카드 깨짐 해결)
 
-## 즉시 (이번 스프린트)
+## 완료 (2026-04-29, dev-008)
 
-- [ ] 디자인 레퍼런스 정리 — 루트 `assets/`, `fonts/` 가 `public/` 사본과 중복. `docs/design/` 으로 이전하고 `colors_and_type.css` 의 상대경로 갱신
-- [ ] `ui_kits/asset-manager/index.html` 데모 자격증명(`admin/changeme123`) 제거 또는 명시적 placeholder 토큰화
+- [x] 디자인 레퍼런스 정리 — `colors_and_type.css`, `preview/`, `ui_kits/`, `assets/logo-placeholder.svg`, `fonts/geist-mono-latin.woff2` 를 모두 `docs/design/` 트리로 이전. 루트의 `assets/{file,globe,next,vercel,window}.svg` 는 `public/` 사본과 중복이므로 삭제
+- [x] UI Kit 데모 자격증명(`admin/changeme123`) 제거 — 비어있지 않은 임의 입력으로 진입하도록 변경, README/에러문구 동기화
+
+## 즉시 (이번 스프린트)
 
 ## 단기 (다음 2주)
 
