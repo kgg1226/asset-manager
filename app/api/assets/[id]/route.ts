@@ -146,7 +146,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
       }
     }
 
-    // assetTag 변경 시 다른 자산과 충돌 검증 (수정도 중복 차단)
+    // unique 키 변경 시 다른 자산과 충돌 검증 (수정도 중복 차단)
     if (body.hardwareDetail?.assetTag !== undefined) {
       const tag = vStr(body.hardwareDetail.assetTag, 100);
       if (tag) {
@@ -157,6 +157,37 @@ export async function PUT(request: NextRequest, { params }: Params) {
         if (conflict) {
           return apiError("DUPLICATE", {
             message: `이미 등록된 자산 태그입니다: ${tag}`,
+          });
+        }
+      }
+    }
+    if (body.domainDetail?.domainName !== undefined) {
+      const dn = vStr(body.domainDetail.domainName, 255);
+      if (dn) {
+        const conflict = await prisma.domainDetail.findFirst({
+          where: { domainName: dn, assetId: { not: assetId } },
+          select: { assetId: true },
+        });
+        if (conflict) {
+          return apiError("DUPLICATE", {
+            message: `이미 등록된 도메인입니다: ${dn}`,
+          });
+        }
+      }
+    }
+    if (data.name !== undefined && data.name) {
+      const existingType = await prisma.asset.findUnique({
+        where: { id: assetId },
+        select: { type: true },
+      });
+      if (existingType?.type === "CONTRACT") {
+        const conflict = await prisma.asset.findFirst({
+          where: { type: "CONTRACT", name: data.name, id: { not: assetId } },
+          select: { id: true },
+        });
+        if (conflict) {
+          return apiError("DUPLICATE", {
+            message: `이미 등록된 계약명입니다: ${data.name}`,
           });
         }
       }

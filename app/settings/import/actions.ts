@@ -1016,6 +1016,7 @@ async function importCloudAssets(rows: Record<string, string>[], actor: string):
   if (!valid) return { success: false, created: 0, updated: 0, errors };
 
   let created = 0;
+  let updated = 0;
 
   await prisma.$transaction(async (tx) => {
     for (const row of validated) {
@@ -1023,66 +1024,118 @@ async function importCloudAssets(rows: Record<string, string>[], actor: string):
       const orgUnitId = await resolveOrgUnitId(tx, row.orgUnitName, companyId);
       const assigneeId = await resolveEmployeeByName(tx, row.assigneeName);
 
-      const asset = await tx.asset.create({
-        data: {
-          type: "CLOUD",
-          name: row.name!,
-          vendor: row.vendor,
-          description: row.description,
-          monthlyCost: row.monthlyCost != null ? row.monthlyCost : undefined,
-          cost: row.monthlyCost != null ? row.monthlyCost : undefined,
-          currency: row.currency,
-          billingCycle: row.billingCycle,
-          purchaseDate: row.purchaseDate,
-          expiryDate: row.expiryDate,
-          companyId,
-          orgUnitId,
-          assigneeId,
-          status: assigneeId ? "IN_USE" : "IN_STOCK",
-          cloudDetail: {
-            create: {
-              platform: row.platform,
-              accountId: row.accountId,
-              region: row.region,
-              serviceCategory: row.serviceCategory,
-              resourceType: row.resourceType,
-              resourceId: row.resourceId,
-              instanceSpec: row.instanceSpec,
-            },
-          },
-        },
-      });
+      // dedup: resourceId 우선 (AWS arn 등 고유 식별자), 없으면 자산명(Asset.name) fallback
+      let existingAssetId: number | null = null;
+      let previousAssigneeId: number | null = null;
+      let existingDetailId: number | null = null;
 
-      if (assigneeId) {
+      if (row.resourceId) {
+        const detail = await tx.cloudDetail.findFirst({
+          where: { resourceId: row.resourceId },
+          select: { id: true, assetId: true, asset: { select: { assigneeId: true } } },
+        });
+        if (detail) {
+          existingDetailId = detail.id;
+          existingAssetId = detail.assetId;
+          previousAssigneeId = detail.asset.assigneeId ?? null;
+        }
+      }
+      if (!existingAssetId) {
+        const asset = await tx.asset.findFirst({
+          where: { type: "CLOUD", name: row.name! },
+          select: { id: true, assigneeId: true, cloudDetail: { select: { id: true } } },
+        });
+        if (asset) {
+          existingAssetId = asset.id;
+          previousAssigneeId = asset.assigneeId ?? null;
+          existingDetailId = asset.cloudDetail?.id ?? null;
+        }
+      }
+
+      const assetData = {
+        type: "CLOUD" as const,
+        name: row.name!,
+        vendor: row.vendor,
+        description: row.description,
+        monthlyCost: row.monthlyCost != null ? row.monthlyCost : undefined,
+        cost: row.monthlyCost != null ? row.monthlyCost : undefined,
+        currency: row.currency,
+        billingCycle: row.billingCycle,
+        purchaseDate: row.purchaseDate,
+        expiryDate: row.expiryDate,
+        companyId,
+        orgUnitId,
+        assigneeId,
+        status: assigneeId ? "IN_USE" as const : "IN_STOCK" as const,
+      };
+
+      const detailData = {
+        platform: row.platform,
+        accountId: row.accountId,
+        region: row.region,
+        serviceCategory: row.serviceCategory,
+        resourceType: row.resourceType,
+        resourceId: row.resourceId,
+        instanceSpec: row.instanceSpec,
+      };
+
+      let assetId: number;
+
+      if (existingAssetId) {
+        const upd = await tx.asset.update({
+          where: { id: existingAssetId },
+          data: assetData,
+          select: { id: true },
+        });
+        if (existingDetailId) {
+          await tx.cloudDetail.update({
+            where: { id: existingDetailId },
+            data: detailData,
+          });
+        } else {
+          await tx.cloudDetail.create({
+            data: { ...detailData, assetId: existingAssetId },
+          });
+        }
+        assetId = upd.id;
+        updated++;
+      } else {
+        const newAsset = await tx.asset.create({
+          data: { ...assetData, cloudDetail: { create: detailData } },
+          select: { id: true },
+        });
+        assetId = newAsset.id;
+        created++;
+      }
+
+      if (assigneeId && assigneeId !== previousAssigneeId) {
         await tx.assetAssignmentHistory.create({
           data: {
-            assetId: asset.id,
+            assetId,
             employeeId: assigneeId,
             action: "ASSIGNED",
             reason: "CSV Import",
           },
         });
       }
-
-      created++;
     }
   });
 
   revalidatePath("/cloud");
 
-  if (created > 0) {
+  if (created > 0 || updated > 0) {
     await prisma.auditLog.create({
       data: {
         entityType: "ASSET",
         entityId: 0,
         action: "IMPORTED",
         actor,
-        details: JSON.stringify({ summary: `클라우드 자산 CSV 가져오기: ${created}건 생성` }),
+        details: JSON.stringify({ summary: `클라우드 자산 CSV 가져오기: ${created}건 생성, ${updated}건 갱신` }),
       },
     });
   }
 
-  return { success: true, created, updated: 0, errors: [] };
+  return { success: true, created, updated, errors: [] };
 }
 
 // ─── Domain/SSL Asset Import ───────────────────────────────────────────
@@ -1118,55 +1171,76 @@ async function importDomainAssets(rows: Record<string, string>[], actor: string)
   if (!valid) return { success: false, created: 0, updated: 0, errors };
 
   let created = 0;
+  let updated = 0;
 
   await prisma.$transaction(async (tx) => {
     for (const row of validated) {
       const companyId = await resolveCompanyId(tx, row.companyName);
       const orgUnitId = await resolveOrgUnitId(tx, row.orgUnitName, companyId);
 
-      await tx.asset.create({
-        data: {
-          type: "DOMAIN_SSL",
-          name: row.name!,
-          vendor: row.registrar,
-          description: row.description,
-          cost: row.cost != null ? row.cost : undefined,
-          currency: row.currency,
-          purchaseDate: row.purchaseDate,
-          expiryDate: row.expiryDate,
-          companyId,
-          orgUnitId,
-          domainDetail: {
-            create: {
-              domainName: row.domainName,
-              registrar: row.registrar,
-              sslType: row.sslType,
-              issuer: row.issuer,
-              autoRenew: row.autoRenew ?? true,
-            },
-          },
-        },
-      });
+      // domainName 기반 dedup: 비어있으면 신규 생성, 일치 시 update
+      const existingDetail = row.domainName
+        ? await tx.domainDetail.findFirst({
+            where: { domainName: row.domainName },
+            select: { id: true, assetId: true },
+          })
+        : null;
 
-      created++;
+      const assetData = {
+        type: "DOMAIN_SSL" as const,
+        name: row.name!,
+        vendor: row.registrar,
+        description: row.description,
+        cost: row.cost != null ? row.cost : undefined,
+        currency: row.currency,
+        purchaseDate: row.purchaseDate,
+        expiryDate: row.expiryDate,
+        companyId,
+        orgUnitId,
+      };
+
+      const detailData = {
+        domainName: row.domainName,
+        registrar: row.registrar,
+        sslType: row.sslType,
+        issuer: row.issuer,
+        autoRenew: row.autoRenew ?? true,
+      };
+
+      if (existingDetail) {
+        await tx.asset.update({
+          where: { id: existingDetail.assetId },
+          data: assetData,
+        });
+        await tx.domainDetail.update({
+          where: { id: existingDetail.id },
+          data: detailData,
+        });
+        updated++;
+      } else {
+        await tx.asset.create({
+          data: { ...assetData, domainDetail: { create: detailData } },
+        });
+        created++;
+      }
     }
   });
 
   revalidatePath("/domains");
 
-  if (created > 0) {
+  if (created > 0 || updated > 0) {
     await prisma.auditLog.create({
       data: {
         entityType: "ASSET",
         entityId: 0,
         action: "IMPORTED",
         actor,
-        details: JSON.stringify({ summary: `도메인·SSL CSV 가져오기: ${created}건 생성` }),
+        details: JSON.stringify({ summary: `도메인·SSL CSV 가져오기: ${created}건 생성, ${updated}건 갱신` }),
       },
     });
   }
 
-  return { success: true, created, updated: 0, errors: [] };
+  return { success: true, created, updated, errors: [] };
 }
 
 // ─── Hardware Asset Import ─────────────────────────────────────────────
@@ -1389,6 +1463,7 @@ async function importContractAssets(rows: Record<string, string>[], actor: strin
   if (!valid) return { success: false, created: 0, updated: 0, errors };
 
   let created = 0;
+  let updated = 0;
 
   await prisma.$transaction(async (tx) => {
     for (const row of validated) {
@@ -1396,59 +1471,86 @@ async function importContractAssets(rows: Record<string, string>[], actor: strin
       const orgUnitId = await resolveOrgUnitId(tx, row.orgUnitName, companyId);
       const assigneeId = await resolveEmployeeByName(tx, row.assigneeName);
 
-      const asset = await tx.asset.create({
-        data: {
-          type: "CONTRACT",
-          name: row.name!,
-          vendor: row.counterparty,
-          description: row.description,
-          cost: row.cost != null ? row.cost : undefined,
-          currency: row.currency,
-          purchaseDate: row.purchaseDate,
-          expiryDate: row.expiryDate,
-          companyId,
-          orgUnitId,
-          assigneeId,
-          status: "IN_STOCK",
-          contractDetail: {
-            create: {
-              contractNumber: row.contractNumber,
-              counterparty: row.counterparty,
-              contractType: row.contractType,
-              autoRenew: row.autoRenew ?? false,
-            },
-          },
-        },
+      // 계약명(Asset.name) 기준 dedup: type=CONTRACT && 동일 name 일치 시 update
+      const existing = await tx.asset.findFirst({
+        where: { type: "CONTRACT", name: row.name! },
+        select: { id: true, assigneeId: true },
       });
 
-      if (assigneeId) {
+      const assetData = {
+        type: "CONTRACT" as const,
+        name: row.name!,
+        vendor: row.counterparty,
+        description: row.description,
+        cost: row.cost != null ? row.cost : undefined,
+        currency: row.currency,
+        purchaseDate: row.purchaseDate,
+        expiryDate: row.expiryDate,
+        companyId,
+        orgUnitId,
+        assigneeId,
+        status: "IN_STOCK" as const,
+      };
+
+      const detailData = {
+        contractNumber: row.contractNumber,
+        counterparty: row.counterparty,
+        contractType: row.contractType,
+        autoRenew: row.autoRenew ?? false,
+      };
+
+      let assetId: number;
+      let previousAssigneeId: number | null = null;
+
+      if (existing) {
+        previousAssigneeId = existing.assigneeId ?? null;
+        const upd = await tx.asset.update({
+          where: { id: existing.id },
+          data: assetData,
+          select: { id: true },
+        });
+        await tx.contractDetail.update({
+          where: { assetId: existing.id },
+          data: detailData,
+        });
+        assetId = upd.id;
+        updated++;
+      } else {
+        const newAsset = await tx.asset.create({
+          data: { ...assetData, contractDetail: { create: detailData } },
+          select: { id: true },
+        });
+        assetId = newAsset.id;
+        created++;
+      }
+
+      // 신규 배정 또는 배정자 변경 시 이력 기록
+      if (assigneeId && assigneeId !== previousAssigneeId) {
         await tx.assetAssignmentHistory.create({
           data: {
-            assetId: asset.id,
+            assetId,
             employeeId: assigneeId,
             action: "ASSIGNED",
             reason: "CSV Import",
           },
         });
       }
-
-      created++;
     }
   });
 
   revalidatePath("/contracts");
 
-  if (created > 0) {
+  if (created > 0 || updated > 0) {
     await prisma.auditLog.create({
       data: {
         entityType: "ASSET",
         entityId: 0,
         action: "IMPORTED",
         actor,
-        details: JSON.stringify({ summary: `계약 CSV 가져오기: ${created}건 생성` }),
+        details: JSON.stringify({ summary: `계약 CSV 가져오기: ${created}건 생성, ${updated}건 갱신` }),
       },
     });
   }
 
-  return { success: true, created, updated: 0, errors: [] };
+  return { success: true, created, updated, errors: [] };
 }

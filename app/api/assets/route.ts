@@ -162,8 +162,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ── assetTag 중복 사전 검증 (개별 생성은 중복 시 거부) ──
-    // CSV import 는 동일 assetTag 면 update (app/settings/import/actions.ts:importHardwareAssets),
+    // ── unique 키 중복 사전 검증 (개별 생성은 중복 시 거부) ──
+    // CSV import 는 동일 키면 update (app/settings/import/actions.ts),
     // 개별 생성은 사용자 의도가 명확한 신규 등록이므로 중복 시 차단한다.
     if (typeVal === "HARDWARE" && body.hardwareDetail?.assetTag) {
       const tag = vStr(body.hardwareDetail.assetTag, 100);
@@ -177,6 +177,31 @@ export async function POST(request: NextRequest) {
             message: `이미 등록된 자산 태그입니다: ${tag}`,
           });
         }
+      }
+    }
+    if (typeVal === "DOMAIN_SSL" && body.domainDetail?.domainName) {
+      const dn = vStr(body.domainDetail.domainName, 255);
+      if (dn) {
+        const existing = await prisma.domainDetail.findFirst({
+          where: { domainName: dn },
+          select: { assetId: true },
+        });
+        if (existing) {
+          return apiError("DUPLICATE", {
+            message: `이미 등록된 도메인입니다: ${dn}`,
+          });
+        }
+      }
+    }
+    if (typeVal === "CONTRACT" && nameVal) {
+      const existing = await prisma.asset.findFirst({
+        where: { type: "CONTRACT", name: nameVal },
+        select: { id: true },
+      });
+      if (existing) {
+        return apiError("DUPLICATE", {
+          message: `이미 등록된 계약명입니다: ${nameVal}`,
+        });
       }
     }
 
