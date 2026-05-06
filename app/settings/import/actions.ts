@@ -1222,6 +1222,7 @@ async function importHardwareAssets(rows: Record<string, string>[], actor: strin
   if (!valid) return { success: false, created: 0, updated: 0, errors };
 
   let created = 0;
+  let updated = 0;
 
   await prisma.$transaction(async (tx) => {
     for (const row of validated) {
@@ -1249,46 +1250,83 @@ async function importHardwareAssets(rows: Record<string, string>[], actor: strin
         }
       }
 
-      const asset = await tx.asset.create({
-        data: {
-          type: "HARDWARE",
-          name: row.name!,
-          vendor: row.manufacturer,
-          description: row.description,
-          cost: row.cost != null ? row.cost : undefined,
-          currency: row.currency,
-          purchaseDate: row.purchaseDate,
-          companyId,
-          orgUnitId,
-          assigneeId,
-          // status: CSV 명시값 우선, 없으면 assignee 기반 자동 결정
-          status: row.statusOverride ?? (assigneeId ? "IN_USE" : "IN_STOCK"),
-          ciaC: finalCiaC,
-          ciaI: finalCiaI,
-          ciaA: finalCiaA,
-          hardwareDetail: {
-            create: {
-              deviceType: row.deviceType,
-              manufacturer: row.manufacturer,
-              model: row.model,
-              serialNumber: row.serialNumber,
-              assetTag: row.assetTag,
-              hostname: row.hostname,
-              os: row.os,
-              osVersion: row.osVersion,
-              cpu: row.cpu,
-              ram: row.ram,
-              storage: row.storage,
-              location: row.location,
-              warrantyEndDate: row.warrantyEndDate,
-              condition: row.condition,
-              notes: row.notes,
-            },
-          },
-        },
-      });
+      // assetTag 기반 dedup: 비어있지 않은 assetTag와 일치하는 기존 HardwareDetail이 있으면 update,
+      // 없거나 assetTag가 비어있으면 create. (스키마에 @unique 미적용 — 앱 레벨 처리)
+      const existingDetail = row.assetTag
+        ? await tx.hardwareDetail.findFirst({
+            where: { assetTag: row.assetTag },
+            select: { id: true, assetId: true },
+          })
+        : null;
 
-      if (assigneeId) {
+      const assetData = {
+        type: "HARDWARE" as const,
+        name: row.name!,
+        vendor: row.manufacturer,
+        description: row.description,
+        cost: row.cost != null ? row.cost : undefined,
+        currency: row.currency,
+        purchaseDate: row.purchaseDate,
+        companyId,
+        orgUnitId,
+        assigneeId,
+        status: row.statusOverride ?? (assigneeId ? "IN_USE" : "IN_STOCK"),
+        ciaC: finalCiaC,
+        ciaI: finalCiaI,
+        ciaA: finalCiaA,
+      };
+
+      const detailData = {
+        deviceType: row.deviceType,
+        manufacturer: row.manufacturer,
+        model: row.model,
+        serialNumber: row.serialNumber,
+        assetTag: row.assetTag,
+        hostname: row.hostname,
+        os: row.os,
+        osVersion: row.osVersion,
+        cpu: row.cpu,
+        ram: row.ram,
+        storage: row.storage,
+        location: row.location,
+        warrantyEndDate: row.warrantyEndDate,
+        condition: row.condition,
+        notes: row.notes,
+      };
+
+      let asset: { id: number };
+      let previousAssigneeId: number | null = null;
+
+      if (existingDetail) {
+        const existingAsset = await tx.asset.findUnique({
+          where: { id: existingDetail.assetId },
+          select: { assigneeId: true },
+        });
+        previousAssigneeId = existingAsset?.assigneeId ?? null;
+
+        asset = await tx.asset.update({
+          where: { id: existingDetail.assetId },
+          data: assetData,
+          select: { id: true },
+        });
+        await tx.hardwareDetail.update({
+          where: { id: existingDetail.id },
+          data: detailData,
+        });
+        updated++;
+      } else {
+        asset = await tx.asset.create({
+          data: {
+            ...assetData,
+            hardwareDetail: { create: detailData },
+          },
+          select: { id: true },
+        });
+        created++;
+      }
+
+      // 신규 배정 또는 배정자 변경 시 이력 기록 (재import에서 동일 배정자면 중복 이력 방지)
+      if (assigneeId && assigneeId !== previousAssigneeId) {
         await tx.assetAssignmentHistory.create({
           data: {
             assetId: asset.id,
@@ -1298,26 +1336,24 @@ async function importHardwareAssets(rows: Record<string, string>[], actor: strin
           },
         });
       }
-
-      created++;
     }
   });
 
   revalidatePath("/hardware");
 
-  if (created > 0) {
+  if (created > 0 || updated > 0) {
     await prisma.auditLog.create({
       data: {
         entityType: "ASSET",
         entityId: 0,
         action: "IMPORTED",
         actor,
-        details: JSON.stringify({ summary: `하드웨어 자산 CSV 가져오기: ${created}건 생성` }),
+        details: JSON.stringify({ summary: `하드웨어 자산 CSV 가져오기: ${created}건 생성, ${updated}건 갱신` }),
       },
     });
   }
 
-  return { success: true, created, updated: 0, errors: [] };
+  return { success: true, created, updated, errors: [] };
 }
 
 // ─── Contract Asset Import ─────────────────────────────────────────────
