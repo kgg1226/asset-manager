@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { apiError } from "@/lib/api-errors";
 import {
   getGDriveConfigStatus,
   setConfigValue,
@@ -14,10 +15,8 @@ import {
 
 export async function GET() {
   const user = await getCurrentUser();
-  if (!user)
-    return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
-  if (user.role !== "ADMIN")
-    return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+  if (!user) return apiError("UNAUTHORIZED");
+  if (user.role !== "ADMIN") return apiError("FORBIDDEN");
 
   try {
     const status = await getGDriveConfigStatus();
@@ -33,10 +32,8 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   const user = await getCurrentUser();
-  if (!user)
-    return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
-  if (user.role !== "ADMIN")
-    return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+  if (!user) return apiError("UNAUTHORIZED");
+  if (user.role !== "ADMIN") return apiError("FORBIDDEN");
 
   try {
     const body = await request.json();
@@ -62,10 +59,8 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   const user = await getCurrentUser();
-  if (!user)
-    return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
-  if (user.role !== "ADMIN")
-    return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+  if (!user) return apiError("UNAUTHORIZED");
+  if (user.role !== "ADMIN") return apiError("FORBIDDEN");
 
   try {
     const { searchParams } = new URL(request.url);

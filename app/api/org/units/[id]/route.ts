@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { apiError } from "@/lib/api-errors";
 import { writeAuditLog } from "@/lib/audit-log";
 import { ValidationError, handleValidationError, handlePrismaError, vStrReq, vNum } from "@/lib/validation";
 
@@ -38,8 +39,8 @@ async function collectDescendantIds(rootId: number): Promise<number[]> {
 // PUT /api/org/units/:id — 조직 수정 { name?, parentId?, sortOrder? }
 export async function PUT(request: NextRequest, { params }: Params) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
-  if (user.role !== "ADMIN") return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+  if (!user) return apiError("UNAUTHORIZED");
+  if (user.role !== "ADMIN") return apiError("FORBIDDEN");
 
   try {
     const { id } = await params;
@@ -101,8 +102,8 @@ export async function PUT(request: NextRequest, { params }: Params) {
 // body: { confirm: "삭제하겠습니다" }
 export async function DELETE(request: NextRequest, { params }: Params) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
-  if (user.role !== "ADMIN") return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+  if (!user) return apiError("UNAUTHORIZED");
+  if (user.role !== "ADMIN") return apiError("FORBIDDEN");
 
   try {
     const { id } = await params;

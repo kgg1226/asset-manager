@@ -1445,4 +1445,16 @@ export const zhTW: TranslationDict = {
     linkTarget: "→ 目標",
     linkSource: "← 來源",
   },
+
+  errors: {
+    unauthorized: "需要身份驗證。",
+    forbidden: "沒有權限。",
+    invalidId: "無效的ID。",
+    notFound: "找不到資源。",
+    requiredField: "缺少必填項。",
+    invalidPassword: "密碼格式不正確。",
+    invalidInput: "輸入值不正確。",
+    duplicate: "項目已存在。",
+    internalError: "發生伺服器錯誤。",
+  },
 };

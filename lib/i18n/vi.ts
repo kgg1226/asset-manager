@@ -1446,4 +1446,16 @@ export const vi: TranslationDict = {
     linkTarget: "→ Đích",
     linkSource: "← Nguồn",
   },
+
+  errors: {
+    unauthorized: "Cần xác thực.",
+    forbidden: "Bạn không có quyền.",
+    invalidId: "ID không hợp lệ.",
+    notFound: "Không tìm thấy tài nguyên.",
+    requiredField: "Thiếu trường bắt buộc.",
+    invalidPassword: "Định dạng mật khẩu không hợp lệ.",
+    invalidInput: "Giá trị nhập không hợp lệ.",
+    duplicate: "Mục đã tồn tại.",
+    internalError: "Đã xảy ra lỗi máy chủ.",
+  },
 };

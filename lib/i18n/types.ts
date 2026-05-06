@@ -1537,4 +1537,17 @@ export type TranslationDict = {
     linkTarget: string;
     linkSource: string;
   };
+
+  // API 표준 오류 메시지 (lib/api-errors.ts ApiErrorCode 와 매핑)
+  errors: {
+    unauthorized: string;
+    forbidden: string;
+    invalidId: string;
+    notFound: string;
+    requiredField: string;
+    invalidPassword: string;
+    invalidInput: string;
+    duplicate: string;
+    internalError: string;
+  };
 };

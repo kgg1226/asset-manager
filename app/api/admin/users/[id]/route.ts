@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, hashPassword } from "@/lib/auth";
+import { apiError } from "@/lib/api-errors";
 import { writeAuditLog } from "@/lib/audit-log";
 import { handleValidationError, handlePrismaError, vEnumReq, vBool, ValidationError } from "@/lib/validation";
 
@@ -11,8 +12,8 @@ type Params = { params: Promise<{ id: string }> };
 // PUT /api/admin/users/:id — 사용자 수정 { role?, isActive? } 또는 비밀번호 변경 { password }
 export async function PUT(request: NextRequest, { params }: Params) {
   const me = await getCurrentUser();
-  if (!me) return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
-  if (me.role !== "ADMIN") return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+  if (!me) return apiError("UNAUTHORIZED");
+  if (me.role !== "ADMIN") return apiError("FORBIDDEN");
 
   try {
     const { id } = await params;
@@ -100,8 +101,8 @@ export async function PUT(request: NextRequest, { params }: Params) {
 // DELETE /api/admin/users/:id — 사용자 삭제
 export async function DELETE(request: NextRequest, { params }: Params) {
   const me = await getCurrentUser();
-  if (!me) return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
-  if (me.role !== "ADMIN") return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+  if (!me) return apiError("UNAUTHORIZED");
+  if (me.role !== "ADMIN") return apiError("FORBIDDEN");
 
   try {
     const { id } = await params;

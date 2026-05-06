@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { apiError } from "@/lib/api-errors";
 import { writeAuditLog } from "@/lib/audit-log";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -8,8 +9,8 @@ type Ctx = { params: Promise<{ id: string }> };
 // PUT /api/org/security-chart/:id — 노드 수정 (직책명, 담당자)
 export async function PUT(request: NextRequest, { params }: Ctx) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
-  if (user.role !== "ADMIN") return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+  if (!user) return apiError("UNAUTHORIZED");
+  if (user.role !== "ADMIN") return apiError("FORBIDDEN");
 
   const { id } = await params;
   const nodeId = Number(id);
@@ -62,8 +63,8 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
 // DELETE /api/org/security-chart/:id — 노드 삭제 (하위 포함 cascade)
 export async function DELETE(_request: NextRequest, { params }: Ctx) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
-  if (user.role !== "ADMIN") return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+  if (!user) return apiError("UNAUTHORIZED");
+  if (user.role !== "ADMIN") return apiError("FORBIDDEN");
 
   const { id } = await params;
   const nodeId = Number(id);

@@ -1475,4 +1475,16 @@ export const en: TranslationDict = {
     linkTarget: "→ Target",
     linkSource: "← Source",
   },
+
+  errors: {
+    unauthorized: "Authentication required.",
+    forbidden: "You do not have permission.",
+    invalidId: "Invalid ID.",
+    notFound: "Resource not found.",
+    requiredField: "Required field is missing.",
+    invalidPassword: "Password format is invalid.",
+    invalidInput: "Input value is invalid.",
+    duplicate: "Item already exists.",
+    internalError: "A server error occurred.",
+  },
 };

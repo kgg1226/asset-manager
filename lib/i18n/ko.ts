@@ -1485,4 +1485,16 @@ export const ko: TranslationDict = {
     linkTarget: "→ 대상",
     linkSource: "← 소스",
   },
+
+  errors: {
+    unauthorized: "인증이 필요합니다.",
+    forbidden: "권한이 없습니다.",
+    invalidId: "유효하지 않은 ID입니다.",
+    notFound: "리소스를 찾을 수 없습니다.",
+    requiredField: "필수 항목이 누락되었습니다.",
+    invalidPassword: "비밀번호 형식이 올바르지 않습니다.",
+    invalidInput: "입력 값이 올바르지 않습니다.",
+    duplicate: "이미 존재하는 항목입니다.",
+    internalError: "서버 오류가 발생했습니다.",
+  },
 };

@@ -146,10 +146,22 @@
 - [x] 디자인 레퍼런스 정리 — `colors_and_type.css`, `preview/`, `ui_kits/`, `assets/logo-placeholder.svg`, `fonts/geist-mono-latin.woff2` 를 모두 `docs/design/` 트리로 이전. 루트의 `assets/{file,globe,next,vercel,window}.svg` 는 `public/` 사본과 중복이므로 삭제
 - [x] UI Kit 데모 자격증명(`admin/changeme123`) 제거 — 비어있지 않은 임의 입력으로 진입하도록 변경, README/에러문구 동기화
 
-## 즉시 (이번 스프린트)
+## 완료 (2026-05-04, dev-009)
+
+- [x] Pretendard 폰트 적용 — `public/fonts/PretendardVariable.woff2` (2.0MB) + `next/font/local` 등록 + body font-family 스택 (Pretendard → Geist → Apple SD Gothic Neo → 맑은 고딕)
+- [x] CIA 등급 i18n 텍스트 정상화 — 코드는 1=낮음/3=높음으로 정상이었으나 i18n 안내 5개 키가 역순 표기. 6개 언어 × 5개 키 정상화
+- [x] 자산지도 alpha 배지 제거 — 사이드바 + 자산지도 헤더 2곳
+
+## 완료 (2026-05-06, dev-010)
+
+- [x] API 에러 i18n 시범 — `lib/api-errors.ts` (`ApiErrorCode` + `apiError()` 헬퍼) + `lib/api-client.ts` (`getApiErrorMessage()`) 신규
+- [x] i18n `errors` 섹션 6개 언어 추가 (9개 코드: UNAUTHORIZED/FORBIDDEN/INVALID_ID/NOT_FOUND/REQUIRED_FIELD/INVALID_PASSWORD/INVALID_INPUT/DUPLICATE/INTERNAL_ERROR)
+- [x] 시범 라우트 5개 변환 (~28건) — `employees/[id]`, `admin/users/[id]`, `admin/gdrive-config`, `org/units/[id]`, `org/security-chart/[id]`
 
 ## 단기 (다음 2주)
 
+- [ ] API 에러 i18n 점진 확장 — 잔존 ~149건 인증/권한 응답을 동일 패턴으로 변환 + 클라이언트 fetch 처리 페이지에 `getApiErrorMessage()` 통합
+- [ ] CSV 템플릿 샘플 데이터 다국어화 정책 결정 (`app/settings/import/templates.ts` 한국어 샘플)
 - [ ] `colors_and_type.css` 토큰을 `app/globals.css` 에 CSS 변수로 인라인 → 차츰 raw Tailwind 클래스를 토큰 기반으로 마이그레이션 (저위험 시작 후보: 사이드바 nav 그룹 라벨, 상태 배지)
 - [ ] 디자인 레퍼런스를 GitHub Pages 또는 Vercel Static에 배포해 디자이너/QA가 직접 비교 가능하도록
 

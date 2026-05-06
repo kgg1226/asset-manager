@@ -1446,4 +1446,16 @@ export const ja: TranslationDict = {
     linkTarget: "→ 対象",
     linkSource: "← ソース",
   },
+
+  errors: {
+    unauthorized: "認証が必要です。",
+    forbidden: "権限がありません。",
+    invalidId: "無効なIDです。",
+    notFound: "リソースが見つかりません。",
+    requiredField: "必須項目が不足しています。",
+    invalidPassword: "パスワードの形式が正しくありません。",
+    invalidInput: "入力値が正しくありません。",
+    duplicate: "既に存在する項目です。",
+    internalError: "サーバーエラーが発生しました。",
+  },
 };
