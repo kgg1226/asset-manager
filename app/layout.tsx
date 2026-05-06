@@ -10,6 +10,13 @@ import TopHeader from "./_components/top-header";
 import { getCurrentUser } from "@/lib/auth";
 import "./globals.css";
 
+const pretendard = localFont({
+  src: "../public/fonts/PretendardVariable.woff2",
+  variable: "--font-pretendard",
+  display: "swap",
+  weight: "45 920",
+});
+
 const geistSans = localFont({
   src: "../public/fonts/geist-latin.woff2",
   variable: "--font-geist-sans",
@@ -49,7 +56,7 @@ export default async function RootLayout({
   return (
     <html lang="ko">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} font-[family-name:var(--font-geist-sans)] bg-gray-50 text-gray-900 antialiased`}
+        className={`${pretendard.variable} ${geistSans.variable} ${geistMono.variable} bg-gray-50 text-gray-900 antialiased`}
       >
         <Providers>
           {showSidebar && (

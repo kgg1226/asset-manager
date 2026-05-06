@@ -3439,9 +3439,6 @@ function AssetMapContentInner() {
         <div className="flex items-center justify-between border-b bg-white px-6 py-3 flex-shrink-0">
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-bold">{t.assetMap.title}</h1>
-            <span className="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-semibold text-purple-700">
-              {t.assetMap.alpha}
-            </span>
           </div>
         </div>
 
@@ -3847,9 +3844,6 @@ function AssetMapContentInner() {
             <ArrowLeft className="h-3.5 w-3.5" />
           </button>
           <h1 className="text-lg font-bold truncate max-w-[200px]">{activeWorkspace?.name || t.assetMap.title}</h1>
-          <span className="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-semibold text-purple-700">
-            {t.assetMap.alpha}
-          </span>
         </div>
         <div className="flex items-center gap-2">
           {/* View tabs */}
