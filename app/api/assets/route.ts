@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { apiError } from "@/lib/api-errors";
 import { writeAuditLog } from "@/lib/audit-log";
 import {
   ValidationError,
@@ -161,60 +162,25 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const asset = await prisma.$transaction(async (tx) => {
-      // ── assetTag 중복 시 upsert (기존 자산 업데이트) ──
-      if (typeVal === "HARDWARE" && body.hardwareDetail?.assetTag) {
-        const tag = vStr(body.hardwareDetail.assetTag, 100);
-        if (tag) {
-          const existing = await tx.hardwareDetail.findFirst({
-            where: { assetTag: tag },
-            include: { asset: true },
+    // ── assetTag 중복 사전 검증 (개별 생성은 중복 시 거부) ──
+    // CSV import 는 동일 assetTag 면 update (app/settings/import/actions.ts:importHardwareAssets),
+    // 개별 생성은 사용자 의도가 명확한 신규 등록이므로 중복 시 차단한다.
+    if (typeVal === "HARDWARE" && body.hardwareDetail?.assetTag) {
+      const tag = vStr(body.hardwareDetail.assetTag, 100);
+      if (tag) {
+        const existing = await prisma.hardwareDetail.findFirst({
+          where: { assetTag: tag },
+          select: { assetId: true },
+        });
+        if (existing) {
+          return apiError("DUPLICATE", {
+            message: `이미 등록된 자산 태그입니다: ${tag}`,
           });
-          if (existing) {
-            // 기존 자산 업데이트
-            const updated = await tx.asset.update({
-              where: { id: existing.assetId },
-              data: {
-                name: nameVal,
-                vendor: vendorVal,
-                description: descriptionVal,
-                cost: costVal,
-                monthlyCost: monthlyCostVal,
-                currency: currencyVal ?? "KRW",
-                billingCycle: finalBillingCycle,
-                purchaseDate: purchaseDateVal,
-                expiryDate: expiryDateVal,
-                renewalDate: renewalDateVal,
-                ...(assigneeIdVal && { assignee: { connect: { id: assigneeIdVal } } }),
-              },
-              include: { hardwareDetail: true, assignee: true },
-            });
-            const hd = body.hardwareDetail;
-            await tx.hardwareDetail.update({
-              where: { assetId: existing.assetId },
-              data: {
-                deviceType: vStr(hd.deviceType, 50),
-                manufacturer: vStr(hd.manufacturer, 255),
-                model: vStr(hd.model, 255),
-                serialNumber: vStr(hd.serialNumber, 255),
-                hostname: vStr(hd.hostname, 255),
-                macAddress: vStr(hd.macAddress, 50),
-                ipAddress: vStr(hd.ipAddress, 50),
-                os: vStr(hd.os, 50),
-                osVersion: vStr(hd.osVersion, 100),
-                location: vStr(hd.location, 500),
-              },
-            });
-            await writeAuditLog(tx, {
-              entityType: "ASSET", entityId: updated.id, action: "UPDATED",
-              actor: user.username, actorType: "USER", actorId: user.id,
-              details: { summary: `assetTag 중복으로 기존 자산 업데이트: ${tag}` },
-            });
-            return updated;
-          }
         }
       }
+    }
 
+    const asset = await prisma.$transaction(async (tx) => {
       // FK 존재 검증
       if (companyIdVal) {
         const company = await tx.orgCompany.findUnique({ where: { id: companyIdVal }, select: { id: true } });

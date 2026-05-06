@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { apiError } from "@/lib/api-errors";
 import { writeAuditLog } from "@/lib/audit-log";
 import {
   ValidationError,
@@ -141,6 +142,22 @@ export async function PUT(request: NextRequest, { params }: Params) {
               case "USAGE_BASED": data.monthlyCost = finalCost; break;
             }
           }
+        }
+      }
+    }
+
+    // assetTag 변경 시 다른 자산과 충돌 검증 (수정도 중복 차단)
+    if (body.hardwareDetail?.assetTag !== undefined) {
+      const tag = vStr(body.hardwareDetail.assetTag, 100);
+      if (tag) {
+        const conflict = await prisma.hardwareDetail.findFirst({
+          where: { assetTag: tag, assetId: { not: assetId } },
+          select: { assetId: true },
+        });
+        if (conflict) {
+          return apiError("DUPLICATE", {
+            message: `이미 등록된 자산 태그입니다: ${tag}`,
+          });
         }
       }
     }
