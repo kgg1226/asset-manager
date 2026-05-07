@@ -2402,34 +2402,56 @@ function AssetMapContentInner() {
     });
   }, []);
 
-  // ── Initial load: ensure-default (gallery stays, no auto-canvas) ──
+  // ── Initial load: ensure-default + 마지막 활성 페이지 복원 ──
   useEffect(() => {
     async function init() {
+      let views: SavedView[] = [];
       try {
         const res = await fetch("/api/asset-map/views/ensure-default", { method: "POST" });
         if (res.ok) {
           const data = await res.json();
-          const views: SavedView[] = data.views ?? [];
-          setWorkspaces(views);
-          setSavedViews(views);
-          // Do NOT auto-load into canvas — stay in gallery
+          views = data.views ?? [];
         }
       } catch {
-        // Fallback: load views the old way
         try {
           const res = await fetch("/api/asset-map/views");
           if (res.ok) {
             const data = await res.json();
-            const views = Array.isArray(data) ? data : data.views ?? [];
-            setSavedViews(views);
-            setWorkspaces(views);
+            views = Array.isArray(data) ? data : data.views ?? [];
           }
         } catch { /* silent */ }
       }
+      setWorkspaces(views);
+      setSavedViews(views);
+
+      // 새로고침 후 마지막 활성 페이지 자동 복원 (localStorage)
+      try {
+        const lastIdRaw = localStorage.getItem("asset-map-active-workspace-id");
+        if (lastIdRaw) {
+          const lastId = Number(lastIdRaw);
+          const ws = views.find((v) => v.id === lastId);
+          if (ws) {
+            setActiveWorkspace(ws);
+            setCurrentView("canvas");
+            fetch(`/api/asset-map/views/${ws.id}/touch`, { method: "PATCH" }).catch(() => {});
+          }
+        }
+      } catch { /* localStorage 미가용 환경 */ }
     }
     init();
     fetchFolders();
   }, [fetchFolders]);
+
+  // ── activeWorkspace 변경 시 localStorage 동기화 (새로고침 복원용) ──
+  useEffect(() => {
+    try {
+      if (activeWorkspace) {
+        localStorage.setItem("asset-map-active-workspace-id", String(activeWorkspace.id));
+      } else {
+        localStorage.removeItem("asset-map-active-workspace-id");
+      }
+    } catch { /* silent */ }
+  }, [activeWorkspace]);
 
   const fetchGraph = useCallback(async () => {
     setLoading(true);
@@ -3319,7 +3341,7 @@ function AssetMapContentInner() {
     };
     setNodes((prev) => [...prev, newNode]);
     setAssets((prev) => [...prev, asset]);
-    markDirty(2000);
+    markDirty(300); // 신규 노드는 빨리 저장 — 새로고침 손실 방지
   }
 
   function handleAddEntityToCanvas(entity: ExternalEntity) {
@@ -3343,14 +3365,14 @@ function AssetMapContentInner() {
       },
     };
     setNodes((prev) => [...prev, newNode]);
-    markDirty(2000);
+    markDirty(300); // 신규 노드는 빨리 저장 — 새로고침 손실 방지
   }
 
   function handleRemoveEntityFromCanvas(entityId: number) {
     const nodeId = `ext-${entityId}`;
     setNodes((prev) => prev.filter((n) => n.id !== nodeId));
     setEdges((prev) => prev.filter((e) => e.source !== nodeId && e.target !== nodeId));
-    markDirty(2000);
+    markDirty(300);
   }
 
   // Save current view positions
