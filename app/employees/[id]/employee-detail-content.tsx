@@ -58,6 +58,7 @@ export default function EmployeeDetailContent({
   employee,
   displayName,
   companies,
+  titleOptions,
   activeAssignmentCount,
   totalHistoryCount,
   assignedForManage,
@@ -70,6 +71,7 @@ export default function EmployeeDetailContent({
   employee: EmployeeData;
   displayName: string;
   companies: Company[];
+  titleOptions: string[];
   activeAssignmentCount: number;
   totalHistoryCount: number;
   assignedForManage: AssignedForManage[];
@@ -200,6 +202,7 @@ export default function EmployeeDetailContent({
               initialCompanyId={employee.companyId}
               initialOrgUnitId={employee.orgUnitId}
               companies={companies}
+              titleOptions={titleOptions}
               readOnly={!isLoggedIn}
             />
           </div>

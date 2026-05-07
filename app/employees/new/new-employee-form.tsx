@@ -12,7 +12,7 @@ type Company = { id: number; name: string; orgs: OrgUnit[] };
 
 const initialState: FormState = {};
 
-export default function NewEmployeeForm({ companies }: { companies: Company[] }) {
+export default function NewEmployeeForm({ companies, titleOptions }: { companies: Company[]; titleOptions: string[] }) {
   const [state, formAction, isPending] = useActionState(createEmployee, initialState);
   const { t } = useTranslation();
 
@@ -68,7 +68,17 @@ export default function NewEmployeeForm({ companies }: { companies: Company[] })
             </Field>
 
             <Field label={t.employee.jobTitle} error={state.errors?.title}>
-              <input type="text" name="title" className="input" />
+              <select name="title" className="input" defaultValue="">
+                <option value="">{t.common.none}</option>
+                {titleOptions.map((title) => (
+                  <option key={title} value={title}>{title}</option>
+                ))}
+              </select>
+              {titleOptions.length === 0 && (
+                <Link href="/admin/title-cia" className="mt-1 inline-block text-xs text-blue-600 hover:underline">
+                  + {t.common.add}
+                </Link>
+              )}
             </Field>
           </fieldset>
 

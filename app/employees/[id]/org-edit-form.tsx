@@ -15,6 +15,7 @@ export default function OrgEditForm({
   initialCompanyId,
   initialOrgUnitId,
   companies,
+  titleOptions,
   readOnly = false,
 }: {
   employeeId: number;
@@ -22,6 +23,7 @@ export default function OrgEditForm({
   initialCompanyId: number | null;
   initialOrgUnitId: number | null;
   companies: Company[];
+  titleOptions: string[];
   readOnly?: boolean;
 }) {
   const router = useRouter();
@@ -110,13 +112,20 @@ export default function OrgEditForm({
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div>
           <label className="mb-1 block text-xs font-medium text-gray-600">{t.employee.jobTitle}</label>
-          <input
-            type="text"
+          <select
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className="input text-sm"
-            placeholder={t.employee.jobTitle}
-          />
+          >
+            <option value="">{t.common.none}</option>
+            {/* 기존 입력 값이 마스터 목록에 없으면 비활성화로 함께 노출 (마이그레이션 안전망) */}
+            {title && !titleOptions.includes(title) && (
+              <option value={title} disabled>{title} (legacy)</option>
+            )}
+            {titleOptions.map((opt) => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-gray-600">{t.org.companyName}</label>

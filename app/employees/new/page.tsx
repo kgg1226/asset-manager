@@ -9,14 +9,20 @@ export default async function NewEmployeePage() {
   const user = await getCurrentUser().catch(() => null);
   if (!user) redirect("/login");
 
-  const companies = await prisma.orgCompany.findMany({
-    include: {
-      orgs: {
-        orderBy: { name: "asc" },
+  const [companies, titleMappings] = await Promise.all([
+    prisma.orgCompany.findMany({
+      include: {
+        orgs: { orderBy: { name: "asc" } },
       },
-    },
-    orderBy: { name: "asc" },
-  });
+      orderBy: { name: "asc" },
+    }),
+    prisma.titleCiaMapping.findMany({
+      select: { title: true },
+      orderBy: { title: "asc" },
+    }),
+  ]);
 
-  return <NewEmployeeForm companies={companies} />;
+  const titleOptions = titleMappings.map((m) => m.title);
+
+  return <NewEmployeeForm companies={companies} titleOptions={titleOptions} />;
 }

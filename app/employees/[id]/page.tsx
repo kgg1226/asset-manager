@@ -11,7 +11,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
   const { id } = await params;
   const employeeId = Number(id);
 
-  const [employee, companies, sameName, hardwareCount] = await Promise.all([
+  const [employee, companies, sameName, hardwareCount, titleMappings] = await Promise.all([
     prisma.employee.findUnique({
       where: { id: employeeId },
       include: {
@@ -37,7 +37,13 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
       select: { id: true, name: true, email: true },
     }),
     prisma.asset.count({ where: { assigneeId: employeeId, type: "HARDWARE" } }),
+    prisma.titleCiaMapping.findMany({
+      select: { title: true },
+      orderBy: { title: "asc" },
+    }),
   ]);
+
+  const titleOptions = titleMappings.map((m) => m.title);
 
   if (!employee) notFound();
 
@@ -146,6 +152,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
       employee={employeeData}
       displayName={displayName}
       companies={companies}
+      titleOptions={titleOptions}
       activeAssignmentCount={activeAssignments.length}
       totalHistoryCount={totalHistoryCount}
       assignedForManage={assignedForManage}
