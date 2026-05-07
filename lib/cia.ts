@@ -8,16 +8,17 @@ export interface CiaScore {
   ciaA: CiaLevel | null;
 }
 
+// 등급 정책: 1 = 최상(가장 중요/위험 높음), 3 = 최하
 const LEVEL_LABELS: Record<CiaLevel, string> = {
-  1: "낮음",
+  1: "최상",
   2: "보통",
-  3: "높음",
+  3: "최하",
 };
 
 const LEVEL_COLORS: Record<CiaLevel, string> = {
-  1: "bg-green-100 text-green-800",
+  1: "bg-red-100 text-red-800",
   2: "bg-yellow-100 text-yellow-800",
-  3: "bg-red-100 text-red-800",
+  3: "bg-green-100 text-green-800",
 };
 
 export function getCiaLevelLabel(level: CiaLevel | null | undefined): string {

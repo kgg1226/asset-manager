@@ -21,10 +21,11 @@ export default function CiaScoreInput({ initialValues, onChange }: CiaScoreInput
     { key: "ciaA" as const, label: t.cia.availability, description: t.cia.availability },
   ];
 
+  // 등급 정책: 1 = 최상(t.cia.high), 3 = 최하(t.cia.low)
   const LEVEL_LABELS: Record<CiaLevel, string> = {
-    1: t.cia.low,
+    1: t.cia.high,
     2: t.cia.medium,
-    3: t.cia.high,
+    3: t.cia.low,
   };
 
   const handleChange = (key: "ciaC" | "ciaI" | "ciaA", level: CiaLevel | null) => {
