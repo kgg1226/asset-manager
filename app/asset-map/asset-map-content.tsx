@@ -2132,6 +2132,7 @@ function AssetMapContentInner() {
   const [showEntityPalette, setShowEntityPalette] = useState(false);
   const [multiSelectedIds, setMultiSelectedIds] = useState<string[]>([]);
   const [showNodeLabels, setShowNodeLabels] = useState(true);
+  const [animateEdges, setAnimateEdges] = useState(true);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const viewportSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dirtyRef = useRef(false);
@@ -2603,6 +2604,8 @@ function AssetMapContentInner() {
           target: targetId,
           sourceHandle: e.sourceHandle || "right",
           targetHandle: e.targetHandle || "left",
+          // 흐름 애니메이션: DEPENDENCY(정적 의존)는 제외 — 흐름이 아니라 관계 표현
+          animated: animateEdges && linkType !== "DEPENDENCY",
           style: {
             stroke: linkColor,
             strokeWidth: 2,
@@ -2693,7 +2696,7 @@ function AssetMapContentInner() {
     } finally {
       setLoading(false);
     }
-  }, [view, setNodes, setEdges, t]);
+  }, [view, setNodes, setEdges, t, animateEdges]);
 
   // Only fetch graph when in canvas view with an active workspace
   useEffect(() => {
@@ -3998,6 +4001,13 @@ function AssetMapContentInner() {
             className={`rounded-md border px-3 py-1.5 text-xs font-medium ${showNodeLabels ? "border-gray-300 bg-white text-gray-700 hover:bg-gray-50" : "border-gray-400 bg-gray-100 text-gray-500"}`}
           >
             {showNodeLabels ? t.assetMap.labelsShowing : t.assetMap.labelsHidden}
+          </button>
+          <button
+            onClick={() => setAnimateEdges((v) => !v)}
+            title={animateEdges ? t.assetMap.animateEdgesOn : t.assetMap.animateEdgesOff}
+            className={`rounded-md border px-3 py-1.5 text-xs font-medium ${animateEdges ? "border-indigo-300 bg-indigo-50 text-indigo-700 hover:bg-indigo-100" : "border-gray-300 bg-white text-gray-500 hover:bg-gray-50"}`}
+          >
+            {animateEdges ? t.assetMap.animateEdgesOn : t.assetMap.animateEdgesOff}
           </button>
           <button onClick={handleAutoLayout} className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">
             <LayoutGrid className="inline h-3.5 w-3.5 mr-1" />

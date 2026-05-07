@@ -1289,6 +1289,8 @@ export const zhTW: TranslationDict = {
     piiDestructionCheck2: "不可還原的銷毀方法",
     piiDestructionCheck3: "保留銷毀記錄",
     piiStageAssetCount: "資產",
+    animateEdgesOn: "流動動畫 ON",
+    animateEdgesOff: "流動動畫 OFF",
     exportPdf: "匯出PDF",
     exporting: "匯出中...",
     workspace: "頁面",

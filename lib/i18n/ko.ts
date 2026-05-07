@@ -1291,6 +1291,8 @@ export const ko: TranslationDict = {
     piiDestructionCheck2: "복구 불가능한 파기 방법",
     piiDestructionCheck3: "파기 기록·증빙 보관",
     piiStageAssetCount: "자산",
+    animateEdgesOn: "흐름 애니메이션 ON",
+    animateEdgesOff: "흐름 애니메이션 OFF",
     exportPdf: "PDF 내보내기",
     exporting: "내보내는 중...",
     workspace: "페이지",

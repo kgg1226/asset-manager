@@ -1289,6 +1289,8 @@ export const zh: TranslationDict = {
     piiDestructionCheck2: "不可恢复的销毁方法",
     piiDestructionCheck3: "保留销毁记录",
     piiStageAssetCount: "资产",
+    animateEdgesOn: "流动动画 ON",
+    animateEdgesOff: "流动动画 OFF",
     exportPdf: "导出PDF",
     exporting: "导出中...",
     workspace: "页面",

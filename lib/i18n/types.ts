@@ -1342,6 +1342,8 @@ export type TranslationDict = {
     piiDestructionCheck2: string;
     piiDestructionCheck3: string;
     piiStageAssetCount: string;
+    animateEdgesOn: string;
+    animateEdgesOff: string;
     exportPdf: string;
     exporting: string;
     // Workspace

@@ -1290,6 +1290,8 @@ export const ja: TranslationDict = {
     piiDestructionCheck2: "復旧不可能な破棄方法",
     piiDestructionCheck3: "破棄記録の保管",
     piiStageAssetCount: "資産",
+    animateEdgesOn: "フロー アニメーション ON",
+    animateEdgesOff: "フロー アニメーション OFF",
     exportPdf: "PDF出力",
     exporting: "出力中...",
     workspace: "ページ",

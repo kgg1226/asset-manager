@@ -1290,6 +1290,8 @@ export const vi: TranslationDict = {
     piiDestructionCheck2: "Phương pháp hủy không thể khôi phục",
     piiDestructionCheck3: "Lưu hồ sơ hủy",
     piiStageAssetCount: "Tài sản",
+    animateEdgesOn: "Hoạt ảnh dòng chảy: BẬT",
+    animateEdgesOff: "Hoạt ảnh dòng chảy: TẮT",
     exportPdf: "Xuất PDF",
     exporting: "Đang xuất...",
     workspace: "Trang",

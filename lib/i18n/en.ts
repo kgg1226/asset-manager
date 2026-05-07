@@ -1290,6 +1290,8 @@ export const en: TranslationDict = {
     piiDestructionCheck2: "Irrecoverable destruction method",
     piiDestructionCheck3: "Destruction records retained",
     piiStageAssetCount: "Assets",
+    animateEdgesOn: "Flow animation ON",
+    animateEdgesOff: "Flow animation OFF",
     exportPdf: "Export PDF",
     exporting: "Exporting...",
     workspace: "Page",
