@@ -2597,18 +2597,25 @@ function AssetMapContentInner() {
         if (linkType === "DATA_FLOW") strokeDasharray = "6 3";
         else if (linkType === "DEPENDENCY") strokeDasharray = "3 3";
 
+        // REVERSE: source/target swap 으로 화살표가 자연스럽게 반대 방향으로 그려짐
+        const isReverse = e.direction === "REVERSE";
+        const finalSourceId = isReverse ? targetId : sourceId;
+        const finalTargetId = isReverse ? sourceId : targetId;
+        const finalSourceHandle = isReverse ? (e.targetHandle || "left") : (e.sourceHandle || "right");
+        const finalTargetHandle = isReverse ? (e.sourceHandle || "right") : (e.targetHandle || "left");
+
         const edgeObj: Edge = {
           id: `link-${e.id}`,
           type: "smoothstep",
-          source: sourceId,
-          target: targetId,
-          sourceHandle: e.sourceHandle || "right",
-          targetHandle: e.targetHandle || "left",
+          source: finalSourceId,
+          target: finalTargetId,
+          sourceHandle: finalSourceHandle,
+          targetHandle: finalTargetHandle,
           // 흐름 애니메이션: DEPENDENCY(정적 의존)는 제외 — 흐름이 아니라 관계 표현
           animated: animateEdges && linkType !== "DEPENDENCY",
           style: {
             stroke: linkColor,
-            strokeWidth: 2,
+            strokeWidth: e.direction === "BI" ? 3 : 2,
             strokeDasharray,
           },
           markerEnd: { type: MarkerType.ArrowClosed, color: linkColor, width: 16, height: 16 },
@@ -2629,20 +2636,18 @@ function AssetMapContentInner() {
         };
 
         if (e.direction === "BI") {
-          edgeObj.markerStart = { type: MarkerType.ArrowClosed, color: linkColor, width: 16, height: 16 };
-        } else if (e.direction === "REVERSE") {
-          // Swap: arrow on source side
-          edgeObj.markerEnd = undefined;
-          edgeObj.markerStart = { type: MarkerType.ArrowClosed, color: linkColor, width: 16, height: 16 };
+          // 양방향: source 끝에도 화살촉을 외부 방향(auto-start-reverse)으로 그리기 위해 커스텀 marker 사용
+          edgeObj.markerStart = "arrow-reverse";
         } else if (e.direction === "CONDITIONAL") {
-          // Dashed + lighter color
+          // 조건부: 점선 강조 + 흐림 + 화살촉 유지 (UNI 와 시각적으로 구분)
           edgeObj.style = {
             ...edgeObj.style,
-            strokeDasharray: "4 4",
+            strokeDasharray: "8 4",
             strokeWidth: 1.5,
-            opacity: 0.7,
+            opacity: 0.6,
           };
         }
+        // REVERSE 는 위에서 source/target swap 으로 처리됨 → markerEnd 가 자연스럽게 원래 source 방향으로 향함
 
         // Build edge label as badge HTML
         const labelParts: string[] = [];
@@ -4139,6 +4144,23 @@ function AssetMapContentInner() {
             </div>
           </div>
         ) : (
+          <>
+            {/* Custom SVG marker for BI direction — see issue: markerStart with React Flow built-in arrows points the wrong way */}
+            <svg style={{ position: "absolute", width: 0, height: 0 }} aria-hidden>
+              <defs>
+                <marker
+                  id="arrow-reverse"
+                  markerWidth="12"
+                  markerHeight="12"
+                  refX="3"
+                  refY="6"
+                  orient="auto-start-reverse"
+                  markerUnits="strokeWidth"
+                >
+                  <path d="M0,0 L0,12 L9,6 z" fill="context-stroke" />
+                </marker>
+              </defs>
+            </svg>
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -4198,6 +4220,7 @@ function AssetMapContentInner() {
               </div>
             </Panel>
           </ReactFlow>
+          </>
         )}
       </div>
 
