@@ -1,7 +1,7 @@
 "use client";
 
 import type { CiaLevel, CiaScore } from "@/lib/cia";
-import { getCiaOverallLevel, getCiaLevelColor } from "@/lib/cia";
+import { getCiaOverallGrade, getCiaGradeColor } from "@/lib/cia";
 import { useTranslation } from "@/lib/i18n";
 
 interface CiaBadgeProps {
@@ -18,15 +18,16 @@ export default function CiaBadge({ ciaC, ciaI, ciaA }: CiaBadgeProps) {
     ciaA: (ciaA as 1 | 2 | 3) ?? null,
   };
 
-  const LEVEL_LABELS: Record<CiaLevel, string> = {
-    1: t.cia.low,
-    2: t.cia.medium,
-    3: t.cia.high,
+  // 등급 정책: 점수 평균 → 등급 (4 - avg). 1등급=최상, 3등급=최하.
+  const GRADE_LABELS: Record<CiaLevel, string> = {
+    1: t.cia.grade1,
+    2: t.cia.grade2,
+    3: t.cia.grade3,
   };
 
-  const level = getCiaOverallLevel(score);
-  const label = level != null ? LEVEL_LABELS[level] : t.cia.notEvaluated;
-  const color = getCiaLevelColor(level);
+  const grade = getCiaOverallGrade(score);
+  const label = grade != null ? GRADE_LABELS[grade] : t.cia.notEvaluated;
+  const color = getCiaGradeColor(grade);
 
   return (
     <span className={`inline-block whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${color}`}>
