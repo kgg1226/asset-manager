@@ -551,10 +551,46 @@ function SectionNodeComponent({ data, selected }: { data: Record<string, unknown
 }
 
 function PiiStageLabelComponent({ data }: { data: Record<string, unknown> }) {
+  const label = data.label as string;
+  const description = (data.description as string) || "";
+  const checks = (data.checks as string[]) || [];
+  const assetCount = (data.assetCount as number) ?? 0;
+  const assetCountLabel = (data.assetCountLabel as string) || "";
+  const tone = (data.tone as "blue" | "indigo" | "purple" | "gray") || "indigo";
+
+  // 단계별 색상 토큰 — 1=수집(blue) → 4=파기(gray)
+  const TONE: Record<string, { header: string; body: string; accent: string }> = {
+    blue: { header: "bg-blue-600", body: "bg-blue-50 border-blue-200", accent: "text-blue-700" },
+    indigo: { header: "bg-indigo-600", body: "bg-indigo-50 border-indigo-200", accent: "text-indigo-700" },
+    purple: { header: "bg-purple-600", body: "bg-purple-50 border-purple-200", accent: "text-purple-700" },
+    gray: { header: "bg-gray-600", body: "bg-gray-50 border-gray-200", accent: "text-gray-700" },
+  };
+  const c = TONE[tone];
+
   return (
-    <div className="flex items-center justify-center h-full">
-      <div className="rounded-lg bg-indigo-600 px-4 py-2 text-white text-sm font-bold shadow-lg">
-        {data.label as string}
+    <div className={`rounded-lg border ${c.body} shadow-md w-[200px] overflow-hidden`}>
+      <div className={`${c.header} px-3 py-1.5 text-white text-sm font-bold flex items-center justify-between`}>
+        <span>{label}</span>
+        {assetCountLabel && (
+          <span className="text-[10px] font-medium bg-white/20 rounded-full px-2 py-0.5">
+            {assetCountLabel} {assetCount}
+          </span>
+        )}
+      </div>
+      <div className="px-3 py-2 space-y-1.5">
+        {description && (
+          <p className="text-[11px] text-gray-600 leading-snug">{description}</p>
+        )}
+        {checks.length > 0 && (
+          <ul className="space-y-0.5 pt-1 border-t border-gray-200">
+            {checks.map((check, i) => (
+              <li key={i} className="flex items-start gap-1 text-[10px] text-gray-700">
+                <span className={`${c.accent} font-bold leading-tight`}>✓</span>
+                <span className="leading-tight">{check}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );
@@ -861,18 +897,71 @@ function getPiiLifecycleLayout(
     }
   });
 
-  const ROW_HEIGHT = 180;
+  const ROW_HEIGHT = 240;
   const COL_WIDTH = 260;
-  const LABEL_WIDTH = 120;
+  const LABEL_WIDTH = 220;
   const START_X = LABEL_WIDTH + 40;
   const START_Y = 40;
 
-  // Create stage label nodes
+  // 단계별 메타 (의의/체크리스트/색상)
+  const STAGE_META = [
+    {
+      description: t.assetMap.piiCollectionDesc,
+      checks: [
+        t.assetMap.piiCollectionCheck1,
+        t.assetMap.piiCollectionCheck2,
+        t.assetMap.piiCollectionCheck3,
+      ],
+      tone: "blue" as const,
+    },
+    {
+      description: t.assetMap.piiStorageDesc,
+      checks: [
+        t.assetMap.piiStorageCheck1,
+        t.assetMap.piiStorageCheck2,
+        t.assetMap.piiStorageCheck3,
+      ],
+      tone: "indigo" as const,
+    },
+    {
+      description: t.assetMap.piiUsageProvisionDesc,
+      checks: [
+        t.assetMap.piiUsageProvisionCheck1,
+        t.assetMap.piiUsageProvisionCheck2,
+        t.assetMap.piiUsageProvisionCheck3,
+      ],
+      tone: "purple" as const,
+    },
+    {
+      description: t.assetMap.piiDestructionDesc,
+      checks: [
+        t.assetMap.piiDestructionCheck1,
+        t.assetMap.piiDestructionCheck2,
+        t.assetMap.piiDestructionCheck3,
+      ],
+      tone: "gray" as const,
+    },
+  ];
+
+  // 단계별 자산 수 집계
+  const stageCounts = [0, 0, 0, 0];
+  stageAssignments.forEach((stageIdx) => {
+    if (stageIdx >= 0 && stageIdx < 4) stageCounts[stageIdx]++;
+  });
+
+  // Create stage label nodes (정보 카드)
   const stageLabelNodes: Node[] = stages.map((stage, idx) => ({
     id: `pii-stage-${idx}`,
     type: "piiStageLabel",
-    position: { x: 0, y: START_Y + idx * ROW_HEIGHT + 15 },
-    data: { label: stage.label },
+    position: { x: 0, y: START_Y + idx * ROW_HEIGHT },
+    data: {
+      label: stage.label,
+      description: STAGE_META[idx].description,
+      checks: STAGE_META[idx].checks,
+      tone: STAGE_META[idx].tone,
+      assetCount: stageCounts[idx],
+      assetCountLabel: t.assetMap.piiStageAssetCount,
+    },
     draggable: false,
     selectable: false,
   }));

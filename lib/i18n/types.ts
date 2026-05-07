@@ -1324,6 +1324,24 @@ export type TranslationDict = {
     piiStorage: string;
     piiUsageProvision: string;
     piiDestruction: string;
+    // 단계별 의의/체크리스트 (ISMS-P 기반)
+    piiCollectionDesc: string;
+    piiCollectionCheck1: string;
+    piiCollectionCheck2: string;
+    piiCollectionCheck3: string;
+    piiStorageDesc: string;
+    piiStorageCheck1: string;
+    piiStorageCheck2: string;
+    piiStorageCheck3: string;
+    piiUsageProvisionDesc: string;
+    piiUsageProvisionCheck1: string;
+    piiUsageProvisionCheck2: string;
+    piiUsageProvisionCheck3: string;
+    piiDestructionDesc: string;
+    piiDestructionCheck1: string;
+    piiDestructionCheck2: string;
+    piiDestructionCheck3: string;
+    piiStageAssetCount: string;
     exportPdf: string;
     exporting: string;
     // Workspace
