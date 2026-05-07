@@ -2147,6 +2147,7 @@ function AssetMapContentInner() {
     setSaveStatus("saving");
     try {
       const currentNodes = reactFlowInstance.getNodes();
+      const currentEdges = reactFlowInstance.getEdges();
       const viewport = reactFlowInstance.getViewport();
       const nodePositions: Record<string, { x: number; y: number }> = {};
       const sectionData: SectionDataItem[] = [];
@@ -2170,6 +2171,13 @@ function AssetMapContentInner() {
         }
       }
 
+      // 현재 캔버스의 엣지 ID 목록 (페이지별 가시성 저장)
+      const visibleEdgeIds = currentEdges
+        .map((e) => Number(String(e.id).replace(/^link-/, "")))
+        .filter((n) => Number.isFinite(n));
+      const existingVis = (ws.edgeVisibility as Record<string, unknown> | null | undefined) ?? {};
+      const edgeVisibility = { ...existingVis, visibleEdgeIds };
+
       await fetch(`/api/asset-map/views/${ws.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -2177,9 +2185,13 @@ function AssetMapContentInner() {
           nodePositions,
           sectionData,
           viewport: { x: viewport.x, y: viewport.y, zoom: viewport.zoom },
+          edgeVisibility,
           _autoSave: true,
         }),
       });
+      // 로컬 ws ref 도 즉시 갱신 (다음 fetchGraph 가 최신 visibleEdgeIds 사용)
+      activeWorkspaceRef.current = { ...ws, edgeVisibility };
+      setActiveWorkspace((prev) => (prev ? { ...prev, edgeVisibility } : prev));
       setSaveStatus("saved");
     } catch {
       setSaveStatus("dirty");
@@ -2606,7 +2618,15 @@ function AssetMapContentInner() {
         },
       }));
 
-      const rawEdges = data.edges || [];
+      // 페이지별 엣지 가시성 필터링: edgeVisibility.visibleEdgeIds 가 명시되어 있으면 그 ID 만 표시.
+      // 비어있거나 null 이면 기존 동작(모든 엣지 표시) 유지 — 레거시 페이지 호환.
+      // 새 페이지는 명시적 빈 배열로 초기화돼야 다른 페이지의 엣지가 자동 노출되지 않음.
+      const allRawEdges = data.edges || [];
+      const wsEdgeVis = activeWorkspaceRef.current?.edgeVisibility as { visibleEdgeIds?: number[] } | null | undefined;
+      const visibleEdgeIds = wsEdgeVis?.visibleEdgeIds;
+      const rawEdges = Array.isArray(visibleEdgeIds)
+        ? allRawEdges.filter((e: AssetEdge) => visibleEdgeIds.includes(e.id))
+        : allRawEdges;
 
       const flowEdges: Edge[] = rawEdges.map((e: AssetEdge & { source?: string; target?: string; sourceName?: string; targetName?: string }) => {
         const sourceId = e.source ? String(e.source) : (e.sourceAssetId ? String(e.sourceAssetId) : `ext-${e.sourceExternalId}`);
@@ -3014,6 +3034,7 @@ function AssetMapContentInner() {
           return allEdges;
         });
         setPendingConnection(null);
+        markDirty(300); // 새 링크를 visibleEdgeIds 에 즉시 반영 (페이지별 가시성)
     } catch {
       alert(t.assetMap.linkCreateError);
     }
@@ -3024,6 +3045,7 @@ function AssetMapContentInner() {
     if (!confirm(t.assetMap.confirmDelete)) return;
     try {
       await fetch(`/api/asset-links/${linkId}`, { method: "DELETE" });
+      markDirty(300); // 삭제 후 visibleEdgeIds 갱신
       fetchGraph();
     } catch {
       // silently fail
