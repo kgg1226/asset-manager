@@ -81,6 +81,7 @@ export async function getCurrentUser() {
     id: session.user.id,
     username: session.user.username,
     role: session.user.role,
+    isSuperAdmin: session.user.isSuperAdmin,
     mustChangePassword: session.user.mustChangePassword,
   };
 }
@@ -88,11 +89,25 @@ export async function getCurrentUser() {
 /**
  * 서버 컴포넌트·서버 액션 공통 가드.
  * 미인증 → /login 리다이렉트, 비관리자 → /licenses 리다이렉트.
- * ADMIN인 경우 현재 유저 정보를 반환한다.
+ * ADMIN(또는 SUPER_ADMIN) 인 경우 현재 유저 정보를 반환한다.
+ *
+ * NOTE: 47+ 위치의 기존 `user.role !== "ADMIN"` 직접 비교 호환을 위해 role 자체는
+ * ADMIN/USER 그대로 유지. SUPER_ADMIN 은 boolean 플래그(isSuperAdmin) 로 별도 표현.
  */
 export async function requireAdmin() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (user.role !== "ADMIN") redirect("/licenses");
+  return user;
+}
+
+/**
+ * SUPER_ADMIN 전용 가드 (시스템 설정, 사용자 권한 변경, 라이프사이클·재무 정보 노출 등).
+ * 미인증 → /login, 비-SUPER_ADMIN → /licenses
+ */
+export async function requireSuperAdmin() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  if (!user.isSuperAdmin) redirect("/licenses");
   return user;
 }

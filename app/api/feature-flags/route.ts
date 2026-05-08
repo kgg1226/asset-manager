@@ -9,14 +9,14 @@ export async function GET() {
 
   const flags = await getAllFeatureFlags();
 
-  // 관리자는 항상 모든 기능 보임
-  if (user.role === "ADMIN") {
+  // 정책: 내용연수/감가상각 등 라이프사이클 정보는 SUPER_ADMIN 만 항상 노출.
+  // ADMIN/USER 는 LIFECYCLE_VISIBLE_TO_USER 플래그(/admin/feature-flags)에 따라 제어.
+  if (user.isSuperAdmin) {
     return NextResponse.json({
       lifecycleVisible: true,
     });
   }
 
-  // 일반 사용자: 플래그에 따라 제어
   return NextResponse.json({
     lifecycleVisible: flags.LIFECYCLE_VISIBLE_TO_USER,
   });

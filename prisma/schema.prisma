@@ -15,6 +15,9 @@ model User {
   username           String    @unique
   password           String
   role               Role      @default(USER)
+  // 최고관리자 플래그 — role(ADMIN/USER) 위에 추가되는 권한 계층.
+  // SUPER_ADMIN 은 시스템 설정 / 사용자 권한 변경 / 라이프사이클·재무 정보 노출 등 민감 영역 제어.
+  isSuperAdmin       Boolean   @default(false)
   isActive           Boolean   @default(true)
   mustChangePassword Boolean   @default(false)
   createdAt          DateTime  @default(now())
