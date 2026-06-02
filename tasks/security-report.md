@@ -1,3 +1,35 @@
+# Security Report — 2026-06-02 (dev-025)
+
+## [STATUS] PASSED (순보안 개선)
+
+내용연수·감가상각 노출 정책(dev-022)을 서버 페이로드에서 강제. 화면 게이팅만 있던 잔여 갭을 닫음.
+
+## 스캔 항목
+
+### 1. 의존성 취약점 (npm audit --audit-level=high)
+- 13건 (high 3 / moderate 10) — **기존 베이스라인과 동일, 본 티켓 의존성 미변경**. 범위 외.
+
+### 2. 하드코딩 시크릿 (app/ lib/)
+- 결과: 없음 ✅
+
+### 3. 변경 라우트 인증/노출
+- GET /api/assets, GET /api/assets/[id]: `getCurrentUser()` + `isLifecycleVisible()` 로 라이프사이클 필드
+  마스킹 추가. 미인증/비권한은 **fail-closed**(usefulLifeYears·감가상각 monthlyCost = null).
+- PUT /api/assets/[id]: 비권한 ADMIN 이 마스킹된 값으로 내용연수를 덮어쓰지 못하게 **데이터 손실 방지 가드** 추가.
+- feature-flags: 판정 로직을 헬퍼로 단일화(동작 동일).
+
+## 변경으로 닫은 갭
+- 비-SUPER_ADMIN(+flag off) 가 네트워크 탭/직접 호출로 raw 응답의 내용연수·감가상각을 열람하던 경로 차단.
+
+## 발견 사항 (기존·범위 외 — 후속 권고)
+- 🟡 **활성 미들웨어 없음** (`middleware-manifest.json` 비어 있음). GET /api/assets·[id] 에 401 게이트가
+  없어 라우트 단독으로는 인증 비강제(자산명/시리얼/IP 등 노출 가능). 단, 사내망·EC2 보안그룹(IP 제한)으로
+  네트워크 계층 완화 추정. **dev-026 후속에서 GET 인증 게이트 도입 검토 권고.** (본 변경으로 라이프사이클
+  필드만큼은 미인증 시에도 fail-closed 처리됨.)
+- 🟡 npm audit high 3건(기존 transitive deps) — 의존성 정리 별도 티켓 권고.
+
+---
+
 # Security Report — 2026-04-27 (dev-007)
 
 ## [STATUS] PASSED

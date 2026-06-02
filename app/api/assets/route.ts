@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { isLifecycleVisible, maskAssetLifecycle } from "@/lib/lifecycle-visibility";
 import { apiError } from "@/lib/api-errors";
 import { writeAuditLog } from "@/lib/audit-log";
 import {
@@ -61,7 +62,7 @@ export async function GET(request: NextRequest) {
       where.name = { contains: search, mode: "insensitive" };
     }
 
-    const [assets, total] = await Promise.all([
+    const [assets, total, user] = await Promise.all([
       prisma.asset.findMany({
         where,
         include: {
@@ -79,7 +80,12 @@ export async function GET(request: NextRequest) {
         take: limit,
       }),
       prisma.asset.count({ where }),
+      getCurrentUser(),
     ]);
+
+    // 내용연수·감가상각 노출 정책(dev-022) 서버 강제 — 비권한 사용자에게는 페이로드에서 제거
+    const visible = await isLifecycleVisible(user);
+    for (const a of assets) maskAssetLifecycle(a, visible);
 
     return NextResponse.json({
       assets,

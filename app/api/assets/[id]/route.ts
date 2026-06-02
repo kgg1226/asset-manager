@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { isLifecycleVisible, maskAssetLifecycle } from "@/lib/lifecycle-visibility";
 import { apiError } from "@/lib/api-errors";
 import { writeAuditLog } from "@/lib/audit-log";
 import {
@@ -56,6 +57,10 @@ export async function GET(_request: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "자산을 찾을 수 없습니다." }, { status: 404 });
     }
 
+    // 내용연수·감가상각 노출 정책(dev-022) 서버 강제 — 비권한 사용자에게는 페이로드에서 제거
+    const visible = await isLifecycleVisible(await getCurrentUser());
+    maskAssetLifecycle(asset, visible);
+
     // 최근 AuditLog 10건
     const auditLogs = await prisma.auditLog.findMany({
       where: { entityType: "ASSET", entityId: assetId },
@@ -86,6 +91,24 @@ export async function PUT(request: NextRequest, { params }: Params) {
     const { id } = await params;
     const assetId = Number(id);
     const body = await request.json();
+
+    // 데이터 손실 방지(dev-025): 라이프사이클 권한이 없는 사용자는 내용연수를 볼 수 없으므로,
+    // 마스킹된 GET 으로 채워진 편집 폼이 빈값→기본 5 로 보낸 usefulLifeYears 로 기존값을 덮어쓰지 못하게
+    // DB 기존값으로 강제 치환(heal)한다. cost/날짜는 마스킹되지 않아 폼에 실제값이 있으므로 가드 불필요.
+    if (body?.hardwareDetail && typeof body.hardwareDetail === "object") {
+      const lifecycleVisible = await isLifecycleVisible(user);
+      if (!lifecycleVisible) {
+        const existingHd = await prisma.hardwareDetail.findUnique({
+          where: { assetId },
+          select: { usefulLifeYears: true },
+        });
+        if (existingHd) {
+          body.hardwareDetail.usefulLifeYears = existingHd.usefulLifeYears;
+        } else {
+          delete body.hardwareDetail.usefulLifeYears;
+        }
+      }
+    }
 
     // ── 부분 수정 허용 — 전달된 필드만 업데이트 ──
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
