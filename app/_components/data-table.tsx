@@ -237,9 +237,9 @@ export function DataTable<T extends Record<string, unknown>>({
                 </td>
               </tr>
             ) : (
-              sortedData.map((row) => (
+              sortedData.map((row, rowIndex) => (
                 <tr
-                  key={String(row[rowKey] ?? Math.random())}
+                  key={String(row[rowKey] ?? `row-${rowIndex}`)}
                   className="border-b last:border-0 hover:bg-gray-50"
                 >
                   {columns.map((col) => {

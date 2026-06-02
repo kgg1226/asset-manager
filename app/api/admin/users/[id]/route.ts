@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser, hashPassword } from "@/lib/auth";
 import { apiError } from "@/lib/api-errors";
 import { writeAuditLog } from "@/lib/audit-log";
-import { handleValidationError, handlePrismaError, vEnumReq, vBool, ValidationError } from "@/lib/validation";
+import { handleValidationError, handlePrismaError, vEnumReq, vBool } from "@/lib/validation";
 
 const VALID_ROLES = ["ADMIN", "USER"] as const;
 
@@ -53,6 +53,14 @@ export async function PUT(request: NextRequest, { params }: Params) {
     // 자신의 비활성화 방지
     if (me.id === userId && isActiveVal === false) {
       return NextResponse.json({ error: "자신의 계정은 비활성화할 수 없습니다." }, { status: 400 });
+    }
+
+    // 정책(dev-022): 사용자 권한(role) 변경은 SUPER_ADMIN 전용.
+    if (roleVal !== undefined && !me.isSuperAdmin) return apiError("FORBIDDEN");
+    // 권한 계층 무결성: SUPER_ADMIN 대상의 비활성화는 SUPER_ADMIN 만 가능.
+    if (isActiveVal === false && !me.isSuperAdmin) {
+      const target = await prisma.user.findUnique({ where: { id: userId }, select: { isSuperAdmin: true } });
+      if (target?.isSuperAdmin) return apiError("FORBIDDEN");
     }
 
     const updated = await prisma.$transaction(async (tx) => {
@@ -110,6 +118,12 @@ export async function DELETE(request: NextRequest, { params }: Params) {
 
     if (me.id === userId) {
       return NextResponse.json({ error: "자기 자신은 삭제할 수 없습니다." }, { status: 400 });
+    }
+
+    // 권한 계층 무결성(dev-022): SUPER_ADMIN 계정은 SUPER_ADMIN 만 삭제할 수 있다.
+    if (!me.isSuperAdmin) {
+      const guard = await prisma.user.findUnique({ where: { id: userId }, select: { isSuperAdmin: true } });
+      if (guard?.isSuperAdmin) return apiError("FORBIDDEN");
     }
 
     await prisma.$transaction(async (tx) => {

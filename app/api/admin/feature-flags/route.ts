@@ -22,6 +22,8 @@ export async function PUT(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
   if (user.role !== "ADMIN") return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+  // 정책(dev-022): 시스템 설정(기능 플래그) 변경은 SUPER_ADMIN 전용.
+  if (!user.isSuperAdmin) return NextResponse.json({ error: "최고관리자(SUPER_ADMIN)만 변경할 수 있습니다." }, { status: 403 });
 
   const body = await request.json();
   const { key, value } = body as { key: string; value: string };
