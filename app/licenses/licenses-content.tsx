@@ -82,6 +82,8 @@ export default function LicensesContent({
   type RenewalQueueItem = { id: number; name: string; expiryDate: string; renewalStatus: string | null; adminName: string | null };
   const [renewalQueue, setRenewalQueue] = useState<RenewalQueueItem[]>([]);
   const [showRenewalQueue, setShowRenewalQueue] = useState(false);
+  // D-day 계산 기준 시각 — 마운트 시 1회만 고정(렌더 중 Date.now() 직접 호출 회피)
+  const [now] = useState(() => Date.now());
 
   useEffect(() => {
     fetch("/api/licenses/renewal-queue?days=60")
@@ -193,7 +195,7 @@ export default function LicensesContent({
                   </thead>
                   <tbody className="divide-y divide-amber-50">
                     {renewalQueue.map((lic) => {
-                      const daysLeft = Math.ceil((new Date(lic.expiryDate).getTime() - Date.now()) / 86400000);
+                      const daysLeft = Math.ceil((new Date(lic.expiryDate).getTime() - now) / 86400000);
                       return (
                         <tr key={lic.id}>
                           <td className="py-1.5">
