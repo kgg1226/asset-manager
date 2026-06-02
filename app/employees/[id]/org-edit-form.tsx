@@ -14,6 +14,7 @@ export default function OrgEditForm({
   initialTitle,
   initialCompanyId,
   initialOrgUnitId,
+  initialDepartment,
   companies,
   titleOptions,
   readOnly = false,
@@ -22,6 +23,8 @@ export default function OrgEditForm({
   initialTitle: string | null;
   initialCompanyId: number | null;
   initialOrgUnitId: number | null;
+  // 레거시 free-text 부서 — orgUnit 미설정 직원의 부서 표시 폴백
+  initialDepartment?: string | null;
   companies: Company[];
   titleOptions: string[];
   readOnly?: boolean;
@@ -97,7 +100,7 @@ export default function OrgEditForm({
           </div>
           <div>
             <dt className="text-xs font-medium uppercase text-gray-500">{t.employee.department}</dt>
-            <dd className="mt-1 text-sm text-gray-900">{initialOrgUnit?.name ?? "—"}</dd>
+            <dd className="mt-1 text-sm text-gray-900">{initialOrgUnit?.name ?? (initialDepartment && initialDepartment !== "-" ? initialDepartment : "—")}</dd>
           </div>
         </dl>
       </div>

@@ -26,7 +26,7 @@ export function LifecycleVisibilityProvider({ children }: { children: React.Reac
 }
 
 /** 게이지가 보여야 하는지 여부. null = 로딩 중 (표시 안 함) */
-function useLifecycleVisible(): boolean {
+export function useLifecycleVisible(): boolean {
   const ctx = useContext(LifecycleVisibilityContext);
   // Context가 없으면 (Provider 미사용 시) 기본 표시
   if (ctx === null) return true;

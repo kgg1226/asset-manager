@@ -3,6 +3,16 @@
 > 반복되는 패턴이 확인되면 tasks/postmortem/ 에서 승격시켜 여기에 한 줄 규칙으로 기록한다.
 > 모든 세션은 작업 시작 전 이 파일을 확인한다.
 
+## React / 프론트엔드
+
+### [2026-06-02] [dev-024] 렌더 함수 안에서 컴포넌트 정의 금지 (react-hooks/static-components)
+- 렌더 내부에 `function SortableHeader(...) { return <th>… }` 처럼 대문자 컴포넌트를 정의하면
+  `react-hooks/static-components` **에러**(빌드는 통과). 매 렌더 새 컴포넌트 타입 → 리마운트.
+- 해결: 모듈 최상위로 호이스팅하거나, 소문자 렌더 헬퍼(`sortHeader(field,label)`)로 만들어
+  `{sortHeader(...)}` 로 호출(컴포넌트가 아닌 함수 취급).
+- 동적 Tailwind 클래스(`text-${align}`)는 JIT가 못 잡으니 리터럴 분기로.
+- 신규 i18n 텍스트는 추측 키(`t.common.more`) 대신 types.ts 의 기존 키 확인 후 재사용(`t.common.moreItems`).
+
 ## 공통
 
 ### [2026-03-06] CLAUDE.md 병합 충돌 예방

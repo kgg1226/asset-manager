@@ -181,14 +181,11 @@ export default function EmployeeDetailContent({
 
         {/* Employee Info */}
         <div className="mb-6 rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
-          <dl className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {/* 부서는 아래 조직 섹션이 단일 본거지 — 상단 요약에서는 신원(이름/이메일)만 표시 */}
+          <dl className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <dt className="text-xs font-medium uppercase text-gray-500">{t.common.name}</dt>
               <dd className="mt-1 text-sm text-gray-900">{employee.name}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium uppercase text-gray-500">{t.employee.department}</dt>
-              <dd className="mt-1 text-sm text-gray-900">{employee.orgUnitName ?? (employee.department && employee.department !== "-" ? employee.department : "—")}</dd>
             </div>
             <div>
               <dt className="text-xs font-medium uppercase text-gray-500">{t.employee.email}</dt>
@@ -201,6 +198,7 @@ export default function EmployeeDetailContent({
               initialTitle={employee.title}
               initialCompanyId={employee.companyId}
               initialOrgUnitId={employee.orgUnitId}
+              initialDepartment={employee.department}
               companies={companies}
               titleOptions={titleOptions}
               readOnly={!isLoggedIn}
