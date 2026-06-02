@@ -449,6 +449,7 @@ model Asset {
   outgoingLinks          AssetLink[]        @relation("AssetLinkSource")
   incomingLinks          AssetLink[]        @relation("AssetLinkTarget")
   groupMembers           AssetGroupMember[]
+  deviceCompliance       DeviceCompliance?  // MDM-lite 기기 관리/컴플라이언스 상태 (dev-027)
 
   @@index([type])
   @@index([subCategoryId])
@@ -855,4 +856,70 @@ model SecurityOrgChart {
   children   SecurityOrgChart[] @relation("SecurityHierarchy")
 
   @@index([parentId])
+}
+
+// ── MDM-lite: 기기 관리/컴플라이언스 추적 (dev-027) ──────────────────────────
+// 실제 디바이스 제어(원격 잠금/와이프/정책 푸시)가 아니라, 하드웨어 자산의
+// 등록·컴플라이언스·체크인 상태를 기록·가시화하는 경량 추적 계층.
+
+enum DeviceEnrollmentStatus {
+  UNENROLLED   // 미등록
+  ENROLLED     // 등록됨(관리 중)
+  PENDING      // 등록 대기
+  RETIRED      // 관리 해제/폐기
+}
+
+enum DeviceComplianceStatus {
+  COMPLIANT      // 준수
+  NON_COMPLIANT  // 미준수
+  UNKNOWN        // 미점검/알 수 없음
+}
+
+model DeviceCompliance {
+  id               Int                    @id @default(autoincrement())
+  assetId          Int                    @unique                       // Asset(하드웨어)와 1:1
+  enrollmentStatus DeviceEnrollmentStatus @default(UNENROLLED)
+  complianceStatus DeviceComplianceStatus @default(UNKNOWN)
+  managed          Boolean                @default(false)               // MDM 관리 대상 여부
+
+  // 보안 점검 항목 (null = 미점검)
+  diskEncrypted    Boolean?                                             // 디스크 암호화 (FileVault/BitLocker)
+  passcodeSet      Boolean?                                             // 화면 잠금 패스코드
+  firewallOn       Boolean?                                             // 방화벽
+  antivirusOn      Boolean?                                             // 백신/EDR
+  osUpToDate       Boolean?                                             // OS 패치 최신
+  jailbrokenRooted Boolean?                                             // 탈옥/루팅 감지
+
+  lastCheckinAt    DateTime?                                            // 마지막 체크인 시각
+  enrolledAt       DateTime?                                            // 등록 시각
+
+  // 향후 외부 MDM 연동(Jamf/Intune 등) 대비 — 선택
+  externalSource   String?                                             // JAMF | INTUNE | MANUAL ...
+  externalDeviceId String?
+
+  notes            String?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  asset            Asset                  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  checkins         DeviceCheckin[]
+
+  @@index([enrollmentStatus])
+  @@index([complianceStatus])
+}
+
+model DeviceCheckin {
+  id               Int                    @id @default(autoincrement())
+  complianceId     Int
+  checkedAt        DateTime               @default(now())
+  complianceStatus DeviceComplianceStatus
+  osVersion        String?
+  ipAddress        String?
+  source           String?                                             // MANUAL | API | AGENT
+  note             String?
+
+  compliance       DeviceCompliance       @relation(fields: [complianceId], references: [id], onDelete: Cascade)
+
+  @@index([complianceId])
+  @@index([checkedAt])
 }

@@ -10,6 +10,7 @@ import {
   Network,
   Cloud,
   HardDrive,
+  MonitorSmartphone,
   Globe,
   BarChart3,
   History,
@@ -69,6 +70,7 @@ const NAV_GROUPS: NavGroup[] = [
     collapsible: true,
     items: [
       { href: "/hardware", labelKey: "hardware", icon: <HardDrive className="h-4 w-4" /> },
+      { href: "/devices", labelKey: "deviceCompliance", icon: <MonitorSmartphone className="h-4 w-4" /> },
       { href: "/licenses", labelKey: "licenses", icon: <FileText className="h-4 w-4" /> },
       { href: "/cloud", labelKey: "cloud", icon: <Cloud className="h-4 w-4" /> },
       { href: "/domains", labelKey: "domainSsl", icon: <Globe className="h-4 w-4" /> },
