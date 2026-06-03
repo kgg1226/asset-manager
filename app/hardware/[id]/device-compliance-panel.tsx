@@ -4,6 +4,16 @@ import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { ShieldCheck, ShieldAlert, ShieldQuestion, CheckCircle2, XCircle, MinusCircle, RefreshCw } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
+import {
+  ENROLLMENT_STATUSES,
+  COMPLIANCE_STATUSES,
+  SECURITY_CHECK_KEYS,
+  type SecurityCheckKey,
+  enrollmentLabel,
+  complianceLabel,
+  complianceBadgeClass,
+  securityCheckLabel,
+} from "@/lib/device-compliance";
 
 type Compliance = {
   enrollmentStatus: string;
@@ -19,10 +29,7 @@ type Compliance = {
   notes: string | null;
 };
 
-type TriField = "diskEncrypted" | "passcodeSet" | "firewallOn" | "antivirusOn" | "osUpToDate" | "jailbrokenRooted";
-const CHECK_KEYS: TriField[] = ["diskEncrypted", "passcodeSet", "firewallOn", "antivirusOn", "osUpToDate", "jailbrokenRooted"];
-const ENROLL_OPTS = ["UNENROLLED", "ENROLLED", "PENDING", "RETIRED"] as const;
-const COMP_OPTS = ["COMPLIANT", "NON_COMPLIANT", "UNKNOWN"] as const;
+type TriField = SecurityCheckKey;
 
 type FormState = {
   enrollmentStatus: string;
@@ -141,17 +148,9 @@ export default function DeviceCompliancePanel({ assetId, isAdmin }: { assetId: n
     }
   }
 
-  const enrollLabel = (s: string) =>
-    ({ UNENROLLED: t.device.enrollUnenrolled, ENROLLED: t.device.enrollEnrolled, PENDING: t.device.enrollPending, RETIRED: t.device.enrollRetired } as Record<string, string>)[s] ?? s;
-  const compLabel = (s: string) => (s === "COMPLIANT" ? t.device.compCompliant : s === "NON_COMPLIANT" ? t.device.compNonCompliant : t.device.compUnknown);
-  const checkLabel: Record<TriField, string> = {
-    diskEncrypted: t.device.diskEncrypted,
-    passcodeSet: t.device.passcodeSet,
-    firewallOn: t.device.firewallOn,
-    antivirusOn: t.device.antivirusOn,
-    osUpToDate: t.device.osUpToDate,
-    jailbrokenRooted: t.device.jailbrokenRooted,
-  };
+  const enrollLabel = (s: string) => enrollmentLabel(t.device, s);
+  const compLabel = (s: string) => complianceLabel(t.device, s);
+  const checkLabel = (key: TriField) => securityCheckLabel(t.device, key);
 
   // jailbrokenRooted 는 true 가 위험(역의미)
   function isGood(key: TriField, v: boolean | null): boolean | null {
@@ -159,8 +158,7 @@ export default function DeviceCompliancePanel({ assetId, isAdmin }: { assetId: n
     return key === "jailbrokenRooted" ? v === false : v === true;
   }
 
-  const compClass = (s: string) =>
-    s === "COMPLIANT" ? "bg-green-100 text-green-700" : s === "NON_COMPLIANT" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-600";
+  const compClass = complianceBadgeClass;
   const CompIcon = data?.complianceStatus === "COMPLIANT" ? ShieldCheck : data?.complianceStatus === "NON_COMPLIANT" ? ShieldAlert : ShieldQuestion;
 
   return (
@@ -200,13 +198,13 @@ export default function DeviceCompliancePanel({ assetId, isAdmin }: { assetId: n
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-gray-600">{t.device.enrollment}</span>
               <select value={form.enrollmentStatus} onChange={(e) => setForm({ ...form, enrollmentStatus: e.target.value })} className="input text-sm">
-                {ENROLL_OPTS.map((o) => <option key={o} value={o}>{enrollLabel(o)}</option>)}
+                {ENROLLMENT_STATUSES.map((o) => <option key={o} value={o}>{enrollLabel(o)}</option>)}
               </select>
             </label>
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-gray-600">{t.device.compliance}</span>
               <select value={form.complianceStatus} onChange={(e) => setForm({ ...form, complianceStatus: e.target.value })} className="input text-sm">
-                {COMP_OPTS.map((o) => <option key={o} value={o}>{compLabel(o)}</option>)}
+                {COMPLIANCE_STATUSES.map((o) => <option key={o} value={o}>{compLabel(o)}</option>)}
               </select>
             </label>
             <label className="flex items-end gap-2 pb-1.5">
@@ -218,9 +216,9 @@ export default function DeviceCompliancePanel({ assetId, isAdmin }: { assetId: n
           <div>
             <p className="mb-2 text-xs font-medium uppercase text-gray-500">{t.device.securityChecks}</p>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {CHECK_KEYS.map((key) => (
+              {SECURITY_CHECK_KEYS.map((key) => (
                 <label key={key} className="flex items-center justify-between gap-2 rounded-md bg-gray-50 px-3 py-1.5">
-                  <span className="text-sm text-gray-700">{checkLabel[key]}</span>
+                  <span className="text-sm text-gray-700">{checkLabel(key)}</span>
                   <select
                     value={form[key] === null ? "" : form[key] ? "true" : "false"}
                     onChange={(e) => setForm({ ...form, [key]: e.target.value === "" ? null : e.target.value === "true" })}
@@ -269,12 +267,12 @@ export default function DeviceCompliancePanel({ assetId, isAdmin }: { assetId: n
           <div>
             <p className="mb-2 text-xs font-medium uppercase text-gray-500">{t.device.securityChecks}</p>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {CHECK_KEYS.map((key) => {
+              {SECURITY_CHECK_KEYS.map((key) => {
                 const v = data ? data[key] : null;
                 const good = isGood(key, v);
                 return (
                   <div key={key} className="flex items-center justify-between gap-2 rounded-md bg-gray-50 px-3 py-1.5">
-                    <span className="text-sm text-gray-700">{checkLabel[key]}</span>
+                    <span className="text-sm text-gray-700">{checkLabel(key)}</span>
                     {good === null ? (
                       <span className="inline-flex items-center gap-1 text-xs text-gray-400"><MinusCircle className="h-3.5 w-3.5" />{t.device.notChecked}</span>
                     ) : good ? (

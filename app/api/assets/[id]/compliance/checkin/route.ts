@@ -10,11 +10,9 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { apiError } from "@/lib/api-errors";
 import { writeAuditLog } from "@/lib/audit-log";
+import { COMPLIANCE_STATUSES, type ComplianceStatus } from "@/lib/device-compliance";
 
 type Params = { params: Promise<{ id: string }> };
-
-const COMPLIANCE = ["COMPLIANT", "NON_COMPLIANT", "UNKNOWN"] as const;
-type Compliance = (typeof COMPLIANCE)[number];
 
 export async function POST(request: NextRequest, { params }: Params) {
   const user = await getCurrentUser();
@@ -33,8 +31,8 @@ export async function POST(request: NextRequest, { params }: Params) {
 
   const body = (await request.json()) as Record<string, unknown>;
   // 유효한 값이 "명시"된 경우에만 status 갱신. 미제공이면 기존 값 보존(강등 방지).
-  const providedStatus: Compliance | undefined = COMPLIANCE.includes(body.complianceStatus as Compliance)
-    ? (body.complianceStatus as Compliance)
+  const providedStatus: ComplianceStatus | undefined = COMPLIANCE_STATUSES.includes(body.complianceStatus as ComplianceStatus)
+    ? (body.complianceStatus as ComplianceStatus)
     : undefined;
   const osVersion = typeof body.osVersion === "string" ? body.osVersion.trim() || null : null;
   const ipAddress = typeof body.ipAddress === "string" ? body.ipAddress.trim() || null : null;
@@ -46,7 +44,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     select: { complianceStatus: true },
   });
   // 체크인 이력에 남길 상태: 명시값 > 기존값 > UNKNOWN
-  const recordedStatus: Compliance = providedStatus ?? existing?.complianceStatus ?? "UNKNOWN";
+  const recordedStatus: ComplianceStatus = providedStatus ?? existing?.complianceStatus ?? "UNKNOWN";
 
   const checkin = await prisma.$transaction(async (tx) => {
     // 컴플라이언스 레코드 확보(없으면 생성). rollup status 는 명시된 경우에만 갱신.

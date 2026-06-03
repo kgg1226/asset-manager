@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { MonitorSmartphone } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
+import { enrollmentLabel, complianceLabel, complianceBadgeClass } from "@/lib/device-compliance";
 
 type Device = {
   assetId: number;
@@ -27,12 +28,9 @@ export default function DevicesContent({
   const { t } = useTranslation();
   const [now] = useState(() => Date.now());
 
-  const compLabel = (s: string) =>
-    s === "COMPLIANT" ? t.device.compCompliant : s === "NON_COMPLIANT" ? t.device.compNonCompliant : t.device.compUnknown;
-  const compClass = (s: string) =>
-    s === "COMPLIANT" ? "bg-green-100 text-green-700" : s === "NON_COMPLIANT" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-600";
-  const enrollLabel = (s: string) =>
-    ({ UNENROLLED: t.device.enrollUnenrolled, ENROLLED: t.device.enrollEnrolled, PENDING: t.device.enrollPending, RETIRED: t.device.enrollRetired } as Record<string, string>)[s] ?? s;
+  const compLabel = (s: string) => complianceLabel(t.device, s);
+  const compClass = complianceBadgeClass;
+  const enrollLabel = (s: string) => enrollmentLabel(t.device, s);
 
   const isStale = (last: string | null) => !last || now - new Date(last).getTime() > STALE_DAYS * 86400000;
   const fmtCheckin = (last: string | null) => (last ? new Date(last).toLocaleDateString() : t.device.neverCheckin);

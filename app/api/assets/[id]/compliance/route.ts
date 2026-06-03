@@ -8,13 +8,9 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { apiError } from "@/lib/api-errors";
 import { writeAuditLog } from "@/lib/audit-log";
+import { ENROLLMENT_STATUSES, COMPLIANCE_STATUSES, type EnrollmentStatus, type ComplianceStatus } from "@/lib/device-compliance";
 
 type Params = { params: Promise<{ id: string }> };
-
-const ENROLLMENT = ["UNENROLLED", "ENROLLED", "PENDING", "RETIRED"] as const;
-const COMPLIANCE = ["COMPLIANT", "NON_COMPLIANT", "UNKNOWN"] as const;
-type Enrollment = (typeof ENROLLMENT)[number];
-type Compliance = (typeof COMPLIANCE)[number];
 
 /** 3-상태 boolean: true/false = 설정, null = 해제(미점검), undefined = 변경 안 함 */
 function triBool(v: unknown): boolean | null | undefined {
@@ -67,14 +63,14 @@ export async function PUT(request: NextRequest, { params }: Params) {
   const body = (await request.json()) as Record<string, unknown>;
 
   // 명시적으로 보낸 enum 값이 잘못되면 조용히 무시하지 않고 400 (silent no-op 방지)
-  if (body.enrollmentStatus !== undefined && !ENROLLMENT.includes(body.enrollmentStatus as Enrollment)) {
+  if (body.enrollmentStatus !== undefined && !ENROLLMENT_STATUSES.includes(body.enrollmentStatus as EnrollmentStatus)) {
     return apiError("INVALID_INPUT", { message: "enrollmentStatus 값이 올바르지 않습니다." });
   }
-  if (body.complianceStatus !== undefined && !COMPLIANCE.includes(body.complianceStatus as Compliance)) {
+  if (body.complianceStatus !== undefined && !COMPLIANCE_STATUSES.includes(body.complianceStatus as ComplianceStatus)) {
     return apiError("INVALID_INPUT", { message: "complianceStatus 값이 올바르지 않습니다." });
   }
-  const enrollmentStatus = body.enrollmentStatus as Enrollment | undefined;
-  const complianceStatus = body.complianceStatus as Compliance | undefined;
+  const enrollmentStatus = body.enrollmentStatus as EnrollmentStatus | undefined;
+  const complianceStatus = body.complianceStatus as ComplianceStatus | undefined;
 
   const existing = await prisma.deviceCompliance.findUnique({
     where: { assetId },
