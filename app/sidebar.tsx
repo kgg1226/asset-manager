@@ -70,7 +70,6 @@ const NAV_GROUPS: NavGroup[] = [
     collapsible: true,
     items: [
       { href: "/hardware", labelKey: "hardware", icon: <HardDrive className="h-4 w-4" /> },
-      { href: "/devices", labelKey: "deviceCompliance", icon: <MonitorSmartphone className="h-4 w-4" /> },
       { href: "/licenses", labelKey: "licenses", icon: <FileText className="h-4 w-4" /> },
       { href: "/cloud", labelKey: "cloud", icon: <Cloud className="h-4 w-4" /> },
       { href: "/domains", labelKey: "domainSsl", icon: <Globe className="h-4 w-4" /> },
@@ -92,6 +91,7 @@ const NAV_GROUPS: NavGroup[] = [
     adminOnly: true,
     items: [
       { href: "/admin/users", labelKey: "userManagement", icon: <UserCog className="h-4 w-4" /> },
+      { href: "/devices", labelKey: "deviceCompliance", icon: <MonitorSmartphone className="h-4 w-4" /> },
       { href: "/admin/archives", labelKey: "archives", icon: <Archive className="h-4 w-4" /> },
       { href: "/admin/exchange-rates", labelKey: "exchangeRate", icon: <DollarSign className="h-4 w-4" /> },
       { href: "/admin/asset-categories", labelKey: "assetCategory", icon: <Tags className="h-4 w-4" /> },

@@ -59,18 +59,20 @@ export default function DeviceCompliancePanel({ assetId, isAdmin }: { assetId: n
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm());
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const res = await fetch(`/api/assets/${assetId}/compliance`);
-      if (res.ok) {
-        const j = await res.json();
-        setData(j.compliance);
-      }
+      if (!res.ok) throw new Error("load failed");
+      const j = await res.json();
+      setData(j.compliance);
     } catch {
-      /* noop */
+      // 로드 실패를 "레코드 없음(빈 기본값)"과 구분 — 잘못된 편집/덮어쓰기 방지
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -122,10 +124,12 @@ export default function DeviceCompliancePanel({ assetId, isAdmin }: { assetId: n
   async function recordCheckin() {
     setCheckingIn(true);
     try {
+      // status 는 보내지 않는다 — 체크인은 "지금 확인함"(lastCheckinAt 갱신)일 뿐,
+      // 컴플라이언스 등급 변경은 편집(PUT)에서만. 서버가 기존 status 를 보존한다.
       const res = await fetch(`/api/assets/${assetId}/compliance/checkin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ complianceStatus: data?.complianceStatus ?? "UNKNOWN" }),
+        body: JSON.stringify({}),
       });
       if (!res.ok) throw new Error();
       toast.success(t.device.checkinDone);
@@ -166,7 +170,7 @@ export default function DeviceCompliancePanel({ assetId, isAdmin }: { assetId: n
           <ShieldCheck className="h-5 w-5 text-blue-600" />
           {t.device.title}
         </h2>
-        {isAdmin && !editing && (
+        {isAdmin && !editing && !loading && !loadError && (
           <div className="flex items-center gap-2">
             <button
               onClick={recordCheckin}
@@ -185,6 +189,11 @@ export default function DeviceCompliancePanel({ assetId, isAdmin }: { assetId: n
 
       {loading ? (
         <p className="text-sm text-gray-400">{t.common.loading}</p>
+      ) : loadError ? (
+        <button onClick={load} className="flex items-center gap-2 text-sm text-red-600 hover:underline" aria-label={t.toast.networkError}>
+          <RefreshCw className="h-4 w-4" />
+          {t.toast.networkError}
+        </button>
       ) : editing ? (
         <div className="space-y-4">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

@@ -33,10 +33,12 @@ function optStr(v: unknown): string | null | undefined {
 export async function GET(_request: NextRequest, { params }: Params) {
   const user = await getCurrentUser();
   if (!user) return apiError("UNAUTHORIZED");
+  // 기기 보안 태세·체크인 정보(IP/OS)는 관리 정보 — ADMIN 전용
+  if (user.role !== "ADMIN") return apiError("FORBIDDEN");
 
   const { id } = await params;
   const assetId = Number(id);
-  if (!Number.isInteger(assetId)) return NextResponse.json({ error: "잘못된 자산 ID 입니다." }, { status: 400 });
+  if (!Number.isInteger(assetId)) return apiError("INVALID_ID");
 
   const compliance = await prisma.deviceCompliance.findUnique({
     where: { assetId },
@@ -53,19 +55,26 @@ export async function PUT(request: NextRequest, { params }: Params) {
 
   const { id } = await params;
   const assetId = Number(id);
-  if (!Number.isInteger(assetId)) return NextResponse.json({ error: "잘못된 자산 ID 입니다." }, { status: 400 });
+  if (!Number.isInteger(assetId)) return apiError("INVALID_ID");
 
-  const asset = await prisma.asset.findUnique({ where: { id: assetId }, select: { id: true } });
-  if (!asset) return NextResponse.json({ error: "자산을 찾을 수 없습니다." }, { status: 404 });
+  // 기기 컴플라이언스는 하드웨어 자산에만 부착한다(대시보드 오염 방지)
+  const asset = await prisma.asset.findUnique({ where: { id: assetId }, select: { id: true, type: true } });
+  if (!asset) return apiError("NOT_FOUND");
+  if (asset.type !== "HARDWARE") {
+    return apiError("INVALID_INPUT", { message: "하드웨어 자산에만 기기 컴플라이언스를 설정할 수 있습니다." });
+  }
 
   const body = (await request.json()) as Record<string, unknown>;
 
-  const enrollmentStatus = ENROLLMENT.includes(body.enrollmentStatus as Enrollment)
-    ? (body.enrollmentStatus as Enrollment)
-    : undefined;
-  const complianceStatus = COMPLIANCE.includes(body.complianceStatus as Compliance)
-    ? (body.complianceStatus as Compliance)
-    : undefined;
+  // 명시적으로 보낸 enum 값이 잘못되면 조용히 무시하지 않고 400 (silent no-op 방지)
+  if (body.enrollmentStatus !== undefined && !ENROLLMENT.includes(body.enrollmentStatus as Enrollment)) {
+    return apiError("INVALID_INPUT", { message: "enrollmentStatus 값이 올바르지 않습니다." });
+  }
+  if (body.complianceStatus !== undefined && !COMPLIANCE.includes(body.complianceStatus as Compliance)) {
+    return apiError("INVALID_INPUT", { message: "complianceStatus 값이 올바르지 않습니다." });
+  }
+  const enrollmentStatus = body.enrollmentStatus as Enrollment | undefined;
+  const complianceStatus = body.complianceStatus as Compliance | undefined;
 
   const existing = await prisma.deviceCompliance.findUnique({
     where: { assetId },
