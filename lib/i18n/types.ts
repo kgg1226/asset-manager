@@ -122,6 +122,43 @@ export type TranslationDict = {
     assetCategory: string;
     assetClassification: string;
     titleCiaMapping: string;
+    deviceCompliance: string;
+  };
+
+  // MDM-lite 기기 관리/컴플라이언스 (dev-027)
+  device: {
+    title: string;
+    dashboardTitle: string;
+    dashboardDesc: string;
+    enrollment: string;
+    compliance: string;
+    managed: string;
+    enrollUnenrolled: string;
+    enrollEnrolled: string;
+    enrollPending: string;
+    enrollRetired: string;
+    compCompliant: string;
+    compNonCompliant: string;
+    compUnknown: string;
+    securityChecks: string;
+    diskEncrypted: string;
+    passcodeSet: string;
+    firewallOn: string;
+    antivirusOn: string;
+    osUpToDate: string;
+    jailbrokenRooted: string;
+    lastCheckin: string;
+    neverCheckin: string;
+    recordCheckin: string;
+    checkinDone: string;
+    noManaged: string;
+    needsAttention: string;
+    cardManaged: string;
+    cardCompliant: string;
+    cardNonCompliant: string;
+    cardUnknown: string;
+    notChecked: string;
+    osVersion: string;
   };
 
   // Top header

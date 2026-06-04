@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
 import CiaScoreDisplay from "@/app/_components/cia-score-display";
 import LifecycleGauge from "@/app/_components/lifecycle-gauge";
+import DeviceCompliancePanel from "./device-compliance-panel";
 
 type AssetStatus = "IN_STOCK" | "IN_USE" | "INACTIVE" | "UNUSABLE" | "PENDING_DISPOSAL" | "DISPOSED";
 
@@ -426,6 +427,13 @@ export default function HardwareDetailPage() {
 
         {/* 보안 등급 (CIA) */}
         <CiaScoreDisplay ciaC={asset.ciaC as 1 | 2 | 3 | null ?? null} ciaI={asset.ciaI as 1 | 2 | 3 | null ?? null} ciaA={asset.ciaA as 1 | 2 | 3 | null ?? null} />
+
+        {/* 기기 관리/컴플라이언스 (MDM-lite) — ADMIN 전용 */}
+        {isAdmin && (
+          <div className="mt-6">
+            <DeviceCompliancePanel assetId={Number(assetId)} isAdmin={isAdmin} />
+          </div>
+        )}
 
         {/* 감가상각 */}
         {asset.cost != null && asset.cost > 0 && asset.purchaseDate && (() => {

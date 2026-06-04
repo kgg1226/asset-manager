@@ -10,6 +10,7 @@ import {
   Network,
   Cloud,
   HardDrive,
+  MonitorSmartphone,
   Globe,
   BarChart3,
   History,
@@ -90,6 +91,7 @@ const NAV_GROUPS: NavGroup[] = [
     adminOnly: true,
     items: [
       { href: "/admin/users", labelKey: "userManagement", icon: <UserCog className="h-4 w-4" /> },
+      { href: "/devices", labelKey: "deviceCompliance", icon: <MonitorSmartphone className="h-4 w-4" /> },
       { href: "/admin/archives", labelKey: "archives", icon: <Archive className="h-4 w-4" /> },
       { href: "/admin/exchange-rates", labelKey: "exchangeRate", icon: <DollarSign className="h-4 w-4" /> },
       { href: "/admin/asset-categories", labelKey: "assetCategory", icon: <Tags className="h-4 w-4" /> },

@@ -3,15 +3,16 @@
 > 반복되는 패턴이 확인되면 tasks/postmortem/ 에서 승격시켜 여기에 한 줄 규칙으로 기록한다.
 > 모든 세션은 작업 시작 전 이 파일을 확인한다.
 
-## React / 프론트엔드
+## 보안 (인증)
 
-### [2026-06-02] [dev-024] 렌더 함수 안에서 컴포넌트 정의 금지 (react-hooks/static-components)
-- 렌더 내부에 `function SortableHeader(...) { return <th>… }` 처럼 대문자 컴포넌트를 정의하면
-  `react-hooks/static-components` **에러**(빌드는 통과). 매 렌더 새 컴포넌트 타입 → 리마운트.
-- 해결: 모듈 최상위로 호이스팅하거나, 소문자 렌더 헬퍼(`sortHeader(field,label)`)로 만들어
-  `{sortHeader(...)}` 로 호출(컴포넌트가 아닌 함수 취급).
-- 동적 Tailwind 클래스(`text-${align}`)는 JIT가 못 잡으니 리터럴 분기로.
-- 신규 i18n 텍스트는 추측 키(`t.common.more`) 대신 types.ts 의 기존 키 확인 후 재사용(`t.common.moreItems`).
+### [2026-06-02] [dev-027] proxy.ts 는 페이지/GET 을 비로그인에도 통과시킨다 — 서버 페이지가 직접 가드해야
+- `proxy.ts` 는 **비로그인 시 API 변경요청(POST/PUT/PATCH/DELETE)만** 401 처리하고,
+  **모든 페이지와 GET 요청은 토큰 없이 통과**시킨다(파일 주석에 명시된 의도적 동작).
+- 따라서 서버 컴포넌트 페이지가 prisma 로 직접 조회해 렌더하면 **익명 사용자에게도 노출**된다
+  (예: 새 /devices 대시보드). "미들웨어가 보호하겠지"라고 가정하지 말 것.
+- 규칙: 민감 데이터를 렌더하는 서버 페이지는 `getCurrentUser()` 로 직접 인증·권한을 확인하고
+  미충족 시 `redirect()`. 관리 전용 화면은 role 도 함께 검사.
+- 새 GET API 라우트도 핸들러에서 `getCurrentUser()`(+필요 시 role)로 직접 가드 — 미들웨어에 의존 금지.
 
 ## 공통
 
