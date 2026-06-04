@@ -10,7 +10,7 @@ import { useTranslation } from "@/lib/i18n";
 import CiaBadge from "@/app/_components/cia-badge";
 import { TourGuide } from "@/app/_components/tour-guide";
 import { HARDWARE_TOUR_KEY, getHardwareSteps } from "@/app/_components/tours/hardware-tour";
-import { LifecycleGaugeInline } from "@/app/_components/lifecycle-gauge";
+import { LifecycleGaugeInline, useLifecycleVisible } from "@/app/_components/lifecycle-gauge";
 import HwAssignButton from "./hw-assign-button";
 import HwUnassignButton from "./hw-unassign-button";
 
@@ -100,11 +100,16 @@ export default function HardwareListPage() {
   const { user } = useAuth();
   const { t } = useTranslation();
   const isAdmin = user?.role === "ADMIN";
+  // 내용연수/감가상각 등 라이프사이클 정보 노출 여부 (SUPER_ADMIN 또는 LIFECYCLE_VISIBLE_TO_USER flag)
+  const lifecycleVisible = useLifecycleVisible();
 
   const getStatusLabel = (s: AssetStatus) => (t.asset as Record<string, string>)[STATUS_KEYS[s]] ?? s;
 
   const [assets, setAssets] = useState<Asset[]>([]);
   const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const PAGE_SIZE = 100;
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<AssetStatus | "">("");
@@ -226,14 +231,35 @@ export default function HardwareListPage() {
       params.set("type", "HARDWARE");
       if (searchQuery) params.set("search", searchQuery);
       if (selectedStatus) params.set("status", selectedStatus);
-      params.set("limit", "100");
+      params.set("limit", String(PAGE_SIZE));
       const res = await fetch(`/api/assets?${params}`);
       if (!res.ok) throw new Error("Failed");
       const data = await res.json();
-      setAssets(data.assets ?? []); setTotal(data.total ?? 0);
+      setAssets(data.assets ?? []); setTotal(data.total ?? 0); setPage(1);
     } catch { toast.error(t.toast.saveFail); }
     finally { setIsLoading(false); }
   }, [searchQuery, selectedStatus]);
+
+  // "더 보기" — 다음 페이지를 기존 목록에 누적 (정렬/필터는 누적 목록 위에서 동작)
+  const loadMore = useCallback(async () => {
+    const nextPage = page + 1;
+    setLoadingMore(true);
+    try {
+      const params = new URLSearchParams();
+      params.set("type", "HARDWARE");
+      if (searchQuery) params.set("search", searchQuery);
+      if (selectedStatus) params.set("status", selectedStatus);
+      params.set("limit", String(PAGE_SIZE));
+      params.set("page", String(nextPage));
+      const res = await fetch(`/api/assets?${params}`);
+      if (!res.ok) throw new Error("Failed");
+      const data = await res.json();
+      setAssets((prev) => [...prev, ...(data.assets ?? [])]);
+      setTotal(data.total ?? 0);
+      setPage(nextPage);
+    } catch { toast.error(t.toast.saveFail); }
+    finally { setLoadingMore(false); }
+  }, [page, searchQuery, selectedStatus]);
 
   useEffect(() => { const t = setTimeout(() => loadAssets(), 300); return () => clearTimeout(t); }, [loadAssets]);
 
@@ -477,8 +503,8 @@ export default function HardwareListPage() {
           </div>
         )}
 
-        {/* 감가상각 현황 요약 */}
-        {!isLoading && assets.length > 0 && depreciationSummary.totalCost > 0 && (
+        {/* 감가상각 현황 요약 — 라이프사이클 정보 노출 정책(dev-022) 적용 */}
+        {lifecycleVisible && !isLoading && assets.length > 0 && depreciationSummary.totalCost > 0 && (
           <div className="mb-4 rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-200">
             <div className="mb-3 flex items-center justify-between">
               <p className="text-sm font-semibold text-gray-700">{t.hw.depreciationStatus}</p>
@@ -598,7 +624,7 @@ export default function HardwareListPage() {
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("manufacturer")}>{t.hw.manufacturer} / {t.hw.model}<SortIcon field="manufacturer" /></th>
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("status")}>{t.common.status}<SortIcon field="status" /></th>
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("cost")}>{t.asset.cost}<SortIcon field="cost" /></th>
-                <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.hw.usefulLife}</th>
+                {lifecycleVisible && <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.hw.usefulLife}</th>}
                 <th className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold hover:text-blue-600 whitespace-nowrap" onClick={() => handleSort("assignee")}>{t.asset.assignee}<SortIcon field="assignee" /></th>
                 <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.cia.title}</th>
                 {isAdmin && <th className="px-6 py-3 text-right text-xs font-semibold whitespace-nowrap">{t.common.actions}</th>}
@@ -606,9 +632,9 @@ export default function HardwareListPage() {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={isAdmin ? 11 : 10} className="px-6 py-8 text-center text-gray-400">{t.common.loading}</td></tr>
+                <tr><td colSpan={(isAdmin ? 11 : 10) - (lifecycleVisible ? 0 : 1)} className="px-6 py-8 text-center text-gray-400">{t.common.loading}</td></tr>
               ) : sortedAssets.length === 0 ? (
-                <tr><td colSpan={isAdmin ? 11 : 10} className="px-6 py-8 text-center text-gray-500">{t.common.noData}</td></tr>
+                <tr><td colSpan={(isAdmin ? 11 : 10) - (lifecycleVisible ? 0 : 1)} className="px-6 py-8 text-center text-gray-500">{t.common.noData}</td></tr>
               ) : (
                 sortedAssets.map((a) => (
                   <tr key={a.id} className="border-b hover:bg-gray-50">
@@ -622,7 +648,7 @@ export default function HardwareListPage() {
                       {a.hardwareDetail?.condition && <span className={`ml-1 inline-block rounded px-1.5 py-0.5 text-xs font-bold ${a.hardwareDetail.condition === "A" ? "bg-green-100 text-green-700" : a.hardwareDetail.condition === "B" ? "bg-blue-100 text-blue-700" : a.hardwareDetail.condition === "C" ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"}`}>{a.hardwareDetail.condition}</span>}
                     </td>
                     <td className="px-6 py-4 text-sm">{formatCost(a.cost, a.currency)}</td>
-                    <td className="px-6 py-4 text-sm"><LifecycleGaugeInline startDate={a.purchaseDate} endDate={a.expiryDate} /></td>
+                    {lifecycleVisible && <td className="px-6 py-4 text-sm"><LifecycleGaugeInline startDate={a.purchaseDate} endDate={a.expiryDate} /></td>}
                     <td className="px-6 py-4 text-sm">{a.assignee ? <Link href={`/employees/${a.assignee.id}`} className="text-blue-600 hover:underline">{a.assignee.name}</Link> : <span className="text-gray-400">{t.license.unassigned}</span>}</td>
                     <td className="px-6 py-4 text-sm"><CiaBadge ciaC={a.ciaC} ciaI={a.ciaI} ciaA={a.ciaA} /></td>
                     {isAdmin && (
@@ -646,6 +672,21 @@ export default function HardwareListPage() {
             </tbody>
           </table>
         </div>
+        {!isLoading && assets.length < total && (
+          <div className="mt-4 flex justify-center">
+            <button
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="inline-flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium text-blue-600 ring-1 ring-blue-200 hover:bg-blue-50 disabled:opacity-50"
+            >
+              {loadingMore ? (
+                t.common.loading
+              ) : (
+                <><ChevronDown className="h-4 w-4" />{total - assets.length}{t.common.moreItems}</>
+              )}
+            </button>
+          </div>
+        )}
         <div className="mt-4 text-sm text-gray-600">{t.common.total} {total}{t.dashboard.items}</div>
       </div>
     </div>
