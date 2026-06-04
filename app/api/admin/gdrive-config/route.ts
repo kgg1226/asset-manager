@@ -34,6 +34,8 @@ export async function PUT(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return apiError("UNAUTHORIZED");
   if (user.role !== "ADMIN") return apiError("FORBIDDEN");
+  // 정책(dev-022): 시스템 설정 변경은 SUPER_ADMIN 전용.
+  if (!user.isSuperAdmin) return apiError("FORBIDDEN");
 
   try {
     const body = await request.json();
@@ -61,6 +63,8 @@ export async function DELETE(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return apiError("UNAUTHORIZED");
   if (user.role !== "ADMIN") return apiError("FORBIDDEN");
+  // 정책(dev-022): 시스템 설정 변경은 SUPER_ADMIN 전용.
+  if (!user.isSuperAdmin) return apiError("FORBIDDEN");
 
   try {
     const { searchParams } = new URL(request.url);

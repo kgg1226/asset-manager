@@ -316,6 +316,7 @@ function PreferencesSection({ isAdmin }: { isAdmin: boolean }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const [daysInput, setDaysInput] = useState<Record<string, string>>({});
 
   const loadPrefs = useCallback(async () => {
     setIsLoading(true);
@@ -382,9 +383,7 @@ function PreferencesSection({ isAdmin }: { isAdmin: boolean }) {
 
   if (!isAdmin || isLoading || !prefs) return null;
 
-  const [daysInput, setDaysInput] = useState<Record<string, string>>({});
-
-  const getDaysList = (key: "renewalDaysBeforeList" | "cancellationDaysBeforeList", fallbackKey: "renewalDaysBefore" | "cancellationDaysBefore"): number[] => {
+  const getDaysList =(key: "renewalDaysBeforeList" | "cancellationDaysBeforeList", fallbackKey: "renewalDaysBefore" | "cancellationDaysBefore"): number[] => {
     if (!prefs) return [];
     const list = prefs[key];
     if (list && list.length > 0) return list;

@@ -49,6 +49,11 @@ export async function POST(request: NextRequest) {
     }
     const roleVal = vEnumReq(body.role, "role", VALID_ROLES);
 
+    // 정책(dev-022): ADMIN 권한 부여는 SUPER_ADMIN 만 가능. 일반 USER 생성은 ADMIN 도 가능.
+    if (roleVal === "ADMIN" && !user.isSuperAdmin) {
+      return NextResponse.json({ error: "ADMIN 권한 부여는 최고관리자(SUPER_ADMIN)만 가능합니다." }, { status: 403 });
+    }
+
     const hash = await hashPassword(body.password);
     const created = await prisma.$transaction(async (tx) => {
       const newUser = await tx.user.create({
