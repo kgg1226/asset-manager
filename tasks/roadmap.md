@@ -1,5 +1,21 @@
 # Roadmap — 고도화 계획
 
+## 완료 (2026-06-02, dev-025)
+
+- [x] 내용연수·감가상각 서버 측 마스킹 — GET /api/assets·[id] 응답에서 비권한 사용자(비-SUPER_ADMIN
+      AND flag off)에게 `usefulLifeYears` + 감가상각 `monthlyCost`(billingCycle=DEPRECIATION) 제거
+- [x] 판정 헬퍼 `lib/lifecycle-visibility.ts` 추출 — 화면(useLifecycleVisible)·feature-flags·서버 마스킹 단일화
+- [x] PUT 데이터 손실 방지 — 비권한 ADMIN 편집 시 내용연수 기존값 보존(heal)
+
+## 다음 티켓 초안
+
+TITLE: 리포트/내보내기 라이프사이클 마스킹 + GET 인증 게이트 (dev-026)
+SCOPE: app/api/dashboard, app/api/reports/monthly/*, app/api/export/all (cost/감가상각 마스킹) /
+       app/api/assets GET 인증 게이트 검토 / 하드웨어 상세 감가상각 섹션 화면 게이팅(목록과 일관)
+PRIORITY: medium
+근거: dev-025 발견 — 리포트/대시보드/export 는 role=ADMIN 게이트만 있어 비-SUPER_ADMIN ADMIN 에게
+      cost/감가상각 노출. GET /api/assets 는 미들웨어 부재로 401 비강제(네트워크 계층 완화 추정).
+
 ## 완료 (2026-04-14, dev-001)
 
 - [x] 알림 이력 status 버그 수정 — 통계 `ok`/`fail`이 "SUCCESS"/"FAILED" 기준으로 집계
