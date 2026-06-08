@@ -6,6 +6,7 @@ import { writeAuditLog } from "@/lib/audit-log";
 import { getAppSetting } from "@/lib/system-config";
 import {
   computeCost,
+  calcRenewalDate,
   VALID_PAYMENT_CYCLES,
   VALID_CURRENCIES,
   type PaymentCycle,
@@ -176,7 +177,11 @@ export async function POST(request: NextRequest) {
           totalQuantity: qty,
           price: priceVal,
           purchaseDate: purchaseDateVal,
-          expiryDate: expiryDateVal,
+          expiryDate: expiryDateVal, // 실제 종료일(보통 null) — 만료는 "계약 종료" 액션으로 관리
+          renewalDate: (() => {
+            const r = paymentCycle ? calcRenewalDate(purchaseDateVal.toISOString().slice(0, 10), paymentCycle) : "";
+            return r ? new Date(r) : null;
+          })(),
           noticePeriodDays: noticeDays,
           adminName: adminNameVal,
           description: descriptionVal,

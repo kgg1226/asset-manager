@@ -374,13 +374,13 @@ export default function NewLicensePage() {
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
-                  {t.license.expiryDate}
+                  {t.license.renewalDate}
                 </label>
                 <div className="input flex cursor-not-allowed items-center bg-gray-50 text-gray-500">
                   {renewalDateStr || "—"}
                 </div>
-                {/* Submit the computed renewal date as expiryDate */}
-                <input type="hidden" name="expiryDate" value={renewalDateStr} />
+                {/* 만료일(종료일)은 생성 시 설정하지 않음(진행 중). renewalDate 는 서버에서 자동계산 저장.
+                    만료일은 이후 "계약 종료" 액션으로만 등록된다. (dev-028) */}
               </div>
             </div>
             {purchaseDateStr && renewalDateStr && (
