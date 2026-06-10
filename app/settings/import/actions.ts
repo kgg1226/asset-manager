@@ -1325,7 +1325,7 @@ async function importHardwareAssets(rows: Record<string, string>[], actor: strin
       }
 
       // assetTag 기반 dedup: 비어있지 않은 assetTag와 일치하는 기존 HardwareDetail이 있으면 update,
-      // 없거나 assetTag가 비어있으면 create. (스키마에 @unique 미적용 — 앱 레벨 처리)
+      // 없거나 assetTag가 비어있으면 create. (dev-030 부터 DB @unique 가 최종 방어선)
       const existingDetail = row.assetTag
         ? await tx.hardwareDetail.findFirst({
             where: { assetTag: row.assetTag },

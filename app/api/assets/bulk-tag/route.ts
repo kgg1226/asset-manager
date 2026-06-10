@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit-log";
+import { handlePrismaError } from "@/lib/validation";
 
 type TagEntry = { id: number; assetTag: string };
 
@@ -45,26 +46,34 @@ export async function PATCH(request: NextRequest) {
     }
   }
 
-  await prisma.$transaction(async (tx) => {
-    for (const { id, assetTag } of entries) {
-      await tx.hardwareDetail.updateMany({
-        where: { assetId: id },
-        data: { assetTag: assetTag.trim() || null },
+  try {
+    await prisma.$transaction(async (tx) => {
+      for (const { id, assetTag } of entries) {
+        await tx.hardwareDetail.updateMany({
+          where: { assetId: id },
+          data: { assetTag: assetTag.trim() || null },
+        });
+      }
+      await writeAuditLog(tx, {
+        entityType: "ASSET",
+        entityId: ids[0],
+        action: "UPDATED",
+        actor: user.username,
+        actorType: "USER",
+        actorId: user.id,
+        details: {
+          summary: `자산 태그 일괄 수정 ${entries.length}건`,
+          entries: entries.map((e) => ({ id: e.id, assetTag: e.assetTag })),
+        },
       });
-    }
-    await writeAuditLog(tx, {
-      entityType: "ASSET",
-      entityId: ids[0],
-      action: "UPDATED",
-      actor: user.username,
-      actorType: "USER",
-      actorId: user.id,
-      details: {
-        summary: `자산 태그 일괄 수정 ${entries.length}건`,
-        entries: entries.map((e) => ({ id: e.id, assetTag: e.assetTag })),
-      },
     });
-  });
+  } catch (error) {
+    // 사전 충돌 체크를 통과해도 동시 요청 레이스는 DB unique(assetTag)가 막는다 → 409 (dev-030)
+    const pErr = handlePrismaError(error, { uniqueMessage: "이미 사용 중인 자산 태그입니다." });
+    if (pErr) return pErr;
+    console.error("Failed to bulk-update asset tags:", error);
+    return NextResponse.json({ error: "태그 일괄 수정에 실패했습니다." }, { status: 500 });
+  }
 
   return NextResponse.json({ updated: entries.length });
 }

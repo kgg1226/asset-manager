@@ -411,6 +411,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
     const vErr = handleValidationError(error);
     if (vErr) return vErr;
     const pErr = handlePrismaError(error, {
+      uniqueMessage: "이미 사용 중인 자산 태그입니다.",
       notFoundMessage: "자산을 찾을 수 없습니다.",
     });
     if (pErr) return pErr;
