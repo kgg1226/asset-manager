@@ -407,7 +407,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const vErr = handleValidationError(error);
     if (vErr) return vErr;
-    const pErr = handlePrismaError(error);
+    // 사전 중복 체크를 통과해도 동시 요청 레이스는 DB unique(assetTag)가 막는다 → 409 (dev-030)
+    const pErr = handlePrismaError(error, {
+      uniqueMessage: "이미 사용 중인 자산 태그입니다.",
+    });
     if (pErr) return pErr;
     console.error("Failed to create asset:", error);
     return NextResponse.json(
