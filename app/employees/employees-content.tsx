@@ -96,7 +96,7 @@ export default function EmployeesContent({
           {isAdmin && (
             <Link
               href="/employees/new"
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              className="whitespace-nowrap rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
             >
               + {t.employee.newEmployee}
             </Link>
@@ -159,7 +159,7 @@ export default function EmployeesContent({
                         <div className="flex items-center justify-center gap-2">
                           <Link
                             href={`/employees/${emp.id}`}
-                            className="rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
+                            className="whitespace-nowrap rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
                           >
                             {t.common.detail}
                           </Link>

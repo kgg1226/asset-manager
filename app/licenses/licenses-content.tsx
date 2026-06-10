@@ -153,14 +153,14 @@ export default function LicensesContent({
           </h1>
           <div className="flex items-center gap-2">
             {isAdmin && (
-              <a href="/api/export/all?format=xlsx" className="flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-600 hover:bg-gray-50" title={t.header.excelExportAll}>
+              <a href="/api/export/all?format=xlsx" className="flex items-center gap-1.5 whitespace-nowrap rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-600 hover:bg-gray-50" title={t.header.excelExportAll}>
                 <FileDown className="h-4 w-4" />Excel
               </a>
             )}
             {isAdmin && (
               <Link
                 href="/licenses/new"
-                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                className="whitespace-nowrap rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
               >
                 + {t.license.newLicense}
               </Link>
@@ -174,7 +174,7 @@ export default function LicensesContent({
             <button
               type="button"
               onClick={() => setShowRenewalQueue((v) => !v)}
-              className="flex w-full items-center gap-2 px-4 py-3 text-left"
+              className="flex w-full items-center gap-2 px-4 py-3 text-left whitespace-normal"
             >
               <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
               <span className="text-sm font-medium text-amber-800">

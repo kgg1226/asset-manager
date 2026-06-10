@@ -524,7 +524,7 @@ export default function GuidePage() {
               <div key={section.id} className="rounded-lg bg-white shadow-sm overflow-hidden">
                 <button
                   onClick={() => toggleSection(section.id)}
-                  className="flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+                  className="flex w-full items-center gap-3 px-5 py-4 text-left whitespace-normal hover:bg-gray-50 transition-colors"
                 >
                   <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${allDone ? "bg-green-100 text-green-600" : "bg-blue-100 text-blue-600"}`}>
                     {section.icon}

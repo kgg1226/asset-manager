@@ -4,6 +4,15 @@ body {
   font-family: var(--font-pretendard), var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "맑은 고딕", system-ui, sans-serif;
 }
 
+@layer base {
+  /* 한글은 글자 단위로 줄바꿈되므로, 좁은 flex/테이블 셀에서 버튼 라벨이
+     세로(1글자/줄)로 깨진다. 버튼 텍스트는 기본 줄바꿈 금지 (dev-029).
+     여러 줄이 필요한 리스트형 버튼은 whitespace-normal 유틸리티로 개별 opt-out. */
+  button {
+    white-space: nowrap;
+  }
+}
+
 @layer components {
   .input {
     @apply block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none;
