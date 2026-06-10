@@ -85,7 +85,7 @@ export default function GroupsListClient({
                         <div className="flex items-center justify-center gap-2">
                           <Link
                             href={`/settings/groups/${group.id}`}
-                            className="rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
+                            className="whitespace-nowrap rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
                           >
                             {t.common.edit}
                           </Link>
