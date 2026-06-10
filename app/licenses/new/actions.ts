@@ -7,6 +7,7 @@ import { writeAuditLog } from "@/lib/audit-log";
 import { requireAdmin } from "@/lib/auth";
 import {
   computeCost,
+  calcRenewalDate,
   VALID_PAYMENT_CYCLES,
   VALID_CURRENCIES,
   type PaymentCycle,
@@ -32,7 +33,8 @@ export async function createLicense(
   const totalQuantity = formData.get("totalQuantity") as string;
   const price = formData.get("price") as string;
   const purchaseDate = formData.get("purchaseDate") as string;
-  const expiryDate = formData.get("expiryDate") as string;
+  // 만료일(expiryDate)은 생성 시 설정하지 않는다(진행 중 = null). 다음 갱신일(renewalDate)만 자동계산.
+  // 만료일은 이후 "계약 종료" 액션으로만 등록된다. (dev-028)
   const noticePeriodType = formData.get("noticePeriodType") as string;
   const noticePeriodCustom = formData.get("noticePeriodCustom") as string;
   const adminName = formData.get("adminName") as string;
@@ -180,7 +182,11 @@ export async function createLicense(
           totalQuantity: qty,
           price: price ? Number(price) : null,
           purchaseDate: new Date(purchaseDate),
-          expiryDate: expiryDate ? new Date(expiryDate) : null,
+          expiryDate: null, // 생성 시 만료일 미설정(진행 중). 종료는 "계약 종료" 액션으로.
+          renewalDate: (() => {
+            const r = paymentCycle ? calcRenewalDate(purchaseDate, paymentCycle) : "";
+            return r ? new Date(r) : null;
+          })(),
           noticePeriodDays,
           adminName: adminName?.trim() || null,
           description: description?.trim() || null,
