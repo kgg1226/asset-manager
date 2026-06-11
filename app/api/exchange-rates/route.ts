@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { ensureTodayRates } from "@/lib/exchange-rate-sync";
 
 const SUPPORTED_CURRENCIES = ["USD", "EUR", "JPY", "GBP", "CNY"];
 
@@ -28,6 +29,10 @@ export async function GET(request: NextRequest) {
   const targetCurrency = searchParams.get("targetCurrency")?.toUpperCase();
 
   try {
+    // lazy 자동 동기화 (dev-033): 오늘 환율이 없으면 그 자리에서 받아온다 —
+    // 버튼/크론 없이 "하루 첫 조회" 시점에 자동 갱신. 실패 시 기존 최신 데이터로 진행.
+    await ensureTodayRates();
+
     // 교차 환율 계산 (sourceCurrency → targetCurrency)
     if (sourceCurrency && targetCurrency) {
       return await handleCrossRate(sourceCurrency, targetCurrency, dateParam);
