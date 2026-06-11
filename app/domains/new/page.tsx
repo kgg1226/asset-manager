@@ -28,6 +28,8 @@ export default function DomainNewPage() {
 
   const [form, setForm] = useState({ name: "", description: "", vendor: "", cost: "", currency: "KRW", billingCycle: "ANNUAL", purchaseDate: "", expiryDate: "" });
   const [domain, setDomain] = useState({ domainName: "", registrar: "", sslType: "", issuer: "", billingCycleMonths: "12", autoRenew: true });
+  // 도메인은 등록 시점부터 운영 중인 경우가 대부분 — "재고" 기본값 대신 상태를 직접 선택 (dev-036)
+  const [status, setStatus] = useState("IN_USE");
   const onDomainChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => { const { name, value } = e.target; setDomain((p) => ({ ...p, [name]: value })); };
   const [cia, setCia] = useState<{ ciaC: CiaLevel | null; ciaI: CiaLevel | null; ciaA: CiaLevel | null }>({ ciaC: null, ciaI: null, ciaA: null });
   const [isLoading, setIsLoading] = useState(false);
@@ -53,7 +55,7 @@ export default function DomainNewPage() {
     setIsLoading(true);
     try {
       const payload = {
-        name: form.name, type: "DOMAIN_SSL", description: form.description || null,
+        name: form.name, type: "DOMAIN_SSL", status, description: form.description || null,
         vendor: form.vendor || null, cost: form.cost ? Number(form.cost) : null,
         currency: form.currency, billingCycle: form.billingCycle,
         purchaseDate: form.purchaseDate || null, expiryDate: form.expiryDate || null,
@@ -121,10 +123,34 @@ export default function DomainNewPage() {
             </div>
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t.license.paymentCycle}</label>
-                <select name="billingCycleMonths" value={domain.billingCycleMonths} onChange={onDomainChange} className={ic}>
-                  <option value="1">{t.domain.months1}</option><option value="6">{t.domain.months6}</option><option value="12">{t.domain.years1}</option><option value="24">{t.domain.years2}</option><option value="36">{t.domain.years3}</option><option value="60">{t.domain.years5}</option><option value="120">{t.domain.years10}</option>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.common.status}</label>
+                <select value={status} onChange={(e) => setStatus(e.target.value)} className={ic}>
+                  <option value="IN_USE">{t.domain.statusLive}</option>
+                  <option value="IN_STOCK">{t.domain.statusUnlinked}</option>
+                  <option value="INACTIVE">{t.domain.statusDormant}</option>
+                  <option value="PENDING_DISPOSAL">{t.domain.statusPendingTermination}</option>
+                  <option value="DISPOSED">{t.domain.statusTerminated}</option>
                 </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.license.paymentCycle}</label>
+                {/* 프리셋 외 비주기 연수(18개월 등)는 "직접 입력" 으로 (dev-036) */}
+                <select
+                  value={["1", "6", "12", "24", "36", "60", "120"].includes(domain.billingCycleMonths) ? domain.billingCycleMonths : "custom"}
+                  onChange={(e) => setDomain((p) => ({ ...p, billingCycleMonths: e.target.value === "custom" ? "" : e.target.value }))}
+                  className={ic}
+                >
+                  <option value="1">{t.domain.months1}</option><option value="6">{t.domain.months6}</option><option value="12">{t.domain.years1}</option><option value="24">{t.domain.years2}</option><option value="36">{t.domain.years3}</option><option value="60">{t.domain.years5}</option><option value="120">{t.domain.years10}</option>
+                  <option value="custom">{t.domain.cycleCustom}</option>
+                </select>
+                {!["1", "6", "12", "24", "36", "60", "120"].includes(domain.billingCycleMonths) && (
+                  <input
+                    type="number" min={1} max={120} placeholder="18"
+                    value={domain.billingCycleMonths}
+                    onChange={(e) => setDomain((p) => ({ ...p, billingCycleMonths: e.target.value }))}
+                    className={`${ic} mt-2`}
+                  />
+                )}
                 {form.cost && domain.billingCycleMonths && (
                   <p className="mt-1 text-xs text-blue-600">{t.domain.monthlyCost}: {(Number(form.cost) / Number(domain.billingCycleMonths)).toLocaleString(undefined, { maximumFractionDigits: 0 })} {form.currency}/{t.domain.perMonth}</p>
                 )}

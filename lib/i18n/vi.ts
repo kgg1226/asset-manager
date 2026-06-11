@@ -541,6 +541,14 @@ export const vi: TranslationDict = {
   },
 
   domain: {
+    statusUnlinked: "Chưa liên kết",
+    statusLive: "Đang hoạt động",
+    statusDormant: "Ngủ đông",
+    statusPendingTermination: "Chờ chấm dứt",
+    statusTerminated: "Đã chấm dứt",
+    cycleCustom: "Tùy chỉnh (tháng)",
+    monthsSuffix: "tháng",
+    yearsSuffix: "năm",
     title: "Tên miền·SSL",
     newDomain: "Đăng ký tên miền",
     registrar: "Nhà đăng ký",

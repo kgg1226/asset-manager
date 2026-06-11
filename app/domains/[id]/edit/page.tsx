@@ -149,9 +149,23 @@ export default function DomainEditPage() {
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t.license.paymentCycle}</label>
-                <select name="billingCycleMonths" value={domain.billingCycleMonths} onChange={onDomainChange} className={ic}>
+                {/* 프리셋 외 값(18개월 등)은 "직접 입력" 모드로 보존 — 기존엔 select 공백/덮어쓰기 (dev-036) */}
+                <select
+                  value={["1", "6", "12", "24", "36", "60", "120"].includes(domain.billingCycleMonths) ? domain.billingCycleMonths : "custom"}
+                  onChange={(e) => setDomain((p) => ({ ...p, billingCycleMonths: e.target.value === "custom" ? "" : e.target.value }))}
+                  className={ic}
+                >
                   <option value="1">{t.domain.months1}</option><option value="6">{t.domain.months6}</option><option value="12">{t.domain.years1}</option><option value="24">{t.domain.years2}</option><option value="36">{t.domain.years3}</option><option value="60">{t.domain.years5}</option><option value="120">{t.domain.years10}</option>
+                  <option value="custom">{t.domain.cycleCustom}</option>
                 </select>
+                {!["1", "6", "12", "24", "36", "60", "120"].includes(domain.billingCycleMonths) && (
+                  <input
+                    type="number" min={1} max={120} placeholder="18"
+                    value={domain.billingCycleMonths}
+                    onChange={(e) => setDomain((p) => ({ ...p, billingCycleMonths: e.target.value }))}
+                    className={`${ic} mt-2`}
+                  />
+                )}
                 {form.cost && domain.billingCycleMonths && (
                   <p className="mt-1 text-xs text-blue-600">{t.domain.monthlyCost}: {(Number(form.cost) / Number(domain.billingCycleMonths)).toLocaleString(undefined, { maximumFractionDigits: 0 })} {form.currency}/{t.domain.perMonth}</p>
                 )}

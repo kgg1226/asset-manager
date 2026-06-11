@@ -541,6 +541,14 @@ export const zhTW: TranslationDict = {
   },
 
   domain: {
+    statusUnlinked: "未關聯/持有",
+    statusLive: "營運中",
+    statusDormant: "休眠",
+    statusPendingTermination: "待解約",
+    statusTerminated: "已解約/轉移",
+    cycleCustom: "自訂(月)",
+    monthsSuffix: "個月",
+    yearsSuffix: "年",
     title: "網域·SSL",
     newDomain: "新建網域",
     registrar: "註冊商",

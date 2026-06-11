@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
 import CiaScoreDisplay from "@/app/_components/cia-score-display";
 import LifecycleGauge from "@/app/_components/lifecycle-gauge";
+import { formatBillingCycle, getDomainStatusLabel } from "@/lib/domain-format";
 
 type AssetStatus = "IN_STOCK" | "IN_USE" | "INACTIVE" | "UNUSABLE" | "PENDING_DISPOSAL" | "DISPOSED";
 
@@ -81,7 +82,9 @@ export default function DomainDetailPage() {
   if (isLoading) return <div className="min-h-screen bg-gray-50 p-6"><div className="mx-auto max-w-4xl"><p className="text-center text-gray-600">{t.common.loading}</p></div></div>;
   if (!asset) return <div className="min-h-screen bg-gray-50 p-6"><div className="mx-auto max-w-4xl"><p className="text-center text-red-600">{t.common.noData}</p><div className="mt-4 text-center"><Link href="/domains" className="text-blue-600 hover:underline">{t.common.list}</Link></div></div></div>;
 
-  const getStatusLabel = (s: AssetStatus) => (t.asset as Record<string, string>)[STATUS_KEYS[s]] ?? s;
+  // 도메인 전용 상태 어휘 오버라이드 (dev-036) — 미매핑 상태는 기존 라벨 폴백
+  const getStatusLabel = (s: AssetStatus) =>
+    getDomainStatusLabel(s, t.domain) ?? (t.asset as Record<string, string>)[STATUS_KEYS[s]] ?? s;
   const syms: Record<string, string> = { KRW: "₩", USD: "$", EUR: "€", JPY: "¥", GBP: "£", CNY: "¥" };
   const fmtCost = (v: number | null | undefined) => v != null ? `${syms[asset.currency] ?? asset.currency}${v.toLocaleString()}` : "—";
 
@@ -152,7 +155,7 @@ export default function DomainDetailPage() {
               {asset.domainDetail.registrar && <div><p className="text-sm text-gray-600">{t.domain.registrar}</p><p className="mt-1 text-gray-900">{asset.domainDetail.registrar}</p></div>}
               {asset.domainDetail.sslType && <div><p className="text-sm text-gray-600">SSL {t.common.type}</p><p className="mt-1 text-gray-900">{asset.domainDetail.sslType}</p></div>}
               {asset.domainDetail.issuer && <div><p className="text-sm text-gray-600">CA</p><p className="mt-1 text-gray-900">{asset.domainDetail.issuer}</p></div>}
-              {asset.domainDetail.billingCycleMonths != null && <div><p className="text-sm text-gray-600">{t.license.paymentCycle}</p><p className="mt-1 text-gray-900">{asset.domainDetail.billingCycleMonths >= 12 ? `${asset.domainDetail.billingCycleMonths / 12}Y` : `${asset.domainDetail.billingCycleMonths}M`}</p></div>}
+              {asset.domainDetail.billingCycleMonths != null && <div><p className="text-sm text-gray-600">{t.license.paymentCycle}</p><p className="mt-1 text-gray-900">{formatBillingCycle(asset.domainDetail.billingCycleMonths, t.domain)}</p></div>}
               <div><p className="text-sm text-gray-600">{t.contract.autoRenewal}</p><p className="mt-1 text-gray-900">{asset.domainDetail.autoRenew ? `✓ ${t.dashboard.active}` : `✗ ${t.employee.inactive}`}</p></div>
             </div>
           </div>

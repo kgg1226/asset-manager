@@ -556,6 +556,14 @@ export type TranslationDict = {
 
   // Domain / SSL
   domain: {
+    statusUnlinked: string;
+    statusLive: string;
+    statusDormant: string;
+    statusPendingTermination: string;
+    statusTerminated: string;
+    cycleCustom: string;
+    monthsSuffix: string;
+    yearsSuffix: string;
     title: string;
     newDomain: string;
     registrar: string;

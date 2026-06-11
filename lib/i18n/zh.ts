@@ -541,6 +541,14 @@ export const zh: TranslationDict = {
   },
 
   domain: {
+    statusUnlinked: "未关联/持有",
+    statusLive: "运营中",
+    statusDormant: "休眠",
+    statusPendingTermination: "待解约",
+    statusTerminated: "已解约/转移",
+    cycleCustom: "自定义(月)",
+    monthsSuffix: "个月",
+    yearsSuffix: "年",
     title: "域名·SSL",
     newDomain: "新建域名",
     registrar: "注册商",

@@ -541,6 +541,14 @@ export const ja: TranslationDict = {
   },
 
   domain: {
+    statusUnlinked: "未接続/保有",
+    statusLive: "運用中",
+    statusDormant: "休眠",
+    statusPendingTermination: "解約予定",
+    statusTerminated: "解約/移管完了",
+    cycleCustom: "直接入力(ヶ月)",
+    monthsSuffix: "ヶ月",
+    yearsSuffix: "年",
     title: "ドメイン・SSL",
     newDomain: "ドメイン登録",
     registrar: "レジストラ",
