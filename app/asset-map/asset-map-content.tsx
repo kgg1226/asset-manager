@@ -2136,6 +2136,8 @@ function AssetMapContentInner() {
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const viewportSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dirtyRef = useRef(false);
+  // 복원 중 setViewport 가 onMoveEnd 를 자체 발화시켜 저장 루프가 되는 것을 차단 (dev-032)
+  const restoringViewportRef = useRef(false);
   const activeWorkspaceRef = useRef<SavedView | null>(null);
   activeWorkspaceRef.current = activeWorkspace;
 
@@ -2189,9 +2191,21 @@ function AssetMapContentInner() {
           _autoSave: true,
         }),
       });
-      // 로컬 ws ref 도 즉시 갱신 (다음 fetchGraph 가 최신 visibleEdgeIds 사용)
-      activeWorkspaceRef.current = { ...ws, edgeVisibility };
-      setActiveWorkspace((prev) => (prev ? { ...prev, edgeVisibility } : prev));
+      // 로컬 ws(ref+state)를 방금 저장한 "전체 상태"로 갱신 (dev-032).
+      // edgeVisibility 만 갱신하면 stale nodePositions 가 남아, 이후 fetchGraph 의
+      // ID 필터가 방금 추가한 자산을 캔버스에서 탈락시키고(→ 다음 저장이 서버를 덮어써
+      // 영구 소실), 복원 effect 가 옛 위치·뷰포트를 재적용한다(dev-020 회귀).
+      // state 도 함께 갱신하는 이유: 매 렌더마다 ref 가 state 로 동기화되므로 ref 만
+      // 갱신하면 다음 렌더에 stale 값이 되살아난다. effect 재발화는 의존성을
+      // workspace id 로 키잉해 차단한다.
+      const savedState = {
+        nodePositions,
+        sectionData,
+        viewport: { x: viewport.x, y: viewport.y, zoom: viewport.zoom },
+        edgeVisibility,
+      };
+      activeWorkspaceRef.current = { ...ws, ...savedState };
+      setActiveWorkspace((prev) => (prev ? { ...prev, ...savedState } : prev));
       setSaveStatus("saved");
     } catch {
       setSaveStatus("dirty");
@@ -2259,6 +2273,8 @@ function AssetMapContentInner() {
   // ── Viewport change auto-save (3s debounce) ──
   const onMoveEnd = useCallback(() => {
     if (!activeWorkspaceRef.current) return;
+    // 복원 중 setViewport 가 발화시킨 이동 이벤트는 사용자 조작이 아님 — 저장 루프 방지 (dev-032)
+    if (restoringViewportRef.current) return;
     dirtyRef.current = true;
     setSaveStatus("dirty");
     if (viewportSaveTimerRef.current) clearTimeout(viewportSaveTimerRef.current);
@@ -2745,18 +2761,25 @@ function AssetMapContentInner() {
     }
   }, [view, setNodes, setEdges, t, animateEdges]);
 
-  // Only fetch graph when in canvas view with an active workspace
+  // Only fetch graph when in canvas view with an active workspace.
+  // 의존성은 workspace "id" — 자동 저장(flushSave→setActiveWorkspace)이 객체 참조를
+  // 바꿔도 전체 재로드가 발화하지 않게 한다. 객체 의존이던 시절에는 매 저장(2~3초)마다
+  // fetchGraph→dagre 재배치→stale 복원이 돌며 캔버스가 "계속 초기화"됐다 (dev-032).
+  const activeWorkspaceId = activeWorkspace?.id ?? null;
   useEffect(() => {
-    if (currentView === "canvas" && activeWorkspace) {
+    if (currentView === "canvas" && activeWorkspaceId != null) {
       fetchGraph();
     }
-  }, [currentView, activeWorkspace, fetchGraph]);
+  }, [currentView, activeWorkspaceId, fetchGraph]);
 
   // ── Restore workspace state after graph loads ──
+  // id 키잉 + ref 읽기 (dev-032): 자동 저장이 만든 새 객체 참조로 재발화해
+  // 옛 위치·뷰포트를 재적용하던 루프를 차단하고, 실행 시점의 최신 상태를 쓴다.
   useEffect(() => {
-    if (loading || !activeWorkspace) return;
+    if (loading) return;
+    const ws = activeWorkspaceRef.current;
+    if (!ws || ws.id !== activeWorkspaceId) return;
 
-    const ws = activeWorkspace;
     const positions = ws.nodePositions;
     const sections = ws.sectionData;
     const vp = ws.viewport;
@@ -2802,13 +2825,16 @@ function AssetMapContentInner() {
       });
     }
 
-    // Restore viewport
+    // Restore viewport — setViewport 가 onMoveEnd 를 자체 발화시켜 저장 루프가
+    // 되지 않도록 복원 구간을 플래그로 가드 (dev-032)
     if (vp) {
+      restoringViewportRef.current = true;
       setTimeout(() => {
         reactFlowInstance.setViewport({ x: vp.x, y: vp.y, zoom: vp.zoom });
+        setTimeout(() => { restoringViewportRef.current = false; }, 300);
       }, 200);
     }
-  }, [loading, activeWorkspace, setNodes, reactFlowInstance]);
+  }, [loading, activeWorkspaceId, setNodes, reactFlowInstance]);
 
   const onConnect = useCallback((params: Connection) => {
     if (params.source && params.target && params.source !== params.target) {
