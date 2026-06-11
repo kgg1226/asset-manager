@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
 import CiaScoreInput from "@/app/_components/cia-score-input";
+import ClassificationSelect from "@/app/_components/classification-select";
 import type { CiaLevel } from "@/lib/cia";
 import LifecycleGauge from "@/app/_components/lifecycle-gauge";
 
@@ -37,6 +38,8 @@ export default function CloudEditPage() {
   const { user, loading: authLoading } = useAuth();
 
   const { t } = useTranslation();
+  // 자산분류체계 소분류 (dev-037)
+  const [subCategoryId, setSubCategoryId] = useState<number | null>(null);
   useEffect(() => { if (!authLoading && !user) router.push("/login"); }, [user, authLoading, router]);
 
   const [form, setForm] = useState({ name: "", description: "", vendor: "", cost: "", currency: "KRW", billingCycle: "MONTHLY", purchaseDate: "", expiryDate: "" });
@@ -60,6 +63,7 @@ export default function CloudEditPage() {
         if (!res.ok) { toast.error(t.toast.loadFail); router.push("/cloud"); return; }
         const d = await res.json();
         setForm({ name: d.name || "", description: d.description || "", vendor: d.vendor || "", cost: d.cost != null ? String(d.cost) : "", currency: d.currency || "KRW", billingCycle: d.billingCycle || "MONTHLY", purchaseDate: d.purchaseDate ? d.purchaseDate.split("T")[0] : "", expiryDate: d.expiryDate ? d.expiryDate.split("T")[0] : "" });
+        setSubCategoryId(d.subCategoryId ?? null);
         if (d.cloudDetail) {
           const cd = d.cloudDetail;
           setCloud({
@@ -119,6 +123,7 @@ export default function CloudEditPage() {
         vendor: form.vendor || null, cost: form.cost ? Number(form.cost) : null,
         currency: form.currency, billingCycle: form.billingCycle,
         purchaseDate: form.purchaseDate || null, expiryDate: form.expiryDate || null,
+        subCategoryId,
         ciaC: ciaValues.ciaC, ciaI: ciaValues.ciaI, ciaA: ciaValues.ciaA,
         cloudDetail: {
           platform: cloud.platform || null, accountId: cloud.accountId || null,
@@ -353,6 +358,8 @@ export default function CloudEditPage() {
           </div>
 
           {/* CIA Score */}
+          {/* 자산분류체계 — 대분류→소분류 (dev-037) */}
+          <div className="mb-6"><ClassificationSelect value={subCategoryId} onChange={setSubCategoryId} /></div>
           <CiaScoreInput initialValues={ciaValues} onChange={setCiaValues} />
 
           <div className="flex gap-3">

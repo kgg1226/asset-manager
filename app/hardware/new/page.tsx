@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
 import CiaScoreInput from "@/app/_components/cia-score-input";
+import ClassificationSelect from "@/app/_components/classification-select";
 import LifecycleGauge from "@/app/_components/lifecycle-gauge";
 import type { CiaLevel } from "@/lib/cia";
 
@@ -19,6 +20,8 @@ export default function HardwareNewPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
   const { t } = useTranslation();
+  // 자산분류체계 소분류 (dev-037)
+  const [subCategoryId, setSubCategoryId] = useState<number | null>(null);
   useEffect(() => { if (!loading && !user) router.push("/login"); }, [user, loading, router]);
 
   const [form, setForm] = useState({ name: "", description: "", vendor: "", cost: "", currency: "KRW", billingCycle: "ONE_TIME", purchaseDate: "", expiryDate: "" });
@@ -69,6 +72,7 @@ export default function HardwareNewPage() {
         name: form.name, type: "HARDWARE", description: form.description || null, vendor: form.vendor || null,
         cost: Number(form.cost), currency: form.currency, billingCycle: form.billingCycle,
         purchaseDate: form.purchaseDate || null, expiryDate: form.expiryDate || null,
+        subCategoryId,
         ciaC: cia.ciaC, ciaI: cia.ciaI, ciaA: cia.ciaA,
         hardwareDetail: {
           assetTag: hw.assetTag || null, deviceType: hw.deviceType || null, manufacturer: hw.manufacturer || null,
@@ -290,6 +294,10 @@ export default function HardwareNewPage() {
               )}
             </div>
           )}
+
+          {/* 자산분류체계 — 대분류→소분류 (dev-037) */}
+
+          <div className="mb-6"><ClassificationSelect value={subCategoryId} onChange={setSubCategoryId} /></div>
 
           <CiaScoreInput initialValues={cia} onChange={setCia} />
 

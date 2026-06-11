@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
 import CiaScoreInput from "@/app/_components/cia-score-input";
+import ClassificationSelect from "@/app/_components/classification-select";
 import type { CiaLevel } from "@/lib/cia";
 import LifecycleGauge from "@/app/_components/lifecycle-gauge";
 
@@ -26,6 +27,8 @@ export default function ContractNewPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
   const { t } = useTranslation();
+  // 자산분류체계 소분류 (dev-037)
+  const [subCategoryId, setSubCategoryId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!loading && !user) router.push("/login");
@@ -125,6 +128,7 @@ export default function ContractNewPage() {
           contractType: contract.contractType || null,
           autoRenew: contract.autoRenew,
         },
+        subCategoryId,
         ciaC: cia.ciaC, ciaI: cia.ciaI, ciaA: cia.ciaA,
       };
       const res = await fetch("/api/assets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
@@ -240,6 +244,10 @@ export default function ContractNewPage() {
               </div>
             </div>
           </div>
+
+          {/* 자산분류체계 — 대분류→소분류 (dev-037) */}
+
+          <div className="mb-6"><ClassificationSelect value={subCategoryId} onChange={setSubCategoryId} /></div>
 
           <CiaScoreInput initialValues={cia} onChange={setCia} />
 

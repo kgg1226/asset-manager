@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
 import CiaScoreInput from "@/app/_components/cia-score-input";
+import ClassificationSelect from "@/app/_components/classification-select";
 import type { CiaLevel } from "@/lib/cia";
 import LifecycleGauge from "@/app/_components/lifecycle-gauge";
 
@@ -28,6 +29,8 @@ export default function ContractEditPage() {
   const assetId = params.id as string;
   const { user, loading: authLoading } = useAuth();
   const { t } = useTranslation();
+  // 자산분류체계 소분류 (dev-037)
+  const [subCategoryId, setSubCategoryId] = useState<number | null>(null);
 
   useEffect(() => { if (!authLoading && !user) router.push("/login"); }, [user, authLoading, router]);
 
@@ -80,6 +83,7 @@ export default function ContractEditPage() {
           setContract({ contractNumber: cd.contractNumber || "", counterparty: cd.counterparty || "", contractType: cd.contractType || "", autoRenew: cd.autoRenew || false });
         }
         setCia({ ciaC: d.ciaC ?? null, ciaI: d.ciaI ?? null, ciaA: d.ciaA ?? null });
+        setSubCategoryId(d.subCategoryId ?? null);
         if (d.orgUnit) setSelectedOrgUnitId(String(d.orgUnit.id));
       } catch { toast.error(t.common.error); router.push("/contracts"); }
       finally { setIsLoadingData(false); }
@@ -116,6 +120,7 @@ export default function ContractEditPage() {
         purchaseDate: form.purchaseDate || null, expiryDate: form.expiryDate || null,
         orgUnitId: selectedOrgUnitId ? Number(selectedOrgUnitId) : null,
         contractDetail: { contractNumber: contract.contractNumber || null, counterparty: contract.counterparty || null, contractType: contract.contractType || null, autoRenew: contract.autoRenew },
+        subCategoryId,
         ciaC: cia.ciaC, ciaI: cia.ciaI, ciaA: cia.ciaA,
       };
       const res = await fetch(`/api/assets/${assetId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
@@ -217,6 +222,10 @@ export default function ContractEditPage() {
               </div>
             </div>
           </div>
+
+          {/* 자산분류체계 — 대분류→소분류 (dev-037) */}
+
+          <div className="mb-6"><ClassificationSelect value={subCategoryId} onChange={setSubCategoryId} /></div>
 
           <CiaScoreInput initialValues={cia} onChange={setCia} />
 

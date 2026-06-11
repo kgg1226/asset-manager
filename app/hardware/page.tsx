@@ -20,6 +20,7 @@ interface Asset {
   id: number; name: string; status: AssetStatus; cost?: number | null; currency: string;
   purchaseDate?: string | null; expiryDate?: string | null;
   ciaC?: number | null; ciaI?: number | null; ciaA?: number | null;
+  subCategory?: { id: number; name: string; majorCategory?: { name: string } | null } | null;
   assignee?: { id: number; name: string } | null;
   hardwareDetail?: { assetTag?: string | null; deviceType?: string | null; manufacturer?: string | null; model?: string | null; condition?: string | null; usefulLifeYears?: number | null } | null;
 }
@@ -640,7 +641,7 @@ export default function HardwareListPage() {
                   <tr key={a.id} className="border-b hover:bg-gray-50">
                     {isAdmin && <td className="w-10 px-3 py-4"><input type="checkbox" checked={selectedIds.has(a.id)} onChange={() => toggleSelect(a.id)} className="h-4 w-4 rounded border-gray-300" /></td>}
                     <td className="px-6 py-4 text-sm font-mono text-gray-700">{a.hardwareDetail?.assetTag || "—"}</td>
-                    <td className="px-6 py-4 font-medium"><Link href={`/hardware/${a.id}`} className="text-blue-600 hover:underline">{a.name}</Link></td>
+                    <td className="px-6 py-4 font-medium"><Link href={`/hardware/${a.id}`} className="text-blue-600 hover:underline">{a.name}</Link>{a.subCategory && <span className="ml-1.5 inline-flex rounded bg-purple-50 px-1.5 py-0.5 text-xs text-purple-600" title={a.subCategory.majorCategory?.name ?? undefined}>{a.subCategory.name}</span>}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{a.hardwareDetail?.deviceType || "—"}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{[a.hardwareDetail?.manufacturer, a.hardwareDetail?.model].filter(Boolean).join(" ") || "—"}</td>
                     <td className="px-6 py-4">
