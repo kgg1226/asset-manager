@@ -2,6 +2,8 @@ import type { TranslationDict } from "./types";
 
 export const zh: TranslationDict = {
   common: {
+    preview: "预览",
+    assets: "资产",
     save: "保存",
     cancel: "取消",
     delete: "删除",

@@ -2,6 +2,8 @@ import type { TranslationDict } from "./types";
 
 export const en: TranslationDict = {
   common: {
+    preview: "Preview",
+    assets: "Assets",
     save: "Save",
     cancel: "Cancel",
     delete: "Delete",

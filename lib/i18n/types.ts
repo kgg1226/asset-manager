@@ -3,6 +3,8 @@ export type Locale = "ko" | "en" | "ja" | "zh" | "vi" | "zh-TW";
 export type TranslationDict = {
   // Common
   common: {
+    preview: string;
+    assets: string;
     save: string;
     cancel: string;
     delete: string;
