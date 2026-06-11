@@ -25,7 +25,16 @@ interface Asset {
   expiryDate?: string | null;
   assignee?: { id: number; name: string } | null;
   ciaC?: number | null; ciaI?: number | null; ciaA?: number | null;
-  cloudDetail?: { platform?: string | null; accountId?: string | null; resourceType?: string | null } | null;
+  cloudDetail?: {
+    platform?: string | null;
+    accountId?: string | null;
+    resourceType?: string | null;
+    region?: string | null;
+    serviceCategory?: string | null;
+    renewalDate?: string | null;
+    autoRenew?: boolean | null;
+    syncStatus?: string | null;
+  } | null;
 }
 
 const STATUS_KEYS: Record<AssetStatus, string> = {
@@ -51,6 +60,13 @@ function formatCost(cost: number | null | undefined, currency: string): string {
   const symbols: Record<string, string> = { KRW: "₩", USD: "$", EUR: "€", JPY: "¥", GBP: "£", CNY: "¥" };
   const sym = symbols[currency] ?? currency;
   return `${sym}${cost.toLocaleString()}`;
+}
+
+// Prisma Decimal 직렬화(string) 호환 (비용 예측 카드와 동일 기준 — dev-035)
+function toNum(v: number | string | null | undefined): number | null {
+  if (v == null) return null;
+  const n = typeof v === "number" ? v : parseFloat(String(v));
+  return Number.isFinite(n) ? n : null;
 }
 
 function formatDate(dateStr: string | null | undefined): string {
@@ -247,7 +263,7 @@ export default function CloudListPage() {
                 <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.asset.assetName}</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.cloud.platform}</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.common.status}</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.asset.cost}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.report.monthlyCost}</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.asset.expiryDate}</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.lifecycle.heading}</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold whitespace-nowrap">{t.asset.assignee}</th>
@@ -265,16 +281,39 @@ export default function CloudListPage() {
                   <tr key={asset.id} className="border-b hover:bg-gray-50">
                     <td className="px-6 py-4 font-medium">
                       <Link href={`/cloud/${asset.id}`} className="text-blue-600 hover:underline">{asset.name}</Link>
+                      {/* 자동수집 동기화 상태 (DRIFT/ORPHAN 등) — 정상(SYNCED)이면 표시 안 함 (dev-035) */}
+                      {asset.cloudDetail?.syncStatus && asset.cloudDetail.syncStatus !== "SYNCED" && (
+                        <span className="ml-1.5 inline-flex rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">{asset.cloudDetail.syncStatus}</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
                       {asset.cloudDetail?.platform || "—"}
+                      {asset.cloudDetail?.serviceCategory && <span className="ml-1.5 inline-flex rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">{asset.cloudDetail.serviceCategory}</span>}
                       {asset.cloudDetail?.resourceType && <span className="ml-1.5 inline-flex rounded bg-indigo-50 px-1.5 py-0.5 text-xs text-indigo-600">{asset.cloudDetail.resourceType}</span>}
+                      {/* 계정·리전 — 멀티 계정 환경 구분 (dev-035) */}
+                      {(asset.cloudDetail?.accountId || asset.cloudDetail?.region) && (
+                        <p className="mt-0.5 text-xs text-gray-400">
+                          {[asset.cloudDetail?.accountId, asset.cloudDetail?.region].filter(Boolean).join(" · ")}
+                        </p>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <span className={`inline-block whitespace-nowrap rounded-full px-2 py-1 text-xs font-medium ${STATUS_COLORS[asset.status]}`}>{getStatusLabel(asset.status)}</span>
                     </td>
-                    <td className="px-6 py-4 text-sm">{formatCost(asset.cost, asset.currency)}</td>
-                    <td className="px-6 py-4 text-sm">{formatDate(asset.expiryDate)}</td>
+                    {/* 비용 예측 카드와 동일 기준(월 비용)으로 통일 — 일회성 비용은 title 로 병기 (dev-035) */}
+                    <td className="px-6 py-4 text-sm" title={asset.cost != null ? `${t.asset.cost}: ${formatCost(asset.cost, asset.currency)}` : undefined}>
+                      {formatCost(toNum(asset.monthlyCost), asset.currency)}
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      {formatDate(asset.expiryDate)}
+                      {/* 다음 갱신일·자동갱신 — 구독 관리 핵심 정보 (dev-035) */}
+                      {asset.cloudDetail?.renewalDate && (
+                        <p className="mt-0.5 whitespace-nowrap text-xs text-gray-400">
+                          {t.license.renewalDate}: {formatDate(asset.cloudDetail.renewalDate)}
+                          {asset.cloudDetail?.autoRenew && <span className="ml-1 rounded bg-green-50 px-1 py-0.5 text-[10px] text-green-600">{t.common.auto}</span>}
+                        </p>
+                      )}
+                    </td>
                     <td className="px-6 py-4"><LifecycleGaugeInline startDate={asset.purchaseDate} endDate={asset.expiryDate} /></td>
                     <td className="px-6 py-4 text-sm">{asset.assignee?.name || "—"}</td>
                     <td className="px-6 py-4"><CiaBadge ciaC={asset.ciaC} ciaI={asset.ciaI} ciaA={asset.ciaA} /></td>
