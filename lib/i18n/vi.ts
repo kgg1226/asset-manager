@@ -123,6 +123,7 @@ export const vi: TranslationDict = {
     assetClassification: "Phân loại tài sản",
     titleCiaMapping: "CIA theo chức danh",
     deviceCompliance: "Tuân thủ thiết bị",
+    taxonomy: "Phân loại & Tiêu chuẩn",
   },
 
   device: {
