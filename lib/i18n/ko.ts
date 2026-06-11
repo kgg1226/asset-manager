@@ -123,6 +123,7 @@ export const ko: TranslationDict = {
     assetClassification: "자산분류체계",
     titleCiaMapping: "직책별 CIA",
     deviceCompliance: "기기 컴플라이언스",
+    taxonomy: "분류·기준",
   },
 
   device: {

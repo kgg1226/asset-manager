@@ -123,6 +123,7 @@ export const zhTW: TranslationDict = {
     assetClassification: "資產分類體系",
     titleCiaMapping: "職位CIA",
     deviceCompliance: "裝置合規",
+    taxonomy: "分類·標準",
   },
 
   device: {

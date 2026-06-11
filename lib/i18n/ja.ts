@@ -123,6 +123,7 @@ export const ja: TranslationDict = {
     assetClassification: "資産分類体系",
     titleCiaMapping: "職責別CIA",
     deviceCompliance: "端末コンプライアンス",
+    taxonomy: "分類・基準",
   },
 
   device: {

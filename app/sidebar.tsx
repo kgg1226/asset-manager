@@ -85,6 +85,8 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/org", labelKey: "orgChart", icon: <Network className="h-4 w-4" /> },
     ],
   },
+  // 관리 11개 항목을 "운영"과 "분류·기준"으로 분리 — 탭 가독성 (dev-038, 백로그 F6).
+  // 항목 삭제 없음. 증적 카테고리는 D2 보류 결정에 따라 현 위치 유지.
   {
     titleKey: "admin",
     collapsible: true,
@@ -94,13 +96,20 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/devices", labelKey: "deviceCompliance", icon: <MonitorSmartphone className="h-4 w-4" /> },
       { href: "/admin/archives", labelKey: "archives", icon: <Archive className="h-4 w-4" /> },
       { href: "/admin/exchange-rates", labelKey: "exchangeRate", icon: <DollarSign className="h-4 w-4" /> },
-      { href: "/admin/asset-categories", labelKey: "assetCategory", icon: <Tags className="h-4 w-4" /> },
-      { href: "/admin/asset-classifications", labelKey: "assetClassification", icon: <Layers className="h-4 w-4" /> },
-      { href: "/admin/title-cia", labelKey: "titleCiaMapping", icon: <ShieldCheck className="h-4 w-4" /> },
-      { href: "/settings/groups", labelKey: "licenseGroups", icon: <FileStack className="h-4 w-4" /> },
       { href: "/admin/feature-flags", labelKey: "featureFlags", icon: <ToggleLeft className="h-4 w-4" /> },
       { href: "/settings/import", labelKey: "dataImport", icon: <Upload className="h-4 w-4" /> },
       { href: "/guide", labelKey: "adminGuide", icon: <BookOpen className="h-4 w-4" /> },
+    ],
+  },
+  {
+    titleKey: "taxonomy",
+    collapsible: true,
+    adminOnly: true,
+    items: [
+      { href: "/admin/asset-classifications", labelKey: "assetClassification", icon: <Layers className="h-4 w-4" /> },
+      { href: "/admin/asset-categories", labelKey: "assetCategory", icon: <Tags className="h-4 w-4" /> },
+      { href: "/admin/title-cia", labelKey: "titleCiaMapping", icon: <ShieldCheck className="h-4 w-4" /> },
+      { href: "/settings/groups", labelKey: "licenseGroups", icon: <FileStack className="h-4 w-4" /> },
     ],
   },
   {

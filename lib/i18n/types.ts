@@ -125,6 +125,7 @@ export type TranslationDict = {
     assetClassification: string;
     titleCiaMapping: string;
     deviceCompliance: string;
+    taxonomy: string;
   };
 
   // MDM-lite 기기 관리/컴플라이언스 (dev-027)

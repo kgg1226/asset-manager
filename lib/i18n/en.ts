@@ -123,6 +123,7 @@ export const en: TranslationDict = {
     assetClassification: "Asset Classifications",
     titleCiaMapping: "CIA by Title",
     deviceCompliance: "Device Compliance",
+    taxonomy: "Taxonomy & Standards",
   },
 
   device: {
