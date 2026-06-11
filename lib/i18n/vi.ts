@@ -2,6 +2,8 @@ import type { TranslationDict } from "./types";
 
 export const vi: TranslationDict = {
   common: {
+    preview: "Xem trước",
+    assets: "Tài sản",
     save: "Lưu",
     cancel: "Hủy",
     delete: "Xóa",

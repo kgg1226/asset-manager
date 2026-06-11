@@ -2,6 +2,8 @@ import type { TranslationDict } from "./types";
 
 export const ko: TranslationDict = {
   common: {
+    preview: "미리보기",
+    assets: "자산",
     save: "저장",
     cancel: "취소",
     delete: "삭제",

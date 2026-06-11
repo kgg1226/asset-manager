@@ -1,91 +1,78 @@
-// POST /api/admin/archives/[id]/export — 증적 파일 생성 및 Google Drive 업로드
+// GET  /api/admin/archives/[id]/export — 증적 Excel 직접 다운로드 (기본 경로, dev-034)
+// POST /api/admin/archives/[id]/export — 증적 파일 생성 및 Google Drive 업로드 (보조)
+// 워크북 생성은 lib/archive-export.ts 단일 출처를 공유한다.
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { isGoogleDriveConfiguredAsync, uploadToGoogleDrive } from "@/lib/google-drive";
+import { buildArchiveWorkbook } from "@/lib/archive-export";
 
 type Params = { params: Promise<{ id: string }> };
 
-export async function POST(request: NextRequest, { params }: Params) {
-  const user = await requireAdmin();
-  const { id } = await params;
+async function loadCompletedArchive(id: string) {
   const archiveId = Number(id);
-  if (isNaN(archiveId)) return NextResponse.json({ error: "잘못된 ID입니다." }, { status: 400 });
-
+  if (isNaN(archiveId)) {
+    return { error: NextResponse.json({ error: "잘못된 ID입니다." }, { status: 400 }) } as const;
+  }
   const archive = await prisma.archive.findUnique({
     where: { id: archiveId },
     include: { data: true },
   });
-
-  if (!archive) return NextResponse.json({ error: "증적을 찾을 수 없습니다." }, { status: 404 });
-  if (archive.status !== "COMPLETED") {
-    return NextResponse.json({ error: "완료된 증적만 내보낼 수 있습니다." }, { status: 400 });
+  if (!archive) {
+    return { error: NextResponse.json({ error: "증적을 찾을 수 없습니다." }, { status: 404 }) } as const;
   }
+  if (archive.status !== "COMPLETED") {
+    return { error: NextResponse.json({ error: "완료된 증적만 내보낼 수 있습니다." }, { status: 400 }) } as const;
+  }
+  return { archive, archiveId } as const;
+}
+
+// ── 직접 다운로드 (GDrive 설정과 무관하게 항상 동작) ──
+// proxy.ts 는 GET 을 비인증 통과시키므로 핸들러 자체 가드가 필수 (lessons 준수)
+export async function GET(_request: NextRequest, { params }: Params) {
+  const user = await requireAdmin();
+  const { id } = await params;
+
+  const loaded = await loadCompletedArchive(id);
+  if ("error" in loaded) return loaded.error;
+  const { archive, archiveId } = loaded;
 
   try {
-    // Excel 파일 생성 (exceljs 사용)
+    const { buffer, fileName } = await buildArchiveWorkbook(archive);
+
+    await prisma.archiveLog.create({
+      data: { archiveId, level: "info", message: `Excel 다운로드 (${user.username})` },
+    });
+
+    return new NextResponse(new Uint8Array(buffer), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Disposition": `attachment; filename="${fileName}"`,
+      },
+    });
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("Archive download failed:", error);
+    return NextResponse.json({ error: `다운로드에 실패했습니다: ${msg}` }, { status: 500 });
+  }
+}
+
+// ── Google Drive 업로드 (보조 — 기존 동작 보존) ──
+export async function POST(_request: NextRequest, { params }: Params) {
+  await requireAdmin();
+  const { id } = await params;
+
+  const loaded = await loadCompletedArchive(id);
+  if ("error" in loaded) return loaded.error;
+  const { archive, archiveId } = loaded;
+
+  try {
     let fileUrl: string | null = null;
 
     if (await isGoogleDriveConfiguredAsync()) {
-      const ExcelJS = await import("exceljs");
-      const workbook = new ExcelJS.Workbook();
-      workbook.creator = "Asset Manager";
-      workbook.created = new Date();
-
-      // Sheet 1: 요약
-      const summarySheet = workbook.addWorksheet("요약");
-      summarySheet.addRow(["기간", archive.yearMonth]);
-      summarySheet.addRow(["생성일", new Date(archive.createdAt).toLocaleDateString("ko-KR")]);
-      summarySheet.addRow(["완료일", archive.completedAt ? new Date(archive.completedAt).toLocaleDateString("ko-KR") : "-"]);
-
-      // Sheet 2: 라이선스
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const archiveData = archive.data as any[];
-      const licData = archiveData.find((d: any) => d.dataType === "licenses");
-      if (licData) {
-        const licSheet = workbook.addWorksheet("라이선스");
-        const licenses = licData.payload as any[];
-        if (licenses.length > 0) {
-          licSheet.addRow(["ID", "라이선스명", "유형", "수량", "배정수", "단가", "통화", "납부주기", "연간비용(KRW)", "갱신상태", "만료일", "담당자"]);
-          for (const l of licenses) {
-            licSheet.addRow([
-              l.id, l.name, l.licenseType, l.totalQuantity, l.assignedCount ?? 0,
-              l.unitPrice ?? "", l.currency ?? "KRW", l.paymentCycle ?? "",
-              l.totalAmountKRW ?? "", l.renewalStatus ?? "", l.expiryDate ?? "", l.adminName ?? "",
-            ]);
-          }
-        }
-      }
-
-      // Sheet 3: 조직원
-      const empData = archiveData.find((d: any) => d.dataType === "employees");
-      if (empData) {
-        const empSheet = workbook.addWorksheet("조직원");
-        const employees = empData.payload as any[];
-        if (employees.length > 0) {
-          empSheet.addRow(["ID", "이름", "부서", "이메일", "상태"]);
-          for (const e of employees) {
-            empSheet.addRow([e.id, e.name, e.department, e.email ?? "", e.status]);
-          }
-        }
-      }
-
-      // Sheet 4: 변경 이력
-      const auditData = archiveData.find((d: any) => d.dataType === "audit_logs");
-      if (auditData) {
-        const histSheet = workbook.addWorksheet("변경이력");
-        const logs = auditData.payload as any[];
-        if (logs.length > 0) {
-          histSheet.addRow(["ID", "엔티티타입", "엔티티ID", "액션", "행위자", "일시"]);
-          for (const l of logs) {
-            histSheet.addRow([l.id, l.entityType, l.entityId, l.action, l.actor ?? "", l.createdAt]);
-          }
-        }
-      }
-
-      const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
-      const fileName = `asset-archive-${archive.yearMonth}.xlsx`;
+      const { buffer, fileName } = await buildArchiveWorkbook(archive);
       fileUrl = await uploadToGoogleDrive(
         buffer,
         fileName,

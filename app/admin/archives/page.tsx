@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Archive, Plus, Trash2, RefreshCw, CheckCircle, Clock, AlertCircle, Loader2, Upload, Settings, Eye, EyeOff, X } from "lucide-react";
+import { Archive, Plus, Trash2, RefreshCw, CheckCircle, Clock, AlertCircle, Loader2, Upload, Download, Settings, Eye, EyeOff, X } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/i18n";
 
@@ -104,6 +104,31 @@ export default function AdminArchivesPage() {
   }
 
   const selectedArchive = archives.find((a) => a.id === selectedId);
+
+  // 미리보기 (dev-034): 선택한 증적의 dataType별 건수 — GET /api/admin/archives/[id] 의
+  // data: { dataType, recordCount } 를 표시 (생성될 증적 내용을 내려받기 전에 확인)
+  const [previewData, setPreviewData] = useState<{ dataType: string; recordCount: number }[] | null>(null);
+  useEffect(() => {
+    if (!selectedId) { setPreviewData(null); return; }
+    let cancelled = false;
+    fetch(`/api/admin/archives/${selectedId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (!cancelled) setPreviewData(j?.data ?? null); })
+      .catch(() => { if (!cancelled) setPreviewData(null); });
+    return () => { cancelled = true; };
+  }, [selectedId]);
+
+  const DATA_TYPE_LABELS: Record<string, string> = {
+    licenses: t.nav.licenses,
+    employees: t.nav.employees,
+    audit_logs: t.nav.changeHistory,
+    assets: t.common.assets,
+  };
+
+  // 다운로드가 기본 경로 (dev-034) — GDrive 설정과 무관하게 항상 동작
+  function downloadArchive(id: number) {
+    window.location.href = `/api/admin/archives/${id}/export`;
+  }
 
   const loadGDriveConfig = async () => {
     try {
@@ -240,13 +265,24 @@ export default function AdminArchivesPage() {
                           {cfg.label}
                         </span>
                         {archive.status === "COMPLETED" && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); exportToGoogleDrive(archive.id); }}
-                            className="text-gray-300 hover:text-blue-500"
-                            title={t.common.export}
-                          >
-                            <Upload className="h-4 w-4" />
-                          </button>
+                          <>
+                            {/* 다운로드 = 기본 (dev-034) */}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); downloadArchive(archive.id); }}
+                              className="text-blue-500 hover:text-blue-700"
+                              title={t.common.excelExport}
+                            >
+                              <Download className="h-4 w-4" />
+                            </button>
+                            {/* Google Drive 업로드 = 보조 */}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); exportToGoogleDrive(archive.id); }}
+                              className="text-gray-300 hover:text-blue-500"
+                              title="Google Drive"
+                            >
+                              <Upload className="h-4 w-4" />
+                            </button>
+                          </>
                         )}
                         {archive.status !== "RUNNING" && (
                           <button
@@ -271,6 +307,20 @@ export default function AdminArchivesPage() {
                 <div className="border-b border-gray-200 px-4 py-3">
                   <h2 className="text-sm font-semibold text-gray-900">{selectedArchive.yearMonth} Log</h2>
                 </div>
+                {/* 미리보기 (dev-034): 어떤 증적이 생성되는지 dataType별 건수 */}
+                {previewData && previewData.length > 0 && (
+                  <div className="border-b border-gray-100 px-4 py-3">
+                    <p className="mb-2 text-xs font-semibold uppercase text-gray-500">{t.common.preview}</p>
+                    <ul className="space-y-1">
+                      {previewData.map((d) => (
+                        <li key={d.dataType} className="flex items-center justify-between text-sm">
+                          <span className="text-gray-700">{DATA_TYPE_LABELS[d.dataType] ?? d.dataType}</span>
+                          <span className="font-medium tabular-nums text-gray-900">{d.recordCount}{t.common.countSuffix}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 <div className="space-y-2 p-4 max-h-96 overflow-y-auto">
                   {selectedArchive.logs.length === 0 ? (
                     <p className="text-sm text-gray-400">{t.common.noData}</p>

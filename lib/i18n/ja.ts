@@ -2,6 +2,8 @@ import type { TranslationDict } from "./types";
 
 export const ja: TranslationDict = {
   common: {
+    preview: "プレビュー",
+    assets: "資産",
     save: "保存",
     cancel: "キャンセル",
     delete: "削除",
