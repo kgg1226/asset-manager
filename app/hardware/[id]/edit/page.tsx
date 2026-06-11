@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
 import CiaScoreInput from "@/app/_components/cia-score-input";
+import ClassificationSelect from "@/app/_components/classification-select";
 import LifecycleGauge from "@/app/_components/lifecycle-gauge";
 import type { CiaLevel } from "@/lib/cia";
 
@@ -21,6 +22,8 @@ export default function HardwareEditPage() {
   const assetId = params.id as string;
   const { user, loading: authLoading } = useAuth();
   const { t } = useTranslation();
+  // 자산분류체계 소분류 (dev-037)
+  const [subCategoryId, setSubCategoryId] = useState<number | null>(null);
   useEffect(() => { if (!authLoading && !user) router.push("/login"); }, [user, authLoading, router]);
 
   const [form, setForm] = useState({ name: "", description: "", vendor: "", cost: "", currency: "KRW", billingCycle: "ONE_TIME", purchaseDate: "", expiryDate: "" });
@@ -44,6 +47,7 @@ export default function HardwareEditPage() {
         const d = await res.json();
         setForm({ name: d.name || "", description: d.description || "", vendor: d.vendor || "", cost: d.cost != null ? String(d.cost) : "", currency: d.currency || "KRW", billingCycle: d.billingCycle || "ONE_TIME", purchaseDate: d.purchaseDate ? d.purchaseDate.split("T")[0] : "", expiryDate: d.expiryDate ? d.expiryDate.split("T")[0] : "" });
         setCia({ ciaC: (d.ciaC as CiaLevel) ?? null, ciaI: (d.ciaI as CiaLevel) ?? null, ciaA: (d.ciaA as CiaLevel) ?? null });
+        setSubCategoryId(d.subCategoryId ?? null);
         if (d.hardwareDetail) {
           const h = d.hardwareDetail;
           setHw({
@@ -97,6 +101,7 @@ export default function HardwareEditPage() {
         name: form.name, type: "HARDWARE", description: form.description || null, vendor: form.vendor || null,
         cost: form.cost ? Number(form.cost) : null, currency: form.currency, billingCycle: form.billingCycle,
         purchaseDate: form.purchaseDate || null, expiryDate: form.expiryDate || null,
+        subCategoryId,
         ciaC: cia.ciaC, ciaI: cia.ciaI, ciaA: cia.ciaA,
         hardwareDetail: {
           assetTag: hw.assetTag || null, deviceType: hw.deviceType || null, manufacturer: hw.manufacturer || null,
@@ -318,6 +323,10 @@ export default function HardwareEditPage() {
               )}
             </div>
           )}
+
+          {/* 자산분류체계 — 대분류→소분류 (dev-037) */}
+
+          <div className="mb-6"><ClassificationSelect value={subCategoryId} onChange={setSubCategoryId} /></div>
 
           <CiaScoreInput initialValues={cia} onChange={setCia} />
 

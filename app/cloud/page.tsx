@@ -25,6 +25,7 @@ interface Asset {
   expiryDate?: string | null;
   assignee?: { id: number; name: string } | null;
   ciaC?: number | null; ciaI?: number | null; ciaA?: number | null;
+  subCategory?: { id: number; name: string; majorCategory?: { name: string } | null } | null;
   cloudDetail?: {
     platform?: string | null;
     accountId?: string | null;
@@ -280,7 +281,7 @@ export default function CloudListPage() {
                 assets.map((asset) => (
                   <tr key={asset.id} className="border-b hover:bg-gray-50">
                     <td className="px-6 py-4 font-medium">
-                      <Link href={`/cloud/${asset.id}`} className="text-blue-600 hover:underline">{asset.name}</Link>
+                      <Link href={`/cloud/${asset.id}`} className="text-blue-600 hover:underline">{asset.name}</Link>{asset.subCategory && <span className="ml-1.5 inline-flex rounded bg-purple-50 px-1.5 py-0.5 text-xs text-purple-600" title={asset.subCategory.majorCategory?.name ?? undefined}>{asset.subCategory.name}</span>}
                       {/* 자동수집 동기화 상태 (DRIFT/ORPHAN 등) — 정상(SYNCED)이면 표시 안 함 (dev-035) */}
                       {asset.cloudDetail?.syncStatus && asset.cloudDetail.syncStatus !== "SYNCED" && (
                         <span className="ml-1.5 inline-flex rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">{asset.cloudDetail.syncStatus}</span>

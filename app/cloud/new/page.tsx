@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
 import CiaScoreInput from "@/app/_components/cia-score-input";
+import ClassificationSelect from "@/app/_components/classification-select";
 import type { CiaLevel } from "@/lib/cia";
 import LifecycleGauge from "@/app/_components/lifecycle-gauge";
 
@@ -34,6 +35,8 @@ export default function CloudNewPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
   const { t } = useTranslation();
+  // 자산분류체계 소분류 (dev-037)
+  const [subCategoryId, setSubCategoryId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!loading && !user) router.push("/login");
@@ -89,6 +92,7 @@ export default function CloudNewPage() {
         vendor: form.vendor || null, cost: Number(form.cost), currency: form.currency,
         billingCycle: form.billingCycle, purchaseDate: form.purchaseDate || null,
         expiryDate: form.expiryDate || null,
+        subCategoryId,
         ciaC: ciaValues.ciaC, ciaI: ciaValues.ciaI, ciaA: ciaValues.ciaA,
         cloudDetail: {
           platform: cloud.platform || null, accountId: cloud.accountId || null,
@@ -370,6 +374,8 @@ export default function CloudNewPage() {
           </div>
 
           {/* CIA Score */}
+          {/* 자산분류체계 — 대분류→소분류 (dev-037) */}
+          <div className="mb-6"><ClassificationSelect value={subCategoryId} onChange={setSubCategoryId} /></div>
           <CiaScoreInput initialValues={ciaValues} onChange={setCiaValues} />
 
           <div className="flex gap-3">

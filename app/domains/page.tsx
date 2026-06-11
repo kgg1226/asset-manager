@@ -19,6 +19,7 @@ interface Asset {
   id: number; name: string; status: AssetStatus; cost?: number | null; currency: string;
   vendor?: string | null; purchaseDate?: string | null; expiryDate?: string | null; assignee?: { id: number; name: string } | null;
   ciaC?: number | null; ciaI?: number | null; ciaA?: number | null;
+  subCategory?: { id: number; name: string; majorCategory?: { name: string } | null } | null;
   domainDetail?: { billingCycleMonths?: number | null; autoRenew?: boolean } | null;
 }
 
@@ -169,7 +170,7 @@ export default function DomainsListPage() {
               ) : (
                 assets.map((a) => (
                   <tr key={a.id} className="border-b hover:bg-gray-50">
-                    <td className="px-6 py-4 font-medium"><Link href={`/domains/${a.id}`} className="text-blue-600 hover:underline">{a.name}</Link></td>
+                    <td className="px-6 py-4 font-medium"><Link href={`/domains/${a.id}`} className="text-blue-600 hover:underline">{a.name}</Link>{a.subCategory && <span className="ml-1.5 inline-flex rounded bg-purple-50 px-1.5 py-0.5 text-xs text-purple-600" title={a.subCategory.majorCategory?.name ?? undefined}>{a.subCategory.name}</span>}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{a.vendor || "—"}</td>
                     <td className="px-6 py-4"><span className={`inline-block whitespace-nowrap rounded-full px-2 py-1 text-xs font-medium ${STATUS_COLORS[a.status]}`}>{getStatusLabel(a.status)}</span></td>
                     {/* 비용에 계약 주기 병기 — 비주기 연수(18개월 등)도 표기 (dev-036) */}
