@@ -4,11 +4,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { ensureTodayRates } from "@/lib/exchange-rate-sync";
 
 const SUPPORTED_CURRENCIES = ["USD", "EUR", "JPY", "GBP", "CNY"];
 
 export async function GET(request: NextRequest) {
   await requireAdmin();
+
+  // lazy 자동 동기화 (dev-033): 관리 화면을 여는 것만으로 오늘 환율이 채워진다 (버튼 불요)
+  await ensureTodayRates();
 
   const { searchParams } = new URL(request.url);
   const date = searchParams.get("date") ?? new Date().toISOString().split("T")[0];
