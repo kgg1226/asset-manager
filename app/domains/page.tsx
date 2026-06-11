@@ -11,6 +11,7 @@ import CiaBadge from "@/app/_components/cia-badge";
 import { LifecycleGaugeInline } from "@/app/_components/lifecycle-gauge";
 import { TourGuide } from "@/app/_components/tour-guide";
 import { DOMAINS_TOUR_KEY, getDomainsSteps } from "@/app/_components/tours/domains-tour";
+import { formatBillingCycle, getDomainStatusLabel } from "@/lib/domain-format";
 
 type AssetStatus = "IN_STOCK" | "IN_USE" | "INACTIVE" | "UNUSABLE" | "PENDING_DISPOSAL" | "DISPOSED";
 
@@ -18,6 +19,7 @@ interface Asset {
   id: number; name: string; status: AssetStatus; cost?: number | null; currency: string;
   vendor?: string | null; purchaseDate?: string | null; expiryDate?: string | null; assignee?: { id: number; name: string } | null;
   ciaC?: number | null; ciaI?: number | null; ciaA?: number | null;
+  domainDetail?: { billingCycleMonths?: number | null; autoRenew?: boolean } | null;
 }
 
 const STATUS_KEYS: Record<AssetStatus, string> = { IN_STOCK: "statusInStock", IN_USE: "statusInUse", INACTIVE: "statusInactive", UNUSABLE: "statusUnusable", PENDING_DISPOSAL: "statusPendingDisposal", DISPOSED: "statusDisposed" };
@@ -40,7 +42,10 @@ export default function DomainsListPage() {
   const { t } = useTranslation();
   const isAdmin = user?.role === "ADMIN";
 
-  const getStatusLabel = (s: AssetStatus) => (t.asset as Record<string, string>)[STATUS_KEYS[s]] ?? s;
+  // 도메인 전용 상태 어휘로 오버라이드 — "재고" 같은 하드웨어 어휘 대신
+  // 미연결/보유·운영 중·휴면·해지 예정·해지 완료 (dev-036). 미매핑 상태는 기존 라벨 폴백.
+  const getStatusLabel = (s: AssetStatus) =>
+    getDomainStatusLabel(s, t.domain) ?? (t.asset as Record<string, string>)[STATUS_KEYS[s]] ?? s;
 
   const [assets, setAssets] = useState<Asset[]>([]);
   const [total, setTotal] = useState(0);
@@ -167,7 +172,13 @@ export default function DomainsListPage() {
                     <td className="px-6 py-4 font-medium"><Link href={`/domains/${a.id}`} className="text-blue-600 hover:underline">{a.name}</Link></td>
                     <td className="px-6 py-4 text-sm text-gray-600">{a.vendor || "—"}</td>
                     <td className="px-6 py-4"><span className={`inline-block whitespace-nowrap rounded-full px-2 py-1 text-xs font-medium ${STATUS_COLORS[a.status]}`}>{getStatusLabel(a.status)}</span></td>
-                    <td className="px-6 py-4 text-sm">{formatCost(a.cost, a.currency)}</td>
+                    {/* 비용에 계약 주기 병기 — 비주기 연수(18개월 등)도 표기 (dev-036) */}
+                    <td className="px-6 py-4 text-sm whitespace-nowrap">
+                      {formatCost(a.cost, a.currency)}
+                      {a.domainDetail?.billingCycleMonths != null && (
+                        <span className="ml-1 text-xs text-gray-400">/ {formatBillingCycle(a.domainDetail.billingCycleMonths, t.domain)}</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-sm">{formatDate(a.expiryDate)}</td>
                     <td className="px-6 py-4"><LifecycleGaugeInline startDate={a.purchaseDate} endDate={a.expiryDate} /></td>
                     <td className="px-6 py-4 text-sm">{a.assignee?.name || "—"}</td>

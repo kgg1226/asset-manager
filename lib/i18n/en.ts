@@ -539,6 +539,14 @@ export const en: TranslationDict = {
   },
 
   domain: {
+    statusUnlinked: "Unlinked",
+    statusLive: "Live",
+    statusDormant: "Dormant",
+    statusPendingTermination: "Pending termination",
+    statusTerminated: "Terminated",
+    cycleCustom: "Custom (months)",
+    monthsSuffix: "mo",
+    yearsSuffix: "Y",
     title: "Domain\u00B7SSL",
     newDomain: "New Domain",
     registrar: "Registrar",

@@ -539,6 +539,14 @@ export const ko: TranslationDict = {
   },
 
   domain: {
+    statusUnlinked: "미연결/보유",
+    statusLive: "운영 중",
+    statusDormant: "휴면",
+    statusPendingTermination: "해지 예정",
+    statusTerminated: "해지/이관 완료",
+    cycleCustom: "직접 입력(개월)",
+    monthsSuffix: "개월",
+    yearsSuffix: "년",
     title: "도메인·SSL",
     newDomain: "도메인 등록",
     registrar: "등록기관",

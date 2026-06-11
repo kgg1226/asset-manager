@@ -234,6 +234,9 @@ export async function POST(request: NextRequest) {
       const assetData: Prisma.AssetCreateInput = {
         name: nameVal,
         type: typeVal,
+        // 생성 시 상태 지정 허용 (dev-036 — 도메인은 등록 시점부터 "운영 중"인 경우가 일반적).
+        // 미지정 시 기존처럼 스키마 기본값(IN_STOCK).
+        ...(vEnum(body.status, ASSET_STATUSES) ? { status: vEnum(body.status, ASSET_STATUSES)! } : {}),
         vendor: vendorVal,
         description: descriptionVal,
         cost: costVal,
