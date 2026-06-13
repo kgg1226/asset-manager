@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { assignLicenses } from "@/lib/assignment-actions";
 import { useToast } from "@/app/toast";
 import { useTranslation } from "@/lib/i18n";
+import EmployeePicker from "@/app/_components/employee-picker";
 
 type Employee = { id: number; name: string; department: string };
 type LicenseType = "NO_KEY" | "KEY_BASED" | "VOLUME";
@@ -26,20 +27,8 @@ export default function AssignButton({
   const { toast } = useToast();
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [isPending, setIsPending] = useState(false);
-
-  const assignedSet = useMemo(() => new Set(assignedEmployeeIds), [assignedEmployeeIds]);
-
-  const available = useMemo(() => {
-    const list = employees.filter((e) => !assignedSet.has(e.id));
-    if (!search.trim()) return list;
-    const q = search.toLowerCase();
-    return list.filter(
-      (e) => e.name.toLowerCase().includes(q) || e.department.toLowerCase().includes(q)
-    );
-  }, [employees, assignedSet, search]);
 
   function toggleSelect(empId: number) {
     setSelected((prev) => {
@@ -83,7 +72,6 @@ export default function AssignButton({
 
   function close() {
     setOpen(false);
-    setSearch("");
     setSelected(new Set());
   }
 
@@ -140,48 +128,16 @@ export default function AssignButton({
             )}
             {licenseType !== "VOLUME" && <div className="mb-2" />}
 
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t.common.search}
-              autoFocus
-              className="input mb-3"
+            {/* 검색+다중선택 체크박스 리스트 — 공용 EmployeePicker 로 통일 (dev-040).
+                좌석 제한(maxSelect)·이미 배정자 제외(excludeIds)는 그대로 보존 */}
+            <EmployeePicker
+              multi
+              items={employees}
+              selectedIds={selected}
+              onToggle={toggleSelect}
+              excludeIds={assignedEmployeeIds}
+              maxSelect={remaining}
             />
-
-            <div className="max-h-60 overflow-y-auto rounded-md border border-gray-200">
-              {available.length === 0 ? (
-                <p className="p-4 text-center text-sm text-gray-500">
-                  {t.common.noData}
-                </p>
-              ) : (
-                available.map((emp) => {
-                  const isChecked = selected.has(emp.id);
-                  const isDisabled = !isChecked && selected.size >= remaining;
-                  return (
-                    <label
-                      key={emp.id}
-                      className={`flex cursor-pointer items-center gap-3 px-4 py-2.5 text-sm transition-colors ${isChecked
-                        ? "bg-blue-50"
-                        : isDisabled
-                          ? "cursor-not-allowed opacity-50"
-                          : "hover:bg-gray-50"
-                        }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        disabled={isDisabled}
-                        onChange={() => toggleSelect(emp.id)}
-                        className="h-4 w-4 rounded border-gray-300 text-blue-600"
-                      />
-                      <span className="flex-1 font-medium text-gray-900">{emp.name}</span>
-                      <span className="text-xs text-gray-500">{emp.department}</span>
-                    </label>
-                  );
-                })
-              )}
-            </div>
 
             <div className="mt-4 flex justify-end gap-2">
               <button
