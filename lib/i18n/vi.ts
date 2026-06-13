@@ -1316,6 +1316,8 @@ export const vi: TranslationDict = {
     government: "Cơ quan chính phủ",
     otherEntity: "Khác",
     group: "Nhóm",
+    piiStageField: "Giai đoạn xử lý dữ liệu cá nhân",
+    piiStageNone: "Không áp dụng",
     piiCollection: "Thu thập",
     piiStorage: "Lưu trữ",
     piiUsageProvision: "Sử dụng/Cung cấp",

@@ -1316,6 +1316,8 @@ export const en: TranslationDict = {
     government: "Government",
     otherEntity: "Other",
     group: "Group",
+    piiStageField: "PII Lifecycle Stage",
+    piiStageNone: "N/A",
     piiCollection: "Collection",
     piiStorage: "Storage",
     piiUsageProvision: "Usage/Provision",

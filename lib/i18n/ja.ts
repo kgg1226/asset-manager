@@ -1316,6 +1316,8 @@ export const ja: TranslationDict = {
     government: "政府機関",
     otherEntity: "その他",
     group: "グループ",
+    piiStageField: "個人情報処理段階",
+    piiStageNone: "該当なし",
     piiCollection: "収集",
     piiStorage: "保管",
     piiUsageProvision: "利用/提供",

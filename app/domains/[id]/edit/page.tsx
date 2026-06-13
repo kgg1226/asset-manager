@@ -9,6 +9,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
 import CiaScoreInput from "@/app/_components/cia-score-input";
 import ClassificationSelect from "@/app/_components/classification-select";
+import PiiStageSelect from "@/app/_components/pii-stage-select";
+import type { PiiStage } from "@/lib/pii-stage";
 import type { CiaLevel } from "@/lib/cia";
 import LifecycleGauge from "@/app/_components/lifecycle-gauge";
 
@@ -29,6 +31,8 @@ export default function DomainEditPage() {
   const { t } = useTranslation();
   // 자산분류체계 소분류 (dev-037)
   const [subCategoryId, setSubCategoryId] = useState<number | null>(null);
+  // 개인정보 처리 단계 (dev-039)
+  const [piiStage, setPiiStage] = useState<PiiStage | null>(null);
   useEffect(() => { if (!authLoading && !user) router.push("/login"); }, [user, authLoading, router]);
 
   const [form, setForm] = useState({ name: "", description: "", vendor: "", cost: "", currency: "KRW", billingCycle: "ANNUAL", purchaseDate: "", expiryDate: "" });
@@ -47,6 +51,7 @@ export default function DomainEditPage() {
         setForm({ name: d.name || "", description: d.description || "", vendor: d.vendor || "", cost: d.cost != null ? String(d.cost) : "", currency: d.currency || "KRW", billingCycle: d.billingCycle || "ANNUAL", purchaseDate: d.purchaseDate ? d.purchaseDate.split("T")[0] : "", expiryDate: d.expiryDate ? d.expiryDate.split("T")[0] : "" });
         setCia({ ciaC: d.ciaC ?? null, ciaI: d.ciaI ?? null, ciaA: d.ciaA ?? null });
         setSubCategoryId(d.subCategoryId ?? null);
+        setPiiStage((d.piiStage as PiiStage) ?? null);
         if (d.domainDetail) {
           const dd = d.domainDetail;
           setDomain({
@@ -87,6 +92,7 @@ export default function DomainEditPage() {
         currency: form.currency, billingCycle: form.billingCycle,
         purchaseDate: form.purchaseDate || null, expiryDate: form.expiryDate || null,
         subCategoryId,
+        piiStage,
         ciaC: cia.ciaC, ciaI: cia.ciaI, ciaA: cia.ciaA,
         domainDetail: {
           domainName: domain.domainName || null,
@@ -185,6 +191,7 @@ export default function DomainEditPage() {
           {/* 자산분류체계 — 대분류→소분류 (dev-037) */}
 
           <div className="mb-6"><ClassificationSelect value={subCategoryId} onChange={setSubCategoryId} /></div>
+            <div className="mb-6"><PiiStageSelect value={piiStage} onChange={setPiiStage} /></div>
 
           <CiaScoreInput initialValues={cia} onChange={setCia} />
 

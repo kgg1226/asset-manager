@@ -8,6 +8,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { isLifecycleVisible, maskAssetLifecycle } from "@/lib/lifecycle-visibility";
 import { apiError } from "@/lib/api-errors";
 import { writeAuditLog } from "@/lib/audit-log";
+import { isPiiStage } from "@/lib/pii-stage";
 import {
   ValidationError,
   handleValidationError,
@@ -131,6 +132,8 @@ export async function PUT(request: NextRequest, { params }: Params) {
     if (body.ciaC !== undefined) data.ciaC = vNum(body.ciaC, { min: 1, max: 3, integer: true });
     if (body.ciaI !== undefined) data.ciaI = vNum(body.ciaI, { min: 1, max: 3, integer: true });
     if (body.ciaA !== undefined) data.ciaA = vNum(body.ciaA, { min: 1, max: 3, integer: true });
+    // 개인정보 처리 단계 (dev-039) — 명시적 null 허용(단계 해제)
+    if (body.piiStage !== undefined) data.piiStage = isPiiStage(body.piiStage) ? body.piiStage : null;
 
     // PC(Laptop/Desktop) 감가상각 자동 계산 또는 기존 방식
     if (body.monthlyCost === undefined) {

@@ -862,6 +862,10 @@ function getPiiLifecycleLayout(
   const otherNodes = nodes.filter(
     (n) => n.type === "assetGroup"
   );
+  // 영역(섹션)을 pii 뷰에서도 보존 — 기존엔 통째로 버려졌다(dev-039 D1-A).
+  // 저장된 위치를 그대로 유지(단계 스윔레인은 좌상단 고정이므로 보통 겹치지 않고,
+  // 겹치면 드래그로 이동 가능). 영역×단계 완전 조합 배치는 D1-B(팔레트화)에서.
+  const sectionNodes = nodes.filter((n) => n.type === "section");
 
   // piiStage → stage index mapping
   const PII_STAGE_MAP: Record<string, number> = {
@@ -966,13 +970,17 @@ function getPiiLifecycleLayout(
     selectable: false,
   }));
 
-  // Position content nodes by stage row
+  // Position content nodes by stage row.
+  // 단계 행은 절대좌표 — 섹션 소속(parentId/extent)을 해제해야 부모 상대좌표로
+  // 어긋나지 않는다(섹션을 되살렸으므로 필수, dev-039).
   const stageCounters = [0, 0, 0, 0];
   const layoutedContentNodes = contentNodes.map((node) => {
     const stageIdx = stageAssignments.get(node.id) ?? 2;
     const colIdx = stageCounters[stageIdx]++;
+    const { parentId: _parentId, extent: _extent, ...rest } = node;
+    void _parentId; void _extent;
     return {
-      ...node,
+      ...rest,
       position: {
         x: START_X + colIdx * COL_WIDTH,
         y: START_Y + stageIdx * ROW_HEIGHT,
@@ -980,8 +988,9 @@ function getPiiLifecycleLayout(
     };
   });
 
+  // 섹션을 맨 앞(배경 z-order)에 두어 자산 노드를 가리지 않게 한다
   return {
-    nodes: [...stageLabelNodes, ...otherNodes, ...layoutedContentNodes],
+    nodes: [...sectionNodes, ...stageLabelNodes, ...otherNodes, ...layoutedContentNodes],
     edges,
   };
 }

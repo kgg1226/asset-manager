@@ -9,6 +9,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
 import CiaScoreInput from "@/app/_components/cia-score-input";
 import ClassificationSelect from "@/app/_components/classification-select";
+import PiiStageSelect from "@/app/_components/pii-stage-select";
+import type { PiiStage } from "@/lib/pii-stage";
 import type { CiaLevel } from "@/lib/cia";
 import LifecycleGauge from "@/app/_components/lifecycle-gauge";
 
@@ -29,6 +31,8 @@ export default function ContractNewPage() {
   const { t } = useTranslation();
   // 자산분류체계 소분류 (dev-037)
   const [subCategoryId, setSubCategoryId] = useState<number | null>(null);
+  // 개인정보 처리 단계 (dev-039)
+  const [piiStage, setPiiStage] = useState<PiiStage | null>(null);
 
   useEffect(() => {
     if (!loading && !user) router.push("/login");
@@ -129,6 +133,7 @@ export default function ContractNewPage() {
           autoRenew: contract.autoRenew,
         },
         subCategoryId,
+        piiStage,
         ciaC: cia.ciaC, ciaI: cia.ciaI, ciaA: cia.ciaA,
       };
       const res = await fetch("/api/assets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
@@ -248,6 +253,7 @@ export default function ContractNewPage() {
           {/* 자산분류체계 — 대분류→소분류 (dev-037) */}
 
           <div className="mb-6"><ClassificationSelect value={subCategoryId} onChange={setSubCategoryId} /></div>
+            <div className="mb-6"><PiiStageSelect value={piiStage} onChange={setPiiStage} /></div>
 
           <CiaScoreInput initialValues={cia} onChange={setCia} />
 

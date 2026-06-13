@@ -1317,6 +1317,8 @@ export const ko: TranslationDict = {
     government: "정부기관",
     otherEntity: "기타",
     group: "그룹",
+    piiStageField: "개인정보 처리 단계",
+    piiStageNone: "해당 없음",
     piiCollection: "수집",
     piiStorage: "저장",
     piiUsageProvision: "이용/제공",
