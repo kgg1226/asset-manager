@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { isLifecycleVisible, maskAssetLifecycle } from "@/lib/lifecycle-visibility";
 import { apiError } from "@/lib/api-errors";
 import { writeAuditLog } from "@/lib/audit-log";
+import { isPiiStage } from "@/lib/pii-stage";
 import {
   ValidationError,
   handleValidationError,
@@ -249,6 +250,8 @@ export async function POST(request: NextRequest) {
         ciaC: ciaCVal,
         ciaI: ciaIVal,
         ciaA: ciaAVal,
+        // 개인정보 처리 단계 (dev-039) — 미지정 시 null. 자산맵 흐름도 배치 기준.
+        piiStage: isPiiStage(body.piiStage) ? body.piiStage : null,
         createdBy: user.id,
         ...(subCategoryIdVal && { subCategory: { connect: { id: subCategoryIdVal } } }),
         ...(companyIdVal && { company: { connect: { id: companyIdVal } } }),

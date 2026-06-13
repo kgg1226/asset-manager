@@ -1368,6 +1368,8 @@ export type TranslationDict = {
     government: string;
     otherEntity: string;
     group: string;
+    piiStageField: string;
+    piiStageNone: string;
     piiCollection: string;
     piiStorage: string;
     piiUsageProvision: string;

@@ -1315,6 +1315,8 @@ export const zhTW: TranslationDict = {
     government: "政府機構",
     otherEntity: "其他",
     group: "群組",
+    piiStageField: "個人資訊處理階段",
+    piiStageNone: "不適用",
     piiCollection: "蒐集",
     piiStorage: "儲存",
     piiUsageProvision: "利用/提供",
