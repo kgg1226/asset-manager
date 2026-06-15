@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
           currency: true,
           assignee: { select: { id: true, name: true } },
           subCategory: { select: { name: true, majorCategory: { select: { name: true } } } },
-          hardwareDetail: { select: { deviceType: true } },
+          hardwareDetail: { select: { deviceType: true, ipAddress: true, vlanId: true, gateway: true, subnetMask: true, hostname: true } },
           piiStage: true,
         } as const;
 
@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
           currency: true,
           assignee: { select: { id: true, name: true } },
           subCategory: { select: { name: true, majorCategory: { select: { name: true } } } },
-          hardwareDetail: { select: { deviceType: true } },
+          hardwareDetail: { select: { deviceType: true, ipAddress: true, vlanId: true, gateway: true, subnetMask: true, hostname: true } },
           piiStage: true,
         } as const;
 
@@ -156,6 +156,12 @@ export async function GET(request: NextRequest) {
       assigneeName: a.assignee?.name ?? null,
       serviceCategory: a.subCategory?.majorCategory?.name ?? a.subCategory?.name ?? null,
       deviceType: a.hardwareDetail?.deviceType ?? null,
+      // 네트워크 식별정보 (dev-041) — network 뷰 노드 배지용
+      ipAddress: a.hardwareDetail?.ipAddress ?? null,
+      vlanId: a.hardwareDetail?.vlanId ?? null,
+      gateway: a.hardwareDetail?.gateway ?? null,
+      subnetMask: a.hardwareDetail?.subnetMask ?? null,
+      hostname: a.hardwareDetail?.hostname ?? null,
       piiStage: a.piiStage ?? null,
     }));
 

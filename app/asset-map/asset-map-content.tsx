@@ -86,6 +86,12 @@ type AssetNode = {
   monthlyCost?: number | null;
   currency?: string | null;
   deviceType?: string | null;
+  // 네트워크 식별정보 (dev-041)
+  ipAddress?: string | null;
+  vlanId?: string | null;
+  gateway?: string | null;
+  subnetMask?: string | null;
+  hostname?: string | null;
   piiStage?: string | null;
 };
 
@@ -285,6 +291,11 @@ function AssetNodeComponent({ data, selected }: { data: Record<string, unknown>;
   const currency = data.currency as string | null;
   const assignee = data.assigneeName as string | null;
   const costStr = formatCost(cost, currency);
+  // network 뷰 전용 식별 배지 (dev-041) — IP/VLAN/hostname
+  const isNetworkView = data.mapView === "network";
+  const ipAddress = data.ipAddress as string | null;
+  const vlanId = data.vlanId as string | null;
+  const hostname = data.hostname as string | null;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [nodeSize, setNodeSize] = useState({ w: 200, h: 150 });
@@ -392,6 +403,19 @@ function AssetNodeComponent({ data, selected }: { data: Record<string, unknown>;
             style={{ color: colors.icon, backgroundColor: colors.light }}
           >
             {costStr}
+          </div>
+        )}
+
+        {/* Network 뷰 식별 배지 (dev-041) — IP/VLAN/hostname. 작을 때는 숨김(progressive hiding) */}
+        {isNetworkView && !isCompact && (data.showLabels !== false) && (ipAddress || vlanId || hostname) && (
+          <div className="flex flex-col items-center gap-0.5 text-[10px] leading-tight text-gray-600">
+            {ipAddress && (
+              <span className="rounded bg-white/70 px-1.5 py-0.5 font-mono ring-1 ring-gray-200">{ipAddress}</span>
+            )}
+            <div className="flex items-center gap-1">
+              {vlanId && <span className="rounded bg-emerald-50 px-1.5 py-0.5 font-medium text-emerald-700">VLAN {vlanId}</span>}
+              {hostname && <span className="max-w-[120px] truncate text-gray-400">{hostname}</span>}
+            </div>
           </div>
         )}
       </div>
@@ -2601,6 +2625,13 @@ function AssetMapContentInner() {
             monthlyCost: n.monthlyCost || null,
             currency: n.currency || null,
             deviceType: n.deviceType || null,
+            // 네트워크 식별정보 (dev-041) — network 뷰에서만 노드 배지로 표시
+            ipAddress: n.ipAddress || null,
+            vlanId: n.vlanId || null,
+            gateway: n.gateway || null,
+            subnetMask: n.subnetMask || null,
+            hostname: n.hostname || null,
+            mapView: view,
             piiStage: n.piiStage || null,
           },
         };
