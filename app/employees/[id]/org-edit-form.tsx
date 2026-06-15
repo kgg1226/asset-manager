@@ -4,6 +4,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { useTranslation } from "@/lib/i18n";
 
 type OrgUnit = { id: number; name: string; parentId: number | null };
@@ -49,7 +50,7 @@ export default function OrgEditForm({
   async function handleSave() {
     setIsPending(true);
     try {
-      await fetch(`/api/employees/${employeeId}`, {
+      const res = await fetch(`/api/employees/${employeeId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -58,8 +59,13 @@ export default function OrgEditForm({
           orgUnitId: orgUnitId || null,
         }),
       });
+      // 응답 체크 (dev-042) — 기존엔 실패해도 조용히 닫혀 "반영 안 됨"으로 보였다
+      if (!res.ok) { toast.error(t.toast.updateFail); return; }
+      toast.success(t.toast.updateSuccess);
       setIsEditing(false);
       router.refresh();
+    } catch {
+      toast.error(t.toast.updateFail);
     } finally {
       setIsPending(false);
     }
@@ -72,8 +78,10 @@ export default function OrgEditForm({
     setIsEditing(false);
   }
 
-  const initialCompany = companies.find((c) => c.id === initialCompanyId);
-  const initialOrgUnit = initialCompany?.orgs.find((o) => o.id === initialOrgUnitId);
+  // 비편집 카드는 로컬 state 기반 표시 (dev-042) — 저장 성공 시 router.refresh 를
+  // 기다리지 않고 즉시 최신 값을 보여준다. 취소 시 handleCancel 이 state 를 initial 로 복원.
+  const displayCompany = companies.find((c) => c.id === companyId);
+  const displayOrgUnit = displayCompany?.orgs.find((o) => o.id === orgUnitId);
 
   if (!isEditing) {
     return (
@@ -92,15 +100,15 @@ export default function OrgEditForm({
         <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div>
             <dt className="text-xs font-medium uppercase text-gray-500">{t.employee.jobTitle}</dt>
-            <dd className="mt-1 text-sm text-gray-900">{initialTitle ?? "—"}</dd>
+            <dd className="mt-1 text-sm text-gray-900">{title || "—"}</dd>
           </div>
           <div>
             <dt className="text-xs font-medium uppercase text-gray-500">{t.org.companyName}</dt>
-            <dd className="mt-1 text-sm text-gray-900">{initialCompany?.name ?? "—"}</dd>
+            <dd className="mt-1 text-sm text-gray-900">{displayCompany?.name ?? "—"}</dd>
           </div>
           <div>
             <dt className="text-xs font-medium uppercase text-gray-500">{t.employee.department}</dt>
-            <dd className="mt-1 text-sm text-gray-900">{initialOrgUnit?.name ?? (initialDepartment && initialDepartment !== "-" ? initialDepartment : "—")}</dd>
+            <dd className="mt-1 text-sm text-gray-900">{displayOrgUnit?.name ?? (initialDepartment && initialDepartment !== "-" ? initialDepartment : "—")}</dd>
           </div>
         </dl>
       </div>

@@ -145,9 +145,13 @@ export async function PATCH(request: NextRequest, { params }: Params) {
         const company = await tx.orgCompany.findUnique({ where: { id: companyIdVal }, select: { id: true } });
         if (!company) throw new ValidationError("존재하지 않는 회사입니다.");
       }
+      // orgUnit 변경 시 레거시 department 문자열도 함께 동기화 (dev-042) —
+      // 직원 목록·보안 조직도 등 department 기반 화면이 변경을 반영하도록.
+      let syncedDepartment: string | undefined;
       if (orgUnitIdVal !== undefined && orgUnitIdVal !== null) {
-        const org = await tx.orgUnit.findUnique({ where: { id: orgUnitIdVal }, select: { id: true } });
+        const org = await tx.orgUnit.findUnique({ where: { id: orgUnitIdVal }, select: { id: true, name: true } });
         if (!org) throw new ValidationError("존재하지 않는 조직입니다.");
+        syncedDepartment = org.name;
       }
 
       const before = await tx.employee.findUnique({
@@ -161,6 +165,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
           ...(titleVal !== undefined && { title: titleVal }),
           ...(companyIdVal !== undefined && { companyId: companyIdVal }),
           ...(orgUnitIdVal !== undefined && { orgUnitId: orgUnitIdVal }),
+          ...(syncedDepartment !== undefined && { department: syncedDepartment }),
         },
       });
 
