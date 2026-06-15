@@ -163,7 +163,7 @@ async function runArchiveJob(archiveId: number, yearMonth: string, startDate: Da
     // 4. 자산 스냅샷
     let assetCount = 0;
     try {
-      const assets = await (prisma as any).asset.findMany({
+      const assets = await prisma.asset.findMany({
         where: { createdAt: { lte: endDate }, status: { not: "DISPOSED" } },
         select: { id: true, name: true, type: true, status: true, monthlyCost: true, currency: true, expiryDate: true },
       });

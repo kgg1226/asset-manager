@@ -45,6 +45,7 @@ function CustomExportModal({
     if (!open) return;
     try {
       const raw = localStorage.getItem(PRESET_STORAGE_KEY);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 open 시 localStorage 프리셋 로드(SSR 불가)
       if (raw) setPresets(JSON.parse(raw));
     } catch { /* ignore */ }
   }, [open]);

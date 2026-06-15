@@ -60,6 +60,7 @@ function FieldPickerModal({
   const [presets, setPresets] = useState<Preset[]>([]);
   const [presetName, setPresetName] = useState("");
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- mount 시 localStorage 프리셋 로드(SSR 불가라 effect 필수)
   useEffect(() => { setPresets(loadPresets()); }, []);
 
   function toggleField(key: FieldKey) {
