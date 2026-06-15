@@ -50,6 +50,8 @@ export default async function EmployeesPage({
       assignments: {
         where: { returnedDate: null },
       },
+      // 조직(orgUnit) 변경을 목록에 반영 — 레거시 department 문자열 대신 우선 (dev-042)
+      orgUnit: { select: { name: true } },
     },
     orderBy: { [sort]: order },
     skip: (page - 1) * PAGE_SIZE,
@@ -64,7 +66,8 @@ export default async function EmployeesPage({
   const rows = employees.map((e) => ({
     id: e.id,
     name: e.name,
-    department: e.department,
+    // orgUnit(FK) 우선, 미설정 직원만 레거시 department 폴백 (dev-042)
+    department: e.orgUnit?.name ?? e.department,
     email: e.email,
     status: (e as { status?: string }).status ?? "ACTIVE",
     assignmentCount: e.assignments.length,
