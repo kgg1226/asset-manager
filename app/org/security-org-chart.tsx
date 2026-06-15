@@ -7,6 +7,7 @@ const SecurityFlowVisual = dynamic(() => import("./security-flow-visual"), { ssr
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
+import EmployeePicker from "@/app/_components/employee-picker";
 
 type Employee = { id: number; name: string; department: string | null; title: string | null };
 type SecurityNode = {
@@ -117,18 +118,12 @@ function SecurityNodeCard({
               className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
               onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") setEditing(false); }}
             />
-            <select
-              value={editEmployeeId ?? ""}
-              onChange={(e) => setEditEmployeeId(e.target.value ? Number(e.target.value) : null)}
-              className="w-full rounded border border-gray-300 px-2 py-1 text-xs"
-            >
-              <option value="">{t.org.unassignedPerson}</option>
-              {employees.map((emp) => (
-                <option key={emp.id} value={emp.id}>
-                  {emp.name} ({emp.department ?? t.classification.noDept})
-                </option>
-              ))}
-            </select>
+            {/* 평면 select(500명 스크롤) → 검색형 직원 피커 (dev-040) */}
+            <EmployeePicker
+              value={editEmployeeId}
+              initialLabel={employees.find((e) => e.id === editEmployeeId)?.name ?? null}
+              onChange={(id) => setEditEmployeeId(id)}
+            />
             <div className="flex gap-1">
               <button onClick={handleSave} disabled={saving} className="flex-1 rounded bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700 disabled:opacity-50">
                 {t.common.save}

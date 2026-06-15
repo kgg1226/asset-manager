@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
 import CiaScoreDisplay from "@/app/_components/cia-score-display";
 import LifecycleGauge from "@/app/_components/lifecycle-gauge";
+import EmployeePicker from "@/app/_components/employee-picker";
 import DeviceCompliancePanel from "./device-compliance-panel";
 
 type AssetStatus = "IN_STOCK" | "IN_USE" | "INACTIVE" | "UNUSABLE" | "PENDING_DISPOSAL" | "DISPOSED";
@@ -45,10 +46,6 @@ interface AssignmentHistoryEntry {
   id: number; action: string; reason?: string | null; createdAt: string;
   employee: { id: number; name: string };
   performedBy?: { id: number; username: string } | null;
-}
-
-interface Employee {
-  id: number; name: string; department?: string | null; email?: string | null;
 }
 
 const STATUS_KEYS: Record<AssetStatus, string> = { IN_STOCK: "statusInStock", IN_USE: "statusInUse", INACTIVE: "statusInactive", UNUSABLE: "statusUnusable", PENDING_DISPOSAL: "statusPendingDisposal", DISPOSED: "statusDisposed" };
@@ -88,8 +85,6 @@ export default function HardwareDetailPage() {
   const [assignReason, setAssignReason] = useState("");
   const [unassignReason, setUnassignReason] = useState("");
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | "">("");
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [employeeSearch, setEmployeeSearch] = useState("");
   const [isAssigning, setIsAssigning] = useState(false);
 
   // Assignment history
@@ -114,18 +109,6 @@ export default function HardwareDetailPage() {
 
   useEffect(() => { loadAsset(); loadHistory(); }, [loadAsset, loadHistory]);
 
-  // Load employees for assign modal
-  const loadEmployees = async (search: string) => {
-    try {
-      const params = new URLSearchParams();
-      if (search) params.set("q", search);
-      const res = await fetch(`/api/employees?${params}`);
-      if (res.ok) {
-        const data = await res.json();
-        setEmployees(Array.isArray(data) ? data : data.data ?? []);
-      }
-    } catch { /* ignore */ }
-  };
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -308,7 +291,7 @@ export default function HardwareDetailPage() {
               <p className="text-sm text-gray-500">{t.license.unassigned}</p>
               {isAdmin && !["UNUSABLE", "PENDING_DISPOSAL", "DISPOSED"].includes(asset.status) && (
                 <button
-                  onClick={() => { setShowAssignModal(true); loadEmployees(""); }}
+                  onClick={() => { setShowAssignModal(true); }}
                   className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
                 >
                   <UserPlus className="h-4 w-4" />{t.hw.actionAssigned}
@@ -542,30 +525,14 @@ export default function HardwareDetailPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
             <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
               <h2 className="mb-4 text-lg font-bold">{t.hw.assignAsset}</h2>
+              {/* 검색형 직원 피커 — 공용 EmployeePicker 로 통일 (dev-040) */}
               <div className="mb-4">
                 <label className="mb-1 block text-sm font-medium text-gray-700">{t.hw.searchEmployee}</label>
-                <input
-                  type="text"
-                  value={employeeSearch}
-                  onChange={(e) => { setEmployeeSearch(e.target.value); loadEmployees(e.target.value); }}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                  placeholder={t.hw.searchByName}
+                <EmployeePicker
+                  value={selectedEmployeeId === "" ? null : selectedEmployeeId}
+                  onChange={(id) => setSelectedEmployeeId(id ?? "")}
+                  allowNone={false}
                 />
-              </div>
-              <div className="mb-4 max-h-48 overflow-y-auto rounded-md border border-gray-200">
-                {employees.length === 0 ? (
-                  <p className="p-3 text-center text-sm text-gray-500">{t.hw.noEmployees}</p>
-                ) : (
-                  employees.map((emp) => (
-                    <button
-                      key={emp.id}
-                      onClick={() => setSelectedEmployeeId(emp.id)}
-                      className={`w-full px-3 py-2 text-left text-sm hover:bg-blue-50 ${selectedEmployeeId === emp.id ? "bg-blue-100 font-medium text-blue-700" : "text-gray-700"}`}
-                    >
-                      {emp.name}{emp.department ? ` (${emp.department})` : ""}{emp.email ? ` — ${emp.email}` : ""}
-                    </button>
-                  ))
-                )}
               </div>
               <div className="mb-4">
                 <label className="mb-1 block text-sm font-medium text-gray-700">{t.common.reasonOptional}</label>
@@ -579,7 +546,7 @@ export default function HardwareDetailPage() {
               </div>
               <div className="flex gap-3">
                 <button onClick={handleAssign} disabled={isAssigning || !selectedEmployeeId} className="flex-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">{isAssigning ? t.common.assigning : t.hw.actionAssigned}</button>
-                <button onClick={() => { setShowAssignModal(false); setSelectedEmployeeId(""); setEmployeeSearch(""); setAssignReason(""); }} className="flex-1 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">{t.common.cancel}</button>
+                <button onClick={() => { setShowAssignModal(false); setSelectedEmployeeId(""); setAssignReason(""); }} className="flex-1 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">{t.common.cancel}</button>
               </div>
             </div>
           </div>
