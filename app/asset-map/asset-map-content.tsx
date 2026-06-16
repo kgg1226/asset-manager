@@ -695,41 +695,33 @@ function generateSlots(side: string, count: number): string[] {
  * 핸들을 균등 분산시킨다.
  */
 function distributeEdgeHandles(edges: import("@xyflow/react").Edge[]): import("@xyflow/react").Edge[] {
-  // 1. 노드+방향별 엣지 그룹화
-  const targetGroups: Record<string, import("@xyflow/react").Edge[]> = {};
-  const sourceGroups: Record<string, import("@xyflow/react").Edge[]> = {};
-
+  type Slot = { edge: import("@xyflow/react").Edge; role: "source" | "target"; side: string };
+  // 노드+변(side) 하나의 네임스페이스에 incoming(target)·outgoing(source) 끝을 함께 모은다.
+  // 기존엔 target/source 를 독립 그룹으로 분배해, 같은 노드·같은 변에서 들어오는 선과
+  // 나가는 선이 동일 퍼센트 핸들(left-p33)을 공유 → 완전히 겹쳐 한 선이 숨었다 (dev-045 이슈7).
+  const groups: Record<string, Slot[]> = {};
   for (const edge of edges) {
     const tSide = getHandleSide(edge.targetHandle || "left");
-    const tKey = `${edge.target}:${tSide}`;
-    (targetGroups[tKey] ??= []).push(edge);
-
+    (groups[`${edge.target}:${tSide}`] ??= []).push({ edge, role: "target", side: tSide });
     const sSide = getHandleSide(edge.sourceHandle || "right");
-    const sKey = `${edge.source}:${sSide}`;
-    (sourceGroups[sKey] ??= []).push(edge);
+    (groups[`${edge.source}:${sSide}`] ??= []).push({ edge, role: "source", side: sSide });
   }
 
-  // 2. target 핸들 분배 (1개여도 기본 방향으로 정규화)
-  for (const [, group] of Object.entries(targetGroups)) {
-    const side = getHandleSide(group[0].targetHandle || "left");
-    if (group.length <= 1) {
-      // 레거시 핸들 ID(top-left 등)를 기본 방향(top)으로 정규화
-      group[0].targetHandle = side;
+  for (const [, slots] of Object.entries(groups)) {
+    const side = slots[0].side;
+    if (slots.length <= 1) {
+      // 단일이면 레거시 핸들 ID(top-left 등)를 기본 방향으로 정규화
+      const s = slots[0];
+      if (s.role === "target") s.edge.targetHandle = side;
+      else s.edge.sourceHandle = side;
       continue;
     }
-    const slots = generateSlots(side, group.length);
-    group.forEach((edge, i) => { edge.targetHandle = slots[i]; });
-  }
-
-  // 3. source 핸들 분배 (1개여도 기본 방향으로 정규화)
-  for (const [, group] of Object.entries(sourceGroups)) {
-    const side = getHandleSide(group[0].sourceHandle || "right");
-    if (group.length <= 1) {
-      group[0].sourceHandle = side;
-      continue;
-    }
-    const slots = generateSlots(side, group.length);
-    group.forEach((edge, i) => { edge.sourceHandle = slots[i]; });
+    // incoming+outgoing 합산 개수로 고유 슬롯 배분 → 같은 변에서 겹치지 않음
+    const handleIds = generateSlots(side, slots.length);
+    slots.forEach((s, i) => {
+      if (s.role === "target") s.edge.targetHandle = handleIds[i];
+      else s.edge.sourceHandle = handleIds[i];
+    });
   }
 
   return edges;
@@ -2166,6 +2158,10 @@ function AssetMapContentInner() {
   const [multiSelectedIds, setMultiSelectedIds] = useState<string[]>([]);
   const [showNodeLabels, setShowNodeLabels] = useState(true);
   const [animateEdges, setAnimateEdges] = useState(true);
+  // fetchGraph 가 animateEdges 를 의존성으로 잡으면 토글이 전체 재로드(dagre 재배치·팔레트
+  // 리셋)를 유발한다(dev-045 이슈6). ref 로 읽어 fetchGraph 의존성에서 분리.
+  const animateEdgesRef = useRef(animateEdges);
+  animateEdgesRef.current = animateEdges;
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const viewportSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dirtyRef = useRef(false);
@@ -2711,14 +2707,16 @@ function AssetMapContentInner() {
           target: finalTargetId,
           sourceHandle: finalSourceHandle,
           targetHandle: finalTargetHandle,
-          // 흐름 애니메이션: DEPENDENCY(정적 의존)는 제외 — 흐름이 아니라 관계 표현
-          animated: animateEdges && linkType !== "DEPENDENCY",
+          // 흐름 애니메이션: DEPENDENCY(정적 의존)는 제외 — 흐름이 아니라 관계 표현.
+          // ref 로 읽어 토글이 fetchGraph 재실행을 유발하지 않게 한다 (dev-045 이슈6)
+          animated: animateEdgesRef.current && linkType !== "DEPENDENCY",
           style: {
             stroke: linkColor,
             strokeWidth: e.direction === "BI" ? 3 : 2,
             strokeDasharray,
           },
-          markerEnd: { type: MarkerType.ArrowClosed, color: linkColor, width: 16, height: 16 },
+          // markerUnits: userSpaceOnUse — 화살촉 크기를 strokeWidth(BI3/UNI2)와 무관한 고정 px 로 (dev-045 이슈3-B)
+          markerEnd: { type: MarkerType.ArrowClosed, color: linkColor, width: 16, height: 16, markerUnits: "userSpaceOnUse" },
           data: {
             linkId: e.id,
             linkType: linkType,
@@ -2776,12 +2774,10 @@ function AssetMapContentInner() {
       // 같은 노드+방향에 여러 엣지가 몰리면 핸들 자동 분배
       distributeEdgeHandles(flowEdges);
 
-      // 각 노드에 필요한 동적 핸들 ID 주입
+      // 각 노드에 필요한 동적 핸들 ID 주입 — 빈 배열도 항상 주입해 stale 핸들을 비운다
+      // (가드가 있으면 엣지가 줄어 핸들이 사라진 노드의 옛 _handles 가 남아 렌더 누락, dev-045 이슈7)
       for (const node of [...flowNodes, ...entityNodes]) {
-        const handles = collectDynamicHandles(flowEdges, node.id);
-        if (handles.length > 0) {
-          node.data = { ...node.data, _handles: handles };
-        }
+        node.data = { ...node.data, _handles: collectDynamicHandles(flowEdges, node.id) };
       }
 
       const allNodes = [...groupNodes, ...flowNodes, ...entityNodes];
@@ -2801,7 +2797,7 @@ function AssetMapContentInner() {
     } finally {
       setLoading(false);
     }
-  }, [view, setNodes, setEdges, t, animateEdges]);
+  }, [view, setNodes, setEdges, t]);
 
   // Only fetch graph when in canvas view with an active workspace.
   // 의존성은 workspace "id" — 자동 저장(flushSave→setActiveWorkspace)이 객체 참조를
@@ -3070,8 +3066,10 @@ function AssetMapContentInner() {
           target: newLink.targetAssetId ? String(newLink.targetAssetId) : `ext-${newLink.targetExternalId}`,
           sourceHandle: newLink.sourceHandle || pendingConnection?.sourceHandle || "right",
           targetHandle: newLink.targetHandle || pendingConnection?.targetHandle || "left",
+          // 신규 엣지에도 현재 토글 상태 반영 — 기존엔 누락돼 껐다 켜야 적용됐다 (dev-045 이슈3-A)
+          animated: animateEdgesRef.current && linkType !== "DEPENDENCY",
           style: { stroke: linkColor, strokeWidth: 2, strokeDasharray },
-          markerEnd: { type: MarkerType.ArrowClosed, color: linkColor, width: 16, height: 16 },
+          markerEnd: { type: MarkerType.ArrowClosed, color: linkColor, width: 16, height: 16, markerUnits: "userSpaceOnUse" },
           data: {
             linkId: newLink.id,
             linkType,
@@ -3093,13 +3091,10 @@ function AssetMapContentInner() {
         setEdges((prev) => {
           const allEdges = [...prev, newEdge];
           distributeEdgeHandles(allEdges);
-          setNodes((nds) => nds.map((n) => {
-            const handles = collectDynamicHandles(allEdges, n.id);
-            if (handles.length > 0) {
-              return { ...n, data: { ...n.data, _handles: handles } };
-            }
-            return n;
-          }));
+          // 빈 배열도 항상 주입 — stale 동적 핸들 정리 (dev-045 이슈7)
+          setNodes((nds) => nds.map((n) => (
+            { ...n, data: { ...n.data, _handles: collectDynamicHandles(allEdges, n.id) } }
+          )));
           return allEdges;
         });
         setPendingConnection(null);
@@ -4121,7 +4116,16 @@ function AssetMapContentInner() {
             {showNodeLabels ? t.assetMap.labelsShowing : t.assetMap.labelsHidden}
           </button>
           <button
-            onClick={() => setAnimateEdges((v) => !v)}
+            onClick={() => {
+              // 위치·팔레트를 건드리지 않고 기존 엣지의 animated 만 in-place 갱신 (dev-045 이슈6).
+              // fetchGraph 재실행(=dagre 재배치) 없이 토글 → 초기화 방지.
+              const next = !animateEdges;
+              setAnimateEdges(next);
+              setEdges((eds) => eds.map((e) => ({
+                ...e,
+                animated: next && (e.data as Record<string, unknown> | undefined)?.linkType !== "DEPENDENCY",
+              })));
+            }}
             title={animateEdges ? t.assetMap.animateEdgesOn : t.assetMap.animateEdgesOff}
             className={`rounded-md border px-3 py-1.5 text-xs font-medium ${animateEdges ? "border-indigo-300 bg-indigo-50 text-indigo-700 hover:bg-indigo-100" : "border-gray-300 bg-white text-gray-500 hover:bg-gray-50"}`}
           >
