@@ -2192,9 +2192,11 @@ function AssetMapContentInner() {
         if (n.type === "section") {
           sectionData.push({
             id: n.id,
-            name: (n.data?.sectionName as string) || "",
+            // 런타임 노드 data 키는 label/description (생성·렌더·편집 공통) — dev-044.
+            // 기존엔 sectionName/sectionDescription 을 읽어 항상 빈값 저장돼 이름·설명이 유실됐다.
+            name: (n.data?.label as string) || "",
             color: (n.data?.sectionColor as string) || "#3B82F6",
-            description: (n.data?.sectionDescription as string) || "",
+            description: (n.data?.description as string) || "",
             x: n.position.x,
             y: n.position.y,
             width: (n.style?.width as number) || 400,
@@ -2277,9 +2279,9 @@ function AssetMapContentInner() {
           if (n.type === "piiStageLabel") continue;
           if (n.type === "section") {
             sectionData.push({
-              id: n.id, name: (n.data?.sectionName as string) || "",
+              id: n.id, name: (n.data?.label as string) || "",
               color: (n.data?.sectionColor as string) || "#3B82F6",
-              description: (n.data?.sectionDescription as string) || "",
+              description: (n.data?.description as string) || "",
               x: n.position.x, y: n.position.y,
               width: (n.style?.width as number) || 400,
               height: (n.style?.height as number) || 300,
@@ -2844,9 +2846,10 @@ function AssetMapContentInner() {
                 position: { x: sec.x, y: sec.y },
                 style: { width: sec.width, height: sec.height },
                 data: {
-                  sectionName: sec.name,
+                  // 런타임 노드 data 키로 복원 — SectionNodeComponent·편집 모달이 읽는 키 (dev-044)
+                  label: sec.name,
                   sectionColor: sec.color,
-                  sectionDescription: sec.description,
+                  description: sec.description,
                 },
                 draggable: true,
               });
