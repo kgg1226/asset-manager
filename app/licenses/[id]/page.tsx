@@ -214,9 +214,9 @@ export default async function LicenseDetailPage({
     currency: license.currency,
     exchangeRate: license.exchangeRate,
     isVatIncluded: license.isVatIncluded,
-    renewalStatus: (license as any).renewalStatus ?? null,
-    renewalDate: (license as any).renewalDate ? new Date((license as any).renewalDate).toISOString() : null,
-    renewalDateManual: (license as any).renewalDateManual ? new Date((license as any).renewalDateManual).toISOString() : null,
+    renewalStatus: license.renewalStatus ?? null,
+    renewalDate: license.renewalDate ? new Date(license.renewalDate).toISOString() : null,
+    renewalDateManual: license.renewalDateManual ? new Date(license.renewalDateManual).toISOString() : null,
     parent: license.parent,
     orgUnit: license.orgUnit,
   };
@@ -245,7 +245,7 @@ export default async function LicenseDetailPage({
       licenseId={licenseId}
       license={serializedLicense}
       seats={serializedSeats}
-      children={serializedChildren}
+      childLicenses={serializedChildren}
       childrenSecond={serializedChildren}
       assignmentData={assignmentData}
       displayHistory={displayHistory}

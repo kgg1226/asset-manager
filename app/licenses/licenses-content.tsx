@@ -17,7 +17,7 @@ type SortOrder = "asc" | "desc";
 
 type LicenseType = "NO_KEY" | "KEY_BASED" | "VOLUME";
 
-type EnrichedLicense = {
+export type EnrichedLicense = {
   id: number;
   name: string;
   licenseType: LicenseType;

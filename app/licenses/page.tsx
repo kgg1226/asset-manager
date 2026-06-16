@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import LicensesContent from "./licenses-content";
+import LicensesContent, { type EnrichedLicense } from "./licenses-content";
 
 export const dynamic = "force-dynamic";
 
@@ -150,7 +150,7 @@ export default async function LicensesPage({
 
   return (
     <LicensesContent
-      licenses={serializedLicenses as any}
+      licenses={serializedLicenses as unknown as EnrichedLicense[]}
       employees={employees.map(e => ({ ...e, department: e.department ?? "" }))}
       totalCount={totalCount}
       currentPage={currentPage}

@@ -52,6 +52,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY) as Locale | null;
     if (stored && stored in TRANSLATIONS) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- mount 시 저장된 locale 복원(localStorage는 SSR 불가라 effect 필수)
       setLocaleState(stored);
     }
   }, []);
@@ -59,6 +60,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   // Load translation when locale changes
   useEffect(() => {
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- locale 변경 시 비동기 사전 로드 시작 표시
     setIsLoading(true);
     TRANSLATIONS[locale]().then((loaded) => {
       if (!cancelled) {

@@ -107,8 +107,8 @@ interface LicenseDetailContentProps {
     orgUnit?: { id: number; name: string; company: { name: string } } | null;
   };
   seats: SeatData[];
-  children: ChildLicense[];
-  // Duplicate children block in original page — we handle both
+  childLicenses: ChildLicense[];
+  // Duplicate childLicenses block in original page — we handle both
   childrenSecond: ChildLicense[];
   assignmentData: AssignmentRow[];
   displayHistory: HistoryEntry[];
@@ -139,7 +139,7 @@ export default function LicenseDetailContent({
   licenseId,
   license,
   seats,
-  children,
+  childLicenses,
   childrenSecond,
   assignmentData,
   displayHistory,
@@ -214,7 +214,7 @@ export default function LicenseDetailContent({
 
   const currencySymbol = CURRENCY_SYMBOLS[license.currency as Currency];
   const krwSymbol = CURRENCY_SYMBOLS["KRW"];
-  const isContainer = totalSeats === 0 && children.length > 0;
+  const isContainer = totalSeats === 0 && childLicenses.length > 0;
 
   return (
     <div className="min-h-screen bg-gray-50 py-10">
@@ -273,17 +273,17 @@ export default function LicenseDetailContent({
             <DashboardCard
               icon={<KeyRound className="h-5 w-5 text-blue-600" />}
               label={t.classification.subLicenses}
-              value={children.length}
+              value={childLicenses.length}
             />
             <DashboardCard
               icon={<Users className="h-5 w-5 text-green-600" />}
               label={t.classification.totalSeatsChildren}
-              value={children.reduce((sum, c) => sum + c.totalQuantity, 0)}
+              value={childLicenses.reduce((sum, c) => sum + c.totalQuantity, 0)}
             />
             <DashboardCard
               icon={<CheckCircle className="h-5 w-5 text-gray-500" />}
               label={t.classification.totalAssigned}
-              value={children.reduce((sum, c) => sum + c.assignments.length, 0)}
+              value={childLicenses.reduce((sum, c) => sum + c.assignments.length, 0)}
             />
           </div>
         ) : (
@@ -644,8 +644,8 @@ export default function LicenseDetailContent({
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900">
               {locale === "en"
-                ? `Sub-Licenses${children.length > 0 ? ` \u2014 ${children.length}` : ""}`
-                : `\uD558\uC704 \uB77C\uC774\uC120\uC2A4${children.length > 0 ? ` \u2014 ${children.length}\uAC1C` : ""}`}
+                ? `Sub-Licenses${childLicenses.length > 0 ? ` \u2014 ${childLicenses.length}` : ""}`
+                : `\uD558\uC704 \uB77C\uC774\uC120\uC2A4${childLicenses.length > 0 ? ` \u2014 ${childLicenses.length}\uAC1C` : ""}`}
             </h2>
             {isAdmin && (
               <Link
@@ -656,7 +656,7 @@ export default function LicenseDetailContent({
               </Link>
             )}
           </div>
-          {children.length > 0 ? (
+          {childLicenses.length > 0 ? (
             <div className="overflow-x-auto rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -668,7 +668,7 @@ export default function LicenseDetailContent({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {children.map((child) => {
+                  {childLicenses.map((child) => {
                     const childTypeLabel =
                       child.licenseType === "VOLUME" ? t.license.volume : t.license.keyBased;
                     return (
