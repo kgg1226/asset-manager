@@ -1,5 +1,19 @@
 # Roadmap — 고도화 계획
 
+## 🎯 장기 목표 (Goal) — 자산관리 → SBOM·증적 통합 플랫폼 (2026-06-16 확정)
+
+> 단순 자산 인벤토리를 넘어, **SBOM(Software Bill of Materials)과 각종 흐름도를 한 곳에서
+> 생성·증적·활용**하는 플랫폼으로 발전한다. 상세: tasks/issues-backlog-2026-06b.md P3-b.
+
+- **SBOM 표준 export** (SPDX / CycloneDX) — 기계가독 증적 산출물
+- **컴포넌트·의존성·취약점 모델**: SoftwareComponent(version/purl/cpe/hash) → ComponentDependency
+  (direct/transitive) → Vulnerability + VEX(CVE/OSV/GHSA) → OSS 라이선스·정책
+- **통합 증적 허브** (/exports 또는 admin/archives 확장): ① 정보자산관리대장(Excel)
+  ② 자산지도 흐름도 PDF(PII·네트워크) ③ SBOM JSON 을 한 화면에서 선택·생성, 월별 스냅샷 보존
+- (선택) package-lock/requirements/syft import + CVE 재스캔 cron → 위험 대시보드
+- 단계: 모델(additive 스키마 승인) → 의존성 그래프(자산지도 DEPENDENCY 뷰 재사용) → CVE/VEX
+  → export → 허브. effort high·신규 도메인, prisma 스키마 변경은 인간 승인.
+
 ## 완료 (2026-06-02, dev-025)
 
 - [x] 내용연수·감가상각 서버 측 마스킹 — GET /api/assets·[id] 응답에서 비권한 사용자(비-SUPER_ADMIN
