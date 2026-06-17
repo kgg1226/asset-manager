@@ -2215,7 +2215,7 @@ function AssetMapContentInner() {
       const existingVis = (ws.edgeVisibility as Record<string, unknown> | null | undefined) ?? {};
       const edgeVisibility = { ...existingVis, visibleEdgeIds };
 
-      await fetch(`/api/asset-map/views/${ws.id}`, {
+      const res = await fetch(`/api/asset-map/views/${ws.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -2226,6 +2226,11 @@ function AssetMapContentInner() {
           _autoSave: true,
         }),
       });
+      // PUT 응답 검사 (dev-046) — fetch 는 4xx/5xx 에 reject 하지 않으므로 res.ok 를 직접 확인.
+      // 누락 시 401(세션만료)/404(뷰삭제)/500(DB오류)에도 아래 savedState 병합 + setSaveStatus("saved")가
+      // 무조건 실행돼, 서버엔 미저장인데 UI 는 "저장됨"으로 표시되고 dirtyRef 가 꺼져 영구 소실됐다.
+      // throw 시 catch 가 setSaveStatus("dirty")+dirtyRef=true 로 복구하고 savedState 병합도 건너뛴다.
+      if (!res.ok) throw new Error(`autosave failed: ${res.status}`);
       // 로컬 ws(ref+state)를 방금 저장한 "전체 상태"로 갱신 (dev-032).
       // edgeVisibility 만 갱신하면 stale nodePositions 가 남아, 이후 fetchGraph 의
       // ID 필터가 방금 추가한 자산을 캔버스에서 탈락시키고(→ 다음 저장이 서버를 덮어써
@@ -2291,11 +2296,18 @@ function AssetMapContentInner() {
             nodePositions[n.id] = { x: n.position.x, y: n.position.y };
           }
         }
+        // 엣지 가시성도 포함 — 누락 시 언로드 저장에서 visibleEdgeIds 유실 (dev-046 P2-a)
+        const currentEdges = reactFlowInstance.getEdges();
+        const visibleEdgeIds = currentEdges
+          .map((e) => Number(String(e.id).replace(/^link-/, "")))
+          .filter((n) => Number.isFinite(n));
+        const existingVis = (activeWorkspaceRef.current.edgeVisibility as Record<string, unknown> | null | undefined) ?? {};
         navigator.sendBeacon(
           `/api/asset-map/views/${activeWorkspaceRef.current.id}`,
           new Blob([JSON.stringify({
             nodePositions, sectionData,
             viewport: { x: viewport.x, y: viewport.y, zoom: viewport.zoom },
+            edgeVisibility: { ...existingVis, visibleEdgeIds },
             _autoSave: true,
           })], { type: "application/json" }),
         );
@@ -3185,6 +3197,7 @@ function AssetMapContentInner() {
       setNodes(layouted.nodes);
       setEdges(layouted.edges);
     }
+    markDirty(500); // 자동 정렬 위치 자동저장 (dev-046 P1-a — 기존 누락)
   }
 
   const [exporting, setExporting] = useState(false);
@@ -3397,6 +3410,7 @@ function AssetMapContentInner() {
     };
     setNodes((prev) => [newSection, ...prev]); // sections behind other nodes
     setShowSectionModal(false);
+    markDirty(300); // 섹션 생성 자동저장 (dev-046 P1-a — 기존 누락)
   }
 
   // placedAssetIds — which assets are currently on canvas
@@ -4408,6 +4422,7 @@ function AssetMapContentInner() {
                       setNodes((nds) => nds.map((n) =>
                         n.id === editingSection.id ? { ...n, data: { ...n.data, label: newName } } : n
                       ));
+                      markDirty(500); // 섹션 이름 편집 자동저장 (dev-046 P1-a)
                     }
                   }}
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
@@ -4421,6 +4436,7 @@ function AssetMapContentInner() {
                     setNodes((nds) => nds.map((n) =>
                       n.id === editingSection.id ? { ...n, data: { ...n.data, description: e.target.value.trim() } } : n
                     ));
+                    markDirty(500); // 섹션 설명 편집 자동저장 (dev-046 P1-a)
                   }}
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
                 />
@@ -4436,6 +4452,7 @@ function AssetMapContentInner() {
                         setNodes((nds) => nds.map((n) =>
                           n.id === editingSection.id ? { ...n, data: { ...n.data, sectionColor: c.value } } : n
                         ));
+                        markDirty(500); // 섹션 색상 편집 자동저장 (dev-046 P1-a)
                       }}
                       className={`w-8 h-8 rounded-full border-2 transition ${
                         (editingSection.data?.sectionColor as string) === c.value ? "border-gray-900 scale-110" : "border-transparent"
@@ -4474,6 +4491,7 @@ function AssetMapContentInner() {
                     return n;
                   }).filter((n) => n.id !== editingSection.id));
                   setEditingSection(null);
+                  markDirty(500); // 섹션 삭제 자동저장 (dev-046 P1-a)
                 }}
                 className="flex-1 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
               >
