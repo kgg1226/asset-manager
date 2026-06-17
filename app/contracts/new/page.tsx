@@ -10,6 +10,7 @@ import { useTranslation } from "@/lib/i18n";
 import CiaScoreInput from "@/app/_components/cia-score-input";
 import ClassificationSelect from "@/app/_components/classification-select";
 import PiiStageSelect from "@/app/_components/pii-stage-select";
+import PiiItemsEditor, { type PiiItemRow } from "@/app/_components/pii-items-editor";
 import type { PiiStage } from "@/lib/pii-stage";
 import type { CiaLevel } from "@/lib/cia";
 import LifecycleGauge from "@/app/_components/lifecycle-gauge";
@@ -33,6 +34,7 @@ export default function ContractNewPage() {
   const [subCategoryId, setSubCategoryId] = useState<number | null>(null);
   // 개인정보 처리 단계 (dev-039)
   const [piiStage, setPiiStage] = useState<PiiStage | null>(null);
+  const [piiItems, setPiiItems] = useState<PiiItemRow[]>([]);
 
   useEffect(() => {
     if (!loading && !user) router.push("/login");
@@ -134,6 +136,7 @@ export default function ContractNewPage() {
         },
         subCategoryId,
         piiStage,
+        piiItems,
         ciaC: cia.ciaC, ciaI: cia.ciaI, ciaA: cia.ciaA,
       };
       const res = await fetch("/api/assets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
@@ -254,6 +257,7 @@ export default function ContractNewPage() {
 
           <div className="mb-6"><ClassificationSelect value={subCategoryId} onChange={setSubCategoryId} /></div>
             <div className="mb-6"><PiiStageSelect value={piiStage} onChange={setPiiStage} /></div>
+            <div className="mb-6"><PiiItemsEditor value={piiItems} onChange={setPiiItems} /></div>
 
           <CiaScoreInput initialValues={cia} onChange={setCia} />
 

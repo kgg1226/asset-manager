@@ -9,6 +9,7 @@ import { isLifecycleVisible, maskAssetLifecycle } from "@/lib/lifecycle-visibili
 import { apiError } from "@/lib/api-errors";
 import { writeAuditLog } from "@/lib/audit-log";
 import { isPiiStage } from "@/lib/pii-stage";
+import { isPiiItemKey, piiItemCategory } from "@/lib/pii-items";
 import {
   ValidationError,
   handleValidationError,
@@ -47,6 +48,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
         cloudDetail: true,
         domainDetail: true,
         contractDetail: true,
+        piiItems: { orderBy: { id: "asc" } }, // 개인정보 항목 인벤토리 (dev-047)
         licenseLinks: {
           include: { license: { select: { id: true, name: true, licenseType: true, expiryDate: true } } },
           orderBy: { createdAt: "desc" },
@@ -393,6 +395,27 @@ export async function PUT(request: NextRequest, { params }: Params) {
           });
         } else {
           await tx.contractDetail.deleteMany({ where: { assetId } });
+        }
+      }
+
+      // 개인정보 항목 인벤토리 전체 교체 (dev-047) — body.piiItems 가 전달된 경우만
+      if (Array.isArray(body.piiItems)) {
+        await tx.assetPiiItem.deleteMany({ where: { assetId } });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const valid = (body.piiItems as any[]).filter((p) => isPiiItemKey(p?.itemKey));
+        if (valid.length > 0) {
+          await tx.assetPiiItem.createMany({
+            data: valid.map((p) => ({
+              assetId,
+              itemKey: p.itemKey,
+              category: piiItemCategory(p.itemKey)!,
+              lifecycleStages: Array.isArray(p.lifecycleStages) ? JSON.stringify(p.lifecycleStages) : null,
+              legalBasis: vStr(p.legalBasis, 255),
+              retentionPeriod: vStr(p.retentionPeriod, 255),
+              destructionMethod: vStr(p.destructionMethod, 255),
+              note: vStr(p.note, 500),
+            })),
+          });
         }
       }
 

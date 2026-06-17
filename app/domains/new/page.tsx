@@ -10,6 +10,7 @@ import { useTranslation } from "@/lib/i18n";
 import CiaScoreInput from "@/app/_components/cia-score-input";
 import ClassificationSelect from "@/app/_components/classification-select";
 import PiiStageSelect from "@/app/_components/pii-stage-select";
+import PiiItemsEditor, { type PiiItemRow } from "@/app/_components/pii-items-editor";
 import type { PiiStage } from "@/lib/pii-stage";
 import type { CiaLevel } from "@/lib/cia";
 import LifecycleGauge from "@/app/_components/lifecycle-gauge";
@@ -31,6 +32,7 @@ export default function DomainNewPage() {
   const [subCategoryId, setSubCategoryId] = useState<number | null>(null);
   // 개인정보 처리 단계 (dev-039)
   const [piiStage, setPiiStage] = useState<PiiStage | null>(null);
+  const [piiItems, setPiiItems] = useState<PiiItemRow[]>([]);
   useEffect(() => { if (!loading && !user) router.push("/login"); }, [user, loading, router]);
 
   const [form, setForm] = useState({ name: "", description: "", vendor: "", cost: "", currency: "KRW", billingCycle: "ANNUAL", purchaseDate: "", expiryDate: "" });
@@ -68,6 +70,7 @@ export default function DomainNewPage() {
         purchaseDate: form.purchaseDate || null, expiryDate: form.expiryDate || null,
         subCategoryId,
         piiStage,
+        piiItems,
         ciaC: cia.ciaC, ciaI: cia.ciaI, ciaA: cia.ciaA,
         domainDetail: {
           domainName: domain.domainName || null,
@@ -175,6 +178,7 @@ export default function DomainNewPage() {
 
           <div className="mb-6"><ClassificationSelect value={subCategoryId} onChange={setSubCategoryId} /></div>
             <div className="mb-6"><PiiStageSelect value={piiStage} onChange={setPiiStage} /></div>
+            <div className="mb-6"><PiiItemsEditor value={piiItems} onChange={setPiiItems} /></div>
 
           <CiaScoreInput initialValues={cia} onChange={setCia} />
 

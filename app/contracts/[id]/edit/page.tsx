@@ -10,6 +10,7 @@ import { useTranslation } from "@/lib/i18n";
 import CiaScoreInput from "@/app/_components/cia-score-input";
 import ClassificationSelect from "@/app/_components/classification-select";
 import PiiStageSelect from "@/app/_components/pii-stage-select";
+import PiiItemsEditor, { type PiiItemRow } from "@/app/_components/pii-items-editor";
 import type { PiiStage } from "@/lib/pii-stage";
 import type { CiaLevel } from "@/lib/cia";
 import LifecycleGauge from "@/app/_components/lifecycle-gauge";
@@ -35,6 +36,7 @@ export default function ContractEditPage() {
   const [subCategoryId, setSubCategoryId] = useState<number | null>(null);
   // 개인정보 처리 단계 (dev-039)
   const [piiStage, setPiiStage] = useState<PiiStage | null>(null);
+  const [piiItems, setPiiItems] = useState<PiiItemRow[]>([]);
 
   useEffect(() => { if (!authLoading && !user) router.push("/login"); }, [user, authLoading, router]);
 
@@ -89,6 +91,7 @@ export default function ContractEditPage() {
         setCia({ ciaC: d.ciaC ?? null, ciaI: d.ciaI ?? null, ciaA: d.ciaA ?? null });
         setSubCategoryId(d.subCategoryId ?? null);
         setPiiStage((d.piiStage as PiiStage) ?? null);
+        setPiiItems(((d.piiItems as PiiItemRow[] | undefined) ?? []).map((p) => ({ itemKey: p.itemKey, legalBasis: p.legalBasis, retentionPeriod: p.retentionPeriod })));
         if (d.orgUnit) setSelectedOrgUnitId(String(d.orgUnit.id));
       } catch { toast.error(t.common.error); router.push("/contracts"); }
       finally { setIsLoadingData(false); }
@@ -127,6 +130,7 @@ export default function ContractEditPage() {
         contractDetail: { contractNumber: contract.contractNumber || null, counterparty: contract.counterparty || null, contractType: contract.contractType || null, autoRenew: contract.autoRenew },
         subCategoryId,
         piiStage,
+        piiItems,
         ciaC: cia.ciaC, ciaI: cia.ciaI, ciaA: cia.ciaA,
       };
       const res = await fetch(`/api/assets/${assetId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
@@ -233,6 +237,7 @@ export default function ContractEditPage() {
 
           <div className="mb-6"><ClassificationSelect value={subCategoryId} onChange={setSubCategoryId} /></div>
             <div className="mb-6"><PiiStageSelect value={piiStage} onChange={setPiiStage} /></div>
+            <div className="mb-6"><PiiItemsEditor value={piiItems} onChange={setPiiItems} /></div>
 
           <CiaScoreInput initialValues={cia} onChange={setCia} />
 

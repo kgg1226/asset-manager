@@ -450,12 +450,34 @@ model Asset {
   incomingLinks          AssetLink[]        @relation("AssetLinkTarget")
   groupMembers           AssetGroupMember[]
   deviceCompliance       DeviceCompliance?  // MDM-lite 기기 관리/컴플라이언스 상태 (dev-027)
+  piiItems               AssetPiiItem[]     // 자산이 수집·보유하는 개인정보 항목 (dev-047)
 
   @@index([type])
   @@index([subCategoryId])
   @@index([status])
   @@index([expiryDate])
   @@index([companyId])
+}
+
+// 자산이 수집·보유하는 개인정보 항목 인벤토리 (dev-047) — 항목별 보유기간·법적근거를
+// 자산 단위로 추적해 ISMS-P 개인정보 흐름표(항목·단계·보유기간·근거·파기) 증적을 자산 단위로 충족.
+// 항목 코드/분류는 lib/pii-items.ts 카탈로그 단일 출처. 엣지(AssetLink.piiItems)와 별개로
+// 흐름 없는 단독 자산의 보유 항목도 추적 가능.
+model AssetPiiItem {
+  id                Int      @id @default(autoincrement())
+  assetId           Int
+  asset             Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  itemKey           String   // PII_ITEM_CATALOG 코드: NAME | RRN | CARD | HEALTH ...
+  category          String   // GENERAL | UNIQUE_ID | SENSITIVE | FINANCE | CREDENTIAL
+  lifecycleStages   String?  // JSON 배열 — 복수 단계 가능 ["COLLECTION","STORAGE"]
+  legalBasis        String?  // 수집·이용 법적 근거 (동의/법령/계약 등)
+  retentionPeriod   String?  // 보유·이용 기간
+  destructionMethod String?  // 파기 방법
+  note              String?
+  createdAt         DateTime @default(now())
+
+  @@unique([assetId, itemKey])  // 자산당 동일 항목 중복 방지
+  @@index([assetId])
 }
 
 model AssetLink {
