@@ -8,6 +8,7 @@ import { isLifecycleVisible, maskAssetLifecycle } from "@/lib/lifecycle-visibili
 import { apiError } from "@/lib/api-errors";
 import { writeAuditLog } from "@/lib/audit-log";
 import { isPiiStage } from "@/lib/pii-stage";
+import { isPiiItemKey, piiItemCategory } from "@/lib/pii-items";
 import {
   ValidationError,
   handleValidationError,
@@ -260,6 +261,26 @@ export async function POST(request: NextRequest) {
       };
 
       const created = await tx.asset.create({ data: assetData });
+
+      // ── 개인정보 항목 인벤토리 (dev-047) — 카탈로그 검증 후 category 서버 도출 ──
+      if (Array.isArray(body.piiItems)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const valid = (body.piiItems as any[]).filter((p) => isPiiItemKey(p?.itemKey));
+        if (valid.length > 0) {
+          await tx.assetPiiItem.createMany({
+            data: valid.map((p) => ({
+              assetId: created.id,
+              itemKey: p.itemKey,
+              category: piiItemCategory(p.itemKey)!,
+              lifecycleStages: Array.isArray(p.lifecycleStages) ? JSON.stringify(p.lifecycleStages) : null,
+              legalBasis: vStr(p.legalBasis, 255),
+              retentionPeriod: vStr(p.retentionPeriod, 255),
+              destructionMethod: vStr(p.destructionMethod, 255),
+              note: vStr(p.note, 500),
+            })),
+          });
+        }
+      }
 
       // ── 유형별 상세 생성 ──
       if (typeVal === "HARDWARE" && body.hardwareDetail) {

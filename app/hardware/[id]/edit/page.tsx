@@ -10,6 +10,7 @@ import { useTranslation } from "@/lib/i18n";
 import CiaScoreInput from "@/app/_components/cia-score-input";
 import ClassificationSelect from "@/app/_components/classification-select";
 import PiiStageSelect from "@/app/_components/pii-stage-select";
+import PiiItemsEditor, { type PiiItemRow } from "@/app/_components/pii-items-editor";
 import type { PiiStage } from "@/lib/pii-stage";
 import LifecycleGauge from "@/app/_components/lifecycle-gauge";
 import type { CiaLevel } from "@/lib/cia";
@@ -28,6 +29,7 @@ export default function HardwareEditPage() {
   const [subCategoryId, setSubCategoryId] = useState<number | null>(null);
   // 개인정보 처리 단계 (dev-039)
   const [piiStage, setPiiStage] = useState<PiiStage | null>(null);
+  const [piiItems, setPiiItems] = useState<PiiItemRow[]>([]);
   useEffect(() => { if (!authLoading && !user) router.push("/login"); }, [user, authLoading, router]);
 
   const [form, setForm] = useState({ name: "", description: "", vendor: "", cost: "", currency: "KRW", billingCycle: "ONE_TIME", purchaseDate: "", expiryDate: "" });
@@ -53,6 +55,7 @@ export default function HardwareEditPage() {
         setCia({ ciaC: (d.ciaC as CiaLevel) ?? null, ciaI: (d.ciaI as CiaLevel) ?? null, ciaA: (d.ciaA as CiaLevel) ?? null });
         setSubCategoryId(d.subCategoryId ?? null);
         setPiiStage((d.piiStage as PiiStage) ?? null);
+        setPiiItems(((d.piiItems as PiiItemRow[] | undefined) ?? []).map((p) => ({ itemKey: p.itemKey, legalBasis: p.legalBasis, retentionPeriod: p.retentionPeriod })));
         if (d.hardwareDetail) {
           const h = d.hardwareDetail;
           setHw({
@@ -108,6 +111,7 @@ export default function HardwareEditPage() {
         purchaseDate: form.purchaseDate || null, expiryDate: form.expiryDate || null,
         subCategoryId,
         piiStage,
+        piiItems,
         ciaC: cia.ciaC, ciaI: cia.ciaI, ciaA: cia.ciaA,
         hardwareDetail: {
           assetTag: hw.assetTag || null, deviceType: hw.deviceType || null, manufacturer: hw.manufacturer || null,
@@ -334,6 +338,7 @@ export default function HardwareEditPage() {
 
           <div className="mb-6"><ClassificationSelect value={subCategoryId} onChange={setSubCategoryId} /></div>
             <div className="mb-6"><PiiStageSelect value={piiStage} onChange={setPiiStage} /></div>
+            <div className="mb-6"><PiiItemsEditor value={piiItems} onChange={setPiiItems} /></div>
 
           <CiaScoreInput initialValues={cia} onChange={setCia} />
 
