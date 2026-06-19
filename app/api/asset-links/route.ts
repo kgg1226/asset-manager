@@ -153,6 +153,7 @@ export async function POST(request: NextRequest) {
           legalBasis: body.legalBasis ?? null,
           retentionPeriod: body.retentionPeriod ?? null,
           destructionMethod: body.destructionMethod ?? null,
+          condition: body.condition ?? null, // CONDITIONAL 활성화 조건 (dev-048 이슈5)
           sourceHandle: body.sourceHandle ?? null,
           targetHandle: body.targetHandle ?? null,
         },

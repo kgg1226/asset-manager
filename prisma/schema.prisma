@@ -495,6 +495,7 @@ model AssetLink {
   legalBasis          String?
   retentionPeriod     String?
   destructionMethod   String?
+  condition           String?  // CONDITIONAL 방향 엣지의 활성화 조건 설명 (dev-048 이슈5)
   sourceHandle        String?  // 핸들 ID: top, bottom, left, right, top-left, top-right, bottom-left, bottom-right
   targetHandle        String?  // 핸들 ID
   createdAt           DateTime @default(now())

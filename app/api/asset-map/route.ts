@@ -226,6 +226,7 @@ export async function GET(request: NextRequest) {
         legalBasis: link.legalBasis,
         retentionPeriod: link.retentionPeriod,
         destructionMethod: link.destructionMethod,
+        condition: link.condition, // CONDITIONAL 활성화 조건 (dev-048 이슈5)
         sourceHandle: link.sourceHandle,
         targetHandle: link.targetHandle,
         createdAt: link.createdAt,

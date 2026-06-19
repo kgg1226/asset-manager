@@ -110,6 +110,7 @@ type AssetEdge = {
   legalBasis: string | null;
   retentionPeriod: string | null;
   destructionMethod: string | null;
+  condition: string | null; // CONDITIONAL 활성화 조건 (dev-048 이슈5)
   sourceHandle: string | null;
   targetHandle: string | null;
   sourceAssetName: string;
@@ -1041,6 +1042,7 @@ function LinkModal({
   const [legalBasis, setLegalBasis] = useState("");
   const [retentionPeriod, setRetentionPeriod] = useState("");
   const [destructionMethod, setDestructionMethod] = useState("");
+  const [condition, setCondition] = useState(""); // CONDITIONAL 활성화 조건 (dev-048 이슈5)
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -1063,6 +1065,7 @@ function LinkModal({
       legalBasis: legalBasis || null,
       retentionPeriod: retentionPeriod || null,
       destructionMethod: destructionMethod || null,
+      condition: direction === "CONDITIONAL" ? (condition || null) : null,
     });
   }
 
@@ -1143,6 +1146,16 @@ function LinkModal({
                   </button>
                 ))}
               </div>
+              {/* 조건부 방향: 어떤 조건에서 활성화되는지 입력 (dev-048 이슈5) */}
+              {direction === "CONDITIONAL" && (
+                <textarea
+                  value={condition}
+                  onChange={(e) => setCondition(e.target.value)}
+                  rows={2}
+                  placeholder={t.assetMap.conditionPlaceholder}
+                  className="mt-2 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                />
+              )}
             </div>
           </div>
 
@@ -1402,6 +1415,7 @@ function EdgeDetailModal({
   const legalBasis = (edgeData.legalBasis as string) || "";
   const retentionPeriod = (edgeData.retentionPeriod as string) || "";
   const destructionMethod = (edgeData.destructionMethod as string) || "";
+  const condition = (edgeData.condition as string) || ""; // CONDITIONAL 활성화 조건 (dev-048 이슈5)
 
   const linkTypeLabels: Record<string, string> = {
     DATA_FLOW: t.assetMap?.dataFlow ?? "Data Flow",
@@ -1454,6 +1468,14 @@ function EdgeDetailModal({
             <span className="text-xs text-gray-500">{t.assetMap.directionLabel}</span>
             <span className="text-sm text-gray-800">{directionLabels[direction] || direction}</span>
           </div>
+
+          {/* 조건부 활성화 조건 표시 (dev-048 이슈5) — 기존엔 어떤 조건인지 볼 수 없었다 */}
+          {direction === "CONDITIONAL" && condition && (
+            <div className="flex items-start justify-between gap-2">
+              <span className="shrink-0 text-xs text-gray-500">{t.assetMap.conditionalDirection}</span>
+              <span className="text-right text-sm text-gray-800">{condition}</span>
+            </div>
+          )}
 
           {/* Label */}
           {edgeLabel && (
@@ -2762,6 +2784,7 @@ function AssetMapContentInner() {
             legalBasis: e.legalBasis,
             retentionPeriod: e.retentionPeriod,
             destructionMethod: e.destructionMethod,
+            condition: e.condition,
             label: e.label,
           },
           label: "",

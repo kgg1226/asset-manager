@@ -1368,6 +1368,7 @@ export const ko: TranslationDict = {
     externalEntityOptgroup: "외부 조직",
     reverseDirection: "역방향",
     conditionalDirection: "조건부",
+    conditionPlaceholder: "활성화 조건 (예: 결제 실패 시에만 전송)",
     labelPlaceholder: "API 호출, DB 연결...",
     piiItemsPlaceholder: "이름, 이메일, 전화번호",
     addSection: "섹션 추가",

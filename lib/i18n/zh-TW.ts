@@ -1365,6 +1365,7 @@ export const zhTW: TranslationDict = {
     externalEntityOptgroup: "外部組織",
     reverseDirection: "反向",
     conditionalDirection: "條件",
+    conditionPlaceholder: "啟用條件 (例: 僅付款失敗時傳送)",
     labelPlaceholder: "API呼叫、DB連線...",
     piiItemsPlaceholder: "姓名、電子郵件、電話",
     addSection: "新增區段",

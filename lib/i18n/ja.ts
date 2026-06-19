@@ -1366,6 +1366,7 @@ export const ja: TranslationDict = {
     externalEntityOptgroup: "外部組織",
     reverseDirection: "逆方向",
     conditionalDirection: "条件付き",
+    conditionPlaceholder: "有効化条件 (例: 決済失敗時のみ送信)",
     labelPlaceholder: "API呼び出し、DB接続...",
     piiItemsPlaceholder: "氏名、メール、電話番号",
     addSection: "セクション追加",
