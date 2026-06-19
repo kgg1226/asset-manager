@@ -2162,6 +2162,10 @@ function AssetMapContentInner() {
   // 리셋)를 유발한다(dev-045 이슈6). ref 로 읽어 fetchGraph 의존성에서 분리.
   const animateEdgesRef = useRef(animateEdges);
   animateEdgesRef.current = animateEdges;
+  // flushSave/beforeunload 는 view 를 의존성에 안 잡으므로 ref 로 읽는다 (dev-048 이슈4).
+  // visibleEdgeIds 페이지 가시성은 all 뷰 전용 — 비-all 뷰 저장 시 덮어쓰면 all 가시성이 손상된다.
+  const viewRef = useRef(view);
+  viewRef.current = view;
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const viewportSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dirtyRef = useRef(false);
@@ -2204,12 +2208,17 @@ function AssetMapContentInner() {
         }
       }
 
-      // 현재 캔버스의 엣지 ID 목록 (페이지별 가시성 저장)
-      const visibleEdgeIds = currentEdges
-        .map((e) => Number(String(e.id).replace(/^link-/, "")))
-        .filter((n) => Number.isFinite(n));
+      // 페이지별 엣지 가시성은 all 뷰에서만 갱신 — 비-all 뷰(network/pii 등)에서 저장하면
+      // 그 뷰의 엣지만 visibleEdgeIds 에 남아 all 뷰 가시성이 영구 손상된다 (dev-048 이슈4)
       const existingVis = (ws.edgeVisibility as Record<string, unknown> | null | undefined) ?? {};
-      const edgeVisibility = { ...existingVis, visibleEdgeIds };
+      const edgeVisibility = viewRef.current === "all"
+        ? {
+            ...existingVis,
+            visibleEdgeIds: currentEdges
+              .map((e) => Number(String(e.id).replace(/^link-/, "")))
+              .filter((n) => Number.isFinite(n)),
+          }
+        : existingVis;
 
       const res = await fetch(`/api/asset-map/views/${ws.id}`, {
         method: "PUT",
@@ -2292,18 +2301,23 @@ function AssetMapContentInner() {
             nodePositions[n.id] = { x: n.position.x, y: n.position.y };
           }
         }
-        // 엣지 가시성도 포함 — 누락 시 언로드 저장에서 visibleEdgeIds 유실 (dev-046 P2-a)
+        // 엣지 가시성 — all 뷰에서만 갱신(비-all 뷰 저장이 all 가시성 손상 방지), 누락 시 유실 (dev-046 P2-a, dev-048 이슈4)
         const currentEdges = reactFlowInstance.getEdges();
-        const visibleEdgeIds = currentEdges
-          .map((e) => Number(String(e.id).replace(/^link-/, "")))
-          .filter((n) => Number.isFinite(n));
         const existingVis = (activeWorkspaceRef.current.edgeVisibility as Record<string, unknown> | null | undefined) ?? {};
+        const edgeVisibility = viewRef.current === "all"
+          ? {
+              ...existingVis,
+              visibleEdgeIds: currentEdges
+                .map((e) => Number(String(e.id).replace(/^link-/, "")))
+                .filter((n) => Number.isFinite(n)),
+            }
+          : existingVis;
         navigator.sendBeacon(
           `/api/asset-map/views/${activeWorkspaceRef.current.id}`,
           new Blob([JSON.stringify({
             nodePositions, sectionData,
             viewport: { x: viewport.x, y: viewport.y, zoom: viewport.zoom },
-            edgeVisibility: { ...existingVis, visibleEdgeIds },
+            edgeVisibility,
             _autoSave: true,
           })], { type: "application/json" }),
         );
@@ -2579,6 +2593,13 @@ function AssetMapContentInner() {
         const currentPlacedIds = new Set(placedAssetIdsRef.current);
         const placedIds = new Set([...connectedAssetIds, ...currentPlacedIds]);
 
+        // network 뷰: NETWORK 링크가 없는 네트워크 장비(deviceType="Network")도 캔버스에 표시 (dev-048 이슈1)
+        if (view === "network") {
+          fetchedAllAssets.forEach((a) => {
+            if ((a as { deviceType?: string | null }).deviceType === "Network") placedIds.add(a.id);
+          });
+        }
+
         fetchedAssets = fetchedAllAssets.filter((a) => placedIds.has(a.id));
       }
       setAssets(fetchedAssets);
@@ -2690,7 +2711,9 @@ function AssetMapContentInner() {
       const allRawEdges = data.edges || [];
       const wsEdgeVis = activeWorkspaceRef.current?.edgeVisibility as { visibleEdgeIds?: number[] } | null | undefined;
       const visibleEdgeIds = wsEdgeVis?.visibleEdgeIds;
-      const rawEdges = Array.isArray(visibleEdgeIds)
+      // visibleEdgeIds 페이지 가시성은 all 뷰에서만 적용 — 비-all 뷰(network/data_flow/pii)는
+      // API linkType 필터가 이미 가시성을 결정하므로 화이트리스트를 씌우면 엣지가 전부 사라진다 (dev-048 이슈4)
+      const rawEdges = (view === "all" && Array.isArray(visibleEdgeIds))
         ? allRawEdges.filter((e: AssetEdge) => visibleEdgeIds.includes(e.id))
         : allRawEdges;
 
@@ -2746,8 +2769,10 @@ function AssetMapContentInner() {
         };
 
         if (e.direction === "BI") {
-          // 양방향: source 끝에도 화살촉을 외부 방향(auto-start-reverse)으로 그리기 위해 커스텀 marker 사용
-          edgeObj.markerStart = "arrow-reverse";
+          // 양방향: 시작점에도 끝점과 동일한 명시 화살촉. 기존 "arrow-reverse"(context-stroke) marker 는
+          // 색이 약해 UNI 와 구분이 안 됐다 (dev-048 이슈2). 양쪽 화살촉이 또렷이 보이게 동일 스타일 객체 사용
+          // (React Flow 가 markerStart 객체를 시작점 바깥 방향으로 그린다). 양방향 동시 흐름 애니메이션은 후속.
+          edgeObj.markerStart = { type: MarkerType.ArrowClosed, color: linkColor, width: 16, height: 16, markerUnits: "userSpaceOnUse" };
         } else if (e.direction === "CONDITIONAL") {
           // 조건부: 점선 강조 + 흐림 + 화살촉 유지 (UNI 와 시각적으로 구분)
           edgeObj.style = {
