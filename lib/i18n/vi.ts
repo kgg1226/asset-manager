@@ -1366,6 +1366,7 @@ export const vi: TranslationDict = {
     externalEntityOptgroup: "Tổ chức bên ngoài",
     reverseDirection: "Ngược",
     conditionalDirection: "Có điều kiện",
+    conditionPlaceholder: "Điều kiện kích hoạt (vd: chỉ khi thanh toán lỗi)",
     labelPlaceholder: "Gọi API, kết nối DB...",
     piiItemsPlaceholder: "Tên, Email, Số điện thoại",
     addSection: "Thêm khu vực",

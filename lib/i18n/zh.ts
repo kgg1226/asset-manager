@@ -1365,6 +1365,7 @@ export const zh: TranslationDict = {
     externalEntityOptgroup: "外部组织",
     reverseDirection: "反向",
     conditionalDirection: "条件",
+    conditionPlaceholder: "激活条件 (例: 仅支付失败时发送)",
     labelPlaceholder: "API调用、DB连接...",
     piiItemsPlaceholder: "姓名、邮箱、电话",
     addSection: "添加分区",

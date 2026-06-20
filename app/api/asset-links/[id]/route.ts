@@ -7,7 +7,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit-log";
 
 const LINK_TYPES = ["DATA_FLOW", "NETWORK", "DEPENDENCY", "AUTH"] as const;
-const DIRECTIONS = ["UNI", "BI"] as const;
+const DIRECTIONS = ["UNI", "BI", "REVERSE", "CONDITIONAL"] as const; // POST 와 통일 — 기존 2값이라 REVERSE/CONDITIONAL 수정 시 400 거부됐다 (dev-048 이슈5)
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -96,6 +96,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
       if (body.legalBasis !== undefined) data.legalBasis = body.legalBasis;
       if (body.retentionPeriod !== undefined) data.retentionPeriod = body.retentionPeriod;
       if (body.destructionMethod !== undefined) data.destructionMethod = body.destructionMethod;
+      if (body.condition !== undefined) data.condition = body.condition; // CONDITIONAL 활성화 조건 (dev-048 이슈5)
 
       const result = await tx.assetLink.update({
         where: { id: linkId },

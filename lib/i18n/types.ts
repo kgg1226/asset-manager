@@ -1421,6 +1421,7 @@ export type TranslationDict = {
     externalEntityOptgroup: string;
     reverseDirection: string;
     conditionalDirection: string;
+    conditionPlaceholder: string;
     labelPlaceholder: string;
     piiItemsPlaceholder: string;
     addSection: string;

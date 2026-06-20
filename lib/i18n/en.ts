@@ -1366,6 +1366,7 @@ export const en: TranslationDict = {
     externalEntityOptgroup: "External Entities",
     reverseDirection: "Reverse",
     conditionalDirection: "Conditional",
+    conditionPlaceholder: "Activation condition (e.g. only when payment fails)",
     labelPlaceholder: "API call, DB connection...",
     piiItemsPlaceholder: "Name, Email, Phone",
     addSection: "Add Section",

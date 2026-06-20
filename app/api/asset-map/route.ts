@@ -104,14 +104,29 @@ export async function GET(request: NextRequest) {
           piiStage: true,
         } as const;
 
-      // 필터링된 뷰에서는 엣지에 관련된 노드만 반환
-      assetNodes = assetNodeIds.size > 0
-        ? await prisma.asset.findMany({
-            where: { id: { in: Array.from(assetNodeIds) } },
-            select: assetSelect,
-            orderBy: { name: "asc" },
-          })
-        : [];
+      // 필터링된 뷰에서는 엣지에 관련된 노드만 반환.
+      // network 뷰는 NETWORK 링크가 없는 네트워크 장비(deviceType="Network")도 포함한다 —
+      // 구성도에 장비가 빠지면 안 되므로(dev-048 이슈1). 엣지 연결 OR 네트워크 장비.
+      if (view === "network") {
+        assetNodes = await prisma.asset.findMany({
+          where: {
+            OR: [
+              ...(assetNodeIds.size > 0 ? [{ id: { in: Array.from(assetNodeIds) } }] : []),
+              { hardwareDetail: { deviceType: "Network" } },
+            ],
+          },
+          select: assetSelect,
+          orderBy: { name: "asc" },
+        });
+      } else {
+        assetNodes = assetNodeIds.size > 0
+          ? await prisma.asset.findMany({
+              where: { id: { in: Array.from(assetNodeIds) } },
+              select: assetSelect,
+              orderBy: { name: "asc" },
+            })
+          : [];
+      }
     }
 
     // ── 외부 엔티티 노드 조회 ──
@@ -211,6 +226,7 @@ export async function GET(request: NextRequest) {
         legalBasis: link.legalBasis,
         retentionPeriod: link.retentionPeriod,
         destructionMethod: link.destructionMethod,
+        condition: link.condition, // CONDITIONAL 활성화 조건 (dev-048 이슈5)
         sourceHandle: link.sourceHandle,
         targetHandle: link.targetHandle,
         createdAt: link.createdAt,
