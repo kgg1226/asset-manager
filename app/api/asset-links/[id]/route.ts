@@ -40,36 +40,46 @@ export async function PUT(request: NextRequest, { params }: Params) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data: Record<string, any> = {};
 
-      if (body.sourceAssetId !== undefined) {
-        if (typeof body.sourceAssetId !== "number") {
-          throw new Error("INVALID_SOURCE");
-        }
-        const source = await tx.asset.findUnique({
-          where: { id: body.sourceAssetId },
-          select: { id: true },
-        });
+      // 소스 — 자산/외부엔티티 4종 모두 수정 지원 (POST 대칭). 자산↔외부는 상호 배타라 한쪽 설정 시 반대 ID를 null로.
+      // 기존 PUT은 자산 ID만 처리해 외부엔티티 연결을 수정할 수 없었고, NaN(예: Number("ext-5"))이
+      // typeof === "number" 가드를 통과해 무음 404로 떨어졌다 (dev-049 #13/#14) → Number.isInteger 로 강화.
+      if (body.sourceAssetId !== undefined && body.sourceAssetId !== null) {
+        if (!Number.isInteger(body.sourceAssetId)) throw new Error("INVALID_SOURCE");
+        const source = await tx.asset.findUnique({ where: { id: body.sourceAssetId }, select: { id: true } });
         if (!source) throw new Error("SOURCE_NOT_FOUND");
         data.sourceAssetId = body.sourceAssetId;
+        data.sourceExternalId = null;
+      } else if (body.sourceExternalId !== undefined && body.sourceExternalId !== null) {
+        if (!Number.isInteger(body.sourceExternalId)) throw new Error("INVALID_SOURCE");
+        const ext = await tx.externalEntity.findUnique({ where: { id: body.sourceExternalId }, select: { id: true } });
+        if (!ext) throw new Error("SOURCE_NOT_FOUND");
+        data.sourceExternalId = body.sourceExternalId;
+        data.sourceAssetId = null;
       }
 
-      if (body.targetAssetId !== undefined) {
-        if (typeof body.targetAssetId !== "number") {
-          throw new Error("INVALID_TARGET");
-        }
-        const target = await tx.asset.findUnique({
-          where: { id: body.targetAssetId },
-          select: { id: true },
-        });
+      // 타겟 — 동일 규칙
+      if (body.targetAssetId !== undefined && body.targetAssetId !== null) {
+        if (!Number.isInteger(body.targetAssetId)) throw new Error("INVALID_TARGET");
+        const target = await tx.asset.findUnique({ where: { id: body.targetAssetId }, select: { id: true } });
         if (!target) throw new Error("TARGET_NOT_FOUND");
         data.targetAssetId = body.targetAssetId;
+        data.targetExternalId = null;
+      } else if (body.targetExternalId !== undefined && body.targetExternalId !== null) {
+        if (!Number.isInteger(body.targetExternalId)) throw new Error("INVALID_TARGET");
+        const ext = await tx.externalEntity.findUnique({ where: { id: body.targetExternalId }, select: { id: true } });
+        if (!ext) throw new Error("TARGET_NOT_FOUND");
+        data.targetExternalId = body.targetExternalId;
+        data.targetAssetId = null;
       }
 
-      // 자기 연결 방지 검사
-      const finalSource = data.sourceAssetId ?? existing.sourceAssetId;
-      const finalTarget = data.targetAssetId ?? existing.targetAssetId;
-      if (finalSource === finalTarget) {
-        throw new Error("SELF_LINK");
-      }
+      // 자기 연결 방지 — data 에 키가 있으면(명시 변경) 그 값, 없으면 기존값. 같은 종류(자산↔자산, 외부↔외부) 동일 ID 금지.
+      const has = (k: string) => Object.prototype.hasOwnProperty.call(data, k);
+      const finalSourceAsset = has("sourceAssetId") ? data.sourceAssetId : existing.sourceAssetId;
+      const finalTargetAsset = has("targetAssetId") ? data.targetAssetId : existing.targetAssetId;
+      const finalSourceExternal = has("sourceExternalId") ? data.sourceExternalId : existing.sourceExternalId;
+      const finalTargetExternal = has("targetExternalId") ? data.targetExternalId : existing.targetExternalId;
+      if (finalSourceAsset != null && finalSourceAsset === finalTargetAsset) throw new Error("SELF_LINK");
+      if (finalSourceExternal != null && finalSourceExternal === finalTargetExternal) throw new Error("SELF_LINK");
 
       if (body.linkType !== undefined) {
         if (!LINK_TYPES.includes(body.linkType)) {
@@ -104,6 +114,8 @@ export async function PUT(request: NextRequest, { params }: Params) {
         include: {
           sourceAsset: { select: { id: true, name: true, type: true, status: true } },
           targetAsset: { select: { id: true, name: true, type: true, status: true } },
+          sourceExternal: { select: { id: true, name: true, type: true } },
+          targetExternal: { select: { id: true, name: true, type: true } },
         },
       });
 

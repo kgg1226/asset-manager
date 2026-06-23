@@ -2230,10 +2230,15 @@ function AssetMapContentInner() {
         }
       }
 
-      // 페이지별 엣지 가시성은 all 뷰에서만 갱신 — 비-all 뷰(network/pii 등)에서 저장하면
-      // 그 뷰의 엣지만 visibleEdgeIds 에 남아 all 뷰 가시성이 영구 손상된다 (dev-048 이슈4)
+      // 비-all 뷰(network/pii/data_flow)는 캔버스에 연결+배치된 부분집합 노드만 올라온다.
+      // 그 상태에서 nodePositions/sectionData/edgeVisibility 를 그대로 저장하면 all 뷰의
+      // 미표시 자산·섹션·엣지가시성이 서버에서 영구 삭제된다. dev-048 은 edgeVisibility 만
+      // all 뷰 가드했고 nodePositions/sectionData 를 빠뜨려 P0 소실 경로가 남았다 (dev-049 #1).
+      // 세 값 모두 all 뷰에서만 본문에 포함하고, 비-all 뷰면 생략 → PUT 라우트의 `undefined`
+      // 스킵(views/[id]/route.ts:53-56)으로 서버값이 보존된다.
+      const isAllView = viewRef.current === "all";
       const existingVis = (ws.edgeVisibility as Record<string, unknown> | null | undefined) ?? {};
-      const edgeVisibility = viewRef.current === "all"
+      const edgeVisibility = isAllView
         ? {
             ...existingVis,
             visibleEdgeIds: currentEdges
@@ -2246,8 +2251,7 @@ function AssetMapContentInner() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          nodePositions,
-          sectionData,
+          ...(isAllView && { nodePositions, sectionData }),
           viewport: { x: viewport.x, y: viewport.y, zoom: viewport.zoom },
           edgeVisibility,
           _autoSave: true,
@@ -2265,11 +2269,13 @@ function AssetMapContentInner() {
       // state 도 함께 갱신하는 이유: 매 렌더마다 ref 가 state 로 동기화되므로 ref 만
       // 갱신하면 다음 렌더에 stale 값이 되살아난다. effect 재발화는 의존성을
       // workspace id 로 키잉해 차단한다.
+      // 비-all 뷰에서는 부분집합 nodePositions/sectionData 로 ref/state 를 오염시키지 않는다
+      // (서버에도 보내지 않았으므로 로컬도 기존 전체 상태를 유지). 그래야 all 뷰 복귀 시
+      // fetchGraph 의 savedIds 필터가 미표시 자산을 캔버스에서 탈락시키지 않는다 (dev-049 #1).
       const savedState = {
-        nodePositions,
-        sectionData,
         viewport: { x: viewport.x, y: viewport.y, zoom: viewport.zoom },
         edgeVisibility,
+        ...(isAllView && { nodePositions, sectionData }),
       };
       activeWorkspaceRef.current = { ...ws, ...savedState };
       setActiveWorkspace((prev) => (prev ? { ...prev, ...savedState } : prev));
@@ -2323,10 +2329,12 @@ function AssetMapContentInner() {
             nodePositions[n.id] = { x: n.position.x, y: n.position.y };
           }
         }
-        // 엣지 가시성 — all 뷰에서만 갱신(비-all 뷰 저장이 all 가시성 손상 방지), 누락 시 유실 (dev-046 P2-a, dev-048 이슈4)
+        // nodePositions/sectionData/edgeVisibility 모두 all 뷰에서만 저장 — 비-all 뷰는
+        // 부분집합이라 저장 시 all 뷰의 미표시 자산·섹션·가시성이 영구 손상 (dev-046 P2-a, dev-048 이슈4, dev-049 #1)
+        const isAllView = viewRef.current === "all";
         const currentEdges = reactFlowInstance.getEdges();
         const existingVis = (activeWorkspaceRef.current.edgeVisibility as Record<string, unknown> | null | undefined) ?? {};
-        const edgeVisibility = viewRef.current === "all"
+        const edgeVisibility = isAllView
           ? {
               ...existingVis,
               visibleEdgeIds: currentEdges
@@ -2337,7 +2345,7 @@ function AssetMapContentInner() {
         navigator.sendBeacon(
           `/api/asset-map/views/${activeWorkspaceRef.current.id}`,
           new Blob([JSON.stringify({
-            nodePositions, sectionData,
+            ...(isAllView && { nodePositions, sectionData }),
             viewport: { x: viewport.x, y: viewport.y, zoom: viewport.zoom },
             edgeVisibility,
             _autoSave: true,
@@ -2358,6 +2366,18 @@ function AssetMapContentInner() {
     setSaveStatus("dirty");
     if (viewportSaveTimerRef.current) clearTimeout(viewportSaveTimerRef.current);
     viewportSaveTimerRef.current = setTimeout(() => flushSave(), 3000);
+  }, [flushSave]);
+
+  // ── View(필터 탭) 전환 ──
+  // 전환 전에 ① 보류 중인 자동저장을 현재 뷰 기준으로 확정(flushSave)하고 ② 대기 타이머를 취소한다.
+  // 미처리 시: all 뷰에서 dirty 인 채 전환하면 보류 타이머가 전환 후(viewRef=비-all) 뒤늦게 발화하거나
+  // 캔버스가 부분집합으로 교체돼, 정당한 all 뷰 편집이 저장되지 못하고 유실된다 (dev-049 #2, P0 #1 가드와 함께).
+  const changeView = useCallback(async (next: ViewType) => {
+    if (next === viewRef.current) return;
+    if (autoSaveTimerRef.current) { clearTimeout(autoSaveTimerRef.current); autoSaveTimerRef.current = null; }
+    if (viewportSaveTimerRef.current) { clearTimeout(viewportSaveTimerRef.current); viewportSaveTimerRef.current = null; }
+    if (dirtyRef.current) await flushSave();
+    setView(next);
   }, [flushSave]);
 
   // ── Workspace operations ──
@@ -2952,20 +2972,34 @@ function AssetMapContentInner() {
       // Update the edge visually
       setEdges((eds) => reconnectEdge(oldEdge, newConnection, eds));
 
-      // Update in DB
+      // Update in DB — 노드 id 가 "ext-{id}" 면 외부엔티티, 아니면 자산.
+      // 기존엔 target 만·Number() 로 보내 외부엔티티 재연결 시 NaN→무음 404 + UI/DB desync 였다 (dev-049 #14).
+      // 이제 양 엔드포인트를 보내고(source 재연결도 반영), REVERSE 는 화면상 swap 을 되돌려 DB 방향을 보존,
+      // res.ok 실패 시 화면을 서버 상태로 롤백한다.
       const edgeData = oldEdge.data as Record<string, unknown> | undefined;
       const linkId = edgeData?.linkId;
-      if (linkId && newConnection.target) {
+      const endpoint = (role: "source" | "target", nodeId: string | null | undefined) => {
+        if (!nodeId) return {};
+        return nodeId.startsWith("ext-")
+          ? { [`${role}ExternalId`]: Number(nodeId.slice(4)) }
+          : { [`${role}AssetId`]: Number(nodeId) };
+      };
+      if (linkId && newConnection.source && newConnection.target) {
+        // REVERSE 엣지는 fetchGraph 가 source/target 을 swap 해 그리므로(2753-2758) 화면값을 되돌려 DB 기준으로 환원
+        const isReverse = (edgeData?.direction as string) === "REVERSE";
+        const dbSourceNode = isReverse ? newConnection.target : newConnection.source;
+        const dbTargetNode = isReverse ? newConnection.source : newConnection.target;
         try {
-          await fetch(`/api/asset-links/${linkId}`, {
+          const res = await fetch(`/api/asset-links/${linkId}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              targetAssetId: Number(newConnection.target),
+              ...endpoint("source", dbSourceNode),
+              ...endpoint("target", dbTargetNode),
             }),
           });
+          if (!res.ok) fetchGraph(); // 무음 desync 방지 — 서버 거부 시 화면 롤백
         } catch {
-          // Revert on failure
           fetchGraph();
         }
       }
@@ -3119,27 +3153,36 @@ function AssetMapContentInner() {
         if (linkType === "DATA_FLOW") strokeDasharray = "6 3";
         else if (linkType === "DEPENDENCY") strokeDasharray = "3 3";
 
+        const direction = (newLink.direction as string) || "UNI";
+        // REVERSE 는 source/target·handle swap 으로 화살표가 반대 방향으로 그려진다 (fetchGraph 와 동일)
+        const isReverse = direction === "REVERSE";
+        const baseSource = newLink.sourceAssetId ? String(newLink.sourceAssetId) : `ext-${newLink.sourceExternalId}`;
+        const baseTarget = newLink.targetAssetId ? String(newLink.targetAssetId) : `ext-${newLink.targetExternalId}`;
+        const baseSourceHandle = newLink.sourceHandle || pendingConnection?.sourceHandle || "right";
+        const baseTargetHandle = newLink.targetHandle || pendingConnection?.targetHandle || "left";
+
         const newEdge: Edge = {
           id: `link-${newLink.id}`,
           type: "smoothstep",
-          source: newLink.sourceAssetId ? String(newLink.sourceAssetId) : `ext-${newLink.sourceExternalId}`,
-          target: newLink.targetAssetId ? String(newLink.targetAssetId) : `ext-${newLink.targetExternalId}`,
-          sourceHandle: newLink.sourceHandle || pendingConnection?.sourceHandle || "right",
-          targetHandle: newLink.targetHandle || pendingConnection?.targetHandle || "left",
+          source: isReverse ? baseTarget : baseSource,
+          target: isReverse ? baseSource : baseTarget,
+          sourceHandle: isReverse ? baseTargetHandle : baseSourceHandle,
+          targetHandle: isReverse ? baseSourceHandle : baseTargetHandle,
           // 신규 엣지에도 현재 토글 상태 반영 — 기존엔 누락돼 껐다 켜야 적용됐다 (dev-045 이슈3-A)
           animated: animateEdgesRef.current && linkType !== "DEPENDENCY",
-          style: { stroke: linkColor, strokeWidth: 2, strokeDasharray },
+          style: { stroke: linkColor, strokeWidth: direction === "BI" ? 3 : 2, strokeDasharray },
           markerEnd: { type: MarkerType.ArrowClosed, color: linkColor, width: 16, height: 16, markerUnits: "userSpaceOnUse" },
           data: {
             linkId: newLink.id,
             linkType,
-            direction: newLink.direction || "UNI",
+            direction,
             dataTypes: newLink.dataTypes,
             piiItems: newLink.piiItems,
             protocol: newLink.protocol,
             legalBasis: newLink.legalBasis,
             retentionPeriod: newLink.retentionPeriod,
             destructionMethod: newLink.destructionMethod,
+            condition: newLink.condition,
             label: newLink.label,
           },
           label: newLink.label || linkType,
@@ -3148,6 +3191,13 @@ function AssetMapContentInner() {
           labelBgPadding: [6, 4] as [number, number],
           labelBgBorderRadius: 6,
         };
+        // 방향별 스타일 — fetchGraph(2794-2807)와 동일하게 적용해 생성 직후와 재조회 후 표현을 일치시킨다 (dev-049 #3).
+        // 미적용 시 신규 BI 는 시작 화살촉 없이 단방향처럼 보이고(패널 isBi 오판정), CONDITIONAL 은 강조되지 않았다.
+        if (direction === "BI") {
+          newEdge.markerStart = { type: MarkerType.ArrowClosed, color: linkColor, width: 16, height: 16, markerUnits: "userSpaceOnUse" };
+        } else if (direction === "CONDITIONAL") {
+          newEdge.style = { ...newEdge.style, strokeDasharray: "8 4", strokeWidth: 1.5, opacity: 0.6 };
+        }
         setEdges((prev) => {
           const allEdges = [...prev, newEdge];
           distributeEdgeHandles(allEdges);
@@ -4118,7 +4168,7 @@ function AssetMapContentInner() {
             {viewTabs.map((v) => (
               <button
                 key={v.key}
-                onClick={() => setView(v.key)}
+                onClick={() => changeView(v.key)}
                 className={`rounded-md px-3 py-1 text-xs font-medium transition ${
                   view === v.key ? "bg-white text-blue-700 shadow-sm" : "text-gray-600 hover:text-gray-900"
                 }`}
