@@ -374,7 +374,8 @@ export default function NewLicensePage() {
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
-                  {t.license.renewalDate}
+                  {/* '갱신 예정일' 라벨은 cloud 네임스페이스의 단일 키를 공유 (license 에 중복 키 추가 대신) */}
+                  {t.cloud.renewalDate}
                 </label>
                 <div className="input flex cursor-not-allowed items-center bg-gray-50 text-gray-500">
                   {renewalDateStr || "—"}
