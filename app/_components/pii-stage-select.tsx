@@ -21,21 +21,21 @@ export default function PiiStageSelect({
 
   // 코드값 → i18n 라벨 (단계명은 기존 키 재사용)
   const LABELS: Record<PiiStage, string> = {
-    COLLECTION: t.asset.piiCollection,
-    STORAGE: t.asset.piiStorage,
-    USAGE_PROVISION: t.asset.piiUsageProvision,
-    DESTRUCTION: t.asset.piiDestruction,
+    COLLECTION: t.assetMap.piiCollection,
+    STORAGE: t.assetMap.piiStorage,
+    USAGE_PROVISION: t.assetMap.piiUsageProvision,
+    DESTRUCTION: t.assetMap.piiDestruction,
   };
 
   return (
     <div>
-      <label className="mb-1 block text-xs font-medium text-gray-600">{t.asset.piiStageField}</label>
+      <label className="mb-1 block text-xs font-medium text-gray-600">{t.assetMap.piiStageField}</label>
       <select
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value ? (e.target.value as PiiStage) : null)}
         className={ic}
       >
-        <option value="">{t.asset.piiStageNone}</option>
+        <option value="">{t.assetMap.piiStageNone}</option>
         {PII_STAGES.map((s) => (
           <option key={s} value={s}>{LABELS[s]}</option>
         ))}

@@ -310,7 +310,7 @@ export default function CloudListPage() {
                       {/* 다음 갱신일·자동갱신 — 구독 관리 핵심 정보 (dev-035) */}
                       {asset.cloudDetail?.renewalDate && (
                         <p className="mt-0.5 whitespace-nowrap text-xs text-gray-400">
-                          {t.license.renewalDate}: {formatDate(asset.cloudDetail.renewalDate)}
+                          {t.cloud.renewalDate}: {formatDate(asset.cloudDetail.renewalDate)}
                           {asset.cloudDetail?.autoRenew && <span className="ml-1 rounded bg-green-50 px-1 py-0.5 text-[10px] text-green-600">{t.common.auto}</span>}
                         </p>
                       )}
