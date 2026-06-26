@@ -4,8 +4,9 @@
 // 카탈로그(lib/pii-items.ts) 칩 다중선택 + 선택 항목별 보유기간·법적근거 입력.
 // value 는 AssetPiiItem 일부 형태 배열로 폼과 주고받는다.
 
-import { PII_ITEM_KEYS, PII_ITEM_CATALOG, PII_CATEGORY_STYLE, piiItemLabel } from "@/lib/pii-items";
-import { PII_STAGES, PII_STAGE_LABEL } from "@/lib/pii-stage";
+import { PII_ITEM_KEYS, PII_ITEM_CATALOG, PII_CATEGORY_STYLE, piiItemLabelI18n } from "@/lib/pii-items";
+import { PII_STAGES, piiStageLabelI18n } from "@/lib/pii-stage";
+import { useTranslation } from "@/lib/i18n";
 
 export type PiiItemRow = {
   itemKey: string;
@@ -54,6 +55,7 @@ export default function PiiItemsEditor({
   value: PiiItemRow[];
   onChange: (rows: PiiItemRow[]) => void;
 }) {
+  const { t } = useTranslation();
   const selected = new Set(value.map((r) => r.itemKey));
 
   function toggle(key: string) {
@@ -68,7 +70,7 @@ export default function PiiItemsEditor({
 
   return (
     <div>
-      <label className="mb-1 block text-xs font-medium text-gray-600">수집·보유 개인정보 항목</label>
+      <label className="mb-1 block text-xs font-medium text-gray-600">{t.pii.itemsLabel}</label>
       {/* 카탈로그 칩 — 분류별 색상, 클릭 토글 */}
       <div className="flex flex-wrap gap-1.5">
         {PII_ITEM_KEYS.map((key) => {
@@ -87,7 +89,7 @@ export default function PiiItemsEditor({
                   : { backgroundColor: "transparent", color: "#9ca3af", boxShadow: "inset 0 0 0 1px #e5e7eb" }
               }
             >
-              {PII_ITEM_CATALOG[key].label}
+              {piiItemLabelI18n(key, t)}
             </button>
           );
         })}
@@ -103,20 +105,20 @@ export default function PiiItemsEditor({
               <div key={r.itemKey} className="space-y-1.5 rounded-md border border-gray-200 p-2">
                 <div className="grid grid-cols-[80px_1fr_1fr] items-center gap-2">
                   <span className="truncate rounded px-1.5 py-0.5 text-xs font-medium" style={{ backgroundColor: st.bg, color: st.text }}>
-                    {piiItemLabel(r.itemKey)}
+                    {piiItemLabelI18n(r.itemKey, t)}
                   </span>
                   <input
                     type="text"
                     value={r.retentionPeriod ?? ""}
                     onChange={(e) => patchRow(r.itemKey, { retentionPeriod: e.target.value })}
-                    placeholder="보유기간 (예: 탈퇴 후 5년)"
+                    placeholder={t.pii.retentionPlaceholder}
                     className={ic}
                   />
                   <input
                     type="text"
                     value={r.legalBasis ?? ""}
                     onChange={(e) => patchRow(r.itemKey, { legalBasis: e.target.value })}
-                    placeholder="법적근거 (예: 동의)"
+                    placeholder={t.pii.legalBasisPlaceholder}
                     className={ic}
                   />
                 </div>
@@ -136,25 +138,25 @@ export default function PiiItemsEditor({
                             : { backgroundColor: "transparent", color: "#9CA3AF", boxShadow: "inset 0 0 0 1px #E5E7EB" }
                         }
                       >
-                        {PII_STAGE_LABEL[s]}
+                        {piiStageLabelI18n(s, t)}
                       </button>
                     );
                   })}
                 </div>
                 <div className="grid grid-cols-[80px_1fr_1fr] items-center gap-2">
-                  <span className="pl-1.5 text-[11px] text-gray-400">파기·비고</span>
+                  <span className="pl-1.5 text-[11px] text-gray-400">{t.pii.destructionNoteLabel}</span>
                   <input
                     type="text"
                     value={r.destructionMethod ?? ""}
                     onChange={(e) => patchRow(r.itemKey, { destructionMethod: e.target.value })}
-                    placeholder="파기방법 (예: 폐기·소각)"
+                    placeholder={t.pii.destructionPlaceholder}
                     className={ic}
                   />
                   <input
                     type="text"
                     value={r.note ?? ""}
                     onChange={(e) => patchRow(r.itemKey, { note: e.target.value })}
-                    placeholder="비고"
+                    placeholder={t.pii.notePlaceholder}
                     className={ic}
                   />
                 </div>

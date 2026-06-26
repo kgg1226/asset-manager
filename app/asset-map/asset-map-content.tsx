@@ -71,7 +71,7 @@ import {
   MoveRight,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
-import { PII_ITEM_KEYS, PII_ITEM_CATALOG, PII_CATEGORY_STYLE, piiItemLabel, isPiiItemKey } from "@/lib/pii-items";
+import { PII_ITEM_KEYS, PII_ITEM_CATALOG, PII_CATEGORY_STYLE, piiItemLabelI18n, isPiiItemKey } from "@/lib/pii-items";
 
 // ─── Types ─────────────────────────────────────────────────────────────
 
@@ -1027,8 +1027,9 @@ function parseEdgePiiItems(raw: string | null | undefined): string[] {
 }
 
 // 표시용 라벨 조인 — 카탈로그 코드면 한국어 라벨로, 레거시 자유텍스트는 원문 그대로.
-function edgePiiItemsLabel(raw: string | null | undefined): string {
-  return parseEdgePiiItems(raw).map((v) => (isPiiItemKey(v) ? piiItemLabel(v) : v)).join(", ");
+function edgePiiItemsLabel(raw: string | null | undefined, t: ReturnType<typeof useTranslation>["t"]): string {
+  // piiItemLabelI18n 은 카탈로그 코드면 로케일 라벨, 아니면 원문 반환(레거시 자유텍스트 하위호환).
+  return parseEdgePiiItems(raw).map((v) => piiItemLabelI18n(v, t)).join(", ");
 }
 
 // ─── Link Modal ────────────────────────────────────────────────────────
@@ -1227,7 +1228,7 @@ function LinkModal({
                             : { backgroundColor: "transparent", color: "#9ca3af", boxShadow: "inset 0 0 0 1px #e5e7eb" }
                         }
                       >
-                        {PII_ITEM_CATALOG[key].label}
+                        {piiItemLabelI18n(key, t)}
                       </button>
                     );
                   })}
@@ -1560,7 +1561,7 @@ function EdgeDetailModal({
                       className="rounded-full px-2 py-0.5 text-xs font-medium"
                       style={st ? { backgroundColor: st.bg, color: st.text } : { backgroundColor: "#FEE2E2", color: "#991B1B" }}
                     >
-                      {isPiiItemKey(v) ? piiItemLabel(v) : v}
+                      {piiItemLabelI18n(v, t)}
                     </span>
                   );
                 })}
@@ -2888,7 +2889,7 @@ function AssetMapContentInner() {
 
         // Add PII items summary on edges when in PII view
         if (view === "pii" && e.piiItems) {
-          edgeObj.label = edgePiiItemsLabel(e.piiItems); // 코드→라벨, 레거시 원문 유지 (dev-051 #8)
+          edgeObj.label = edgePiiItemsLabel(e.piiItems, t); // 코드→로케일 라벨, 레거시 원문 유지 (dev-051 #8, dev-053 i18n)
           edgeObj.labelStyle = { fontSize: 10, fill: linkColor, fontWeight: 600 };
           edgeObj.labelBgStyle = { fill: LINK_BG_COLORS[linkType] || "#F9FAFB", fillOpacity: 0.95 };
           edgeObj.labelBgPadding = [6, 4] as [number, number];

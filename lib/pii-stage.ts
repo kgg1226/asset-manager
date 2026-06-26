@@ -2,6 +2,8 @@
 // Asset.piiStage(String?) 의 허용값 — 자산맵 흐름도 배치·증적의 기준.
 // 자산맵의 PII_STAGE_MAP(인덱스 매핑)과 순서를 일치시킨다: 수집→저장→이용·제공→파기.
 
+import type { TranslationDict } from "@/lib/i18n/types";
+
 export const PII_STAGES = ["COLLECTION", "STORAGE", "USAGE_PROVISION", "DESTRUCTION"] as const;
 export type PiiStage = (typeof PII_STAGES)[number];
 
@@ -18,3 +20,15 @@ export const PII_STAGE_LABEL: Record<PiiStage, string> = {
   USAGE_PROVISION: "이용·제공",
   DESTRUCTION: "파기",
 };
+
+// 클라이언트 표시용 i18n 단계 라벨 (dev-053) — 기존 assetMap.pii* 키 재사용(중복 신설 금지).
+// 서버(export)는 t 획득 불가 → PII_STAGE_LABEL(한국어) 사용.
+export function piiStageLabelI18n(stage: string, t: TranslationDict): string {
+  switch (stage) {
+    case "COLLECTION": return t.assetMap.piiCollection;
+    case "STORAGE": return t.assetMap.piiStorage;
+    case "USAGE_PROVISION": return t.assetMap.piiUsageProvision;
+    case "DESTRUCTION": return t.assetMap.piiDestruction;
+    default: return isPiiStage(stage) ? PII_STAGE_LABEL[stage] : stage;
+  }
+}

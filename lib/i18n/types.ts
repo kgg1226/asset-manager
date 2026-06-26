@@ -1621,4 +1621,39 @@ export type TranslationDict = {
     duplicate: string;
     internalError: string;
   };
+
+  // 개인정보 항목 카탈로그 라벨 (dev-053) — lib/pii-items.ts PII_ITEM_CATALOG 코드의 다국어 라벨.
+  // 코드·색상·분류는 lib 단일출처, 표시 라벨만 i18n. 서버 export 는 lib 한국어 폴백 사용.
+  pii: {
+    itemName: string;
+    itemEmail: string;
+    itemPhone: string;
+    itemAddress: string;
+    itemBirth: string;
+    itemGender: string;
+    itemLocation: string;
+    itemIp: string;
+    itemRrn: string;
+    itemPassport: string;
+    itemDriverLicense: string;
+    itemForeignerId: string;
+    itemHealth: string;
+    itemBiometric: string;
+    itemGenetic: string;
+    itemCriminal: string;
+    itemBelief: string;
+    itemAccount: string;
+    itemCard: string;
+    itemLoginId: string;
+    itemPassword: string;
+    // 에디터·리포트 UI (dev-053)
+    itemsLabel: string;
+    retentionPlaceholder: string;
+    legalBasisPlaceholder: string;
+    destructionPlaceholder: string;
+    notePlaceholder: string;
+    destructionNoteLabel: string;
+    flowExportTitle: string;
+    flowExportTooltip: string;
+  };
 };
