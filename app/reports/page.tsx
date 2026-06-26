@@ -324,14 +324,14 @@ export default function ReportsPage() {
               <Download className="h-4 w-4" />
               {t.report.assetRegisterTitle}
             </a>
-            {/* ISMS-P 개인정보 흐름표 (dev-050 #9). PII 기능은 현재 한국어 전용 — 라벨 i18n 은 후속. */}
+            {/* ISMS-P 개인정보 흐름표 (dev-050 #9, dev-053 i18n) */}
             <a
               href="/api/reports/pii-flow"
               className="inline-flex items-center gap-1.5 rounded-md border border-rose-600 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-100"
-              title="개인정보 흐름표 (ISMS-P 증적) — 자산 보유 항목 + 자산 간 PII 이동을 Excel 로 내보냅니다"
+              title={t.pii.flowExportTooltip}
             >
               <Download className="h-4 w-4" />
-              개인정보 흐름표
+              {t.pii.flowExportTitle}
             </a>
           </div>
         </div>

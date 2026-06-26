@@ -2,6 +2,8 @@
 // AssetPiiItem.itemKey 와 엣지 AssetLink.piiItems 가 공유해 표기 흔들림("이메일" vs "email")을 막는다.
 // 라벨은 한국 개인정보보호법 용어(ISMS-P 도메인) 기준 — 다국어는 후속.
 
+import type { TranslationDict } from "@/lib/i18n/types";
+
 export const PII_ITEM_CATEGORIES = ["GENERAL", "UNIQUE_ID", "SENSITIVE", "FINANCE", "CREDENTIAL"] as const;
 export type PiiItemCategory = (typeof PII_ITEM_CATEGORIES)[number];
 
@@ -42,6 +44,23 @@ export function isPiiItemKey(v: unknown): v is PiiItemKey {
 
 export function piiItemLabel(key: string): string {
   return isPiiItemKey(key) ? PII_ITEM_CATALOG[key].label : key;
+}
+
+// itemKey → i18n 키 매핑 (dev-053). 코드·분류·색상은 위 카탈로그가 단일출처로 유지하고,
+// 표시 라벨만 로케일별로 분리한다.
+const PII_ITEM_I18N_KEY: Record<PiiItemKey, keyof TranslationDict["pii"]> = {
+  NAME: "itemName", EMAIL: "itemEmail", PHONE: "itemPhone", ADDRESS: "itemAddress",
+  BIRTH: "itemBirth", GENDER: "itemGender", LOCATION: "itemLocation", IP: "itemIp",
+  RRN: "itemRrn", PASSPORT: "itemPassport", DRIVER_LICENSE: "itemDriverLicense",
+  FOREIGNER_ID: "itemForeignerId", HEALTH: "itemHealth", BIOMETRIC: "itemBiometric",
+  GENETIC: "itemGenetic", CRIMINAL: "itemCriminal", BELIEF: "itemBelief",
+  ACCOUNT: "itemAccount", CARD: "itemCard", LOGIN_ID: "itemLoginId", PASSWORD: "itemPassword",
+};
+
+// 클라이언트 표시용 i18n 라벨 — t 주입형. 카탈로그 코드가 아니면 원문 반환(레거시 자유텍스트 하위호환).
+// 서버(export)는 t 획득이 불가하므로 기존 piiItemLabel(한국어)을 그대로 쓴다 — ISMS-P 국내 증적.
+export function piiItemLabelI18n(key: string, t: TranslationDict): string {
+  return isPiiItemKey(key) ? t.pii[PII_ITEM_I18N_KEY[key]] : key;
 }
 
 export function piiItemCategory(key: string): PiiItemCategory | null {
