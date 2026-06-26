@@ -10,7 +10,7 @@ import { useTranslation } from "@/lib/i18n";
 import CiaScoreInput from "@/app/_components/cia-score-input";
 import ClassificationSelect from "@/app/_components/classification-select";
 import PiiStageSelect from "@/app/_components/pii-stage-select";
-import PiiItemsEditor, { type PiiItemRow } from "@/app/_components/pii-items-editor";
+import PiiItemsEditor, { type PiiItemRow, parsePiiItemRows } from "@/app/_components/pii-items-editor";
 import type { PiiStage } from "@/lib/pii-stage";
 import LifecycleGauge from "@/app/_components/lifecycle-gauge";
 import type { CiaLevel } from "@/lib/cia";
@@ -55,7 +55,7 @@ export default function HardwareEditPage() {
         setCia({ ciaC: (d.ciaC as CiaLevel) ?? null, ciaI: (d.ciaI as CiaLevel) ?? null, ciaA: (d.ciaA as CiaLevel) ?? null });
         setSubCategoryId(d.subCategoryId ?? null);
         setPiiStage((d.piiStage as PiiStage) ?? null);
-        setPiiItems(((d.piiItems as PiiItemRow[] | undefined) ?? []).map((p) => ({ itemKey: p.itemKey, legalBasis: p.legalBasis, retentionPeriod: p.retentionPeriod })));
+        setPiiItems(parsePiiItemRows(d.piiItems));
         if (d.hardwareDetail) {
           const h = d.hardwareDetail;
           setHw({
