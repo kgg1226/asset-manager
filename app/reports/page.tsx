@@ -315,14 +315,25 @@ export default function ReportsPage() {
             <h1 className="text-2xl font-bold text-gray-900">{t.report.monthlyReport}</h1>
             <TourGuide tourKey={REPORTS_TOUR_KEY} steps={getReportsSteps(t)} />
           </div>
-          <a
-            href="/api/reports/asset-register"
-            className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100"
-            title={t.report.assetRegisterTooltip}
-          >
-            <Download className="h-4 w-4" />
-            {t.report.assetRegisterTitle}
-          </a>
+          <div className="flex items-center gap-2">
+            <a
+              href="/api/reports/asset-register"
+              className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100"
+              title={t.report.assetRegisterTooltip}
+            >
+              <Download className="h-4 w-4" />
+              {t.report.assetRegisterTitle}
+            </a>
+            {/* ISMS-P 개인정보 흐름표 (dev-050 #9). PII 기능은 현재 한국어 전용 — 라벨 i18n 은 후속. */}
+            <a
+              href="/api/reports/pii-flow"
+              className="inline-flex items-center gap-1.5 rounded-md border border-rose-600 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-100"
+              title="개인정보 흐름표 (ISMS-P 증적) — 자산 보유 항목 + 자산 간 PII 이동을 Excel 로 내보냅니다"
+            >
+              <Download className="h-4 w-4" />
+              개인정보 흐름표
+            </a>
+          </div>
         </div>
 
         {/* 월 선택 */}

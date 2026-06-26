@@ -10,7 +10,7 @@ import { useTranslation } from "@/lib/i18n";
 import CiaScoreInput from "@/app/_components/cia-score-input";
 import ClassificationSelect from "@/app/_components/classification-select";
 import PiiStageSelect from "@/app/_components/pii-stage-select";
-import PiiItemsEditor, { type PiiItemRow } from "@/app/_components/pii-items-editor";
+import PiiItemsEditor, { type PiiItemRow, parsePiiItemRows } from "@/app/_components/pii-items-editor";
 import type { PiiStage } from "@/lib/pii-stage";
 import type { CiaLevel } from "@/lib/cia";
 import LifecycleGauge from "@/app/_components/lifecycle-gauge";
@@ -71,7 +71,7 @@ export default function CloudEditPage() {
         setForm({ name: d.name || "", description: d.description || "", vendor: d.vendor || "", cost: d.cost != null ? String(d.cost) : "", currency: d.currency || "KRW", billingCycle: d.billingCycle || "MONTHLY", purchaseDate: d.purchaseDate ? d.purchaseDate.split("T")[0] : "", expiryDate: d.expiryDate ? d.expiryDate.split("T")[0] : "" });
         setSubCategoryId(d.subCategoryId ?? null);
         setPiiStage((d.piiStage as PiiStage) ?? null);
-        setPiiItems(((d.piiItems as PiiItemRow[] | undefined) ?? []).map((p) => ({ itemKey: p.itemKey, legalBasis: p.legalBasis, retentionPeriod: p.retentionPeriod })));
+        setPiiItems(parsePiiItemRows(d.piiItems));
         if (d.cloudDetail) {
           const cd = d.cloudDetail;
           setCloud({
