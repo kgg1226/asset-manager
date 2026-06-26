@@ -71,6 +71,7 @@ import {
   MoveRight,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
+import { PII_ITEM_KEYS, PII_ITEM_CATALOG, PII_CATEGORY_STYLE, piiItemLabel, isPiiItemKey } from "@/lib/pii-items";
 
 // ─── Types ─────────────────────────────────────────────────────────────
 
@@ -1012,6 +1013,24 @@ function getPiiLifecycleLayout(
   };
 }
 
+// 엣지 piiItems(JSON 배열 문자열 또는 레거시 콤마 문자열)를 코드/원문 배열로 파싱 (dev-051 #8 하위호환).
+// 신규 입력은 카탈로그 코드(EMAIL 등) 배열, 기존 데이터는 자유텍스트("이메일") — 둘을 파괴 없이 공존시킨다.
+function parseEdgePiiItems(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const arr = JSON.parse(raw);
+    if (Array.isArray(arr)) return arr.map(String).map((s) => s.trim()).filter(Boolean);
+  } catch {
+    /* 레거시 콤마 문자열 폴백 */
+  }
+  return String(raw).split(",").map((s) => s.trim()).filter(Boolean);
+}
+
+// 표시용 라벨 조인 — 카탈로그 코드면 한국어 라벨로, 레거시 자유텍스트는 원문 그대로.
+function edgePiiItemsLabel(raw: string | null | undefined): string {
+  return parseEdgePiiItems(raw).map((v) => (isPiiItemKey(v) ? piiItemLabel(v) : v)).join(", ");
+}
+
 // ─── Link Modal ────────────────────────────────────────────────────────
 
 function LinkModal({
@@ -1038,7 +1057,7 @@ function LinkModal({
   const [label, setLabel] = useState("");
   const [protocol, setProtocol] = useState("");
   const [selectedDataTypes, setSelectedDataTypes] = useState<string[]>([]);
-  const [piiItemsText, setPiiItemsText] = useState("");
+  const [selectedPiiItems, setSelectedPiiItems] = useState<string[]>([]); // 카탈로그 코드 배열 (dev-051 #8)
   const [legalBasis, setLegalBasis] = useState("");
   const [retentionPeriod, setRetentionPeriod] = useState("");
   const [destructionMethod, setDestructionMethod] = useState("");
@@ -1061,7 +1080,7 @@ function LinkModal({
       label: label || null,
       protocol: protocol || null,
       dataTypes: selectedDataTypes.length > 0 ? selectedDataTypes : null,
-      piiItems: piiItemsText ? piiItemsText.split(",").map((s) => s.trim()).filter(Boolean) : null,
+      piiItems: selectedPiiItems.length > 0 ? selectedPiiItems : null,
       legalBasis: legalBasis || null,
       retentionPeriod: retentionPeriod || null,
       destructionMethod: destructionMethod || null,
@@ -1191,7 +1210,28 @@ function LinkModal({
             <>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t.assetMap.piiItems}</label>
-                <input value={piiItemsText} onChange={(e) => setPiiItemsText(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" placeholder={t.assetMap.piiItemsPlaceholder} />
+                {/* 카탈로그 칩 다중선택 — 자유텍스트 대신 코드로 저장해 노드 PII 항목과 어휘 통일 (dev-051 #8) */}
+                <div className="flex flex-wrap gap-1.5">
+                  {PII_ITEM_KEYS.map((key) => {
+                    const st = PII_CATEGORY_STYLE[PII_ITEM_CATALOG[key].category];
+                    const on = selectedPiiItems.includes(key);
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setSelectedPiiItems(on ? selectedPiiItems.filter((k) => k !== key) : [...selectedPiiItems, key])}
+                        className="rounded-full px-2.5 py-1 text-xs font-medium transition"
+                        style={
+                          on
+                            ? { backgroundColor: st.bg, color: st.text, boxShadow: `inset 0 0 0 1.5px ${st.text}` }
+                            : { backgroundColor: "transparent", color: "#9ca3af", boxShadow: "inset 0 0 0 1px #e5e7eb" }
+                        }
+                      >
+                        {PII_ITEM_CATALOG[key].label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div>
@@ -1409,7 +1449,7 @@ function EdgeDetailModal({
   const linkBg = LINK_BG_COLORS[linkType] || "#F9FAFB";
   const direction = (edgeData.direction as string) || "UNI";
   const dataTypes = (edgeData.dataTypes as string) || "";
-  const piiItems = (edgeData.piiItems as string) || "";
+  const piiItemsList = parseEdgePiiItems(edgeData.piiItems as string | null); // 코드/원문 혼재 하위호환 (dev-051 #8)
   const protocol = (edgeData.protocol as string) || "";
   const edgeLabel = (edgeData.label as string) || "";
   const legalBasis = (edgeData.legalBasis as string) || "";
@@ -1507,11 +1547,24 @@ function EdgeDetailModal({
             </div>
           )}
 
-          {/* PII Items */}
-          {piiItems && (
+          {/* PII Items — 카탈로그 코드면 분류색 칩, 레거시 자유텍스트는 원문 칩 (dev-051 #8) */}
+          {piiItemsList.length > 0 && (
             <div>
               <span className="text-xs text-gray-500 block mb-1">{t.assetMap.piiItemsField}</span>
-              <p className="text-sm text-gray-800 bg-red-50 rounded-lg p-2">{piiItems}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {piiItemsList.map((v, i) => {
+                  const st = isPiiItemKey(v) ? PII_CATEGORY_STYLE[PII_ITEM_CATALOG[v].category] : null;
+                  return (
+                    <span
+                      key={`${v}-${i}`}
+                      className="rounded-full px-2 py-0.5 text-xs font-medium"
+                      style={st ? { backgroundColor: st.bg, color: st.text } : { backgroundColor: "#FEE2E2", color: "#991B1B" }}
+                    >
+                      {isPiiItemKey(v) ? piiItemLabel(v) : v}
+                    </span>
+                  );
+                })}
+              </div>
             </div>
           )}
 
@@ -2835,7 +2888,7 @@ function AssetMapContentInner() {
 
         // Add PII items summary on edges when in PII view
         if (view === "pii" && e.piiItems) {
-          edgeObj.label = e.piiItems;
+          edgeObj.label = edgePiiItemsLabel(e.piiItems); // 코드→라벨, 레거시 원문 유지 (dev-051 #8)
           edgeObj.labelStyle = { fontSize: 10, fill: linkColor, fontWeight: 600 };
           edgeObj.labelBgStyle = { fill: LINK_BG_COLORS[linkType] || "#F9FAFB", fillOpacity: 0.95 };
           edgeObj.labelBgPadding = [6, 4] as [number, number];
