@@ -937,6 +937,35 @@ export type TranslationDict = {
     featureFlagsDetail5: string;
     featureFlagsDetail6: string;
     featureFlagsDetail7: string;
+    // 개인정보(PII) 관리 섹션 (dev-052)
+    piiManagementTitle: string;
+    piiManagementDesc: string;
+    piiCatalogGuide: string;
+    piiCatalogGuideDesc: string;
+    piiCatalogDetail1: string;
+    piiCatalogDetail2: string;
+    piiCatalogDetail3: string;
+    piiItemsEditorGuide: string;
+    piiItemsEditorGuideDesc: string;
+    piiItemsEditorDetail1: string;
+    piiItemsEditorDetail2: string;
+    piiItemsEditorDetail3: string;
+    piiLifecycleGuide: string;
+    piiLifecycleGuideDesc: string;
+    piiLifecycleDetail1: string;
+    piiLifecycleDetail2: string;
+    piiLifecycleDetail3: string;
+    piiFlowReportGuide: string;
+    piiFlowReportGuideDesc: string;
+    piiFlowReportDetail1: string;
+    piiFlowReportDetail2: string;
+    piiFlowReportDetail3: string;
+    assetMapPiiGuide: string;
+    assetMapPiiGuideDesc: string;
+    assetMapPiiDetail1: string;
+    assetMapPiiDetail2: string;
+    assetMapPiiDetail3: string;
+    assetMapLink: string;
   };
 
   // Notifications
