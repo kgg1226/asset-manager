@@ -2308,28 +2308,36 @@ function AssetMapContentInner() {
         }
       }
 
-      // 비-all 뷰(network/pii/data_flow)는 캔버스에 연결+배치된 부분집합 노드만 올라온다.
-      // 그 상태에서 nodePositions/sectionData/edgeVisibility 를 그대로 저장하면 all 뷰의
-      // 미표시 자산·섹션·엣지가시성이 서버에서 영구 삭제된다. dev-048 은 edgeVisibility 만
-      // all 뷰 가드했고 nodePositions/sectionData 를 빠뜨려 P0 소실 경로가 남았다 (dev-049 #1).
-      // 세 값 모두 all 뷰에서만 본문에 포함하고, 비-all 뷰면 생략 → PUT 라우트의 `undefined`
-      // 스킵(views/[id]/route.ts:53-56)으로 서버값이 보존된다.
+      // ── 병합(merge) 저장 (dev-059) ──
+      // 과거엔 캔버스 기준 "덮어쓰기"라서 두 소실 경로가 있었다:
+      //   ① 비-all 뷰 캔버스는 부분집합 → 위치를 아예 저장 안 함(dev-049 가드) → 비-all 뷰에서
+      //      배치한 자산이 영영 저장되지 않아 탭 전환/새로고침 시 자산 소실.
+      //   ② all 뷰 autosave 가 소속(visibleEdgeIds)을 "렌더된 엣지"로 재작성 → 엔드포인트가 아직
+      //      미배치라 안 그려진 연결이 소속에서 삭제 → dev-058(전 뷰 필터) 이후 모든 뷰에서 소실.
+      // 해법: 위치는 저장본과 병합(캔버스에 있는 노드만 갱신·추가, 나머지 보존 — 어느 뷰에서든 안전),
+      //        소속은 autosave 가 절대 재작성하지 않고(passthrough) 명시 조작(생성 append·삭제 remove·
+      //        토글 set)만 변경한다. 캔버스에서 노드를 제거하는 경로는 없어(추가 전용) 병합 부활 위험 없음.
       const isAllView = viewRef.current === "all";
+      const savedPositions = ((): Record<string, { x: number; y: number }> => {
+        const raw = ws.nodePositions;
+        if (!raw) return {};
+        if (typeof raw === "string") {
+          try { return JSON.parse(raw) ?? {}; } catch { return {}; }
+        }
+        return raw as Record<string, { x: number; y: number }>;
+      })();
+      const mergedPositions = { ...savedPositions, ...nodePositions };
+      void currentEdges; // 소속 재작성 제거로 미사용 — 명시 조작만 소속을 변경 (dev-059)
       const existingVis = (ws.edgeVisibility as Record<string, unknown> | null | undefined) ?? {};
-      const edgeVisibility = isAllView
-        ? {
-            ...existingVis,
-            visibleEdgeIds: currentEdges
-              .map((e) => Number(String(e.id).replace(/^link-/, "")))
-              .filter((n) => Number.isFinite(n)),
-          }
-        : existingVis;
+      const edgeVisibility = existingVis;
 
       const res = await fetch(`/api/asset-map/views/${ws.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...(isAllView && { nodePositions, sectionData }),
+          nodePositions: mergedPositions,
+          // 섹션은 all 뷰 캔버스에서만 전체가 보이므로 재작성은 all 뷰 전용 유지 (dev-049)
+          ...(isAllView && { sectionData }),
           viewport: { x: viewport.x, y: viewport.y, zoom: viewport.zoom },
           edgeVisibility,
           _autoSave: true,
@@ -2347,13 +2355,13 @@ function AssetMapContentInner() {
       // state 도 함께 갱신하는 이유: 매 렌더마다 ref 가 state 로 동기화되므로 ref 만
       // 갱신하면 다음 렌더에 stale 값이 되살아난다. effect 재발화는 의존성을
       // workspace id 로 키잉해 차단한다.
-      // 비-all 뷰에서는 부분집합 nodePositions/sectionData 로 ref/state 를 오염시키지 않는다
-      // (서버에도 보내지 않았으므로 로컬도 기존 전체 상태를 유지). 그래야 all 뷰 복귀 시
-      // fetchGraph 의 savedIds 필터가 미표시 자산을 캔버스에서 탈락시키지 않는다 (dev-049 #1).
+      // 병합 결과(전체 상태)를 로컬에도 반영 — mergedPositions 는 부분집합이 아니라 합집합이라
+      // 어느 뷰에서든 ref/state 갱신이 안전하다 (dev-059).
       const savedState = {
         viewport: { x: viewport.x, y: viewport.y, zoom: viewport.zoom },
         edgeVisibility,
-        ...(isAllView && { nodePositions, sectionData }),
+        nodePositions: mergedPositions,
+        ...(isAllView && { sectionData }),
       };
       activeWorkspaceRef.current = { ...ws, ...savedState };
       setActiveWorkspace((prev) => (prev ? { ...prev, ...savedState } : prev));
@@ -2407,23 +2415,23 @@ function AssetMapContentInner() {
             nodePositions[n.id] = { x: n.position.x, y: n.position.y };
           }
         }
-        // nodePositions/sectionData/edgeVisibility 모두 all 뷰에서만 저장 — 비-all 뷰는
-        // 부분집합이라 저장 시 all 뷰의 미표시 자산·섹션·가시성이 영구 손상 (dev-046 P2-a, dev-048 이슈4, dev-049 #1)
+        // 병합 저장 (dev-059) — flushSave 와 동일 규칙: 위치는 저장본과 합집합(어느 뷰든 안전),
+        // 소속(edgeVisibility)은 재작성 없이 passthrough(명시 조작만 변경), 섹션 재작성만 all 뷰 전용.
         const isAllView = viewRef.current === "all";
-        const currentEdges = reactFlowInstance.getEdges();
-        const existingVis = (activeWorkspaceRef.current.edgeVisibility as Record<string, unknown> | null | undefined) ?? {};
-        const edgeVisibility = isAllView
-          ? {
-              ...existingVis,
-              visibleEdgeIds: currentEdges
-                .map((e) => Number(String(e.id).replace(/^link-/, "")))
-                .filter((n) => Number.isFinite(n)),
-            }
-          : existingVis;
+        const savedPositionsRaw = activeWorkspaceRef.current.nodePositions;
+        const savedPositions: Record<string, { x: number; y: number }> = (() => {
+          if (!savedPositionsRaw) return {};
+          if (typeof savedPositionsRaw === "string") {
+            try { return JSON.parse(savedPositionsRaw) ?? {}; } catch { return {}; }
+          }
+          return savedPositionsRaw as Record<string, { x: number; y: number }>;
+        })();
+        const edgeVisibility = (activeWorkspaceRef.current.edgeVisibility as Record<string, unknown> | null | undefined) ?? {};
         navigator.sendBeacon(
           `/api/asset-map/views/${activeWorkspaceRef.current.id}`,
           new Blob([JSON.stringify({
-            ...(isAllView && { nodePositions, sectionData }),
+            nodePositions: { ...savedPositions, ...nodePositions },
+            ...(isAllView && { sectionData }),
             viewport: { x: viewport.x, y: viewport.y, zoom: viewport.zoom },
             edgeVisibility,
             _autoSave: true,
@@ -3292,10 +3300,10 @@ function AssetMapContentInner() {
           return allEdges;
         });
         setPendingConnection(null);
-        // 비-all 뷰에서 만든 연결도 all 뷰 화이트리스트에 편입 — 기존엔 all 뷰에서 영영 안 보였다 (dev-056 B).
-        // 화이트리스트가 없는(null=전체표시) 페이지는 건드리지 않는다 — 배열을 신설하면 나머지 엣지가 전부 숨는다.
-        // 추가 전용(append-only): flushSave 의 비-all 가드(dev-049)는 existingVis 를 그대로 전송하므로 별도 PUT 불요.
-        if (viewRef.current !== "all") {
+        // 새 연결을 페이지 소속에 편입 — 전 뷰 공통 (dev-056 B → dev-059 확장).
+        // autosave 가 소속을 재작성하지 않으므로(dev-059 passthrough) 생성 시 명시 append 가 유일한 편입 경로다.
+        // 화이트리스트가 없는(null=전체표시) 레거시 페이지는 건드리지 않는다 — 배열 신설 시 나머지가 전부 숨는다.
+        {
           const ws = activeWorkspaceRef.current;
           const vis = ws?.edgeVisibility as { visibleEdgeIds?: number[] } | null | undefined;
           if (ws && vis && Array.isArray(vis.visibleEdgeIds) && !vis.visibleEdgeIds.includes(newLink.id)) {
@@ -3325,7 +3333,17 @@ function AssetMapContentInner() {
         body: JSON.stringify({ ids }),
       });
       if (!res.ok) throw new Error(String(res.status));
-      markDirty(300); // 삭제 후 visibleEdgeIds 갱신
+      // 삭제된 연결을 페이지 소속에서 명시 제거 (dev-059) — autosave 는 소속을 재작성하지 않는다
+      {
+        const ws = activeWorkspaceRef.current;
+        const vis = ws?.edgeVisibility as { visibleEdgeIds?: number[] } | null | undefined;
+        if (ws && vis && Array.isArray(vis.visibleEdgeIds)) {
+          const removed = { ...vis, visibleEdgeIds: vis.visibleEdgeIds.filter((id) => !ids.includes(id)) };
+          activeWorkspaceRef.current = { ...ws, edgeVisibility: removed };
+          setActiveWorkspace((p) => (p ? { ...p, edgeVisibility: removed } : p)); // ref+state 동시
+        }
+      }
+      markDirty(300); // 소속 변경 저장(passthrough)
       fetchGraph();
     } catch {
       fetchGraph(); // 실패 시 서버 상태로 복원 — 낙관적 로컬 제거 롤백
