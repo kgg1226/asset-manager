@@ -2476,7 +2476,8 @@ function AssetMapContentInner() {
       const res = await fetch("/api/asset-map/views", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, viewType: "ALL" }),
+        // 새 페이지는 빈 연결 소속으로 시작 — 기존 전역 연결이 자동 노출되지 않는 독립 흐름도 (dev-058)
+        body: JSON.stringify({ name, viewType: "ALL", edgeVisibility: { visibleEdgeIds: [] } }),
       });
       if (res.ok) {
         const created = await res.json();
@@ -2827,17 +2828,18 @@ function AssetMapContentInner() {
         },
       }));
 
-      // 페이지별 엣지 가시성 필터링: edgeVisibility.visibleEdgeIds 가 명시되어 있으면 그 ID 만 표시.
-      // 비어있거나 null 이면 기존 동작(모든 엣지 표시) 유지 — 레거시 페이지 호환.
-      // 새 페이지는 명시적 빈 배열로 초기화돼야 다른 페이지의 엣지가 자동 노출되지 않음.
+      // 페이지별 연결 소속(membership) 필터링 (dev-058): visibleEdgeIds 는 "이 페이지의 연결 목록"이다.
+      // 흐름도가 단계별(수집/이용·제공/파기)로 여러 장이므로 페이지마다 독립된 연결 집합을 가져야 한다.
+      // 모든 뷰에 적용(뷰의 linkType 필터와 교집합) — 과거(dev-048)엔 all 뷰 전용이었으나, 비-all 뷰가
+      // 전역 연결을 전부 노출해 "하나의 흐름이 모든 페이지에 보이는" 문제가 있었다. 생성 시 자동 편입은
+      // dev-056(비-all append-only)이 보장하고, 저장측 가드(flushSave 의 all-뷰 전용 재작성)는 불변.
+      // null(레거시)이면 전체 표시 유지. 새 페이지는 빈 배열로 초기화(handleSaveView/생성 경로).
       const allRawEdges = data.edges || [];
-      // 전체 링크 ID 스냅샷 — all 뷰 가시성 토글 기준 (dev-056)
-      if (view === "all") allLinkIdsRef.current = allRawEdges.map((e: AssetEdge) => e.id);
+      // 현재 뷰 기준 전체 링크 ID 스냅샷 — 표시/숨김 토글의 유니온·차집합 기준 (dev-056/058)
+      allLinkIdsRef.current = allRawEdges.map((e: AssetEdge) => e.id);
       const wsEdgeVis = activeWorkspaceRef.current?.edgeVisibility as { visibleEdgeIds?: number[] } | null | undefined;
       const visibleEdgeIds = wsEdgeVis?.visibleEdgeIds;
-      // visibleEdgeIds 페이지 가시성은 all 뷰에서만 적용 — 비-all 뷰(network/data_flow/pii)는
-      // API linkType 필터가 이미 가시성을 결정하므로 화이트리스트를 씌우면 엣지가 전부 사라진다 (dev-048 이슈4)
-      const rawEdges = (view === "all" && Array.isArray(visibleEdgeIds))
+      const rawEdges = Array.isArray(visibleEdgeIds)
         ? allRawEdges.filter((e: AssetEdge) => visibleEdgeIds.includes(e.id))
         : allRawEdges;
 
@@ -3388,16 +3390,21 @@ function AssetMapContentInner() {
     handleDeleteEdges(deleted.map((e) => e.id), { skipConfirm: true });
   };
 
-  // 모든 연결 표시/숨김 토글 (dev-056 B) — all 뷰 전용. 화이트리스트를 명시 배열로 결정적 설정
-  // (null 대입은 레거시 '전체 표시' 의미와 겹쳐 autosave 재작성 타이밍에 의미가 흔들린다).
+  // 모든 연결 표시/숨김 토글 (dev-056 B, dev-058 전 뷰 확장) — 현재 뷰에서 조회된 링크(allLinkIdsRef)를
+  // 페이지 소속(visibleEdgeIds)에 유니온(표시)/차집합(숨김)한다. 다른 유형(다른 뷰)의 소속은 건드리지 않는다.
+  // 레거시(null=전체표시) 페이지는 all 뷰에서만 허용 — 비-all 에서 배열을 신설하면 타 유형 연결이 전부 숨는다.
   function handleToggleAllLinks() {
     const ws = activeWorkspaceRef.current;
-    if (!ws || viewRef.current !== "all") return;
+    if (!ws) return;
     const vis = ws.edgeVisibility as { visibleEdgeIds?: number[] } | null | undefined;
     const current = vis && Array.isArray(vis.visibleEdgeIds) ? vis.visibleEdgeIds : null;
-    const all = allLinkIdsRef.current;
-    const someHidden = current !== null && all.some((id) => !current.includes(id));
-    const next = { ...(vis ?? {}), visibleEdgeIds: someHidden ? [...all] : [] };
+    if (current === null && viewRef.current !== "all") return;
+    const fetched = allLinkIdsRef.current;
+    const someHidden = current !== null && fetched.some((id) => !current.includes(id));
+    const nextIds = someHidden
+      ? [...new Set([...(current ?? []), ...fetched])]
+      : (current ?? []).filter((id) => !fetched.includes(id));
+    const next = { ...(vis ?? {}), visibleEdgeIds: nextIds };
     activeWorkspaceRef.current = { ...ws, edgeVisibility: next };
     setActiveWorkspace((p) => (p ? { ...p, edgeVisibility: next } : p)); // ref+state 동시 (dev-032 규칙)
     markDirty(300);
@@ -3489,9 +3496,11 @@ function AssetMapContentInner() {
     const paneItems: MenuItem[] = [
       { label: t.assetMap.addLink, onClick: () => { setPendingConnection(null); setShowModal(true); } },
     ];
-    if (view === "all" && activeWorkspaceRef.current) {
-      const vis = activeWorkspaceRef.current.edgeVisibility as { visibleEdgeIds?: number[] } | null | undefined;
-      const current = vis && Array.isArray(vis.visibleEdgeIds) ? vis.visibleEdgeIds : null;
+    // 전 뷰에서 노출 (dev-058) — 단 레거시(null 소속) 페이지는 all 뷰에서만(토글 가드와 동일)
+    const paneVis = activeWorkspaceRef.current?.edgeVisibility as { visibleEdgeIds?: number[] } | null | undefined;
+    const paneHasList = paneVis && Array.isArray(paneVis.visibleEdgeIds);
+    if (activeWorkspaceRef.current && (view === "all" || paneHasList)) {
+      const current = paneHasList ? paneVis!.visibleEdgeIds! : null;
       const hidden = current === null ? 0 : allLinkIdsRef.current.filter((id) => !current.includes(id)).length;
       paneItems.push({
         label: hidden > 0 ? `${t.assetMap.showAllLinks} (${hidden})` : t.assetMap.hideAllLinks,
@@ -3863,7 +3872,16 @@ function AssetMapContentInner() {
       const res = await fetch("/api/asset-map/views", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, nodePositions }),
+        // 현재 캔버스에 보이는 연결을 페이지 소속으로 저장 (dev-058)
+        body: JSON.stringify({
+          name,
+          nodePositions,
+          edgeVisibility: {
+            visibleEdgeIds: edges
+              .map((e) => Number(String(e.id).replace(/^link-/, "")))
+              .filter((n) => Number.isFinite(n)),
+          },
+        }),
       });
       if (res.ok) {
         const saved = await res.json();
@@ -3949,6 +3967,7 @@ function AssetMapContentInner() {
           name: t.assetMap.examplePageName,
           viewType: "ALL",
           description: t.assetMap.examplePageDesc,
+          edgeVisibility: { visibleEdgeIds: [] }, // 독립 흐름도로 시작 (dev-058)
         }),
       });
       if (res.ok) {
@@ -4556,8 +4575,9 @@ function AssetMapContentInner() {
           >
             {animateEdges ? t.assetMap.animateEdgesOn : t.assetMap.animateEdgesOff}
           </button>
-          {/* 모든 연결 표시/숨김 (dev-056 B) — all 뷰 전용, 숨김 수 배지 */}
-          {view === "all" && activeWorkspace && (() => {
+          {/* 모든 연결 표시/숨김 (dev-056 B, dev-058 전 뷰) — 현재 뷰 기준 숨김 수 배지.
+              레거시(null 소속) 페이지는 all 뷰에서만 노출(토글 가드와 동일) */}
+          {activeWorkspace && (view === "all" || Array.isArray((activeWorkspace.edgeVisibility as { visibleEdgeIds?: number[] } | null | undefined)?.visibleEdgeIds)) && (() => {
             const vis = activeWorkspace.edgeVisibility as { visibleEdgeIds?: number[] } | null | undefined;
             const current = vis && Array.isArray(vis.visibleEdgeIds) ? vis.visibleEdgeIds : null;
             const hidden = current === null ? 0 : allLinkIdsRef.current.filter((id) => !current.includes(id)).length;
