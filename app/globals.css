@@ -33,3 +33,10 @@ body {
 .animate-slide-up {
   animation: slide-up 0.2s ease-out;
 }
+
+/* 자산맵 선택 엣지 강조 (dev-055) — 박스선택/클릭 선택된 연결을 시각적으로 구분 */
+.react-flow__edge.selected .react-flow__edge-path,
+.react-flow__edge:focus .react-flow__edge-path {
+  stroke-width: 3.5px !important;
+  filter: drop-shadow(0 0 3px rgba(59, 130, 246, 0.7));
+}

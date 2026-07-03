@@ -1451,6 +1451,11 @@ export type TranslationDict = {
     reverseDirection: string;
     conditionalDirection: string;
     conditionPlaceholder: string;
+    // 엣지 컨텍스트 메뉴·다중선택 (dev-055) — editLink/deleteLink 는 기존 키 재사용
+    deleteSelected: string;
+    flipDirection: string;
+    changeType: string;
+    changeDirection: string;
     labelPlaceholder: string;
     piiItemsPlaceholder: string;
     addSection: string;

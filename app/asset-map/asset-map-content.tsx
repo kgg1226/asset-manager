@@ -72,6 +72,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { PII_ITEM_KEYS, PII_ITEM_CATALOG, PII_CATEGORY_STYLE, piiItemLabelI18n, isPiiItemKey } from "@/lib/pii-items";
+import MapContextMenu, { type MenuItem } from "@/components/asset-map/MapContextMenu";
 
 // ─── Types ─────────────────────────────────────────────────────────────
 
@@ -1041,6 +1042,7 @@ function LinkModal({
   onClose,
   initialSource,
   initialTarget,
+  initialData,
   t,
 }: {
   assets: AssetNode[];
@@ -1049,20 +1051,31 @@ function LinkModal({
   onClose: () => void;
   initialSource?: string;
   initialTarget?: string;
+  initialData?: Record<string, unknown> | null; // 편집 모드: 기존 엣지 data (dev-055)
   t: ReturnType<typeof useTranslation>["t"];
 }) {
+  // 편집 모드(dev-055): initialData(기존 엣지 data)가 있으면 값을 채워 연다 — 기존 '수정' 경로가
+  // 빈 모달을 열어 값이 유실되던 문제 해소. dataTypes/piiItems 는 JSON 문자열이라 파싱.
+  const init = initialData ?? {};
+  const initDataTypes = (() => {
+    if (typeof init.dataTypes !== "string" || !init.dataTypes) return [] as string[];
+    try { const a = JSON.parse(init.dataTypes); return Array.isArray(a) ? a.map(String) : []; } catch { return []; }
+  })();
+  const initPii = parseEdgePiiItems((init.piiItems as string) ?? null);
   const [sourceAssetId, setSourceAssetId] = useState(initialSource || "");
   const [targetAssetId, setTargetAssetId] = useState(initialTarget || "");
-  const [linkType, setLinkType] = useState<string>("DATA_FLOW");
-  const [direction, setDirection] = useState<string>("UNI");
-  const [label, setLabel] = useState("");
-  const [protocol, setProtocol] = useState("");
-  const [selectedDataTypes, setSelectedDataTypes] = useState<string[]>([]);
-  const [selectedPiiItems, setSelectedPiiItems] = useState<string[]>([]); // 카탈로그 코드 배열 (dev-051 #8)
-  const [legalBasis, setLegalBasis] = useState("");
-  const [retentionPeriod, setRetentionPeriod] = useState("");
-  const [destructionMethod, setDestructionMethod] = useState("");
-  const [condition, setCondition] = useState(""); // CONDITIONAL 활성화 조건 (dev-048 이슈5)
+  const [linkType, setLinkType] = useState<string>((init.linkType as string) || "DATA_FLOW");
+  const [direction, setDirection] = useState<string>((init.direction as string) || "UNI");
+  const [label, setLabel] = useState((init.label as string) || "");
+  const [protocol, setProtocol] = useState((init.protocol as string) || "");
+  const [selectedDataTypes, setSelectedDataTypes] = useState<string[]>(initDataTypes);
+  // 카탈로그 코드만 칩으로; 레거시 자유텍스트는 숨은 채 보존해 저장 시 병합 — 파괴 금지 (dev-051 #8)
+  const [selectedPiiItems, setSelectedPiiItems] = useState<string[]>(initPii.filter((v) => isPiiItemKey(v)));
+  const legacyPiiItems = initPii.filter((v) => !isPiiItemKey(v));
+  const [legalBasis, setLegalBasis] = useState((init.legalBasis as string) || "");
+  const [retentionPeriod, setRetentionPeriod] = useState((init.retentionPeriod as string) || "");
+  const [destructionMethod, setDestructionMethod] = useState((init.destructionMethod as string) || "");
+  const [condition, setCondition] = useState((init.condition as string) || ""); // CONDITIONAL 활성화 조건 (dev-048 이슈5)
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -1081,7 +1094,7 @@ function LinkModal({
       label: label || null,
       protocol: protocol || null,
       dataTypes: selectedDataTypes.length > 0 ? selectedDataTypes : null,
-      piiItems: selectedPiiItems.length > 0 ? selectedPiiItems : null,
+      piiItems: legacyPiiItems.length + selectedPiiItems.length > 0 ? [...legacyPiiItems, ...selectedPiiItems] : null,
       legalBasis: legalBasis || null,
       retentionPeriod: retentionPeriod || null,
       destructionMethod: destructionMethod || null,
@@ -1100,7 +1113,7 @@ function LinkModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold">{t.assetMap.addLink}</h3>
+          <h3 className="text-lg font-bold">{initialData ? t.assetMap.editLink : t.assetMap.addLink}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="h-5 w-5" /></button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -1252,7 +1265,7 @@ function LinkModal({
           )}
 
           <button type="submit" className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
-            {t.assetMap.addLink}
+            {initialData ? t.assetMap.editLink : t.assetMap.addLink}
           </button>
         </form>
       </div>
@@ -2210,6 +2223,11 @@ function AssetMapContentInner() {
   const [loading, setLoading] = useState(true);
   const [selectedNode, setSelectedNode] = useState<SelectedNodeData | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
+  // dev-055: 엣지 편집 모드(LinkModal 재사용) · 엣지 다중선택 · 우클릭 컨텍스트 메뉴
+  const [editingEdge, setEditingEdge] = useState<Edge | null>(null);
+  const [multiSelectedEdgeIds, setMultiSelectedEdgeIds] = useState<string[]>([]);
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; edge?: Edge } | null>(null);
+  const lastPanEndTsRef = useRef(0);
   const [editingSection, setEditingSection] = useState<Node | null>(null);
 
   // ── Workspace state ──
@@ -2413,6 +2431,8 @@ function AssetMapContentInner() {
 
   // ── Viewport change auto-save (3s debounce) ──
   const onMoveEnd = useCallback(() => {
+    // 우클릭 드래그 팬 종료 직후 따라오는 contextmenu 오발화 방지용 타임스탬프 (dev-055)
+    lastPanEndTsRef.current = Date.now();
     if (!activeWorkspaceRef.current) return;
     // 복원 중 setViewport 가 발화시킨 이동 이벤트는 사용자 조작이 아님 — 저장 루프 방지 (dev-032)
     if (restoringViewportRef.current) return;
@@ -3268,16 +3288,143 @@ function AssetMapContentInner() {
     }
   }
 
-  async function handleDeleteEdge(edgeId: string) {
-    const linkId = edgeId.replace("link-", "");
-    if (!confirm(t.assetMap.confirmDelete)) return;
+  // 일괄 삭제 (dev-055) — bulk-delete API 1콜 + fetchGraph 1회(핸들 재분배 포함, dev-045 회귀 방지).
+  // skipConfirm: 키보드 삭제(onBeforeDelete 에서 이미 확인) 경로용.
+  async function handleDeleteEdges(edgeIds: string[], opts?: { skipConfirm?: boolean }) {
+    const ids = edgeIds
+      .map((eid) => Number(String(eid).replace("link-", "")))
+      .filter((n) => Number.isInteger(n));
+    if (ids.length === 0) return;
+    if (!opts?.skipConfirm && !confirm(ids.length > 1 ? `${t.assetMap.confirmDelete} (${ids.length})` : t.assetMap.confirmDelete)) return;
     try {
-      await fetch(`/api/asset-links/${linkId}`, { method: "DELETE" });
+      const res = await fetch("/api/asset-links/bulk-delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+      if (!res.ok) throw new Error(String(res.status));
       markDirty(300); // 삭제 후 visibleEdgeIds 갱신
       fetchGraph();
     } catch {
-      // silently fail
+      fetchGraph(); // 실패 시 서버 상태로 복원 — 낙관적 로컬 제거 롤백
     }
+  }
+
+  // 단건 래퍼 — 기존 호출처(SidePanel·EdgeDetailModal) 보존
+  async function handleDeleteEdge(edgeId: string) {
+    await handleDeleteEdges([edgeId]);
+  }
+
+  // 선택 엣지 일괄 속성 변경(유형/방향) — 건별 PUT 후 fetchGraph 1회 (dev-055)
+  async function handlePatchLinks(edgeIds: string[], patch: Record<string, unknown>) {
+    const ids = edgeIds
+      .map((eid) => Number(String(eid).replace("link-", "")))
+      .filter((n) => Number.isInteger(n));
+    if (ids.length === 0) return;
+    await Promise.allSettled(ids.map((id) =>
+      fetch(`/api/asset-links/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      }),
+    ));
+    markDirty(300);
+    fetchGraph();
+  }
+
+  // 엣지 편집 저장 (dev-055) — LinkModal 편집 모드에서 PUT
+  async function handleUpdateLink(linkId: number, data: Record<string, unknown>) {
+    try {
+      const res = await fetch(`/api/asset-links/${linkId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || t.assetMap.linkCreateFail);
+        return;
+      }
+      setShowModal(false);
+      setEditingEdge(null);
+      setPendingConnection(null);
+      markDirty(300);
+      fetchGraph();
+    } catch {
+      alert(t.assetMap.linkCreateError);
+    }
+  }
+
+  // 키보드 삭제(Delete/Backspace): 엣지만 허용, 노드는 차단 — 자산 노드 오삭제 방지 (dev-055)
+  const onBeforeDelete = async ({ nodes: delNodes, edges: delEdges }: { nodes: Node[]; edges: Edge[] }) => {
+    void delNodes;
+    if (delEdges.length === 0) return false;
+    if (!confirm(delEdges.length > 1 ? `${t.assetMap.confirmDelete} (${delEdges.length})` : t.assetMap.confirmDelete)) return false;
+    return { nodes: [], edges: delEdges };
+  };
+
+  const onEdgesDelete = (deleted: Edge[]) => {
+    // onBeforeDelete 에서 이미 확인됨 — 로컬은 xyflow 가 제거, 서버 반영(실패 시 fetchGraph 롤백)
+    handleDeleteEdges(deleted.map((e) => e.id), { skipConfirm: true });
+  };
+
+  // 우클릭 컨텍스트 메뉴 항목 구성 (dev-055) — 엣지 단건 / 다중선택 / 빈 캔버스
+  function buildCtxMenuItems(): MenuItem[] {
+    if (!ctxMenu) return [];
+    const edge = ctxMenu.edge;
+    if (edge) {
+      const inSelection = multiSelectedEdgeIds.length >= 2 && multiSelectedEdgeIds.includes(edge.id);
+      const targetIds = inSelection ? multiSelectedEdgeIds : [edge.id];
+      const typeLabels: Record<string, string> = {
+        DATA_FLOW: t.assetMap.dataFlow, NETWORK: t.assetMap.network,
+        DEPENDENCY: t.assetMap.dependency, AUTH: t.assetMap.auth,
+      };
+      const dirLabels: Record<string, string> = {
+        UNI: `→ ${t.assetMap.uniDirectional}`, BI: `↔ ${t.assetMap.biDirectional}`,
+        REVERSE: `← ${t.assetMap.reverseDirection}`, CONDITIONAL: `⇢ ${t.assetMap.conditionalDirection}`,
+      };
+      const items: MenuItem[] = [];
+      if (!inSelection) {
+        const dir = (edge.data?.direction as string) || "UNI";
+        items.push({
+          label: t.assetMap.editLink,
+          onClick: () => {
+            setPendingConnection({ source: edge.source, target: edge.target });
+            setEditingEdge(edge);
+            setShowModal(true);
+          },
+        });
+        items.push({
+          label: t.assetMap.flipDirection,
+          disabled: dir !== "UNI" && dir !== "REVERSE",
+          onClick: () => handlePatchLinks([edge.id], { direction: dir === "UNI" ? "REVERSE" : "UNI" }),
+        });
+      }
+      items.push({
+        label: inSelection ? `${t.assetMap.changeType} (${targetIds.length})` : t.assetMap.changeType,
+        children: Object.entries(typeLabels).map(([value, lbl]) => ({
+          label: lbl,
+          onClick: () => handlePatchLinks(targetIds, { linkType: value }),
+        })),
+      });
+      items.push({
+        label: inSelection ? `${t.assetMap.changeDirection} (${targetIds.length})` : t.assetMap.changeDirection,
+        children: Object.entries(dirLabels).map(([value, lbl]) => ({
+          label: lbl,
+          onClick: () => handlePatchLinks(targetIds, { direction: value }),
+        })),
+      });
+      items.push({
+        label: inSelection ? `${t.assetMap.deleteSelected} (${targetIds.length})` : t.assetMap.deleteLink,
+        danger: true,
+        onClick: () => handleDeleteEdges(targetIds),
+      });
+      return items;
+    }
+    // 빈 캔버스 — 연결 추가 (dev-056 에서 가시성 토글·중복 정리 항목 추가 예정)
+    return [
+      { label: t.assetMap.addLink, onClick: () => { setPendingConnection(null); setShowModal(true); } },
+    ];
   }
 
   // ── Label visibility toggle ──────────────────────────────────────────
@@ -3292,8 +3439,9 @@ function AssetMapContentInner() {
 
   // ── Multi-node alignment ──────────────────────────────────────────────
 
-  const onSelectionChange = useCallback(({ nodes: sel }: { nodes: Node[] }) => {
+  const onSelectionChange = useCallback(({ nodes: sel, edges: selEdges }: { nodes: Node[]; edges: Edge[] }) => {
     setMultiSelectedIds(sel.map((n) => n.id));
+    setMultiSelectedEdgeIds(selEdges.map((e) => e.id)); // 박스선택 엣지 일괄 조작용 (dev-055)
   }, []);
 
   type AlignDir = "left" | "centerH" | "right" | "top" | "centerV" | "bottom";
@@ -4457,6 +4605,20 @@ function AssetMapContentInner() {
             onNodeDragStop={onNodeDragStop}
             onSelectionChange={onSelectionChange}
             onEdgeDoubleClick={(_e, edge) => setSelectedEdge(edge)}
+            onEdgeContextMenu={(e, edge) => {
+              e.preventDefault();
+              setCtxMenu({ x: e.clientX, y: e.clientY, edge });
+            }}
+            onPaneContextMenu={(e) => {
+              e.preventDefault();
+              // 우클릭 팬(panOnDrag=[2]) 종료 직후 mouseup 에 따라오는 contextmenu 는 무시 (dev-055)
+              if (Date.now() - lastPanEndTsRef.current < 150) return;
+              const me = e as React.MouseEvent;
+              setCtxMenu({ x: me.clientX, y: me.clientY });
+            }}
+            deleteKeyCode={["Delete", "Backspace"]}
+            onBeforeDelete={onBeforeDelete}
+            onEdgesDelete={onEdgesDelete}
             onMoveEnd={onMoveEnd}
             nodeTypes={nodeTypes}
             snapToGrid={true}
@@ -4525,16 +4687,31 @@ function AssetMapContentInner() {
         />
       )}
 
-      {/* Link Modal */}
+      {/* Link Modal — 생성/편집 겸용 (dev-055: editingEdge 있으면 기존 값 채워 PUT) */}
       {showModal && (
         <LinkModal
           assets={assets}
           externalEntities={externalEntities}
-          onSave={handleSaveLink}
-          onClose={() => { setShowModal(false); setPendingConnection(null); }}
+          onSave={(data) => {
+            const linkId = editingEdge ? Number(editingEdge.data?.linkId) : null;
+            if (linkId != null && Number.isInteger(linkId)) handleUpdateLink(linkId, data);
+            else handleSaveLink(data);
+          }}
+          onClose={() => { setShowModal(false); setPendingConnection(null); setEditingEdge(null); }}
           initialSource={pendingConnection?.source}
           initialTarget={pendingConnection?.target}
+          initialData={editingEdge ? (editingEdge.data as Record<string, unknown>) : null}
           t={t}
+        />
+      )}
+
+      {/* 우클릭 컨텍스트 메뉴 (dev-055) */}
+      {ctxMenu && (
+        <MapContextMenu
+          x={ctxMenu.x}
+          y={ctxMenu.y}
+          items={buildCtxMenuItems()}
+          onClose={() => setCtxMenu(null)}
         />
       )}
 
@@ -4670,6 +4847,8 @@ function AssetMapContentInner() {
           }}
           onEdit={(sourceId: string, targetId: string) => {
             setPendingConnection({ source: sourceId, target: targetId });
+            setEditingEdge(selectedEdge); // 기존 값 채운 편집 모드 — 값 유실 방지 (dev-055)
+            setSelectedEdge(null);
             setShowModal(true);
           }}
           onClose={() => setSelectedEdge(null)}
