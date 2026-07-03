@@ -2245,6 +2245,10 @@ function AssetMapContentInner() {
   const [folderContextMenu, setFolderContextMenu] = useState<{ id: number; x: number; y: number } | null>(null);
   const [editingFolderName, setEditingFolderName] = useState<number | null>(null);
   const [expandedFolders, setExpandedFolders] = useState<Set<number>>(new Set());
+  // 갤러리 페이지→폴더 드래그 앤 드롭 (dev-057)
+  const dragPageRef = useRef<{ id: number; folderId: number | null } | null>(null);
+  const didDragRef = useRef(false); // 드롭 직후 click 오발화(loadWorkspace) 방지
+  const [dropFolderId, setDropFolderId] = useState<number | null>(null); // 드롭 대상 하이라이트
 
   // ── Gallery / Canvas view state ──
   const [currentView, setCurrentView] = useState<"gallery" | "canvas">("gallery");
@@ -3972,8 +3976,20 @@ function AssetMapContentInner() {
     const renderPageCard = (ws: SavedView, compact?: boolean) => (
       <div
         key={ws.id}
+        draggable
+        onDragStart={(e) => {
+          // 페이지 카드를 폴더로 드래그 (dev-057) — 우클릭 "폴더로 이동" 메뉴와 공존
+          dragPageRef.current = { id: ws.id, folderId: ws.folderId ?? null };
+          didDragRef.current = true;
+          e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/plain", String(ws.id));
+        }}
+        onDragEnd={() => {
+          setTimeout(() => { didDragRef.current = false; }, 0); // 드롭 직후 click 오발화 방지
+          setDropFolderId(null);
+        }}
         className={`group relative bg-white rounded-xl border border-gray-200 cursor-pointer hover:shadow-md hover:border-blue-300 transition-all overflow-hidden${compact ? " scale-[0.97] origin-top" : ""}`}
-        onClick={() => loadWorkspace(ws)}
+        onClick={() => { if (didDragRef.current) return; loadWorkspace(ws); }}
         onContextMenu={(e) => { e.preventDefault(); setWsContextMenu({ id: ws.id, x: e.clientX, y: e.clientY }); }}
       >
         {/* 도면 미리보기 영역 */}
@@ -4089,8 +4105,17 @@ function AssetMapContentInner() {
             </div>
           </div>
 
-          {/* Grid: Root pages + Folders + New cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-4">
+          {/* Grid: Root pages + Folders + New cards — 폴더 내 페이지를 여기 드롭하면 루트로 복귀 (dev-057) */}
+          <div
+            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-4"
+            onDragOver={(e) => { if (dragPageRef.current?.folderId != null) e.preventDefault(); }}
+            onDrop={(e) => {
+              e.preventDefault();
+              const drag = dragPageRef.current;
+              dragPageRef.current = null;
+              if (drag && drag.folderId != null) movePageToFolder(drag.id, null);
+            }}
+          >
             {/* Root page cards */}
             {myRootWorkspaces.map((ws) => renderPageCard(ws))}
 
@@ -4100,9 +4125,24 @@ function AssetMapContentInner() {
               return (
                 <div
                   key={`folder-${folder.id}`}
-                  className="group relative bg-white rounded-xl border border-gray-200 hover:shadow-md hover:border-amber-300 transition-all overflow-hidden cursor-pointer"
+                  className={`group relative bg-white rounded-xl border transition-all overflow-hidden cursor-pointer hover:shadow-md ${dropFolderId === folder.id ? "border-amber-400 ring-2 ring-amber-300" : "border-gray-200 hover:border-amber-300"}`}
                   onClick={() => toggleFolder(folder.id)}
                   onContextMenu={(e) => { e.preventDefault(); setFolderContextMenu({ id: folder.id, x: e.clientX, y: e.clientY }); }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
+                    if (dropFolderId !== folder.id) setDropFolderId(folder.id);
+                  }}
+                  onDragLeave={() => setDropFolderId((p) => (p === folder.id ? null : p))}
+                  onDrop={(e) => {
+                    // 페이지 카드 드롭 → 이 폴더로 이동 (dev-057). 기존 movePageToFolder(PUT) 재사용.
+                    e.preventDefault();
+                    e.stopPropagation(); // 그리드 루트 드롭존으로 버블 방지
+                    setDropFolderId(null);
+                    const drag = dragPageRef.current;
+                    dragPageRef.current = null;
+                    if (drag && drag.folderId !== folder.id) movePageToFolder(drag.id, folder.id);
+                  }}
                 >
                   {/* Folder preview area */}
                   <div className="h-24 relative border-b border-gray-100" style={{ background: `linear-gradient(135deg, ${folder.color}15, ${folder.color}08)` }}>
