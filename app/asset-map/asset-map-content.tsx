@@ -2228,6 +2228,8 @@ function AssetMapContentInner() {
   const [multiSelectedEdgeIds, setMultiSelectedEdgeIds] = useState<string[]>([]);
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; edge?: Edge } | null>(null);
   const lastPanEndTsRef = useRef(0);
+  // 전체 링크 ID 스냅샷 (dev-056) — "모든 연결 표시" 토글·숨김 수 배지의 기준
+  const allLinkIdsRef = useRef<number[]>([]);
   const [editingSection, setEditingSection] = useState<Node | null>(null);
 
   // ── Workspace state ──
@@ -2825,6 +2827,8 @@ function AssetMapContentInner() {
       // 비어있거나 null 이면 기존 동작(모든 엣지 표시) 유지 — 레거시 페이지 호환.
       // 새 페이지는 명시적 빈 배열로 초기화돼야 다른 페이지의 엣지가 자동 노출되지 않음.
       const allRawEdges = data.edges || [];
+      // 전체 링크 ID 스냅샷 — all 뷰 가시성 토글 기준 (dev-056)
+      if (view === "all") allLinkIdsRef.current = allRawEdges.map((e: AssetEdge) => e.id);
       const wsEdgeVis = activeWorkspaceRef.current?.edgeVisibility as { visibleEdgeIds?: number[] } | null | undefined;
       const visibleEdgeIds = wsEdgeVis?.visibleEdgeIds;
       // visibleEdgeIds 페이지 가시성은 all 뷰에서만 적용 — 비-all 뷰(network/data_flow/pii)는
@@ -3282,6 +3286,18 @@ function AssetMapContentInner() {
           return allEdges;
         });
         setPendingConnection(null);
+        // 비-all 뷰에서 만든 연결도 all 뷰 화이트리스트에 편입 — 기존엔 all 뷰에서 영영 안 보였다 (dev-056 B).
+        // 화이트리스트가 없는(null=전체표시) 페이지는 건드리지 않는다 — 배열을 신설하면 나머지 엣지가 전부 숨는다.
+        // 추가 전용(append-only): flushSave 의 비-all 가드(dev-049)는 existingVis 를 그대로 전송하므로 별도 PUT 불요.
+        if (viewRef.current !== "all") {
+          const ws = activeWorkspaceRef.current;
+          const vis = ws?.edgeVisibility as { visibleEdgeIds?: number[] } | null | undefined;
+          if (ws && vis && Array.isArray(vis.visibleEdgeIds) && !vis.visibleEdgeIds.includes(newLink.id)) {
+            const merged = { ...vis, visibleEdgeIds: [...vis.visibleEdgeIds, newLink.id] };
+            activeWorkspaceRef.current = { ...ws, edgeVisibility: merged };
+            setActiveWorkspace((p) => (p ? { ...p, edgeVisibility: merged } : p)); // ref+state 동시 (dev-032 규칙)
+          }
+        }
         markDirty(300); // 새 링크를 visibleEdgeIds 에 즉시 반영 (페이지별 가시성)
     } catch {
       alert(t.assetMap.linkCreateError);
@@ -3368,6 +3384,50 @@ function AssetMapContentInner() {
     handleDeleteEdges(deleted.map((e) => e.id), { skipConfirm: true });
   };
 
+  // 모든 연결 표시/숨김 토글 (dev-056 B) — all 뷰 전용. 화이트리스트를 명시 배열로 결정적 설정
+  // (null 대입은 레거시 '전체 표시' 의미와 겹쳐 autosave 재작성 타이밍에 의미가 흔들린다).
+  function handleToggleAllLinks() {
+    const ws = activeWorkspaceRef.current;
+    if (!ws || viewRef.current !== "all") return;
+    const vis = ws.edgeVisibility as { visibleEdgeIds?: number[] } | null | undefined;
+    const current = vis && Array.isArray(vis.visibleEdgeIds) ? vis.visibleEdgeIds : null;
+    const all = allLinkIdsRef.current;
+    const someHidden = current !== null && all.some((id) => !current.includes(id));
+    const next = { ...(vis ?? {}), visibleEdgeIds: someHidden ? [...all] : [] };
+    activeWorkspaceRef.current = { ...ws, edgeVisibility: next };
+    setActiveWorkspace((p) => (p ? { ...p, edgeVisibility: next } : p)); // ref+state 동시 (dev-032 규칙)
+    markDirty(300);
+    fetchGraph();
+  }
+
+  // 중복 연결 정리 (dev-056 — A 진입점) — dryRun 미리보기 → 확정 실행 (dev-054 dedup API)
+  async function handleDedupLinks() {
+    try {
+      const preview = await fetch("/api/asset-links/dedup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dryRun: true }),
+      }).then((r) => r.json());
+      if (!preview?.deletedIds?.length) {
+        alert(t.assetMap.dedupNone);
+        return;
+      }
+      const msg = t.assetMap.dedupConfirm
+        .replace("{n}", String(preview.deletedIds.length))
+        .replace("{g}", String(preview.groups));
+      if (!confirm(msg)) return;
+      await fetch("/api/asset-links/dedup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      markDirty(300);
+      fetchGraph();
+    } catch {
+      fetchGraph();
+    }
+  }
+
   // 우클릭 컨텍스트 메뉴 항목 구성 (dev-055) — 엣지 단건 / 다중선택 / 빈 캔버스
   function buildCtxMenuItems(): MenuItem[] {
     if (!ctxMenu) return [];
@@ -3421,10 +3481,21 @@ function AssetMapContentInner() {
       });
       return items;
     }
-    // 빈 캔버스 — 연결 추가 (dev-056 에서 가시성 토글·중복 정리 항목 추가 예정)
-    return [
+    // 빈 캔버스 — 연결 추가 + all 뷰 전용 가시성 토글·중복 정리 (dev-056)
+    const paneItems: MenuItem[] = [
       { label: t.assetMap.addLink, onClick: () => { setPendingConnection(null); setShowModal(true); } },
     ];
+    if (view === "all" && activeWorkspaceRef.current) {
+      const vis = activeWorkspaceRef.current.edgeVisibility as { visibleEdgeIds?: number[] } | null | undefined;
+      const current = vis && Array.isArray(vis.visibleEdgeIds) ? vis.visibleEdgeIds : null;
+      const hidden = current === null ? 0 : allLinkIdsRef.current.filter((id) => !current.includes(id)).length;
+      paneItems.push({
+        label: hidden > 0 ? `${t.assetMap.showAllLinks} (${hidden})` : t.assetMap.hideAllLinks,
+        onClick: handleToggleAllLinks,
+      });
+      paneItems.push({ label: t.assetMap.dedupLinks, onClick: handleDedupLinks });
+    }
+    return paneItems;
   }
 
   // ── Label visibility toggle ──────────────────────────────────────────
@@ -4445,6 +4516,21 @@ function AssetMapContentInner() {
           >
             {animateEdges ? t.assetMap.animateEdgesOn : t.assetMap.animateEdgesOff}
           </button>
+          {/* 모든 연결 표시/숨김 (dev-056 B) — all 뷰 전용, 숨김 수 배지 */}
+          {view === "all" && activeWorkspace && (() => {
+            const vis = activeWorkspace.edgeVisibility as { visibleEdgeIds?: number[] } | null | undefined;
+            const current = vis && Array.isArray(vis.visibleEdgeIds) ? vis.visibleEdgeIds : null;
+            const hidden = current === null ? 0 : allLinkIdsRef.current.filter((id) => !current.includes(id)).length;
+            return (
+              <button
+                onClick={handleToggleAllLinks}
+                title={hidden > 0 ? t.assetMap.showAllLinks : t.assetMap.hideAllLinks}
+                className={`rounded-md border px-3 py-1.5 text-xs font-medium ${hidden > 0 ? "border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100" : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"}`}
+              >
+                {hidden > 0 ? `${t.assetMap.showAllLinks} (${hidden})` : t.assetMap.hideAllLinks}
+              </button>
+            );
+          })()}
           <button onClick={handleAutoLayout} className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">
             <LayoutGrid className="inline h-3.5 w-3.5 mr-1" />
             {t.assetMap.autoLayout}

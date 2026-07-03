@@ -1456,6 +1456,12 @@ export type TranslationDict = {
     flipDirection: string;
     changeType: string;
     changeDirection: string;
+    // 가시성 토글·중복 정리 (dev-056)
+    showAllLinks: string;
+    hideAllLinks: string;
+    dedupLinks: string;
+    dedupNone: string;
+    dedupConfirm: string;
     labelPlaceholder: string;
     piiItemsPlaceholder: string;
     addSection: string;
