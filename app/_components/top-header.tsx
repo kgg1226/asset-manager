@@ -31,6 +31,14 @@ export default function TopHeader({ user }: TopHeaderProps) {
         <GlobalSearch />
       </div>
       <div className="flex items-center gap-3" data-tour="user-menu">
+        {/* 배포 버전 배지 (dev-060) — 버전=1.<dev티켓>.<핫픽스>, 빌드일과 함께 표기.
+            "지금 떠 있는 게 최신 배포인가"를 눈으로 확인하는 용도 (tasks/versioning.md) */}
+        <span
+          className="hidden sm:inline select-none text-[11px] text-gray-400"
+          title={`build ${process.env.NEXT_PUBLIC_BUILD_DATE ?? "?"}`}
+        >
+          v{process.env.NEXT_PUBLIC_APP_VERSION ?? "dev"} · {process.env.NEXT_PUBLIC_BUILD_DATE ?? "?"}
+        </span>
         <NotificationBell />
 
         {/* Language Toggle */}
