@@ -2473,10 +2473,27 @@ function AssetMapContentInner() {
     // Flush current before switching
     if (dirtyRef.current) await flushSave();
 
-    setActiveWorkspace(ws);
+    // 서버 최신본으로 연다 (dev-062) — 갤러리 목록의 객체는 마운트 시점 스냅샷이라, 세션 중
+    // 자동저장된 위치·소속이 빠져 있다. stale 객체로 열면 캔버스가 비어 보이고, 이후 병합
+    // 저장이 stale(빈) 저장본과 합쳐져 서버의 정상 데이터를 되덮는다(재진입 자산 소실).
+    let fresh = ws;
+    try {
+      const res = await fetch("/api/asset-map/views");
+      if (res.ok) {
+        const data = await res.json();
+        const views: SavedView[] = Array.isArray(data) ? data : data.views ?? [];
+        const found = views.find((v) => v.id === ws.id);
+        if (found) {
+          fresh = found;
+          setWorkspaces(views); // 갤러리 목록도 최신으로 동기화
+        }
+      }
+    } catch { /* 조회 실패 시 기존 객체 폴백 */ }
+
+    setActiveWorkspace(fresh);
     setCurrentView("canvas");
     // Touch lastAccessedAt
-    fetch(`/api/asset-map/views/${ws.id}/touch`, { method: "PATCH" }).catch(() => {});
+    fetch(`/api/asset-map/views/${fresh.id}/touch`, { method: "PATCH" }).catch(() => {});
   }, [flushSave]);
 
   const createWorkspace = useCallback(async (name: string) => {
@@ -2672,11 +2689,21 @@ function AssetMapContentInner() {
   const fetchGraph = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/asset-map?view=${view}`);
+      // 비-all 뷰 API 는 뷰-연결 자산만 반환한다 — 그대로 쓰면 팔레트가 비고("등록된 자산이
+      // 없습니다"), 수동 배치한 자산도 재조회에서 탈락한다. 노드/팔레트 유니버스는 항상 전체
+      // 자산(view=all)으로 쓰고, 뷰 파라미터는 엣지 필터로만 쓴다 (dev-062).
+      const [res, resAllNodes] = await Promise.all([
+        fetch(`/api/asset-map?view=${view}`),
+        view !== "all" ? fetch(`/api/asset-map?view=all`) : Promise.resolve(null),
+      ]);
       if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
 
-      const fetchedAllAssets: AssetNode[] = data.nodes || [];
+      let fetchedAllAssets: AssetNode[] = data.nodes || [];
+      if (resAllNodes && resAllNodes.ok) {
+        const dataAll = await resAllNodes.json();
+        if (Array.isArray(dataAll.nodes)) fetchedAllAssets = dataAll.nodes;
+      }
       const fetchedEntities: ExternalEntity[] = data.externalEntities || [];
       const fetchedGroups: AssetGroup[] = data.groups || [];
       const fetchedEdges: AssetEdge[] = data.edges || [];
@@ -2722,7 +2749,12 @@ function AssetMapContentInner() {
 
         // Preserve manually placed assets — use ref to avoid stale closure
         const currentPlacedIds = new Set(placedAssetIdsRef.current);
-        const placedIds = new Set([...connectedAssetIds, ...currentPlacedIds]);
+        // 저장된 배치 자산도 전 뷰에서 표시 (dev-062) — 페이지=자산 배치, 뷰=엣지 필터.
+        // 미포함 시 재진입 후 비-all 뷰(PII 등)에서 배치했던 자산이 사라져 "할 수 있는 것이 없음".
+        const savedPlacedIds = hasSavedPositions
+          ? new Set(Object.keys(savedPositions as Record<string, unknown>).map(Number).filter((n) => Number.isFinite(n)))
+          : new Set<number>();
+        const placedIds = new Set([...connectedAssetIds, ...currentPlacedIds, ...savedPlacedIds]);
 
         // network 뷰: NETWORK 링크가 없는 네트워크 장비(deviceType="Network")도 캔버스에 표시 (dev-048 이슈1)
         if (view === "network") {
