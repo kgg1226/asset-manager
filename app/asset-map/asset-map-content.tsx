@@ -702,8 +702,12 @@ function distributeEdgeHandles(edges: import("@xyflow/react").Edge[]): import("@
   // 노드+변(side) 하나의 네임스페이스에 incoming(target)·outgoing(source) 끝을 함께 모은다.
   // 기존엔 target/source 를 독립 그룹으로 분배해, 같은 노드·같은 변에서 들어오는 선과
   // 나가는 선이 동일 퍼센트 핸들(left-p33)을 공유 → 완전히 겹쳐 한 선이 숨었다 (dev-045 이슈7).
+  // 순수화 (dev-063): 입력을 복제해 변이한다. handleSaveLink 가 RF 스토어의 현재 엣지 객체를
+  // 그대로 넘기는데, in-place 변이는 RF 내부 상태와 어긋나 같은 변에 두 번째 선이 붙는 순간
+  // 기존 선까지 렌더에서 소실됐다(탭 전환/새로고침 재조회 때 새 객체로 되살아남). 반환 배열을 쓸 것.
+  const cloned = edges.map((e) => ({ ...e }));
   const groups: Record<string, Slot[]> = {};
-  for (const edge of edges) {
+  for (const edge of cloned) {
     const tSide = getHandleSide(edge.targetHandle || "left");
     (groups[`${edge.target}:${tSide}`] ??= []).push({ edge, role: "target", side: tSide });
     const sSide = getHandleSide(edge.sourceHandle || "right");
@@ -727,7 +731,7 @@ function distributeEdgeHandles(edges: import("@xyflow/react").Edge[]): import("@
     });
   }
 
-  return edges;
+  return cloned;
 }
 
 /** distributeEdgeHandles가 사용하는 동적 핸들 ID에서 필요한 핸들 세트를 수집 */
@@ -2676,7 +2680,14 @@ function AssetMapContentInner() {
   }, [fetchFolders]);
 
   // ── activeWorkspace 변경 시 localStorage 동기화 (새로고침 복원용) ──
+  // 마운트 첫 실행은 건너뜀 (dev-063): 초기 null 상태에서 removeItem 하면, 비동기 init() 이
+  // 복원용 키를 읽기 전에 지워져 새로고침이 페이지 복원 대신 항상 갤러리로 떨어졌다.
+  const wsSyncFirstRunRef = useRef(true);
   useEffect(() => {
+    if (wsSyncFirstRunRef.current) {
+      wsSyncFirstRunRef.current = false;
+      if (!activeWorkspace) return;
+    }
     try {
       if (activeWorkspace) {
         localStorage.setItem("asset-map-active-workspace-id", String(activeWorkspace.id));
@@ -2975,13 +2986,13 @@ function AssetMapContentInner() {
         return edgeObj;
       });
 
-      // 같은 노드+방향에 여러 엣지가 몰리면 핸들 자동 분배
-      distributeEdgeHandles(flowEdges);
+      // 같은 노드+방향에 여러 엣지가 몰리면 핸들 자동 분배 — 순수 함수 반환값 사용 (dev-063)
+      const distributedEdges = distributeEdgeHandles(flowEdges);
 
       // 각 노드에 필요한 동적 핸들 ID 주입 — 빈 배열도 항상 주입해 stale 핸들을 비운다
       // (가드가 있으면 엣지가 줄어 핸들이 사라진 노드의 옛 _handles 가 남아 렌더 누락, dev-045 이슈7)
       for (const node of [...flowNodes, ...entityNodes]) {
-        node.data = { ...node.data, _handles: collectDynamicHandles(flowEdges, node.id) };
+        node.data = { ...node.data, _handles: collectDynamicHandles(distributedEdges, node.id) };
       }
 
       const allNodes = [...groupNodes, ...flowNodes, ...entityNodes];
@@ -2991,11 +3002,11 @@ function AssetMapContentInner() {
       // DOM 에 등록되기 전에 엣지가 참조해 해당 선이 조용히 드랍된다(타이밍 따라 깜빡임 — 병렬 엣지가
       // 많은 네트워크 뷰에서 두드러짐). lessons.md 2026-03-23 처방 적용.
       if (view === "pii") {
-        const piiLayout = getPiiLifecycleLayout(allNodes, flowEdges, t);
+        const piiLayout = getPiiLifecycleLayout(allNodes, distributedEdges, t);
         setNodes(piiLayout.nodes);
         requestAnimationFrame(() => setEdges(piiLayout.edges));
       } else {
-        const layouted = getLayoutedElements(allNodes, flowEdges);
+        const layouted = getLayoutedElements(allNodes, distributedEdges);
         setNodes(layouted.nodes);
         requestAnimationFrame(() => setEdges(layouted.edges));
       }
@@ -3025,7 +3036,14 @@ function AssetMapContentInner() {
     const ws = activeWorkspaceRef.current;
     if (!ws || ws.id !== activeWorkspaceId) return;
 
-    const positions = ws.nodePositions;
+    // 문자열(JSON) 저장본 방어 (dev-063) — 복원이 조용히 건너뛰면 dagre 재배치가 남고,
+    // 다음 병합 저장이 그 재배치를 정상 위치 위에 덮어써 "뒤죽박죽"이 영구화된다.
+    const rawPositions = ws.nodePositions;
+    const positions: Record<string, { x: number; y: number }> | null = !rawPositions
+      ? null
+      : typeof rawPositions === "string"
+        ? (() => { try { return JSON.parse(rawPositions); } catch { return null; } })()
+        : (rawPositions as Record<string, { x: number; y: number }>);
     const sections = ws.sectionData;
     const vp = ws.viewport;
 
@@ -3327,8 +3345,8 @@ function AssetMapContentInner() {
         }
         // 노드에 핸들을 먼저 주입하고 다음 프레임에 엣지를 넣는다 (dev-061) — 같은 커밋이면
         // 새 -pN 핸들을 참조하는 엣지가 드랍된다. 빈 배열도 항상 주입(stale 정리, dev-045 이슈7).
-        const allEdges = [...reactFlowInstance.getEdges(), newEdge];
-        distributeEdgeHandles(allEdges);
+        // distributeEdgeHandles 는 내부 복제 후 반환 (dev-063) — RF 스토어 객체 변이 금지.
+        const allEdges = distributeEdgeHandles([...reactFlowInstance.getEdges(), newEdge]);
         setNodes((nds) => nds.map((n) => (
           { ...n, data: { ...n.data, _handles: collectDynamicHandles(allEdges, n.id) } }
         )));
