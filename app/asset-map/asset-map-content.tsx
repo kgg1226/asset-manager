@@ -2954,15 +2954,18 @@ function AssetMapContentInner() {
 
       const allNodes = [...groupNodes, ...flowNodes, ...entityNodes];
 
-      // Apply layout based on view type
+      // Apply layout based on view type.
+      // setNodes → rAF → setEdges 2단 커밋 (dev-061): 같은 커밋에서 함께 넣으면 동적 핸들(-pN)이
+      // DOM 에 등록되기 전에 엣지가 참조해 해당 선이 조용히 드랍된다(타이밍 따라 깜빡임 — 병렬 엣지가
+      // 많은 네트워크 뷰에서 두드러짐). lessons.md 2026-03-23 처방 적용.
       if (view === "pii") {
         const piiLayout = getPiiLifecycleLayout(allNodes, flowEdges, t);
         setNodes(piiLayout.nodes);
-        setEdges(piiLayout.edges);
+        requestAnimationFrame(() => setEdges(piiLayout.edges));
       } else {
         const layouted = getLayoutedElements(allNodes, flowEdges);
         setNodes(layouted.nodes);
-        setEdges(layouted.edges);
+        requestAnimationFrame(() => setEdges(layouted.edges));
       }
     } catch {
       // silently fail
@@ -3290,15 +3293,14 @@ function AssetMapContentInner() {
         } else if (direction === "CONDITIONAL") {
           newEdge.style = { ...newEdge.style, strokeDasharray: "8 4", strokeWidth: 1.5, opacity: 0.6 };
         }
-        setEdges((prev) => {
-          const allEdges = [...prev, newEdge];
-          distributeEdgeHandles(allEdges);
-          // 빈 배열도 항상 주입 — stale 동적 핸들 정리 (dev-045 이슈7)
-          setNodes((nds) => nds.map((n) => (
-            { ...n, data: { ...n.data, _handles: collectDynamicHandles(allEdges, n.id) } }
-          )));
-          return allEdges;
-        });
+        // 노드에 핸들을 먼저 주입하고 다음 프레임에 엣지를 넣는다 (dev-061) — 같은 커밋이면
+        // 새 -pN 핸들을 참조하는 엣지가 드랍된다. 빈 배열도 항상 주입(stale 정리, dev-045 이슈7).
+        const allEdges = [...reactFlowInstance.getEdges(), newEdge];
+        distributeEdgeHandles(allEdges);
+        setNodes((nds) => nds.map((n) => (
+          { ...n, data: { ...n.data, _handles: collectDynamicHandles(allEdges, n.id) } }
+        )));
+        requestAnimationFrame(() => setEdges(allEdges));
         setPendingConnection(null);
         // 새 연결을 페이지 소속에 편입 — 전 뷰 공통 (dev-056 B → dev-059 확장).
         // autosave 가 소속을 재작성하지 않으므로(dev-059 passthrough) 생성 시 명시 append 가 유일한 편입 경로다.
@@ -4676,6 +4678,22 @@ function AssetMapContentInner() {
             onRemoveFromCanvas={(assetId: number) => {
               setNodes((prev) => prev.filter((n) => n.id !== String(assetId)));
               setEdges((prev) => prev.filter((e) => e.source !== String(assetId) && e.target !== String(assetId)));
+              // 병합 저장(dev-059)은 "키 없음"을 삭제로 표현하지 못한다 — 저장본에서 명시 제거하지
+              // 않으면 다음 재조회에 자산이 부활한다 (dev-061). 연결 소속은 유지 → 재배치 시 복귀.
+              placedAssetIdsRef.current.delete(assetId);
+              const ws = activeWorkspaceRef.current;
+              const rawPos = ws?.nodePositions;
+              const posObj: Record<string, { x: number; y: number }> | null = !rawPos
+                ? null
+                : typeof rawPos === "string"
+                  ? (() => { try { return JSON.parse(rawPos); } catch { return null; } })()
+                  : (rawPos as Record<string, { x: number; y: number }>);
+              if (ws && posObj) {
+                const nextPos = { ...posObj };
+                delete nextPos[String(assetId)];
+                activeWorkspaceRef.current = { ...ws, nodePositions: nextPos };
+                setActiveWorkspace((p) => (p ? { ...p, nodePositions: nextPos } : p)); // ref+state 동시
+              }
               markDirty(2000);
             }}
             t={t}
