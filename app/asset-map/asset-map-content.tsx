@@ -2760,17 +2760,26 @@ function AssetMapContentInner() {
 
         // Preserve manually placed assets — use ref to avoid stale closure
         const currentPlacedIds = new Set(placedAssetIdsRef.current);
-        // 저장된 배치 자산도 전 뷰에서 표시 (dev-062) — 페이지=자산 배치, 뷰=엣지 필터.
-        // 미포함 시 재진입 후 비-all 뷰(PII 등)에서 배치했던 자산이 사라져 "할 수 있는 것이 없음".
+        // 뷰별 노드 정책 (dev-064) — dev-062 가 "저장 배치 전체"를 모든 필터 뷰에 올려 네트워크
+        // 구성도에 전 하드웨어가 노출되는 회귀가 있었다. 필터 뷰의 편의를 복원하되 작성은 유지:
+        //  · network:   해당 유형 연결 ∪ 세션 수동 배치 ∪ 네트워크 장비(deviceType=Network)
+        //  · pii:       연결 ∪ 세션 수동 배치 ∪ (저장 배치 중 piiStage 지정 자산 — 흐름도 대상만)
+        //  · data_flow: 연결 ∪ 세션 수동 배치
+        // 저장 배치 "전체"는 all 뷰 전용. 필터 뷰에서 팔레트로 올린 자산은 세션 중 유지되고,
+        // 그 뷰의 연결을 만들거나(연결 기반) piiStage 를 지정하면(pii) 재진입 후에도 나타난다.
         const savedPlacedIds = hasSavedPositions
           ? new Set(Object.keys(savedPositions as Record<string, unknown>).map(Number).filter((n) => Number.isFinite(n)))
           : new Set<number>();
-        const placedIds = new Set([...connectedAssetIds, ...currentPlacedIds, ...savedPlacedIds]);
+        const placedIds = new Set([...connectedAssetIds, ...currentPlacedIds]);
 
-        // network 뷰: NETWORK 링크가 없는 네트워크 장비(deviceType="Network")도 캔버스에 표시 (dev-048 이슈1)
         if (view === "network") {
+          // NETWORK 링크가 없는 네트워크 장비도 구성도에 표시 (dev-048 이슈1)
           fetchedAllAssets.forEach((a) => {
             if ((a as { deviceType?: string | null }).deviceType === "Network") placedIds.add(a.id);
+          });
+        } else if (view === "pii") {
+          fetchedAllAssets.forEach((a) => {
+            if (savedPlacedIds.has(a.id) && (a as { piiStage?: string | null }).piiStage) placedIds.add(a.id);
           });
         }
 
