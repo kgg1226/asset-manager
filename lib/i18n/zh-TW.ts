@@ -328,6 +328,7 @@ export const zhTW: TranslationDict = {
     title: "硬體",
     newHardware: "新建硬體",
     deviceType: "裝置類型",
+    deviceMgmtCollapsed: "裝置管理（不適用於目前類型 — 展開檢視）",
     manufacturer: "製造商",
     model: "型號",
     serialNumber: "序號",

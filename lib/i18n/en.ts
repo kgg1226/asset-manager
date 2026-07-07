@@ -328,6 +328,7 @@ export const en: TranslationDict = {
     title: "Hardware",
     newHardware: "New Hardware",
     deviceType: "Device Type",
+    deviceMgmtCollapsed: "Device management (not applicable to this type — expand to view)",
     manufacturer: "Manufacturer",
     model: "Model",
     serialNumber: "Serial Number",

@@ -328,6 +328,7 @@ export const vi: TranslationDict = {
     title: "Phần cứng",
     newHardware: "Đăng ký phần cứng",
     deviceType: "Loại thiết bị",
+    deviceMgmtCollapsed: "Quản lý thiết bị (không áp dụng cho loại này — mở rộng để xem)",
     manufacturer: "Nhà sản xuất",
     model: "Model",
     serialNumber: "Số serial",

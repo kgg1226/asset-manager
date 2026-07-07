@@ -328,6 +328,7 @@ export const ja: TranslationDict = {
     title: "ハードウェア",
     newHardware: "ハードウェア登録",
     deviceType: "デバイスタイプ",
+    deviceMgmtCollapsed: "デバイス管理（この種別に非該当 — 展開して表示）",
     manufacturer: "メーカー",
     model: "モデル",
     serialNumber: "シリアル番号",

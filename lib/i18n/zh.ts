@@ -328,6 +328,7 @@ export const zh: TranslationDict = {
     title: "硬件",
     newHardware: "新建硬件",
     deviceType: "设备类型",
+    deviceMgmtCollapsed: "设备管理（不适用于当前类型 — 展开查看）",
     manufacturer: "制造商",
     model: "型号",
     serialNumber: "序列号",
