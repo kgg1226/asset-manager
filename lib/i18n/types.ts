@@ -337,6 +337,7 @@ export type TranslationDict = {
     title: string;
     newHardware: string;
     deviceType: string;
+    deviceMgmtCollapsed: string;
     manufacturer: string;
     model: string;
     serialNumber: string;

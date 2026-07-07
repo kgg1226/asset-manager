@@ -14,10 +14,10 @@ import PiiItemsEditor, { type PiiItemRow, parsePiiItemRows } from "@/app/_compon
 import type { PiiStage } from "@/lib/pii-stage";
 import LifecycleGauge from "@/app/_components/lifecycle-gauge";
 import type { CiaLevel } from "@/lib/cia";
+import { DEVICE_TYPES, resolveDeviceGroup, isFieldVisible } from "@/lib/hardware-device-types";
 
 const CURRENCIES = ["USD", "KRW", "EUR", "JPY", "GBP", "CNY"];
 const BILLING_CYCLE_VALUES = ["ONE_TIME", "MONTHLY", "ANNUAL", "USAGE_BASED"];
-const DEVICE_TYPES = ["Laptop", "Desktop", "Server", "Network", "Mobile", "Monitor", "Peripheral", "SecurityDevice", "Storage", "Backup", "Rack", "Component", "Facility", "Other"];
 
 export default function HardwareEditPage() {
   const router = useRouter();
@@ -147,6 +147,12 @@ export default function HardwareEditPage() {
   if (isLoadingData) return <div className="min-h-screen bg-gray-50 p-6"><div className="mx-auto max-w-2xl"><p className="text-center text-gray-600">{t.common.loading}</p></div></div>;
 
   const ic = "w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500";
+  // 장비 유형군별 조건 표시 (dev-065). 편집 폼은 "저장값이 있으면 계속 표시" — 숨김이 은닉이
+  // 되지 않게 하고, 값을 비우면(다음 진입부터) 유형 규칙이 적용된다. payload 는 전 필드
+  // 유지라 숨겨져도 저장 데이터는 불변.
+  const dg = resolveDeviceGroup(hw.deviceType);
+  const vis = (field: Parameters<typeof isFieldVisible>[1], hasValue: boolean) =>
+    isFieldVisible(dg, field) || hasValue;
   const ec = "w-full rounded-md border border-red-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500";
 
   return (
@@ -191,15 +197,18 @@ export default function HardwareEditPage() {
             </div>
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
               <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.serialNumber}</label><input type="text" name="serialNumber" value={hw.serialNumber} onChange={onHwChange} className={`${ic} font-mono`} /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.hostname}</label><input type="text" name="hostname" value={hw.hostname} onChange={onHwChange} className={`${ic} font-mono`} /></div>
+              {vis("hostname", !!hw.hostname) && <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.hostname}</label><input type="text" name="hostname" value={hw.hostname} onChange={onHwChange} className={`${ic} font-mono`} /></div>}
             </div>
+            {(vis("macAddress", !!hw.macAddress) || vis("ipAddress", !!hw.ipAddress)) && (
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
-              <div><label className="block text-sm font-medium text-gray-700 mb-2">MAC Address</label><input type="text" name="macAddress" value={hw.macAddress} onChange={onHwChange} className={`${ic} font-mono`} /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-2">IP Address</label><input type="text" name="ipAddress" value={hw.ipAddress} onChange={onHwChange} className={`${ic} font-mono`} /></div>
+              {vis("macAddress", !!hw.macAddress) && <div><label className="block text-sm font-medium text-gray-700 mb-2">MAC Address</label><input type="text" name="macAddress" value={hw.macAddress} onChange={onHwChange} className={`${ic} font-mono`} /></div>}
+              {vis("ipAddress", !!hw.ipAddress) && <div><label className="block text-sm font-medium text-gray-700 mb-2">IP Address</label><input type="text" name="ipAddress" value={hw.ipAddress} onChange={onHwChange} className={`${ic} font-mono`} /></div>}
             </div>
+            )}
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-3">
-              <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.os}</label><select name="os" value={hw.os} onChange={onHwChange} className={ic}><option value="">{t.common.search}</option><option value="macOS">macOS</option><option value="Windows">Windows</option><option value="Linux">Linux</option><option value="Other">{t.hw.other}</option></select></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.osVersion}</label><input type="text" name="osVersion" value={hw.osVersion} onChange={onHwChange} className={ic} /></div>
+              {/* OS/버전은 OS 구동 장비만 — 네트워크 장비는 인프라 블록의 펌웨어 버전이 정본 (dev-065) */}
+              {vis("os", !!hw.os) && <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.os}</label><select name="os" value={hw.os} onChange={onHwChange} className={ic}><option value="">{t.common.search}</option><option value="macOS">macOS</option><option value="Windows">Windows</option><option value="Linux">Linux</option><option value="Other">{t.hw.other}</option></select></div>}
+              {vis("osVersion", !!hw.osVersion) && <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.osVersion}</label><input type="text" name="osVersion" value={hw.osVersion} onChange={onHwChange} className={ic} /></div>}
               <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.usefulLife}</label><input type="number" name="usefulLifeYears" value={hw.usefulLifeYears} onChange={onHwChange} min="1" max="50" className={ic} /><p className="mt-1 text-xs text-gray-500">{t.hw.depreciation}</p></div>
             </div>
             <div><label className="block text-sm font-medium text-gray-700 mb-2">{t.hw.location}</label><input type="text" name="location" value={hw.location} onChange={onHwChange} className={ic} /></div>
@@ -337,8 +346,11 @@ export default function HardwareEditPage() {
           {/* 자산분류체계 — 대분류→소분류 (dev-037) */}
 
           <div className="mb-6"><ClassificationSelect value={subCategoryId} onChange={setSubCategoryId} /></div>
+            {/* PII 섹션은 데이터 보유 장비군만 — 단 저장값이 있으면 계속 표시(은닉 방지) (dev-065) */}
+            {(isFieldVisible(dg, "piiSection") || piiStage !== null || piiItems.length > 0) && (<>
             <div className="mb-6"><PiiStageSelect value={piiStage} onChange={setPiiStage} /></div>
             <div className="mb-6"><PiiItemsEditor value={piiItems} onChange={setPiiItems} /></div>
+            </>)}
 
           <CiaScoreInput initialValues={cia} onChange={setCia} />
 

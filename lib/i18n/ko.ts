@@ -328,6 +328,7 @@ export const ko: TranslationDict = {
     title: "하드웨어",
     newHardware: "하드웨어 등록",
     deviceType: "장비 유형",
+    deviceMgmtCollapsed: "기기관리 (이 장비 유형 비해당 — 펼쳐서 보기)",
     manufacturer: "제조사",
     model: "모델",
     serialNumber: "시리얼 번호",

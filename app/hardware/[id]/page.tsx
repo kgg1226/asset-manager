@@ -11,6 +11,7 @@ import CiaScoreDisplay from "@/app/_components/cia-score-display";
 import LifecycleGauge from "@/app/_components/lifecycle-gauge";
 import EmployeePicker from "@/app/_components/employee-picker";
 import DeviceCompliancePanel from "./device-compliance-panel";
+import { resolveDeviceGroup, isFieldVisible } from "@/lib/hardware-device-types";
 
 type AssetStatus = "IN_STOCK" | "IN_USE" | "INACTIVE" | "UNUSABLE" | "PENDING_DISPOSAL" | "DISPOSED";
 
@@ -201,6 +202,8 @@ export default function HardwareDetailPage() {
   const fmtCost = (v: number | null | undefined) => v != null ? `${syms[asset.currency] ?? asset.currency}${v.toLocaleString()}` : "—";
   const hd = asset.hardwareDetail;
   const deviceType = hd?.deviceType ?? "";
+  // 장비 유형군 (dev-065) — 기기관리 패널 조건 표시용. 표시 행들은 값 존재 기반이라 추가 게이팅 불요.
+  const deviceGroup = resolveDeviceGroup(deviceType);
 
   // Status button visibility
   const canMarkUnusable = isAdmin && ["IN_STOCK", "IN_USE", "INACTIVE"].includes(asset.status);
@@ -411,11 +414,22 @@ export default function HardwareDetailPage() {
         {/* 보안 등급 (CIA) */}
         <CiaScoreDisplay ciaC={asset.ciaC as 1 | 2 | 3 | null ?? null} ciaI={asset.ciaI as 1 | 2 | 3 | null ?? null} ciaA={asset.ciaA as 1 | 2 | 3 | null ?? null} />
 
-        {/* 기기 관리/컴플라이언스 (MDM-lite) — ADMIN 전용 */}
+        {/* 기기 관리/컴플라이언스 (MDM-lite) — ADMIN 전용.
+            엔드포인트 군(노트북/데스크탑/모바일)만 기본 노출, 그 외 유형은 접힘(제거 아님 —
+            이미 관리 지정된 장비 접근 보존, dev-065) */}
         {isAdmin && (
-          <div className="mt-6">
-            <DeviceCompliancePanel assetId={Number(assetId)} isAdmin={isAdmin} />
-          </div>
+          isFieldVisible(deviceGroup, "compliancePanel") ? (
+            <div className="mt-6">
+              <DeviceCompliancePanel assetId={Number(assetId)} isAdmin={isAdmin} />
+            </div>
+          ) : (
+            <details className="mt-6 rounded-lg border border-gray-200 bg-gray-50">
+              <summary className="cursor-pointer px-4 py-2 text-sm text-gray-500">{t.hw.deviceMgmtCollapsed}</summary>
+              <div className="p-2">
+                <DeviceCompliancePanel assetId={Number(assetId)} isAdmin={isAdmin} />
+              </div>
+            </details>
+          )
         )}
 
         {/* 감가상각 */}
