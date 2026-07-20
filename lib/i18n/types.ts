@@ -1422,6 +1422,9 @@ export type TranslationDict = {
     piiDestructionCheck2: string;
     piiDestructionCheck3: string;
     piiStageAssetCount: string;
+    piiLaneSubject: string;
+    piiLaneInternal: string;
+    piiLaneExternal: string;
     animateEdgesOn: string;
     animateEdgesOff: string;
     exportPdf: string;
@@ -1640,6 +1643,7 @@ export type TranslationDict = {
     description: string;
     contactInfo: string;
     typeTrustee: string;
+    typeDataSubject: string;
     typePartner: string;
     typeGovernment: string;
     typeOther: string;

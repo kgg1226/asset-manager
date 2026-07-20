@@ -6,7 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit-log";
 
-const ENTITY_TYPES = ["TRUSTEE", "PARTNER", "GOVERNMENT", "OTHER"] as const;
+// DATA_SUBJECT: ISMS-P 개인정보 흐름도의 정보주체(수집 출발점) — dev-066
+const ENTITY_TYPES = ["TRUSTEE", "PARTNER", "GOVERNMENT", "DATA_SUBJECT", "OTHER"] as const;
 
 // ── GET /api/external-entities — 외부 엔티티 목록 조회 ──
 
