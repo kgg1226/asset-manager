@@ -20,6 +20,7 @@ interface ExternalEntity {
 
 const TYPE_COLORS: Record<string, string> = {
   TRUSTEE: "bg-blue-100 text-blue-700",
+  DATA_SUBJECT: "bg-teal-100 text-teal-700",
   PARTNER: "bg-green-100 text-green-700",
   GOVERNMENT: "bg-purple-100 text-purple-700",
   OTHER: "bg-gray-100 text-gray-700",
@@ -59,6 +60,7 @@ export default function ExternalEntityListPage() {
   const getTypeLabel = (type: string) => {
     const map: Record<string, string> = {
       TRUSTEE: t.externalEntity.typeTrustee,
+      DATA_SUBJECT: t.externalEntity.typeDataSubject,
       PARTNER: t.externalEntity.typePartner,
       GOVERNMENT: t.externalEntity.typeGovernment,
       OTHER: t.externalEntity.typeOther,
@@ -117,7 +119,7 @@ export default function ExternalEntityListPage() {
             />
           </div>
           <div className="flex gap-1">
-            {["", "TRUSTEE", "PARTNER", "GOVERNMENT", "OTHER"].map((type) => (
+            {["", "TRUSTEE", "PARTNER", "GOVERNMENT", "DATA_SUBJECT", "OTHER"].map((type) => (
               <button
                 key={type}
                 onClick={() => setFilterType(type)}

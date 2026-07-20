@@ -7,7 +7,7 @@ import { ArrowLeft, Save } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { toast } from "sonner";
 
-const TYPES = ["TRUSTEE", "PARTNER", "GOVERNMENT", "OTHER"] as const;
+const TYPES = ["TRUSTEE", "PARTNER", "GOVERNMENT", "DATA_SUBJECT", "OTHER"] as const;
 
 export default function ExternalEntityNewPage() {
   const { t } = useTranslation();

@@ -623,11 +623,33 @@ function PiiStageLabelComponent({ data }: { data: Record<string, unknown> }) {
   );
 }
 
+// 처리 주체 레인 헤더 (dev-066) — PII 흐름도의 세로 스윔레인 열 제목
+function PiiLaneLabelComponent({ data }: { data: Record<string, unknown> }) {
+  const label = data.label as string;
+  const laneWidth = (data.laneWidth as number) || 240;
+  const laneKey = (data.laneKey as string) || "INTERNAL";
+  // 정보주체=teal, 내부=slate, 수탁·제3자=amber — 단계(행) 색과 겹치지 않는 계열
+  const TONE: Record<string, string> = {
+    SUBJECT: "border-teal-300 bg-teal-50 text-teal-800",
+    INTERNAL: "border-slate-300 bg-slate-50 text-slate-700",
+    EXTERNAL: "border-amber-300 bg-amber-50 text-amber-800",
+  };
+  return (
+    <div
+      className={`rounded-lg border-2 border-dashed px-3 py-2 text-center text-sm font-bold shadow-sm ${TONE[laneKey] ?? TONE.INTERNAL}`}
+      style={{ width: laneWidth }}
+    >
+      {label}
+    </div>
+  );
+}
+
 const nodeTypes = {
   asset: AssetNodeComponent,
   externalEntity: ExternalEntityNodeComponent,
   assetGroup: GroupNodeComponent,
   piiStageLabel: PiiStageLabelComponent,
+  piiLaneLabel: PiiLaneLabelComponent,
   section: SectionNodeComponent,
 };
 
@@ -751,11 +773,11 @@ const NODE_HEIGHT = 130;
 
 function getLayoutedElements(nodes: Node[], edges: Edge[]) {
   const sectionNodes = nodes.filter((n) => n.type === "section");
-  const otherNodes = nodes.filter((n) => n.type === "assetGroup" || n.type === "piiStageLabel");
+  const otherNodes = nodes.filter((n) => n.type === "assetGroup" || n.type === "piiStageLabel" || n.type === "piiLaneLabel");
 
   // Separate free nodes vs section children
   const freeNodes = nodes.filter((n) =>
-    n.type !== "assetGroup" && n.type !== "piiStageLabel" && n.type !== "section" && !n.parentId
+    n.type !== "assetGroup" && n.type !== "piiStageLabel" && n.type !== "piiLaneLabel" && n.type !== "section" && !n.parentId
   );
   const childNodes = nodes.filter((n) => !!n.parentId);
 
@@ -880,7 +902,7 @@ function getPiiLifecycleLayout(
 
   const stageAssignments: Map<string, number> = new Map();
   const contentNodes = nodes.filter(
-    (n) => n.type !== "assetGroup" && n.type !== "piiStageLabel" && n.type !== "section"
+    (n) => n.type !== "assetGroup" && n.type !== "piiStageLabel" && n.type !== "piiLaneLabel" && n.type !== "section"
   );
   const otherNodes = nodes.filter(
     (n) => n.type === "assetGroup"
@@ -928,7 +950,51 @@ function getPiiLifecycleLayout(
   const COL_WIDTH = 260;
   const LABEL_WIDTH = 220;
   const START_X = LABEL_WIDTH + 40;
-  const START_Y = 40;
+  const LANE_HEADER_Y = 30;
+  const START_Y = 130; // 레인 헤더 공간 확보 (dev-066)
+  const LANE_GAP = 48;
+
+  // ── 처리 주체 레인(세로 스윔레인) — ISMS-P 흐름도의 열 축 (dev-066) ──
+  // 행=생명주기 단계(수집/저장/이용·제공/파기) × 열=처리 주체 의 2차원 격자를 만든다.
+  // 표준 흐름도가 읽히는 이유가 이 격자다 — 기존엔 행만 있어 "점과 선의 뭉치"로 남았다.
+  const PII_LANES: { key: string; label: string }[] = [
+    { key: "SUBJECT", label: t.assetMap.piiLaneSubject },
+    { key: "INTERNAL", label: t.assetMap.piiLaneInternal },
+    { key: "EXTERNAL", label: t.assetMap.piiLaneExternal },
+  ];
+  // 정보주체(외부조직 유형 DATA_SUBJECT) → 0열, 수탁·제3자 등 그 외 외부조직 → 2열, 자산 → 1열
+  const laneOf = (data: Record<string, unknown>): number => {
+    if (data.isExternalEntity === true) {
+      return (data.entityType as string) === "DATA_SUBJECT" ? 0 : 2;
+    }
+    return 1;
+  };
+
+  // 셀([단계][레인])별 노드 배분 → 레인 폭은 그 레인의 최대 셀 밀도로 결정
+  const cells: string[][][] = stages.map(() => PII_LANES.map(() => [] as string[]));
+  contentNodes.forEach((node) => {
+    const si = stageAssignments.get(node.id) ?? 2;
+    const li = laneOf(node.data as Record<string, unknown>);
+    cells[si][li].push(node.id);
+  });
+  const laneCols = PII_LANES.map((_, li) =>
+    Math.max(1, ...stages.map((_, si) => cells[si][li].length)),
+  );
+  const laneX: number[] = [];
+  let accX = START_X;
+  laneCols.forEach((c, i) => {
+    laneX[i] = accX;
+    accX += c * COL_WIDTH + LANE_GAP;
+  });
+
+  const laneLabelNodes: Node[] = PII_LANES.map((lane, i) => ({
+    id: `pii-lane-${lane.key}`,
+    type: "piiLaneLabel",
+    position: { x: laneX[i], y: LANE_HEADER_Y },
+    data: { label: lane.label, laneWidth: laneCols[i] * COL_WIDTH - 16, laneKey: lane.key },
+    draggable: false,
+    selectable: false,
+  }));
 
   // 단계별 메타 (의의/체크리스트/색상)
   const STAGE_META = [
@@ -996,16 +1062,18 @@ function getPiiLifecycleLayout(
   // Position content nodes by stage row.
   // 단계 행은 절대좌표 — 섹션 소속(parentId/extent)을 해제해야 부모 상대좌표로
   // 어긋나지 않는다(섹션을 되살렸으므로 필수, dev-039).
-  const stageCounters = [0, 0, 0, 0];
+  // 셀([단계][레인]) 내부 순번으로 가로 배치 — 행×열 격자 (dev-066)
+  const cellCursors: number[][] = stages.map(() => PII_LANES.map(() => 0));
   const layoutedContentNodes = contentNodes.map((node) => {
     const stageIdx = stageAssignments.get(node.id) ?? 2;
-    const colIdx = stageCounters[stageIdx]++;
+    const laneIdx = laneOf(node.data as Record<string, unknown>);
+    const colIdx = cellCursors[stageIdx][laneIdx]++;
     const { parentId: _parentId, extent: _extent, ...rest } = node;
     void _parentId; void _extent;
     return {
       ...rest,
       position: {
-        x: START_X + colIdx * COL_WIDTH,
+        x: laneX[laneIdx] + colIdx * COL_WIDTH,
         y: START_Y + stageIdx * ROW_HEIGHT,
       },
     };
@@ -1013,7 +1081,7 @@ function getPiiLifecycleLayout(
 
   // 섹션을 맨 앞(배경 z-order)에 두어 자산 노드를 가리지 않게 한다
   return {
-    nodes: [...sectionNodes, ...stageLabelNodes, ...otherNodes, ...layoutedContentNodes],
+    nodes: [...sectionNodes, ...laneLabelNodes, ...stageLabelNodes, ...otherNodes, ...layoutedContentNodes],
     edges,
   };
 }
@@ -2292,7 +2360,7 @@ function AssetMapContentInner() {
       const sectionData: SectionDataItem[] = [];
 
       for (const n of currentNodes) {
-        if (n.type === "piiStageLabel") continue;
+        if (n.type === "piiStageLabel" || n.type === "piiLaneLabel") continue;
         if (n.type === "section") {
           sectionData.push({
             id: n.id,
@@ -2404,7 +2472,7 @@ function AssetMapContentInner() {
         const nodePositions: Record<string, { x: number; y: number }> = {};
         const sectionData: SectionDataItem[] = [];
         for (const n of currentNodes) {
-          if (n.type === "piiStageLabel") continue;
+          if (n.type === "piiStageLabel" || n.type === "piiLaneLabel") continue;
           if (n.type === "section") {
             sectionData.push({
               id: n.id, name: (n.data?.label as string) || "",
@@ -3265,7 +3333,7 @@ function AssetMapContentInner() {
   }, [nodes, setNodes]);
 
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
-    if (node.type === "assetGroup" || node.type === "piiStageLabel" || node.type === "section") return;
+    if (node.type === "assetGroup" || node.type === "piiStageLabel" || node.type === "piiLaneLabel" || node.type === "section") return;
     setSelectedNode({
       id: node.id,
       type: node.type || "asset",
@@ -3942,7 +4010,7 @@ function AssetMapContentInner() {
   async function handleSaveView(name: string) {
     const nodePositions: Record<string, { x: number; y: number }> = {};
     nodes.forEach((node) => {
-      if (node.type !== "piiStageLabel") {
+      if (node.type !== "piiStageLabel" && node.type !== "piiLaneLabel") {
         nodePositions[node.id] = { x: node.position.x, y: node.position.y };
       }
     });
@@ -4886,7 +4954,7 @@ function AssetMapContentInner() {
                 if (node.type === "assetGroup") {
                   return (node.data?.groupColor as string) || "#E5E7EB";
                 }
-                if (node.type === "piiStageLabel") {
+                if (node.type === "piiStageLabel" || node.type === "piiLaneLabel") {
                   return "#6366F1";
                 }
                 if (node.type === "section") {
