@@ -2324,6 +2324,9 @@ function AssetMapContentInner() {
 
   // ── Gallery / Canvas view state ──
   const [currentView, setCurrentView] = useState<"gallery" | "canvas">("gallery");
+  // ?focus=<assetId> 진입 상태 (dev-067) — 그래프 로드 후 해당 노드로 이동·강조
+  const [pendingFocusId, setPendingFocusId] = useState<number | null>(null);
+  const [focusNotFound, setFocusNotFound] = useState(false);
   const [showNewWsModal, setShowNewWsModal] = useState(false);
   const [showAssetPalette, setShowAssetPalette] = useState(false);
   const [showEntityPalette, setShowEntityPalette] = useState(false);
@@ -2729,6 +2732,32 @@ function AssetMapContentInner() {
       setWorkspaces(views);
       setSavedViews(views);
 
+      // ?focus=<assetId> 진입 (dev-067) — 검색·자산 상세의 "자산지도에서 보기".
+      // 그 자산이 배치된 페이지를 찾아 열고(없으면 갤러리 유지), 렌더 후 노드를 중앙 정렬·강조한다.
+      // localStorage 복원보다 우선 — 사용자가 방금 지정한 의도이므로.
+      const focusRaw = new URLSearchParams(window.location.search).get("focus");
+      const focusId = focusRaw && /^\d+$/.test(focusRaw) ? Number(focusRaw) : null;
+      if (focusId != null) {
+        const hasAsset = (v: SavedView) => {
+          const raw = v.nodePositions;
+          if (!raw) return false;
+          const obj = typeof raw === "string"
+            ? (() => { try { return JSON.parse(raw); } catch { return null; } })()
+            : (raw as Record<string, unknown>);
+          return !!obj && Object.prototype.hasOwnProperty.call(obj, String(focusId));
+        };
+        // 기본 페이지 우선, 없으면 최근 접근 순
+        const target = views.find((v) => v.isDefault && hasAsset(v)) ?? views.find(hasAsset);
+        if (target) {
+          setActiveWorkspace(target);
+          setCurrentView("canvas");
+          setPendingFocusId(focusId);
+          fetch(`/api/asset-map/views/${target.id}/touch`, { method: "PATCH" }).catch(() => {});
+          return; // localStorage 복원 건너뜀
+        }
+        setFocusNotFound(true); // 어느 페이지에도 미배치 — 갤러리에서 안내
+      }
+
       // 새로고침 후 마지막 활성 페이지 자동 복원 (localStorage)
       try {
         const lastIdRaw = localStorage.getItem("asset-map-active-workspace-id");
@@ -2746,6 +2775,26 @@ function AssetMapContentInner() {
     init();
     fetchFolders();
   }, [fetchFolders]);
+
+  // ?focus 대상 노드로 이동·강조 (dev-067) — 그래프 로드 완료 후 1회.
+  // 복원 effect(setViewport)와 경합하지 않도록 loading 종료 + 노드 존재를 확인한 뒤 실행하고,
+  // 실행 즉시 pendingFocusId 를 비워 재발화를 막는다.
+  useEffect(() => {
+    if (loading || pendingFocusId == null) return;
+    const target = reactFlowInstance.getNodes().find((n) => n.id === String(pendingFocusId));
+    if (!target) return;
+    const id = String(pendingFocusId);
+    setPendingFocusId(null);
+    // 복원 뷰포트 적용 뒤에 실행되도록 다음 프레임으로 미룸
+    requestAnimationFrame(() => {
+      const w = (target.measured?.width ?? target.width ?? 200) / 2;
+      const h = (target.measured?.height ?? target.height ?? 80) / 2;
+      reactFlowInstance.setCenter(target.position.x + w, target.position.y + h, { zoom: 1.2, duration: 600 });
+      setNodes((prev) => prev.map((n) => (n.id === id ? { ...n, selected: true } : { ...n, selected: false })));
+      const found = reactFlowInstance.getNodes().find((n) => n.id === id);
+      if (found) setSelectedNode({ id, type: found.type || "asset", data: found.data as Record<string, unknown> });
+    });
+  }, [loading, pendingFocusId, reactFlowInstance, setNodes]);
 
   // ── activeWorkspace 변경 시 localStorage 동기화 (새로고침 복원용) ──
   // 마운트 첫 실행은 건너뜀 (dev-063): 초기 null 상태에서 removeItem 하면, 비동기 init() 이
@@ -4247,6 +4296,16 @@ function AssetMapContentInner() {
                   <X className="h-4 w-4" />
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* ?focus 대상이 어느 페이지에도 미배치 (dev-067) — 팔레트에서 추가하도록 안내 */}
+          {focusNotFound && (
+            <div className="mb-4 flex items-start justify-between gap-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+              <p className="text-sm text-amber-800">{t.assetMap.focusNotPlaced}</p>
+              <button onClick={() => setFocusNotFound(false)} className="text-amber-400 hover:text-amber-600">
+                <X className="h-4 w-4" />
+              </button>
             </div>
           )}
 

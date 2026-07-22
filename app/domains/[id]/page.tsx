@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Edit, Trash2, AlertCircle } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, AlertCircle, Network } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
@@ -165,6 +165,7 @@ export default function DomainDetailPage() {
 
         {isAdmin && (
           <div className="flex gap-3">
+            <Link href={`/asset-map?focus=${asset.id}`} className="flex items-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50" title={t.assetMap.viewInMapHint}><Network className="h-4 w-4" />{t.assetMap.viewInMap}</Link>
             <Link href={`/domains/${asset.id}/edit`} className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"><Edit className="h-4 w-4" />{t.common.edit}</Link>
             <button onClick={() => setShowStatusModal(true)} className="flex-1 rounded-md border border-blue-300 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50">{t.common.status}</button>
             <button onClick={() => setShowDeleteModal(true)} className="flex items-center gap-2 rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" />{t.common.delete}</button>

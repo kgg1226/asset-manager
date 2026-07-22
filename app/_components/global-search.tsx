@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Search, FileText, HardDrive, Users, Cloud, Globe, FileSignature, Package, X, Command, Building2 } from "lucide-react";
+import { Search, FileText, HardDrive, Users, Cloud, Globe, FileSignature, Package, X, Command, Building2, Network } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 
 interface SearchResult {
@@ -205,19 +205,31 @@ export default function GlobalSearch() {
                   const meta = ASSET_TYPE_META[a.type] ?? ASSET_TYPE_META.OTHER;
                   const flatIdx = results.licenses.length + idx;
                   return (
-                    <button
+                    <div
                       key={`a-${a.id}`}
-                      onClick={() => navigate(`${meta.path}/${a.id}`)}
-                      className={`flex w-full items-center gap-3 px-4 py-2 text-left text-sm ${isModal && activeIndex === flatIdx ? "bg-blue-50" : "hover:bg-gray-50"}`}
+                      className={`flex w-full items-center gap-1 ${isModal && activeIndex === flatIdx ? "bg-blue-50" : "hover:bg-gray-50"}`}
                     >
-                      <span className="shrink-0 text-green-500">{meta.icon}</span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium text-gray-900">{a.name}</p>
-                        <p className="truncate text-xs text-gray-500">
-                          {a.vendor ? `${a.vendor} · ` : ""}{meta.label}
-                        </p>
-                      </div>
-                    </button>
+                      <button
+                        onClick={() => navigate(`${meta.path}/${a.id}`)}
+                        className="flex min-w-0 flex-1 items-center gap-3 px-4 py-2 text-left text-sm"
+                      >
+                        <span className="shrink-0 text-green-500">{meta.icon}</span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium text-gray-900">{a.name}</p>
+                          <p className="truncate text-xs text-gray-500">
+                            {a.vendor ? `${a.vendor} · ` : ""}{meta.label}
+                          </p>
+                        </div>
+                      </button>
+                      {/* 검색 → 그래프 진입 (dev-067) — 상세로 가는 기존 클릭은 그대로 두고 별도 버튼 */}
+                      <button
+                        onClick={() => navigate(`/asset-map?focus=${a.id}`)}
+                        title={t.assetMap.viewInMap}
+                        className="mr-2 shrink-0 rounded p-1.5 text-gray-300 hover:bg-gray-100 hover:text-blue-600"
+                      >
+                        <Network className="h-4 w-4" />
+                      </button>
+                    </div>
                   );
                 })}
               </div>

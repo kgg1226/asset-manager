@@ -1422,6 +1422,9 @@ export type TranslationDict = {
     piiDestructionCheck2: string;
     piiDestructionCheck3: string;
     piiStageAssetCount: string;
+    viewInMap: string;
+    viewInMapHint: string;
+    focusNotPlaced: string;
     piiLaneSubject: string;
     piiLaneInternal: string;
     piiLaneExternal: string;
